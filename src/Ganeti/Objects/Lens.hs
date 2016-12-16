@@ -86,15 +86,6 @@ $(makeCustomLenses ''PartialNic)
 
 $(makeCustomLenses ''Disk)
 
-instance TimeStampObjectL Disk where
-  mTimeL = diskMtimeL
-
-instance UuidObjectL Disk where
-  uuidL = diskUuidL . stringL
-
-instance SerialNoObjectL Disk where
-  serialL = diskSerialL
-
 $(makeCustomLenses ''Instance)
 
 instance TimeStampObjectL Instance where

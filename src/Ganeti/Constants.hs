@@ -49,7 +49,6 @@ import Control.Arrow ((***),(&&&))
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
-import Data.Monoid
 
 import qualified AutoConf
 import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
@@ -69,7 +68,6 @@ import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
                            ConfdReplyStatus(..), ConfdNodeRole(..),
                            ConfdErrorType(..))
 import qualified Ganeti.Confd.Types as Types
-import qualified Ganeti.HTools.Tags.Constants as Tags
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -1697,12 +1695,6 @@ hvKvmPath = "kvm_path"
 hvKvmDiskAio :: String
 hvKvmDiskAio = "disk_aio"
 
-hvKvmScsiControllerType :: String
-hvKvmScsiControllerType = "scsi_controller_type"
-
-hvKvmPciReservations :: String
-hvKvmPciReservations = "kvm_pci_reservations"
-
 hvKvmSpiceAudioCompr :: String
 hvKvmSpiceAudioCompr = "spice_playback_compression"
 
@@ -1909,8 +1901,6 @@ hvsParameterTypes = Map.fromList
   , (hvKvmMigrationCaps,                VTypeString)
   , (hvKvmPath,                         VTypeString)
   , (hvKvmDiskAio,                      VTypeString)
-  , (hvKvmScsiControllerType,           VTypeString)
-  , (hvKvmPciReservations,              VTypeInt)
   , (hvKvmSpiceAudioCompr,              VTypeBool)
   , (hvKvmSpiceBind,                    VTypeString)
   , (hvKvmSpiceIpVersion,               VTypeInt)
@@ -2651,12 +2641,6 @@ vncBasePort = 5900
 vncDefaultBindAddress :: String
 vncDefaultBindAddress = ip4AddressAny
 
-qemuPciSlots :: Int
-qemuPciSlots = 32
-
-qemuDefaultPciReservations :: Int
-qemuDefaultPciReservations = 12
-
 -- * NIC types
 
 htNicE1000 :: String
@@ -2741,25 +2725,6 @@ htDiskScsi = "scsi"
 htDiskSd :: String
 htDiskSd = "sd"
 
-htDiskScsiGeneric :: String
-htDiskScsiGeneric = "scsi-generic"
-
-htDiskScsiBlock :: String
-htDiskScsiBlock = "scsi-block"
-
-htDiskScsiCd :: String
-htDiskScsiCd = "scsi-cd"
-
-htDiskScsiHd :: String
-htDiskScsiHd = "scsi-hd"
-
-htScsiDeviceTypes :: FrozenSet String
-htScsiDeviceTypes =
-  ConstantUtils.mkSet [htDiskScsiGeneric,
-                       htDiskScsiBlock,
-                       htDiskScsiCd,
-                       htDiskScsiHd]
-
 htHvmValidDiskTypes :: FrozenSet String
 htHvmValidDiskTypes = ConstantUtils.mkSet [htDiskIoemu, htDiskParavirtual]
 
@@ -2770,28 +2735,7 @@ htKvmValidDiskTypes =
                        htDiskParavirtual,
                        htDiskPflash,
                        htDiskScsi,
-                       htDiskSd,
-                       htDiskScsiGeneric,
-                       htDiskScsiBlock,
-                       htDiskScsiHd,
-                       htDiskScsiCd]
-
--- * SCSI controller types
-
-htScsiControllerLsi :: String
-htScsiControllerLsi = "lsi"
-
-htScsiControllerVirtio :: String
-htScsiControllerVirtio = "virtio-scsi-pci"
-
-htScsiControllerMegasas :: String
-htScsiControllerMegasas = "megasas"
-
-htKvmValidScsiControllerTypes :: FrozenSet String
-htKvmValidScsiControllerTypes =
-  ConstantUtils.mkSet [htScsiControllerLsi,
-                       htScsiControllerVirtio,
-                       htScsiControllerMegasas]
+                       htDiskSd]
 
 htCacheDefault :: String
 htCacheDefault = "default"
@@ -3145,12 +3089,6 @@ cvEnoden1 =
    Types.cVErrorCodeToRaw CvENODEN1,
    "Not enough memory to accommodate instance failovers")
 
-cvEextags :: (String, String, String)
-cvEextags =
-  ("node",
-   Types.cVErrorCodeToRaw CvEEXTAGS,
-   "Instances with same exclusion tag on the same node")
-
 cvEnodenet :: (String, String, String)
 cvEnodenet =
   ("node",
@@ -3470,10 +3408,6 @@ validIallocatorDirections =
 
 iallocatorModeAlloc :: String
 iallocatorModeAlloc = Types.iAllocatorModeToRaw IAllocatorAlloc
-
-iallocatorModeAllocateSecondary :: String
-iallocatorModeAllocateSecondary =
-  Types.iAllocatorModeToRaw IAllocatorAllocateSecondary
 
 iallocatorModeChgGroup :: String
 iallocatorModeChgGroup = Types.iAllocatorModeToRaw IAllocatorChangeGroup
@@ -3970,41 +3904,6 @@ ssEnabledUserShutdown = "enabled_user_shutdown"
 ssSshPorts :: String
 ssSshPorts = "ssh_ports"
 
-validSsKeys :: FrozenSet String
-validSsKeys = ConstantUtils.mkSet
-  [ ssClusterName
-  , ssClusterTags
-  , ssFileStorageDir
-  , ssSharedFileStorageDir
-  , ssGlusterStorageDir
-  , ssMasterCandidates
-  , ssMasterCandidatesIps
-  , ssMasterCandidatesCerts
-  , ssMasterIp
-  , ssMasterNetdev
-  , ssMasterNetmask
-  , ssMasterNode
-  , ssNodeList
-  , ssNodePrimaryIps
-  , ssNodeSecondaryIps
-  , ssNodeVmCapable
-  , ssOfflineNodes
-  , ssOnlineNodes
-  , ssPrimaryIpFamily
-  , ssInstanceList
-  , ssReleaseVersion
-  , ssHypervisorList
-  , ssMaintainNodeHealth
-  , ssUidPool
-  , ssNodegroups
-  , ssNetworks
-  , ssEnabledUserShutdown
-  , ssSshPorts
-  ]
-  <>
-  validSsHvparamsKeys
-
-
 -- | Cluster wide default parameters
 defaultEnabledHypervisor :: String
 defaultEnabledHypervisor = htXenPvm
@@ -4072,8 +3971,6 @@ hvcDefaults =
           , (hvVncX509,                         PyValueEx "")
           , (hvVncX509Verify,                   PyValueEx False)
           , (hvVncPasswordFile,                 PyValueEx "")
-          , (hvKvmScsiControllerType,           PyValueEx htScsiControllerLsi)
-          , (hvKvmPciReservations,         PyValueEx qemuDefaultPciReservations)
           , (hvKvmSpiceBind,                    PyValueEx "")
           , (hvKvmSpiceIpVersion,           PyValueEx ifaceNoIpVersionSpecified)
           , (hvKvmSpicePasswordFile,            PyValueEx "")
@@ -4685,13 +4582,13 @@ cryptoOptionSerialNo = "serial_no"
 -- * SSH key types
 
 sshkDsa :: String
-sshkDsa = Types.sshKeyTypeToRaw DSA
+sshkDsa = "dsa"
 
 sshkEcdsa :: String
-sshkEcdsa = Types.sshKeyTypeToRaw ECDSA
+sshkEcdsa = "ecdsa"
 
 sshkRsa :: String
-sshkRsa = Types.sshKeyTypeToRaw RSA
+sshkRsa = "rsa"
 
 sshkAll :: FrozenSet String
 sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa, sshkEcdsa]
@@ -4706,15 +4603,6 @@ sshakRsa = "ssh-rsa"
 
 sshakAll :: FrozenSet String
 sshakAll = ConstantUtils.mkSet [sshakDss, sshakRsa]
-
--- * SSH key default values
--- Document the change in gnt-cluster.rst when changing these
-
-sshDefaultKeyType :: String
-sshDefaultKeyType = sshkRsa
-
-sshDefaultKeyBits :: Int
-sshDefaultKeyBits = 2048
 
 -- * SSH setup
 
@@ -4735,12 +4623,6 @@ sshsSshPublicKeys = "public_keys"
 
 sshsNodeDaemonCertificate :: String
 sshsNodeDaemonCertificate = "node_daemon_certificate"
-
-sshsSshKeyType :: String
-sshsSshKeyType = "ssh_key_type"
-
-sshsSshKeyBits :: String
-sshsSshKeyBits = "ssh_key_bits"
 
 -- Number of maximum retries when contacting nodes per SSH
 -- during SSH update operations.
@@ -5164,10 +5046,10 @@ luxiReqAll =
   ]
 
 luxiDefCtmo :: Int
-luxiDefCtmo = 30
+luxiDefCtmo = 10
 
 luxiDefRwto :: Int
-luxiDefRwto = 180
+luxiDefRwto = 60
 
 -- | Luxi 'WaitForJobChange' timeout
 luxiWfjcTimeout :: Int
@@ -5404,10 +5286,6 @@ debugModeConfidentialityWarning =
   "ALERT: %s started in debug mode.\n\
   \ Private and secret parameters WILL be logged!\n"
 
--- | Use to hide secret parameter value
-redacted :: String
-redacted = Types.redacted
-
 -- * Stat dictionary entries
 --
 -- The get_file_info RPC returns a number of values as a dictionary, and the
@@ -5490,11 +5368,6 @@ dataCollectorsEnabledName = "enabled_data_collectors"
 
 dataCollectorsIntervalName :: String
 dataCollectorsIntervalName = "data_collector_interval"
-
--- * HTools tag prefixes
-
-exTagsPrefix :: String
-exTagsPrefix = Tags.exTagsPrefix
 
 -- | The polling frequency to wait for a job status change
 cliWfjcFrequency :: Int

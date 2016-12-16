@@ -1005,7 +1005,7 @@ class TestQftNames(unittest.TestCase):
     self.assertEqual(frozenset(cli._QFT_NAMES), constants.QFT_ALL)
 
   def testUnique(self):
-    lcnames = [s.lower() for s in cli._QFT_NAMES.values()]
+    lcnames = map(lambda s: s.lower(), cli._QFT_NAMES.values())
     self.assertFalse(utils.FindDuplicates(lcnames))
 
   def testUppercase(self):

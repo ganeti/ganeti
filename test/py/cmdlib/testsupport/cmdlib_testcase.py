@@ -80,6 +80,9 @@ class GanetiContextMock(object):
   def AddNode(self, cfg, node, ec_id):
     cfg.AddNode(node, ec_id)
 
+  def ReaddNode(self, node):
+    pass
+
   def RemoveNode(self, cfg, node):
     cfg.RemoveNode(node.uuid)
 
@@ -230,7 +233,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     @return: A mock LU
 
     """
-    return MockLU(self.mcpu, mock.MagicMock(), self.cfg, self.rpc,
+    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.cfg, self.rpc,
                   (1234, "/tmp/mock/livelock"), self.wconfd)
 
   def RpcResultsBuilder(self, use_node_names=False):

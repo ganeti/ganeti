@@ -48,7 +48,6 @@ from bitarray import bitarray
 
 from ganeti import errors
 from ganeti import utils
-from ganeti import constants
 from ganeti import serializer
 
 
@@ -256,11 +255,7 @@ class QmpConnection(MonitorSocket):
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _QUERY_COMMANDS = "query-commands"
   _MESSAGE_END_TOKEN = "\r\n"
-  # List of valid attributes for the device_add QMP command.
-  # Extra attributes found in device's hvinfo will be ignored.
-  _DEVICE_ATTRIBUTES = [
-    "driver", "id", "bus", "addr", "channel", "scsi-id", "lun"
-    ]
+  _QEMU_PCI_SLOTS = 32 # The number of PCI slots QEMU exposes by default
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
@@ -464,15 +459,6 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
-  def _filter_hvinfo(self, hvinfo):
-    """Filter non valid keys of the device's hvinfo (if any)."""
-    ret = {}
-    for k in self._DEVICE_ATTRIBUTES:
-      if k in hvinfo:
-        ret[k] = hvinfo[k]
-
-    return ret
-
   @_ensure_connection
   def HotAddNic(self, nic, devid, tapfds=None, vhostfds=None, features=None):
     """Hot-add a NIC
@@ -515,12 +501,13 @@ class QmpConnection(MonitorSocket):
     self.Execute("netdev_add", arguments)
 
     arguments = {
+      "driver": "virtio-net-pci",
+      "id": devid,
+      "bus": "pci.0",
+      "addr": hex(nic.pci),
       "netdev": devid,
       "mac": nic.mac,
     }
-    # Note that hvinfo that _GenerateDeviceHVInfo() creates
-    # sould include *only* the driver, id, bus, and addr keys
-    arguments.update(self._filter_hvinfo(nic.hvinfo))
     if enable_mq:
       arguments.update({
         "mq": "on",
@@ -537,13 +524,12 @@ class QmpConnection(MonitorSocket):
     self.Execute("netdev_del", {"id": devid})
 
   @_ensure_connection
-  def HotAddDisk(self, disk, devid, uri, drive_add_fn=None):
+  def HotAddDisk(self, disk, devid, uri):
     """Hot-add a disk
 
     Try opening the device to obtain a fd and pass it with SCM_RIGHTS. This
     will be omitted in case of userspace access mode (open will fail).
-    Then use blockdev-add QMP command or drive_add_fn() callback if any.
-    The add the guest device.
+    Then use blockdev-add and then device_add.
 
     """
     if os.path.exists(uri):
@@ -557,41 +543,28 @@ class QmpConnection(MonitorSocket):
       filename = uri
       fdset = None
 
-    # FIXME: Use blockdev-add/blockdev-del when properly implemented in QEMU.
-    # This is an ugly hack to work around QEMU commits 48f364dd and da2cf4e8:
-    #  * HMP's drive_del is not supported any more on a drive added
-    #    via QMP's blockdev-add
-    #  * Stay away from immature blockdev-add unless you want to help
-    #     with development.
-    # Using drive_add here must be done via a callback due to the fact that if
-    # a QMP connection terminates before a drive keeps a reference to the fd
-    # passed via the add-fd QMP command, then the fd gets closed and
-    # cannot be used later.
-    if drive_add_fn:
-      drive_add_fn(filename)
-    else:
-      arguments = {
-        "options": {
-          "driver": "raw",
-          "id": devid,
-          "file": {
-            "driver": "file",
-            "filename": filename,
-          }
+    arguments = {
+      "options": {
+        "driver": "raw",
+        "id": devid,
+        "file": {
+          "driver": "file",
+          "filename": filename,
         }
       }
-      self.Execute("blockdev-add", arguments)
+    }
+    self.Execute("blockdev-add", arguments)
 
     if fdset is not None:
       self._RemoveFdset(fdset)
 
     arguments = {
+      "driver": "virtio-blk-pci",
+      "id": devid,
+      "bus": "pci.0",
+      "addr": hex(disk.pci),
       "drive": devid,
     }
-    # Note that hvinfo that _GenerateDeviceHVInfo() creates
-    # sould include *only* the driver, id, bus, and
-    # addr or channel, scsi-id, and lun keys
-    arguments.update(self._filter_hvinfo(disk.hvinfo))
     self.Execute("device_add", arguments)
 
   @_ensure_connection
@@ -616,51 +589,17 @@ class QmpConnection(MonitorSocket):
     devices = bus["devices"]
     return devices
 
-  def _HasPCIDevice(self, devid):
-    """Check if a specific device ID exists on the PCI bus.
+  @_ensure_connection
+  def HasPCIDevice(self, device, devid):
+    """Check if a specific device exists or not on a running instance.
+
+    It will match the PCI slot of the device and the id currently
+    obtained by _GenerateDeviceKVMId().
 
     """
     for d in self._GetPCIDevices():
-      if d["qdev_id"] == devid:
+      if d["qdev_id"] == devid and d["slot"] == device.pci:
         return True
-
-    return False
-
-  def _GetBlockDevices(self):
-    """Get the block devices of a running instance.
-
-    The query-block QMP command returns a list of dictionaries
-    including information for each virtual disk. For example:
-
-    [{"device": "disk-049f140d", "inserted": {"file": ..., "image": ...}}]
-
-    @rtype: list of dicts
-    @return: Info about the virtual disks of the instance.
-
-    """
-    self._check_connection()
-    devices = self.Execute("query-block")
-    return devices
-
-  def _HasBlockDevice(self, devid):
-    """Check if a specific device ID exists among block devices.
-
-    """
-    for d in self._GetBlockDevices():
-      if d["device"] == devid:
-        return True
-
-    return False
-
-  @_ensure_connection
-  def HasDevice(self, devid):
-    """Check if a specific device exists or not on a running instance.
-
-    It first checks the PCI devices and then the block devices.
-
-    """
-    if (self._HasPCIDevice(devid) or self._HasBlockDevice(devid)):
-      return True
 
     return False
 
@@ -669,7 +608,7 @@ class QmpConnection(MonitorSocket):
     """Get the first available PCI slot of a running instance.
 
     """
-    slots = bitarray(constants.QEMU_PCI_SLOTS)
+    slots = bitarray(self._QEMU_PCI_SLOTS)
     slots.setall(False) # pylint: disable=E1101
     for d in self._GetPCIDevices():
       slot = d["slot"]

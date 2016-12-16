@@ -34,7 +34,6 @@
 
 import logging
 import errno
-import os
 import string # pylint: disable=W0402
 import shutil
 import time
@@ -149,7 +148,6 @@ def _ParseInstanceList(lines, include_node):
       raise errors.HypervisorError("Can't parse instance list,"
                                    " line: %s" % line)
     try:
-      # TODO: Cleanup this mess - introduce a namedtuple/dict/class
       data[1] = int(data[1])
       data[2] = int(data[2])
       data[3] = int(data[3])
@@ -168,26 +166,6 @@ def _ParseInstanceList(lines, include_node):
       result.append(data)
 
   return result
-
-
-def _InstanceDomID(info):
-  """Get instance domain ID from instance info tuple.
-  @type info: tuple
-  @param info: instance info as parsed by _ParseInstanceList()
-
-  @return: int, instance domain ID
-  """
-  return info[1]
-
-
-def _InstanceRuntime(info):
-  """Get instance runtime from instance info tuple.
-  @type info: tuple
-  @param info: instance info as parsed by _ParseInstanceList()
-
-  @return: float value of instance runtime
-  """
-  return info[5]
 
 
 def _GetAllInstanceList(fn, include_node, delays, timeout):
@@ -864,12 +842,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     instance_list = self._GetInstanceList(instance_name == _DOM0_NAME, hvparams)
-
+    result = None
     for data in instance_list:
       if data[0] == instance_name:
-        return data
-
-    return None
+        result = data
+        break
+    return result
 
   def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
@@ -897,39 +875,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     self._WriteConfigFile(instance.name, buf.getvalue())
 
-  def VerifyInstance(self, instance):
-    """Verify if running instance (configuration) is in correct state.
-
-    @type instance: L{objects.Instance}
-    @param instance: instance to verify
-
-    @return: bool, if instance in correct state
-    """
-    config_file = utils.PathJoin(self._cfgdir, "auto", instance.name)
-    return os.path.exists(config_file)
-
-  def RestoreInstance(self, instance, block_devices):
-    """Fixup running instance's state.
-
-    @type instance: L{objects.Instance}
-    @param instance: instance to restore
-    @type block_devices: list of tuples (disk_object, link_name, drive_uri)
-    @param block_devices: blockdevices assigned to this instance
-    """
-    startup_memory = self._InstanceStartupMemory(instance)
-    self._MakeConfigFile(instance, startup_memory, block_devices)
-
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
-    @type instance: L{objects.Instance}
-    @param instance: instance to start
-    @type block_devices: list of tuples (cfdev, rldev)
-      - cfdev: dict containing ganeti config disk part
-      - rldev: ganeti.block.bdev.BlockDev object
-    @param block_devices: blockdevices assigned to this instance
-    @type startup_paused: bool
-    @param startup_paused: if instance should be paused at startup
     """
     startup_memory = self._InstanceStartupMemory(instance)
 
@@ -984,16 +932,16 @@ class XenHypervisor(hv_base.BaseHypervisor):
                     or None for no timeout
 
     """
-    info = self.GetInstanceInfo(name, hvparams=hvparams)
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
 
-    if info is None or hv_base.HvInstanceState.IsShutdown(info[4]):
+    if instance_info is None or _IsInstanceShutdown(instance_info[4]):
       logging.info("Failed to shutdown instance %s, not running", name)
       return None
 
     return self._RunXen(["shutdown", "-w", name], hvparams, timeout)
 
   def _DestroyInstance(self, name, hvparams):
-    """Destroy an instance if the instance exists.
+    """Destroy an instance if the instance if the instance exists.
 
     @type name: string
     @param name: name of the instance to destroy
@@ -1025,19 +973,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    " destroyed" % name)
     else:
       self._DestroyInstance(name, hvparams)
-
-  def _RenameInstance(self, old_name, new_name, hvparams):
-    """Rename an instance (domain).
-
-    @type old_name: string
-    @param old_name: current name of the instance
-    @type new_name: string
-    @param new_name: future (requested) name of the instace
-    @type hvparams: dict of string
-    @param hvparams: hypervisor parameters of the instance
-
-    """
-    return self._RunXen(["rename", old_name, new_name], hvparams)
 
   def _StopInstance(self, name, force, hvparams, timeout):
     """Stop an instance.
@@ -1099,8 +1034,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
       # check if the domain ID has changed or the run time has decreased
       if (new_info is not None and
-          (_InstanceDomID(new_info) != _InstanceDomID(ini_info) or (
-              _InstanceRuntime(new_info) < _InstanceRuntime(ini_info)))):
+          (new_info[1] != ini_info[1] or new_info[5] < ini_info[5])):
         return
 
       raise utils.RetryAgain()
@@ -1274,39 +1208,24 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                      " on port %d: check if port is available" %
                                      port)
 
-  def FinalizeMigrationDst(self, instance, config, success):
+  def FinalizeMigrationDst(self, instance, info, success):
     """Finalize an instance migration.
 
-    Write a config file if the instance is running on the destination node
-    regardles if we think the migration succeeded or not. This will cover cases,
-    when the migration succeeded but due to a timeout on the source node we
-    think it failed. If we think the migration failed and there is an unstarted
-    domain, clean it up.
+    After a successful migration we write the xen config file.
+    We do nothing on a failure, as we did not change anything at accept time.
 
     @type instance: L{objects.Instance}
     @param instance: instance whose migration is being finalized
-    @type config: string
-    @param config: content of the xen config file from the source node
+    @type info: string
+    @param info: content of the xen config file on the source node
     @type success: boolean
-    @param success: whether the master node thinks the migration succeeded
+    @param success: whether the migration was a success or a failure
 
     """
-
-    # We should recreate the config file if the domain is present and running,
-    # regardless if we think the migration succeeded or not.
-    info = self.GetInstanceInfo(instance.name, hvparams=instance.hvparams)
-    if info and _InstanceRuntime(info) != 0:
-      self._WriteConfigFile(instance.name, config)
-
-    if not success:
-      if self._UseMigrationDaemon(instance.hvparams):
-        XenHypervisor._KillMigrationDaemon(instance)
-
-      # Fix the common failure when the domain was created but never started:
-      # this happens if the memory transfer didn't complete and the instance
-      # is running on the source node.
-      if info and _InstanceRuntime(info) == 0:
-        self._DestroyInstance(instance.name, instance.hvparams)
+    if success:
+      self._WriteConfigFile(instance.name, info)
+    elif self._UseMigrationDaemon(instance.hvparams):
+      XenHypervisor._KillMigrationDaemon(instance)
 
   def MigrateInstance(self, _cluster_name, instance, target, live):
     """Migrate an instance to a target node.
@@ -1372,39 +1291,24 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
                                    (instance_name, result.output))
 
-  def FinalizeMigrationSource(self, instance, success, _):
+  def FinalizeMigrationSource(self, instance, success, live):
     """Finalize the instance migration on the source node.
 
     @type instance: L{objects.Instance}
     @param instance: the instance that was migrated
     @type success: bool
-    @param success: whether the master thinks the migration succeeded
+    @param success: whether the migration succeeded or not
+    @type live: bool
+    @param live: whether the user requested a live migration or not
 
     """
     # pylint: disable=W0613
     if success:
-      # Remove old xen file after migration succeeded
-      # Note that _RemoveConfigFile silently succeeds if the file is already
-      # deleted, that makes this function idempotent
+      # remove old xen file after migration succeeded
       try:
         self._RemoveConfigFile(instance.name)
       except EnvironmentError:
         logging.exception("Failure while removing instance config file")
-    else:
-      # Cleanup the most common failure case when the source instance fails
-      # to freeze and remains running renamed:
-      # XM: renamed to 'migrating-${oldname}'
-      # XL: renamed to '${oldname}--migratedaway'
-
-      temp_name, info = None, None
-      for n in ['migrating-' + instance.name, instance.name + '--migratedaway']:
-        info = self.GetInstanceInfo(n, hvparams=instance.hvparams)
-        if info:
-          temp_name = n
-          break
-
-      if info:
-        self._RenameInstance(temp_name, instance.name, instance.hvparams)
 
   def GetMigrationStatus(self, instance):
     """Get the migration status

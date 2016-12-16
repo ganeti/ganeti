@@ -54,7 +54,6 @@ import Ganeti.BasicTypes
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
@@ -158,12 +157,11 @@ prop_Alloc_sane inst =
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       opts = Alg.defaultOptions
-  in case Cluster.genAllocNodes Alg.defaultOptions
-                                defGroupList nl reqnodes True >>=
+  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc opts nl il inst' of
        Bad msg -> failTest msg
        Ok as ->
-         case AllocSol.asSolution as of
+         case Cluster.asSolution as of
            Nothing -> failTest "Failed to allocate, empty solution"
            Just (xnl, xi, _, cv) ->
              let il' = Container.add (Instance.idx xi) xi il
@@ -186,8 +184,7 @@ prop_CanTieredAlloc =
   let nl = makeSmallCluster node count
       il = Container.empty
       rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
-      allocnodes = Cluster.genAllocNodes Alg.defaultOptions
-                                         defGroupList nl rqnodes True
+      allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
       opts = Alg.defaultOptions
   in case allocnodes >>= \allocnodes' ->
     Cluster.tieredAlloc opts nl il (Just 5) inst allocnodes' [] [] of
@@ -217,12 +214,11 @@ genClusterAlloc count node inst =
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       opts = Alg.defaultOptions
-  in case Cluster.genAllocNodes Alg.defaultOptions
-                                defGroupList nl reqnodes True >>=
+  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc opts nl Container.empty inst of
        Bad msg -> Bad $ "Can't allocate: " ++ msg
        Ok as ->
-         case AllocSol.asSolution as of
+         case Cluster.asSolution as of
            Nothing -> Bad "Empty solution?"
            Just (xnl, xi, _, _) ->
              let xil = Container.add (Instance.idx xi) xi Container.empty
@@ -323,8 +319,7 @@ prop_AllocBalance =
       hnode = snd $ IntMap.findMax nl
       nl' = IntMap.deleteMax nl
       il = Container.empty
-      allocnodes = Cluster.genAllocNodes Alg.defaultOptions
-                                         defGroupList nl' 2 True
+      allocnodes = Cluster.genAllocNodes defGroupList nl' 2 True
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
       opts = Alg.defaultOptions
   in case allocnodes >>= \allocnodes' ->
@@ -374,14 +369,13 @@ prop_SplitCluster node inst =
 -- otherwise the 'Just' value will contain the error message.
 canAllocOn :: Node.List -> Int -> Instance.Instance -> Maybe String
 canAllocOn nl reqnodes inst =
-  case Cluster.genAllocNodes Alg.defaultOptions
-                             defGroupList nl reqnodes True >>=
+  case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
        Cluster.tryAlloc Alg.defaultOptions nl Container.empty inst of
        Bad msg -> Just $ "Can't allocate: " ++ msg
        Ok as ->
-         case AllocSol.asSolution as of
+         case Cluster.asSolution as of
            Nothing -> Just $ "No allocation solution; failures: " ++
-                      show (AllocSol.collapseFailures $ AllocSol.asFailures as)
+                      show (Cluster.collapseFailures $ Cluster.asFailures as)
            Just _ -> Nothing
 
 -- | Checks that allocation obeys minimum and maximum instance

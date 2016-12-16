@@ -349,9 +349,6 @@ instance Arbitrary IAllocatorParams where
 
 $(genArbitrary ''Cluster)
 
-instance Arbitrary ConfigData where
-  arbitrary = genEmptyCluster 0 >>= genConfigDataWithNetworks
-
 instance Arbitrary AddressPool where
   arbitrary = AddressPool . BA.fromList <$> arbitrary
 
@@ -381,13 +378,6 @@ instance Arbitrary FilterRule where
                          <*> arbitrary
                          <*> arbitrary
                          <*> fmap UTF8.fromString genUUID
-
-instance Arbitrary SshKeyType where
-  arbitrary = oneof
-    [ pure RSA
-    , pure DSA
-    , pure ECDSA
-    ]
 
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated

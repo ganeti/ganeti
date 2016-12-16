@@ -55,7 +55,6 @@ from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
 from ganeti import qlang
-from ganeti.rpc.node import RunWithRPC
 from ganeti import serializer
 from ganeti import ssconf
 from ganeti import ssh
@@ -75,10 +74,6 @@ GROUPS_OPT = cli_option("--groups", default=False,
 FORCE_FAILOVER = cli_option("--yes-do-it", dest="yes_do_it",
                             help="Override interactive check for --no-voting",
                             default=False, action="store_true")
-
-IGNORE_OFFLINE_NODES_FAILOVER = cli_option(
-    "--ignore-offline-nodes", dest="ignore_offline_nodes",
-    help="Ignores offline nodes for master failover voting", default=True)
 
 FORCE_DISTRIBUTION = cli_option("--yes-do-it", dest="yes_do_it",
                                 help="Unconditionally distribute the"
@@ -154,7 +149,7 @@ def _InitDrbdHelper(opts, enabled_disk_templates, feedback_fn=ToStdout):
   return opts.drbd_helper
 
 
-@RunWithRPC
+@UsesRPC
 def InitCluster(opts, args):
   """Initialize the cluster.
 
@@ -303,14 +298,6 @@ def InitCluster(opts, args):
 
   enabled_user_shutdown = bool(opts.enabled_user_shutdown)
 
-  if opts.ssh_key_type:
-    ssh_key_type = opts.ssh_key_type
-  else:
-    ssh_key_type = constants.SSH_DEFAULT_KEY_TYPE
-
-  ssh_key_bits = ssh.DetermineKeyBits(ssh_key_type, opts.ssh_key_bits, None,
-                                      None)
-
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -345,15 +332,13 @@ def InitCluster(opts, args):
                         zeroing_image=zeroing_image,
                         compression_tools=compression_tools,
                         enabled_user_shutdown=enabled_user_shutdown,
-                        ssh_key_type=ssh_key_type,
-                        ssh_key_bits=ssh_key_bits,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
   return 0
 
 
-@RunWithRPC
+@UsesRPC
 def DestroyCluster(opts, args):
   """Destroy the cluster.
 
@@ -626,9 +611,6 @@ def ShowClusterConfig(opts, args):
       ("zeroing image", result["zeroing_image"]),
       ("compression tools", result["compression_tools"]),
       ("enabled user shutdown", result["enabled_user_shutdown"]),
-      ("modify ssh setup", result["modify_ssh_setup"]),
-      ("ssh_key_type", result["ssh_key_type"]),
-      ("ssh_key_bits", result["ssh_key_bits"]),
       ]),
 
     ("Default node parameters",
@@ -772,8 +754,15 @@ def VerifyCluster(opts, args):
 
   results = jex.GetResults()
 
-  bad_jobs = sum(1 for (job_success, _) in results if not job_success)
-  bad_results = sum(1 for (_, op_res) in results if not (op_res and op_res[0]))
+  (bad_jobs, bad_results) = \
+    map(len,
+        # Convert iterators to lists
+        map(list,
+            # Count errors
+            map(compat.partial(itertools.ifilterfalse, bool),
+                # Convert result to booleans in a tuple
+                zip(*((job_success, len(op_results) == 1 and op_results[0])
+                      for (job_success, op_results) in results)))))
 
   if bad_jobs == 0 and bad_results == 0:
     rcode = constants.EXIT_SUCCESS
@@ -797,7 +786,7 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup)
+  op = opcodes.OpClusterVerifyDisks()
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -873,7 +862,7 @@ def RepairDiskSizes(opts, args):
   SubmitOpCode(op, opts=opts)
 
 
-@RunWithRPC
+@UsesRPC
 def MasterFailover(opts, args):
   """Failover the master node.
 
@@ -888,31 +877,26 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
-  if opts.no_voting:
-    # Don't ask for confirmation if the user provides the confirmation flag.
-    if not opts.yes_do_it:
-      usertext = ("This will perform the failover even if most other nodes"
-                  " are down, or if this node is outdated. This is dangerous"
-                  " as it can lead to a non-consistent cluster. Check the"
-                  " gnt-cluster(8) man page before proceeding. Continue?")
-      if not AskUser(usertext):
-        return 1
-  else:
-    # Verify that a majority of nodes are still healthy
-    (majority_healthy, unhealthy_nodes) = bootstrap.MajorityHealthy(
-          opts.ignore_offline_nodes)
-    if not majority_healthy:
+  if not opts.no_voting:
+    # Verify that a majority of nodes is still healthy
+    if not bootstrap.MajorityHealthy():
       ToStderr("Master-failover with voting is only possible if the majority"
-               " of nodes are still healthy; use the --no-voting option after"
+               " of nodes is still healthy; use the --no-voting option after"
                " ensuring by other means that you won't end up in a dual-master"
-               " scenario. Unhealthy nodes: %s" % unhealthy_nodes)
+               " scenario.")
+      return 1
+  if opts.no_voting and not opts.yes_do_it:
+    usertext = ("This will perform the failover even if most other nodes"
+                " are down, or if this node is outdated. This is dangerous"
+                " as it can lead to a non-consistent cluster. Check the"
+                " gnt-cluster(8) man page before proceeding. Continue?")
+    if not AskUser(usertext):
       return 1
 
-  rvalue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
+  rvlaue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
   for msg in msgs:
     ToStderr(msg)
-
-  return rvalue
+  return rvlaue
 
 
 def MasterPing(opts, args):
@@ -988,12 +972,11 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
   return pem
 
 
-# pylint: disable=R0913
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
                  cds_filename, force, new_node_cert, new_ssh_keys,
-                 ssh_key_type, ssh_key_bits, verbose, debug):
+                 verbose, debug):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -1021,14 +1004,10 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param new_node_cert: Whether to generate new node certificates
   @type new_ssh_keys: bool
   @param new_ssh_keys: Whether to generate new node SSH keys
-  @type ssh_key_type: One of L{constants.SSHK_ALL}
-  @param ssh_key_type: The type of SSH key to be generated
-  @type ssh_key_bits: int
-  @param ssh_key_bits: The length of the key to be generated
   @type verbose: boolean
-  @param verbose: Show verbose output
+  @param verbose: show verbose output
   @type debug: boolean
-  @param debug: Show debug output
+  @param debug: show debug output
 
   """
   ToStdout("Updating certificates now. Running \"gnt-cluster verify\" "
@@ -1209,9 +1188,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
     cl = GetClient()
     renew_op = opcodes.OpClusterRenewCrypto(
         node_certificates=new_node_cert or new_cluster_cert,
-        renew_ssh_keys=new_ssh_keys,
-        ssh_key_type=ssh_key_type,
-        ssh_key_bits=ssh_key_bits)
+        ssh_keys=new_ssh_keys)
     SubmitOpCode(renew_op, cl=cl)
 
   ToStdout("All requested certificates and keys have been replaced."
@@ -1228,24 +1205,17 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
   """Recreates the 'ganeti_pub_key' file by polling all nodes.
 
   """
-
-  if not cl:
-    cl = GetClient()
-
-  (cluster_name, master_node, modify_ssh_setup, ssh_key_type) = \
-    cl.QueryConfigValues(["cluster_name", "master_node", "modify_ssh_setup",
-                          "ssh_key_type"])
-
-  # In case Ganeti is not supposed to modify the SSH setup, simply exit and do
-  # not update this file.
-  if not modify_ssh_setup:
-    return
-
   if os.path.exists(pub_key_file):
     utils.CreateBackup(pub_key_file)
     utils.RemoveFile(pub_key_file)
 
   ssh.ClearPubKeyFile(pub_key_file)
+
+  if not cl:
+    cl = GetClient()
+
+  (cluster_name, master_node) = \
+    cl.QueryConfigValues(["cluster_name", "master_node"])
 
   online_nodes = get_online_nodes_fn([], cl=cl)
   ssh_ports = get_nodes_ssh_ports_fn(online_nodes + [master_node], cl)
@@ -1259,7 +1229,7 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
 
   _, pub_key_filename, _ = \
     ssh.GetUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False,
-                     kind=ssh_key_type, _homedir_fn=homedir_fn)
+                     kind=constants.SSHK_DSA, _homedir_fn=homedir_fn)
 
   # get the key file of the master node
   pub_key = utils.ReadFile(pub_key_filename)
@@ -1293,8 +1263,6 @@ def RenewCrypto(opts, args):
                       opts.force,
                       opts.new_node_cert,
                       opts.new_ssh_keys,
-                      opts.ssh_key_type,
-                      opts.ssh_key_bits,
                       opts.verbose,
                       opts.debug > 0)
 
@@ -1984,7 +1952,8 @@ def _VerifyCommand(cmd):
   As this function is intended to run during upgrades, it
   is implemented in such a way that it still works, if all Ganeti
   daemons are down.
-  @param cmd: a list of unquoted shell arguments
+
+  @param cmd: the command to execute
   @type cmd: list
   @rtype: list
   @return: the list of node names that are online where
@@ -1992,23 +1961,6 @@ def _VerifyCommand(cmd):
 
   """
   command = utils.text.ShellQuoteArgs([str(val) for val in cmd])
-  return _VerifyCommandRaw(command)
-
-
-def _VerifyCommandRaw(command):
-  """Verify that a given command succeeds on all online nodes.
-
-  As this function is intended to run during upgrades, it
-  is implemented in such a way that it still works, if all Ganeti
-  daemons are down.
-  @param cmd: a bare string to pass to SSH. The caller must do their
-              own shell/ssh escaping.
-  @type cmd: string
-  @rtype: list
-  @return: the list of node names that are online where
-      the command failed.
-
-  """
 
   nodes = ssconf.SimpleStore().GetOnlineNodeList()
   master_node = ssconf.SimpleStore().GetMasterNode()
@@ -2065,51 +2017,35 @@ def _GetRunning():
   return len(cl.Query(constants.QR_JOB, [], qfilter).data)
 
 
-def _SetGanetiVersionAndEnsure(versionstring):
-  """Symlink the active version of ganeti to the given versionstring,
-  and run the ensure-dirs script.
+def _SetGanetiVersion(versionstring):
+  """Set the active version of ganeti to the given versionstring
 
   @type versionstring: string
   @rtype: list
   @return: the list of nodes where the version change failed
 
   """
-
-  # Update symlinks to point at the new version.
+  failed = []
   if constants.HAS_GNU_LN:
-    link_lib_cmd = [
-        "ln", "-s", "-f", "-T",
-        os.path.join(pathutils.PKGLIBDIR, versionstring),
-        os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
-    link_share_cmd = [
-        "ln", "-s", "-f", "-T",
-        os.path.join(pathutils.SHAREDIR, versionstring),
-        os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
-    cmds = [link_lib_cmd, link_share_cmd]
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", "-T",
+         os.path.join(pathutils.PKGLIBDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", "-T",
+         os.path.join(pathutils.SHAREDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
   else:
-    rm_lib_cmd = [
-        "rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
-    link_lib_cmd = [
-        "ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
-        os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
-    rm_share_cmd = [
-        "rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
-    ln_share_cmd = [
-        "ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
-        os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
-    cmds = [rm_lib_cmd, link_lib_cmd, rm_share_cmd, ln_share_cmd]
-
-  # Run the ensure-dirs script to verify the new version is OK.
-  cmds.append([pathutils.ENSURE_DIRS])
-
-  # Submit all commands to ssh, exiting on the first failure.
-  # The command string is a single argument that's given to ssh to submit to
-  # the remote shell, so it only needs enough escaping to satisfy the remote
-  # shell, rather than the 2 levels of escaping usually required when using
-  # ssh from the commandline.
-  quoted_cmds = [utils.text.ShellQuoteArgs(cmd) for cmd in cmds]
-  cmd = " && ".join(quoted_cmds)
-  failed = _VerifyCommandRaw(cmd)
+    failed.extend(_VerifyCommand(
+        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
+    failed.extend(_VerifyCommand(
+        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+    failed.extend(_VerifyCommand(
+        ["ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
+         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
   return list(set(failed))
 
 
@@ -2184,7 +2120,6 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   """
   rollback = []
 
-  ToStdoutAndLoginfo("Verifying %s present on all nodes", versionstring)
   if not _VerifyVersionInstalled(versionstring):
     return (False, rollback)
 
@@ -2210,6 +2145,10 @@ def _UpgradeBeforeConfigurationChange(versionstring):
 
   ToStdoutAndLoginfo("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
+    return (False, rollback)
+
+  if not _VerifyVersionInstalled(versionstring):
+    utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
     return (False, rollback)
 
   ToStdoutAndLoginfo("Stopping daemons everywhere.")
@@ -2282,8 +2221,8 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   # safer to push through the up/dowgrade than to try to roll it back.
 
   ToStdoutAndLoginfo("Switching to version %s on all nodes", versionstring)
-  rollback.append(lambda: _SetGanetiVersionAndEnsure(constants.DIR_VERSION))
-  badnodes = _SetGanetiVersionAndEnsure(versionstring)
+  rollback.append(lambda: _SetGanetiVersion(constants.DIR_VERSION))
+  badnodes = _SetGanetiVersion(versionstring)
   if badnodes:
     ToStderr("Failed to switch to Ganeti version %s on nodes %s"
              % (versionstring, ", ".join(badnodes)))
@@ -2311,7 +2250,7 @@ def _UpgradeAfterConfigurationChange(oldversion):
   As this part is run at a time where the new version of Ganeti is already
   running, no communication should happen via luxi, as this is not a stable
   interface. Also, as the configuration change is the point of no return,
-  all actions are pushed through, even if some of them fail.
+  all actions are pushed trough, even if some of them fail.
 
   @param oldversion: the version the upgrade started from
   @type oldversion: string
@@ -2320,6 +2259,13 @@ def _UpgradeAfterConfigurationChange(oldversion):
 
   """
   returnvalue = 0
+
+  ToStdoutAndLoginfo("Ensuring directories everywhere.")
+  badnodes = _VerifyCommand([pathutils.ENSURE_DIRS])
+  if badnodes:
+    ToStderr("Warning: failed to ensure directories on %s." %
+             (", ".join(badnodes)))
+    returnvalue = 1
 
   ToStdoutAndLoginfo("Starting daemons everywhere.")
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
@@ -2469,7 +2415,7 @@ commands = {
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
      IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, INSTALL_IMAGE_OPT,
      ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT,
-     ENABLED_USER_SHUTDOWN_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT,
+     ENABLED_USER_SHUTDOWN_OPT,
      ]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
@@ -2493,14 +2439,13 @@ commands = {
      VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
-    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
+    VerifyDisks, ARGS_NONE, [PRIORITY_OPT],
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
     "[instance...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
-    MasterFailover, ARGS_NONE,
-    [NOVOTING_OPT, FORCE_FAILOVER, IGNORE_OFFLINE_NODES_FAILOVER],
+    MasterFailover, ARGS_NONE, [NOVOTING_OPT, FORCE_FAILOVER],
     "", "Makes the current node the master"),
   "master-ping": (
     MasterPing, ARGS_NONE, [],
@@ -2570,7 +2515,7 @@ commands = {
      NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT,
      NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
      NEW_NODE_CERT_OPT, NEW_SSH_KEY_OPT, NOSSH_KEYCHECK_OPT,
-     VERBOSE_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT],
+     VERBOSE_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (

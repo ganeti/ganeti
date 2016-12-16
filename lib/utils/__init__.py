@@ -65,7 +65,6 @@ from ganeti.utils.process import *
 from ganeti.utils.retry import *
 from ganeti.utils.security import *
 from ganeti.utils.storage import *
-from ganeti.utils.tags import *
 from ganeti.utils.text import *
 from ganeti.utils.wrapper import *
 from ganeti.utils.version import *

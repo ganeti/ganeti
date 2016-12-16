@@ -6,12 +6,9 @@ PartOf = ganeti-noded.target
 
 [Service]
 Type = simple
-User = @GNTMETADUSER@
-Group = @GNTMETADGROUP@
+Group = @GNTDAEMONSGROUP@
 ExecStart = @SBINDIR@/ganeti-metad -f
 Restart = on-failure
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-Capabilities=cap_net_bind_service+=ep
 
 # ganeti-metad is started on-demand by noded, so there must be no Install
 # section.

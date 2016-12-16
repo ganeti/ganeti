@@ -144,7 +144,6 @@ HS_DIRS = \
 	src/Ganeti/HTools/Backend \
 	src/Ganeti/HTools/Cluster \
 	src/Ganeti/HTools/Program \
-	src/Ganeti/HTools/Tags \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
 	src/Ganeti/JQScheduler \
@@ -234,17 +233,17 @@ DIRS = \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	test/data/cgroup_root \
-	test/data/cgroup_root/memory \
-	test/data/cgroup_root/memory/lxc \
-	test/data/cgroup_root/memory/lxc/instance1 \
-	test/data/cgroup_root/cpuset \
-	test/data/cgroup_root/cpuset/some_group \
-	test/data/cgroup_root/cpuset/some_group/lxc \
-	test/data/cgroup_root/cpuset/some_group/lxc/instance1 \
-	test/data/cgroup_root/devices \
-	test/data/cgroup_root/devices/some_group \
-	test/data/cgroup_root/devices/some_group/lxc \
-	test/data/cgroup_root/devices/some_group/lxc/instance1 \
+        test/data/cgroup_root/memory \
+        test/data/cgroup_root/memory/lxc \
+        test/data/cgroup_root/memory/lxc/instance1 \
+        test/data/cgroup_root/cpuset \
+        test/data/cgroup_root/cpuset/some_group \
+        test/data/cgroup_root/cpuset/some_group/lxc \
+        test/data/cgroup_root/cpuset/some_group/lxc/instance1 \
+        test/data/cgroup_root/devices \
+        test/data/cgroup_root/devices/some_group \
+        test/data/cgroup_root/devices/some_group/lxc \
+        test/data/cgroup_root/devices/some_group/lxc/instance1 \
 	test/py \
 	test/py/testutils \
 	test/py/cmdlib \
@@ -535,9 +534,9 @@ hypervisor_PYTHON = \
 	lib/hypervisor/hv_xen.py
 
 hypervisor_hv_kvm_PYTHON = \
-	lib/hypervisor/hv_kvm/__init__.py \
-	lib/hypervisor/hv_kvm/monitor.py \
-	lib/hypervisor/hv_kvm/netdev.py
+  lib/hypervisor/hv_kvm/__init__.py \
+  lib/hypervisor/hv_kvm/monitor.py \
+  lib/hypervisor/hv_kvm/netdev.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -631,7 +630,6 @@ utils_PYTHON = \
 	lib/utils/security.py \
 	lib/utils/storage.py \
 	lib/utils/text.py \
-	lib/utils/tags.py \
 	lib/utils/version.py \
 	lib/utils/wrapper.py \
 	lib/utils/x509.py \
@@ -659,7 +657,6 @@ docinput = \
 	doc/design-2.13.rst \
 	doc/design-2.14.rst \
 	doc/design-2.15.rst \
-	doc/design-2.16.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -707,17 +704,14 @@ docinput = \
 	doc/design-os.rst \
 	doc/design-ovf-support.rst \
 	doc/design-partitioned.rst \
-	doc/design-plain-redundancy.rst \
 	doc/design-performance-tests.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \
 	doc/design-reason-trail.rst \
-	doc/design-repaird.rst \
 	doc/design-reservations.rst \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
-	doc/design-scsi-kvm.rst \
 	doc/design-shared-storage.rst \
 	doc/design-shared-storage-redundancy.rst \
 	doc/design-ssh-ports.rst \
@@ -924,9 +918,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Backend/Text.hs \
 	src/Ganeti/HTools/CLI.hs \
 	src/Ganeti/HTools/Cluster.hs \
-	src/Ganeti/HTools/Cluster/AllocatePrimitives.hs \
-	src/Ganeti/HTools/Cluster/AllocateSecondary.hs \
-	src/Ganeti/HTools/Cluster/AllocationSolution.hs \
 	src/Ganeti/HTools/Cluster/Evacuate.hs \
 	src/Ganeti/HTools/Cluster/Metrics.hs \
 	src/Ganeti/HTools/Cluster/Moves.hs \
@@ -953,7 +944,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hroller.hs \
 	src/Ganeti/HTools/Program/Main.hs \
 	src/Ganeti/HTools/Tags.hs \
-	src/Ganeti/HTools/Tags/Constants.hs \
 	src/Ganeti/HTools/Types.hs \
 	src/Ganeti/Hypervisor/Xen.hs \
 	src/Ganeti/Hypervisor/Xen/XmParser.hs \
@@ -1143,7 +1133,6 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Utils.hs \
 	test/hs/Test/Ganeti/Utils/MultiMap.hs \
 	test/hs/Test/Ganeti/Utils/Statistics.hs \
-	test/hs/Test/Ganeti/WConfd/Ssconf.hs \
 	test/hs/Test/Ganeti/WConfd/TempRes.hs
 
 
@@ -1204,11 +1193,11 @@ endif
 	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) COPY_DOC=1 \
         HTML_THEME=$(SPHINX_HTML_THEME) \
 	$(RUN_IN_TEMPDIR) autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
-		-d . \
-		-D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
-		-D release="$(PACKAGE_VERSION)" \
-		-D graphviz_dot="$(DOT)" \
-	doc $(CURDIR)/$$dir && \
+	    -d . \
+	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
+	    -D release="$(PACKAGE_VERSION)" \
+	    -D graphviz_dot="$(DOT)" \
+	    doc $(CURDIR)/$$dir && \
 	rm -f $$dir/.buildinfo $$dir/objects.inv
 	touch $@
 
@@ -1486,10 +1475,10 @@ dist_sbin_SCRIPTS = \
 
 nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
-	src/ganeti-kvmd \
-	src/ganeti-luxid \
-	src/ganeti-confd \
-	src/ganeti-wconfd
+  src/ganeti-kvmd \
+  src/ganeti-luxid \
+  src/ganeti-confd \
+  src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
 	cp -f $< $@
@@ -1543,7 +1532,7 @@ dist_tools_python_SCRIPTS = \
 
 nodist_tools_python_SCRIPTS = \
 	tools/node-cleanup \
-	$(python_scripts_shebang)
+        $(python_scripts_shebang)
 
 tools_python_basenames = \
 	$(patsubst shebang/%,%,\
@@ -1622,7 +1611,7 @@ EXTRA_DIST += \
 	tools/vif-ganeti-metad.in \
 	tools/net-common.in \
 	tools/vcluster-setup.in \
-	$(python_scripts) \
+        $(python_scripts) \
 	$(docinput) \
 	doc/html \
 	$(BUILT_EXAMPLES:%=%.in) \
@@ -1716,16 +1705,12 @@ TEST_FILES = \
 	test/data/htools/common-suffix.data \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
-	test/data/htools/hail-alloc-desired-location.json \
 	test/data/htools/hail-alloc-drbd.json \
-	test/data/htools/hail-alloc-drbd-restricted.json \
-	test/data/htools/hail-alloc-ext.json \
 	test/data/htools/hail-alloc-invalid-network.json \
 	test/data/htools/hail-alloc-invalid-twodisks.json \
 	test/data/htools/hail-alloc-restricted-network.json \
 	test/data/htools/hail-alloc-nlocation.json \
 	test/data/htools/hail-alloc-plain-tags.json \
-	test/data/htools/hail-alloc-secondary.json \
 	test/data/htools/hail-alloc-spindles.json \
 	test/data/htools/hail-alloc-twodisks.json \
 	test/data/htools/hail-change-group.json \
@@ -1734,26 +1719,18 @@ TEST_FILES = \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hail-reloc-drbd-crowded.json \
 	test/data/htools/hbal-cpu-speed.data \
-	test/data/htools/hbal-desiredlocation-1.data \
-	test/data/htools/hbal-desiredlocation-2.data \
-	test/data/htools/hbal-desiredlocation-3.data \
-	test/data/htools/hbal-desiredlocation-4.data \
 	test/data/htools/hbal-dyn.data \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-forth.data \
 	test/data/htools/hbal-location-1.data \
-	test/data/htools/hbal-location-exclusion.data \
 	test/data/htools/hbal-location-2.data \
 	test/data/htools/hbal-migration-1.data \
 	test/data/htools/hbal-migration-2.data \
 	test/data/htools/hbal-migration-3.data \
 	test/data/htools/hail-multialloc-dedicated.json \
 	test/data/htools/hbal-soft-errors.data \
-	test/data/htools/hbal-soft-errors2.data \
 	test/data/htools/hbal-split-insts.data \
-	test/data/htools/hspace-bad-group.data \
-	test/data/htools/hspace-existing.data \
 	test/data/htools/hspace-groups-one.data \
 	test/data/htools/hspace-groups-two.data \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \
@@ -1769,7 +1746,6 @@ TEST_FILES = \
 	test/data/htools/multiple-master.data \
 	test/data/htools/multiple-tags.data \
 	test/data/htools/n1-failure.data \
-	test/data/htools/partly-used.data \
 	test/data/htools/rapi/groups.json \
 	test/data/htools/rapi/info.json \
 	test/data/htools/rapi/instances.json \
@@ -1781,9 +1757,7 @@ TEST_FILES = \
 	test/data/htools/hsqueeze-mixed-instances.data \
 	test/data/htools/hsqueeze-overutilized.data \
 	test/data/htools/hsqueeze-underutilized.data \
-	test/data/htools/plain-n1-restriction.data \
 	test/data/htools/shared-n1-failure.data \
-	test/data/htools/shared-n1-restriction.data \
 	test/data/htools/unique-reboot-order.data \
 	test/data/mond-data.txt \
 	test/hs/shelltests/htools-balancing.test \
@@ -1825,9 +1799,9 @@ TEST_FILES = \
 	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
-	test/data/cgroup_root/memory/lxc/instance1/memory.limit_in_bytes \
-	test/data/cgroup_root/cpuset/some_group/lxc/instance1/cpuset.cpus \
-	test/data/cgroup_root/devices/some_group/lxc/instance1/devices.list \
+        test/data/cgroup_root/memory/lxc/instance1/memory.limit_in_bytes \
+        test/data/cgroup_root/cpuset/some_group/lxc/instance1/cpuset.cpus \
+        test/data/cgroup_root/devices/some_group/lxc/instance1/devices.list \
 	test/data/cluster_config_2.7.json \
 	test/data/cluster_config_2.8.json \
 	test/data/cluster_config_2.9.json \
@@ -1836,7 +1810,6 @@ TEST_FILES = \
 	test/data/cluster_config_2.12.json \
 	test/data/cluster_config_2.13.json \
 	test/data/cluster_config_2.14.json \
-	test/data/cluster_config_2.15.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/instance-disks.txt \
 	test/data/ip-addr-show-dummy0.txt \
@@ -1882,7 +1855,7 @@ TEST_FILES = \
 	test/data/ovfdata/wrong_ova.ova \
 	test/data/ovfdata/wrong_xml.ovf \
 	test/data/proc_cgroup.txt \
-	test/data/proc_diskstats.txt \
+        test/data/proc_diskstats.txt \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd80-emptyversion.txt \
@@ -2409,8 +2382,6 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DNODED_GROUP="$(NODED_GROUP)" \
 	    -DMOND_USER="$(MOND_USER)" \
 	    -DMOND_GROUP="$(MOND_GROUP)" \
-	    -DMETAD_USER="$(METAD_USER)" \
-	    -DMETAD_GROUP="$(METAD_GROUP)" \
 	    -DDISK_SEPARATOR="$(DISK_SEPARATOR)" \
 	    -DQEMUIMG_PATH="$(QEMUIMG_PATH)" \
 	    -DXEN_CMD="$(XEN_CMD)" \
@@ -2504,7 +2475,6 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTLUXIDUSER@#$(LUXID_USER)#g'; \
 	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
 	  echo 's#@''GNTMONDUSER@#$(MOND_USER)#g'; \
-	  echo 's#@''GNTMETADUSER@#$(METAD_USER)#g'; \
 	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
@@ -2513,7 +2483,6 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTLUXIDGROUP@#$(LUXID_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \
-	  echo 's#@''GNTMETADGROUP@#$(METAD_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@''CUSTOM_ENABLE_MOND@#$(ENABLE_MOND)#g'; \
 	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \
@@ -2938,7 +2907,7 @@ TAGS: $(GENERATED_FILES)
 	  $(filter-out -O -Werror,$(HFLAGS)) \
 		-osuf tags.o \
 		-hisuf tags.hi \
-	-lcurl \
+    -lcurl \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \

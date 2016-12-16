@@ -53,7 +53,7 @@ import System.FilePath
 import Ganeti.BasicTypes
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
-import Ganeti.JSON (loadJSArray, JSRecord, tryFromObj, fromJVal, maybeFromObj, fromJResult, tryArrayMaybeFromObj, readEitherString, fromObjWithDefault, asJSObject)
+import Ganeti.JSON
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance

@@ -818,8 +818,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Run a verify sequence on this node.
 
     """
-    (what, cluster_name, hvparams) = params
-    return backend.VerifyNode(what, cluster_name, hvparams)
+    (what, cluster_name, hvparams, node_groups, groups_cfg) = params
+    return backend.VerifyNode(what, cluster_name, hvparams,
+                              node_groups, groups_cfg)
 
   @classmethod
   def perspective_node_verify_light(cls, params):
@@ -942,11 +943,10 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (node_uuids, node_names, master_candidate_uuids,
-     potential_master_candidates, old_key_type, new_key_type,
-     new_key_bits) = params
-    return backend.RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
-                                potential_master_candidates, old_key_type,
-                                new_key_type, new_key_bits)
+     potential_master_candidates) = params
+    return backend.RenewSshKeys(node_uuids, node_names,
+                                master_candidate_uuids,
+                                potential_master_candidates)
 
   @staticmethod
   def perspective_node_ssh_key_remove(params):
@@ -1280,7 +1280,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.CleanupImportExport(params[0])
 
 
-def CheckNoded(options, args):
+def CheckNoded(_, args):
   """Initial checks whether to run or exit with a failure.
 
   """
@@ -1288,12 +1288,6 @@ def CheckNoded(options, args):
     print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
                           sys.argv[0])
     sys.exit(constants.EXIT_FAILURE)
-
-  if options.max_clients < 1:
-    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
-                          sys.argv[0])
-    sys.exit(constants.EXIT_FAILURE)
-
   try:
     codecs.lookup("string-escape")
   except LookupError:
@@ -1406,11 +1400,11 @@ def PrepNoded(options, _):
   handler = NodeRequestHandler()
 
   mainloop = daemon.Mainloop()
-  server = http.server.HttpServer(
-      mainloop, options.bind_address, options.port, options.max_clients,
-      handler, ssl_params=ssl_params, ssl_verify_peer=True,
-      request_executor_class=request_executor_class,
-      ssl_verify_callback=SSLVerifyPeer)
+  server = \
+    http.server.HttpServer(mainloop, options.bind_address, options.port,
+                           handler, ssl_params=ssl_params, ssl_verify_peer=True,
+                           request_executor_class=request_executor_class,
+                           ssl_verify_callback=SSLVerifyPeer)
   server.Start()
 
   return (mainloop, server)
@@ -1439,10 +1433,6 @@ def Main():
   parser.add_option("--no-mlock", dest="mlock",
                     help="Do not mlock the node memory in ram",
                     default=True, action="store_false")
-  parser.add_option("--max-clients", dest="max_clients",
-                    default=20, type="int",
-                    help="Number of simultaneous connections accepted"
-                    " by noded")
 
   daemon.GenericMain(constants.NODED, parser, CheckNoded, PrepNoded, ExecNoded,
                      default_ssl_cert=pathutils.NODED_CERT_FILE,

@@ -485,17 +485,16 @@ def _InitCheckDrbdHelper(drbd_helper, drbd_enabled):
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 master_netmask, master_netdev, file_storage_dir,
                 shared_file_storage_dir, gluster_storage_dir,
-                candidate_pool_size, ssh_key_type, ssh_key_bits,
-                secondary_ip=None, vg_name=None, beparams=None, nicparams=None,
-                ndparams=None, hvparams=None, diskparams=None,
-                enabled_hypervisors=None, modify_etc_hosts=True,
-                modify_ssh_setup=True, maintain_node_health=False,
-                drbd_helper=None, uid_pool=None, default_iallocator=None,
-                default_iallocator_params=None, primary_ip_version=None,
-                ipolicy=None, prealloc_wipe_disks=False,
-                use_external_mip_script=False, hv_state=None, disk_state=None,
-                enabled_disk_templates=None, install_image=None,
-                zeroing_image=None, compression_tools=None,
+                candidate_pool_size, secondary_ip=None,
+                vg_name=None, beparams=None, nicparams=None, ndparams=None,
+                hvparams=None, diskparams=None, enabled_hypervisors=None,
+                modify_etc_hosts=True, modify_ssh_setup=True,
+                maintain_node_health=False, drbd_helper=None, uid_pool=None,
+                default_iallocator=None, default_iallocator_params=None,
+                primary_ip_version=None, ipolicy=None,
+                prealloc_wipe_disks=False, use_external_mip_script=False,
+                hv_state=None, disk_state=None, enabled_disk_templates=None,
+                install_image=None, zeroing_image=None, compression_tools=None,
                 enabled_user_shutdown=False):
   """Initialise the cluster.
 
@@ -714,7 +713,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     utils.AddHostToEtcHosts(hostname.name, hostname.ip)
 
   if modify_ssh_setup:
-    ssh.InitSSHSetup(ssh_key_type, ssh_key_bits)
+    ssh.InitSSHSetup()
 
   if default_iallocator is not None:
     alloc_script = utils.FindFile(default_iallocator,
@@ -798,8 +797,6 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     zeroing_image=zeroing_image,
     compression_tools=compression_tools,
     enabled_user_shutdown=enabled_user_shutdown,
-    ssh_key_type=ssh_key_type,
-    ssh_key_bits=ssh_key_bits,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
@@ -817,7 +814,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
   master_uuid = cfg.GetMasterNode()
   if modify_ssh_setup:
-    ssh.InitPubKeyFile(master_uuid, ssh_key_type)
+    ssh.InitPubKeyFile(master_uuid)
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name, cfg)
 
@@ -957,11 +954,6 @@ def MasterFailover(no_voting=False):
   current master to cease being master, and the non-master to become
   new master.
 
-  Note: The call to MasterFailover from lib/client/gnt_cluster.py checks that
-  a majority of nodes are healthy and responding before calling this. If this
-  function is called from somewhere else, the caller should also verify that a
-  majority of nodes are healthy.
-
   @type no_voting: boolean
   @param no_voting: force the operation without remote nodes agreement
                       (dangerous)
@@ -990,10 +982,14 @@ def MasterFailover(no_voting=False):
                                errors.ECODE_STATE)
 
   if not no_voting:
-    vote_list = _GatherMasterVotes(node_names)
+    vote_list = GatherMasterVotes(node_names)
+
     if vote_list:
       voted_master = vote_list[0][0]
-      if voted_master != old_master:
+      if voted_master is None:
+        raise errors.OpPrereqError("Cluster is inconsistent, most nodes did"
+                                   " not respond.", errors.ECODE_ENVIRON)
+      elif voted_master != old_master:
         raise errors.OpPrereqError("I have a wrong configuration, I believe"
                                    " the master is %s but the other nodes"
                                    " voted %s. Please resync the configuration"
@@ -1149,11 +1145,11 @@ def GetMaster():
   return old_master
 
 
-def _GatherMasterVotes(node_names):
+def GatherMasterVotes(node_names):
   """Check the agreement on who is the master.
 
   This function will return a list of (node, number of votes), ordered
-  by the number of votes.
+  by the number of votes. Errors will be denoted by the key 'None'.
 
   Note that the sum of votes is the number of nodes this machine
   knows, whereas the number of entries in the list could be different
@@ -1173,28 +1169,32 @@ def _GatherMasterVotes(node_names):
     # this should not happen (unless internal error in rpc)
     logging.critical("Can't complete rpc call, aborting master startup")
     return [(None, len(node_names))]
-
   votes = {}
-  for (node_name, nres) in results.iteritems():
+  for node_name in results:
+    nres = results[node_name]
     msg = nres.fail_msg
+
     if msg:
       logging.warning("Error contacting node %s: %s", node_name, msg)
-      continue
-    node = nres.payload
-    if not node:
-      logging.warning(('Expected a Node, encountered a None. Skipping this'
-                       ' voting result.'))
+      node = None
+    else:
+      node = nres.payload
+
     if node not in votes:
       votes[node] = 1
     else:
       votes[node] += 1
 
-  vote_list = votes.items()
-  vote_list.sort(key=lambda x: x[1], reverse=True)
+  vote_list = [v for v in votes.items()]
+  # sort first on number of votes then on name, since we want None
+  # sorted later if we have the half of the nodes not responding, and
+  # half voting all for the same master
+  vote_list.sort(key=lambda x: (x[1], x[0]), reverse=True)
+
   return vote_list
 
 
-def MajorityHealthy(ignore_offline_nodes=False):
+def MajorityHealthy():
   """Check if the majority of nodes is healthy
 
   Gather master votes from all nodes known to this node;
@@ -1203,32 +1203,13 @@ def MajorityHealthy(ignore_offline_nodes=False):
   not guarantee any node to win an election but it ensures that
   a standard master-failover is still possible.
 
-  @return: tuple of (boolean, [str]); the first is if a majority of nodes are
-    healthy, the second is a list of the node names that are not considered
-    healthy.
   """
-  if ignore_offline_nodes:
-    node_names = ssconf.SimpleStore().GetOnlineNodeList()
-  else:
-    node_names = ssconf.SimpleStore().GetNodeList()
-
+  node_names = ssconf.SimpleStore().GetNodeList()
   node_count = len(node_names)
-  vote_list = _GatherMasterVotes(node_names)
-
-  if not vote_list:
-    logging.warning(('Voting list was None; cannot determine if a majority of '
-                     'nodes are healthy'))
-    return (False, node_names)
-
+  vote_list = GatherMasterVotes(node_names)
+  if vote_list is None:
+    return False
   total_votes = sum([count for (node, count) in vote_list if node is not None])
-  majority_healthy = 2 * total_votes > node_count
-
-  # The list of nodes that did not vote is calculated to provide useful
-  # debugging information to the client.
-  voting_nodes = [node for (node, _) in vote_list]
-  nonvoting_nodes = [node for node in node_names if node not in voting_nodes]
-
   logging.info("Total %d nodes, %d votes: %s", node_count, total_votes,
                vote_list)
-
-  return (majority_healthy, nonvoting_nodes)
+  return 2 * total_votes > node_count

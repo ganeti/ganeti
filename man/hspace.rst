@@ -26,7 +26,7 @@ Algorithm options:
 **[ \--min-disk *disk-ratio* ]**
 **[ -O *name...* ]**
 **[ \--independent-groups ]**
-**[ \--no-capacity-checks ]**
+
 
 Request options:
 
@@ -245,11 +245,6 @@ The options that can be passed to the program are as follows:
   all other nodes without introducing new N+1 violations. Note that this
   tends to overestimate the capacity, as instances still have to be
   moved away from the existing not N+1 happy nodes.
-
-\--no-capacity-checks
-  Normally, hspace will only consider those allocations where all instances
-  of a node can immediately restarted should that node fail. With this
-  option given, hspace will check only N+1 redundancy for DRBD instances.
 
 -l *rounds*, \--max-length=*rounds*
   Restrict the number of instance allocations to this length. This is

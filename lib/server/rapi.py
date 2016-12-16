@@ -317,11 +317,6 @@ def CheckRapi(options, args):
                           sys.argv[0])
     sys.exit(constants.EXIT_FAILURE)
 
-  if options.max_clients < 1:
-    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
-                          sys.argv[0])
-    sys.exit(constants.EXIT_FAILURE)
-
   ssconf.CheckMaster(options.debug)
 
   # Read SSL certificate (this is a little hackish to read the cert as root)
@@ -348,9 +343,10 @@ def PrepRapi(options, _):
 
   users.Load(pathutils.RAPI_USERS_FILE)
 
-  server = http.server.HttpServer(
-      mainloop, options.bind_address, options.port, options.max_clients,
-      handler, ssl_params=options.ssl_params, ssl_verify_peer=False)
+  server = \
+    http.server.HttpServer(mainloop, options.bind_address, options.port,
+                           handler,
+                           ssl_params=options.ssl_params, ssl_verify_peer=False)
   server.Start()
 
   return (mainloop, server)
@@ -380,10 +376,6 @@ def Main():
                     default=False, action="store_true",
                     help=("Disable anonymous HTTP requests and require"
                           " authentication"))
-  parser.add_option("--max-clients", dest="max_clients",
-                    default=20, type="int",
-                    help="Number of simultaneous connections accepted"
-                    " by ganeti-rapi")
 
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=pathutils.RAPI_CERT_FILE,

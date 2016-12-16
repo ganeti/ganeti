@@ -53,15 +53,12 @@ module Ganeti.HTools.Loader
   , ClusterData(..)
   , isAllocationRequest
   , emptyCluster
-  , extractDesiredLocations
-  , updateDesiredLocationTags
   ) where
 
 import Control.Monad
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import qualified Data.Set as Set
 import Text.Printf (printf)
 import System.Time (ClockTime(..))
 
@@ -74,7 +71,6 @@ import qualified Ganeti.HTools.Cluster.Moves as Moves
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Tags as Tags
-import qualified Ganeti.HTools.Tags.Constants as TagsC
 import Ganeti.HTools.Types
 import Ganeti.Utils
 import Ganeti.Types (EvacMode)
@@ -88,11 +84,8 @@ request-specific fields.
 
 -}
 data RqType
-  = Allocate Instance.Instance Cluster.AllocDetails (Maybe [String])
-    -- ^ A new instance allocation, maybe with allocation restrictions
-  | AllocateSecondary Idx                             -- ^ Find a suitable
-                                                      -- secondary node for disk
-                                                      -- conversion
+  = Allocate Instance.Instance Cluster.AllocDetails   -- ^ A new instance
+                                                      --   allocation
   | Relocate Idx Int [Ndx]                            -- ^ Choose a new
                                                       --   secondary node
   | NodeEvacuate [Idx] EvacMode                       -- ^ node-evacuate mode
@@ -112,7 +105,7 @@ data Request = Request RqType ClusterData
 -- group specified, and return `Just (Just g)` if it is an allocation request
 -- uniquely requesting Group `g`.
 isAllocationRequest :: RqType -> Maybe (Maybe String)
-isAllocationRequest (Allocate _ (Cluster.AllocDetails _ grp) _) = Just grp
+isAllocationRequest (Allocate _ (Cluster.AllocDetails _ grp)) = Just grp
 isAllocationRequest (MultiAllocate reqs) = Just $
   case ordNub . catMaybes
        $ map (\(_, Cluster.AllocDetails _ grp) -> grp) reqs of
@@ -211,14 +204,6 @@ updateExclTags tl inst =
       exclTags = filter (\tag -> any (`isPrefixOf` tag) tl) allTags
   in inst { Instance.exclTags = exclTags }
 
--- | Update instance with desired location tags list.
-updateDesiredLocationTags :: [String] -> Instance.Instance -> Instance.Instance
-updateDesiredLocationTags tl inst =
-  let allTags = Instance.allTags inst
-      dsrdLocTags = filter (\tag -> any (`isPrefixOf` tag) tl) allTags
-  in inst { Instance.dsrdLocTags = Set.fromList dsrdLocTags }
-
-
 -- | Update the movable attribute.
 updateMovable :: [String]           -- ^ Selected instances (if not empty)
               -> [String]           -- ^ Excluded instances
@@ -264,8 +249,8 @@ setArPolicy ctags gl nl il time =
 getArPolicy :: [String] -> ClockTime -> Maybe AutoRepairPolicy
 getArPolicy tags time =
   let enabled = mapMaybe (autoRepairTypeFromRaw <=<
-                          chompPrefix TagsC.autoRepairTagEnabled) tags
-      suspended = mapMaybe (chompPrefix TagsC.autoRepairTagSuspended) tags
+                          chompPrefix Tags.autoRepairTagEnabled) tags
+      suspended = mapMaybe (chompPrefix Tags.autoRepairTagSuspended) tags
       futureTs = filter (> time) . map (flip TOD 0) $
                    mapMaybe (tryRead "auto-repair suspend time") suspended
   in
@@ -290,12 +275,7 @@ longestDomain (x:xs) =
 
 -- | Extracts the exclusion tags from the cluster configuration.
 extractExTags :: [String] -> [String]
-extractExTags = filter (not . null) . mapMaybe (chompPrefix TagsC.exTagsPrefix)
-
--- | Extracts the desired locations from the instance tags.
-extractDesiredLocations :: [String] -> [String]
-extractDesiredLocations =
-  filter (not . null) . mapMaybe (chompPrefix TagsC.desiredLocationPrefix)
+extractExTags = filter (not . null) . mapMaybe (chompPrefix Tags.exTagsPrefix)
 
 -- | Extracts the common suffix from node\/instance names.
 commonSuffix :: Node.List -> Instance.List -> String
@@ -341,7 +321,6 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
       allextags = extags ++ extractExTags ctags
-      dsrdLocTags = extractDesiredLocations ctags
       inst_names = map Instance.name $ Container.elems il3
       selinst_lkp = map (lookupName inst_names) selinsts
       exinst_lkp = map (lookupName inst_names) exinsts
@@ -352,7 +331,6 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
       common_suffix = longestDomain (node_names ++ inst_names)
       il4 = Container.map (computeAlias common_suffix .
                            updateExclTags allextags .
-                           updateDesiredLocationTags dsrdLocTags .
                            updateMovable selinst_names exinst_names) il3
       nl2 = Container.map (addLocationTags ctags) nl
       il5 = Container.map (setLocationScore nl2) il4

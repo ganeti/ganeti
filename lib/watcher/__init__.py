@@ -39,9 +39,9 @@ by a node reboot.  Run from cron or similar.
 import os
 import os.path
 import sys
-import signal
 import time
 import logging
+import operator
 import errno
 from optparse import OptionParser
 
@@ -148,14 +148,13 @@ class Instance(object):
 
   """
   def __init__(self, name, status, config_state, config_state_source,
-               disks_active, snodes, disk_template):
+               disks_active, snodes):
     self.name = name
     self.status = status
     self.config_state = config_state
     self.config_state_source = config_state_source
     self.disks_active = disks_active
     self.snodes = snodes
-    self.disk_template = disk_template
 
   def Restart(self, cl):
     """Encapsulates the start of an instance.
@@ -506,7 +505,8 @@ def _WriteInstanceStatus(filename, data):
                 filename, len(data))
 
   utils.WriteFile(filename,
-                  data="\n".join("%s %s" % (n, s) for (n, s) in sorted(data)))
+                  data="".join(map(compat.partial(operator.mod, "%s %s\n"),
+                                   sorted(data))))
 
 
 def _UpdateInstanceStatus(filename, instances):
@@ -632,35 +632,34 @@ def _StartGroupChildren(cl, wait):
   children = []
 
   for (idx, (name, uuid)) in enumerate(result):
+    args = sys.argv + [cli.NODEGROUP_OPT_NAME, uuid]
+
     if idx > 0:
       # Let's not kill the system
       time.sleep(CHILD_PROCESS_DELAY)
 
-    logging.debug("Spawning child for group %r (%s).", name, uuid)
+    logging.debug("Spawning child for group '%s' (%s), arguments %s",
+                  name, uuid, args)
 
-    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     try:
-      pid = os.fork()
-    except OSError:
-      logging.exception("Failed to fork for group %r (%s)", name, uuid)
-
-    if pid == 0:
-      (options, _) = ParseOptions()
-      options.nodegroup = uuid
-      _GroupWatcher(options)
-      return
+      # TODO: Should utils.StartDaemon be used instead?
+      pid = os.spawnv(os.P_NOWAIT, args[0], args)
+    except Exception: # pylint: disable=W0703
+      logging.exception("Failed to start child for group '%s' (%s)",
+                        name, uuid)
     else:
       logging.debug("Started with PID %s", pid)
       children.append(pid)
 
   if wait:
-    for child in children:
-      logging.debug("Waiting for child PID %s", child)
+    for pid in children:
+      logging.debug("Waiting for child PID %s", pid)
       try:
-        result = utils.RetryOnSignal(os.waitpid, child, 0)
+        result = utils.RetryOnSignal(os.waitpid, pid, 0)
       except EnvironmentError, err:
         result = str(err)
-      logging.debug("Child PID %s exited with status %s", child, result)
+
+      logging.debug("Child PID %s exited with status %s", pid, result)
 
 
 def _ArchiveJobs(cl, age):
@@ -754,21 +753,21 @@ def _GetGroupData(qcl, uuid):
   queries = [
       (constants.QR_INSTANCE,
        ["name", "status", "admin_state", "admin_state_source", "disks_active",
-        "snodes", "pnode.group.uuid", "snodes.group.uuid", "disk_template"],
+        "snodes", "pnode.group.uuid", "snodes.group.uuid"],
        [qlang.OP_EQUAL, "pnode.group.uuid", uuid]),
       (constants.QR_NODE,
        ["name", "bootid", "offline"],
        [qlang.OP_EQUAL, "group.uuid", uuid]),
       ]
 
-  results_data = [
-    qcl.Query(what, field, qfilter).data
-    for (what, field, qfilter) in queries
-  ]
+  results = []
+  for what, fields, qfilter in queries:
+    results.append(qcl.Query(what, fields, qfilter))
+
+  results_data = map(operator.attrgetter("data"), results)
 
   # Ensure results are tuples with two values
-  assert compat.all(
-      ht.TListOf(ht.TListOf(ht.TIsLength(2)))(d) for d in results_data)
+  assert compat.all(map(ht.TListOf(ht.TListOf(ht.TIsLength(2))), results_data))
 
   # Extract values ignoring result status
   (raw_instances, raw_nodes) = [[map(compat.snd, values)
@@ -780,14 +779,14 @@ def _GetGroupData(qcl, uuid):
 
   # Load all instances
   for (name, status, config_state, config_state_source, disks_active, snodes,
-       pnode_group_uuid, snodes_group_uuid, disk_template) in raw_instances:
+       pnode_group_uuid, snodes_group_uuid) in raw_instances:
     if snodes and set([pnode_group_uuid]) != set(snodes_group_uuid):
       logging.error("Ignoring split instance '%s', primary group %s, secondary"
                     " groups %s", name, pnode_group_uuid,
                     utils.CommaJoin(snodes_group_uuid))
     else:
       instances.append(Instance(name, status, config_state, config_state_source,
-                                disks_active, snodes, disk_template))
+                                disks_active, snodes))
 
       for node in snodes:
         secondaries.setdefault(node, set()).add(name)
@@ -810,7 +809,7 @@ def _LoadKnownGroups():
   result = list(line.split(None, 1)[0] for line in groups
                 if line.strip())
 
-  if not compat.all(utils.UUID_RE.match(r) for r in result):
+  if not compat.all(map(utils.UUID_RE.match, result)):
     raise errors.GenericError("Ssconf contains invalid group UUID")
 
   return result
@@ -866,19 +865,7 @@ def _GroupWatcher(opts):
 
     started = _CheckInstances(client, notepad, instances, locks)
     _CheckDisks(client, notepad, nodes, instances, started)
-
-    # Check if the nodegroup only has ext storage type
-    only_ext = compat.all(i.disk_template == constants.DT_EXT
-                          for i in instances.values())
-
-    # We skip current NodeGroup verification if there are only external storage
-    # devices. Currently we provide an interface for external storage provider
-    # for disk verification implementations, however current ExtStorageDevice
-    # does not provide an API for this yet.
-    #
-    # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
-    # is implemented.
-    if not opts.no_verify_disks and not only_ext:
+    if not opts.no_verify_disks:
       _VerifyDisks(client, group_uuid, nodes, instances)
   except Exception, err:
     logging.info("Not updating status file due to failure: %s", err)
@@ -903,10 +890,7 @@ def Main():
     logging.debug("Pause has been set, exiting")
     return constants.EXIT_SUCCESS
 
-  # Try to acquire global watcher lock in shared mode.
-  # In case we are in the global watcher process, this lock will be held by all
-  # children processes (one for each nodegroup) and will only be released when
-  # all of them have finished running.
+  # Try to acquire global watcher lock in shared mode
   lock = utils.FileLock.Open(pathutils.WATCHER_LOCK_FILE)
   try:
     lock.Shared(blocking=False)
@@ -914,6 +898,7 @@ def Main():
     logging.error("Can't acquire lock on %s: %s",
                   pathutils.WATCHER_LOCK_FILE, err)
     return constants.EXIT_SUCCESS
+
   if options.nodegroup is None:
     fn = _GlobalWatcher
   else:

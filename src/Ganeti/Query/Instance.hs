@@ -59,7 +59,7 @@ import Ganeti.Config
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as C
 import Ganeti.Errors
-import Ganeti.JSON (MaybeForJSON(..), fromContainer)
+import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Query.Common
 import Ganeti.Query.Language

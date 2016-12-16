@@ -37,6 +37,7 @@ import itertools
 import re
 import unittest
 import mock
+import operator
 import os
 
 from ganeti import backend
@@ -60,7 +61,6 @@ from cmdlib.cmdlib_unittest import _FakeLU
 from testsupport import *
 
 import testutils
-from testutils.config_mock import _UpdateIvNames
 
 
 class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
@@ -1313,8 +1313,9 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
                        file_driver=NotImplemented):
     gdt = instance_storage.GenerateDiskTemplate
 
-    for params in disk_info:
-      utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
+    map(lambda params: utils.ForceDictType(params,
+                                           constants.IDISK_PARAMS_TYPES),
+        disk_info)
 
     # Check if non-empty list of secondaries is rejected
     self.assertRaises(errors.ProgrammerError, gdt, self.lu,
@@ -1336,13 +1337,13 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       self.assertTrue(disk.children is None)
 
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
-    _UpdateIvNames(base_index, result)
+    config._UpdateIvNames(base_index, result)
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
 
     return result
 
   def _CheckIvNames(self, disks, base_index, end_index):
-    self.assertEqual([d.iv_name for d in disks],
+    self.assertEqual(map(operator.attrgetter("iv_name"), disks),
                      ["disk/%s" % i for i in range(base_index, end_index)])
 
   def testPlain(self):
@@ -1358,11 +1359,11 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     result = self._TestTrivialDisk(constants.DT_PLAIN, disk_info, 3,
                                    constants.DT_PLAIN)
 
-    self.assertEqual([d.logical_id for d in result], [
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       ("xenvg", "ec1-uq0.disk3"),
       ("othervg", "ec1-uq1.disk4"),
       ])
-    self.assertEqual([d.nodes for d in result], [
+    self.assertEqual(map(operator.attrgetter("nodes"), result), [
                      ["node21741.example.com"], ["node21741.example.com"]])
 
 
@@ -1397,17 +1398,17 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         expected = [(constants.FD_BLKTAP,
                      'ganeti/inst21662.example.com.%d' % x)
                     for x in (2,3,4)]
-        self.assertEqual([d.logical_id for d in result],
+        self.assertEqual(map(operator.attrgetter("logical_id"), result),
                          expected)
-        self.assertEqual([d.nodes for d in result], [
+        self.assertEqual(map(operator.attrgetter("nodes"), result), [
           [], [], []])
       else:
         if disk_template == constants.DT_FILE:
-          self.assertEqual([d.nodes for d in result], [
+          self.assertEqual(map(operator.attrgetter("nodes"), result), [
             ["node21741.example.com"], ["node21741.example.com"],
             ["node21741.example.com"]])
         else:
-          self.assertEqual([d.nodes for d in result], [
+          self.assertEqual(map(operator.attrgetter("nodes"), result), [
             [], [], []])
 
         for (idx, disk) in enumerate(result):
@@ -1427,10 +1428,10 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     result = self._TestTrivialDisk(constants.DT_BLOCK, disk_info, 10,
                                    constants.DT_BLOCK)
 
-    self.assertEqual([d.logical_id for d in result], [
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       (constants.BLOCKDEV_DRIVER_MANUAL, "/tmp/some/block/dev"),
       ])
-    self.assertEqual([d.nodes for d in result], [[]])
+    self.assertEqual(map(operator.attrgetter("nodes"), result), [[]])
 
   def testRbd(self):
     disk_info = [{
@@ -1444,11 +1445,11 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     result = self._TestTrivialDisk(constants.DT_RBD, disk_info, 0,
                                    constants.DT_RBD)
 
-    self.assertEqual([d.logical_id for d in result], [
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       ("rbd", "ec1-uq0.rbd.disk0"),
       ("rbd", "ec1-uq1.rbd.disk1"),
       ])
-    self.assertEqual([d.nodes for d in result], [[], []])
+    self.assertEqual(map(operator.attrgetter("nodes"), result), [[], []])
 
   def testDrbd8(self):
     gdt = instance_storage.GenerateDiskTemplate
@@ -1485,8 +1486,9 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
 
     assert len(exp_logical_ids) == len(disk_info)
 
-    for params in disk_info:
-      utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
+    map(lambda params: utils.ForceDictType(params,
+                                           constants.IDISK_PARAMS_TYPES),
+        disk_info)
 
     # Check if empty list of secondaries is rejected
     self.assertRaises(errors.ProgrammerError, gdt, self.lu, constants.DT_DRBD8,
@@ -1511,7 +1513,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         self.assertTrue(child.children is None)
         self.assertEqual(child.nodes, exp_nodes)
 
-      self.assertEqual([d.logical_id for d in disk.children],
+      self.assertEqual(map(operator.attrgetter("logical_id"), disk.children),
                        exp_logical_ids[idx])
       self.assertEqual(disk.nodes, exp_nodes)
 
@@ -1520,10 +1522,10 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       self.assertEqual(disk.children[1].size, constants.DRBD_META_SIZE)
 
     self._CheckIvNames(result, 0, len(disk_info))
-    _UpdateIvNames(0, result)
+    config._UpdateIvNames(0, result)
     self._CheckIvNames(result, 0, len(disk_info))
 
-    self.assertEqual([d.logical_id for d in result], [
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       ("node1334.example.com", "node12272.example.com",
        constants.FIRST_DRBD_PORT, 20, 21, "ec1-secret0"),
       ("node1334.example.com", "node12272.example.com",
@@ -1779,6 +1781,17 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
                             instance.CheckOpportunisticLocking, op)
         else:
           instance.CheckOpportunisticLocking(op)
+
+
+class TestLUInstanceRemove(CmdlibTestCase):
+  def testRemoveMissingInstance(self):
+    op = opcodes.OpInstanceRemove(instance_name="missing.inst")
+    self.ExecOpCodeExpectOpPrereqError(op, "Instance 'missing.inst' not known")
+
+  def testRemoveInst(self):
+    inst = self.cfg.AddNewInstance(disks=[])
+    op = opcodes.OpInstanceRemove(instance_name=inst.name)
+    self.ExecOpCode(op)
 
 
 class TestLUInstanceMove(CmdlibTestCase):
@@ -2060,8 +2073,6 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.inst = self.cfg.AddNewInstance(disk_template=self.dev_type)
     self.op = opcodes.OpInstanceSetParams(instance_name=self.inst.name)
 
-    self.cfg._cluster.default_iallocator=None
-
     self.running_inst = \
       self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
     self.running_op = \
@@ -2174,9 +2185,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     op = self.CopyOpCode(self.op,
                          disk_template=constants.DT_DRBD8)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "No iallocator or node given and no cluster-wide default iallocator"
-          " found; please specify either an iallocator or a node, or set a"
-          " cluster-wide default iallocator")
+      op, "Changing the disk template to a mirrored one requires specifying"
+          " a secondary node")
 
   def testPrimaryNodeToOldPrimaryNode(self):
     op = self.CopyOpCode(self.op,

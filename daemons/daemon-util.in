@@ -108,23 +108,8 @@ _daemon_usergroup() {
     mond)
       echo "@GNTMONDUSER@:@GNTMONDGROUP@"
       ;;
-    metad)
-      echo "@GNTMETADUSER@:@GNTMETADGROUP@"
-      ;;
     *)
       echo "root:@GNTDAEMONSGROUP@"
-      ;;
-  esac
-}
-
-# Specifies the additional capabilities needed by individual daemons
-_daemon_caps() {
-  case "$1" in
-    metad)
-      echo "cap_net_bind_service=+ep"
-      ;;
-    *)
-      echo ""
       ;;
   esac
 }
@@ -294,17 +279,6 @@ start() {
   eval local args="\"\$${ucname}_ARGS \$EXTRA_${ucname}_ARGS\""
 
   @PKGLIBDIR@/ensure-dirs
-
-  # Grant capabilities to daemons that need them
-  local daemoncaps=$(_daemon_caps $plain_name)
-  if [[ "$daemoncaps" != "" ]]; then
-    if type -p setcap >/dev/null; then
-      setcap $daemoncaps $(readlink -f $daemonexec)
-    else
-      echo "setcap missing, could not set capabilities for $name." >&2
-      return 1
-    fi
-  fi
 
   if type -p start-stop-daemon >/dev/null; then
     start-stop-daemon --start --quiet --oknodo \

@@ -57,7 +57,7 @@ import Ganeti.Confd.Types
 import Ganeti.Hash
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
-import Ganeti.JSON (fromJResult)
+import Ganeti.JSON
 import Ganeti.Utils
 
 -- | Type-adjusted max clock skew constant.

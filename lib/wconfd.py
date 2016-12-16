@@ -43,8 +43,6 @@ from ganeti.rpc import errors
 
 
 class Client(cl.AbstractStubClient, stub.ClientRpcStub):
-  # R0904: Too many public methods
-  # pylint: disable=R0904
   """High-level WConfD client implementation.
 
   This uses a backing Transport-like class on top of which it

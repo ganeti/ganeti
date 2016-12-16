@@ -40,7 +40,6 @@ module Ganeti.HTools.Program.Harep
   , options) where
 
 import Control.Exception (bracket)
-import Control.Lens (over)
 import Control.Monad
 import Data.Function
 import Data.List
@@ -48,16 +47,12 @@ import Data.Maybe
 import Data.Ord
 import System.Time
 import qualified Data.Map as Map
-import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Common
 import Ganeti.Errors
-import Ganeti.JQueue (currentTimestamp, reasonTrailTimestamp)
-import Ganeti.JQueue.Objects (Timestamp)
 import Ganeti.Jobs
 import Ganeti.OpCodes
-import Ganeti.OpCodes.Lens (metaParamsL, opReasonL)
 import Ganeti.OpParams
 import Ganeti.Types
 import Ganeti.Utils
@@ -68,14 +63,11 @@ import qualified Ganeti.Path as Path
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.ExtLoader
-import qualified Ganeti.HTools.Tags.Constants as Tags
+import qualified Ganeti.HTools.Tags as Tags
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
-
-import Ganeti.Version (version)
-
 
 -- | Options list and functions.
 options :: IO [OptType]
@@ -84,22 +76,10 @@ options = do
   return
     [ luxi
     , oJobDelay
-    , oReason
-    , oDryRun
     ]
 
 arguments :: [ArgCompletion]
 arguments = []
-
--- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
--- about what generated the opcode.
-annotateOpCode :: Maybe String -> Timestamp -> OpCode -> MetaOpCode
-annotateOpCode reason ts =
-  over (metaParamsL . opReasonL)
-      (++ [( "harep", fromMaybe ("harep " ++ version ++ " called") reason
-           , reasonTrailTimestamp ts)])
-  . setOpComment ("automated repairs by harep " ++ version)
-  . wrapOpCode
 
 data InstanceData = InstanceData { arInstance :: Instance.Instance
                                  , arState :: AutoRepairStatus
@@ -231,8 +211,8 @@ arStatusCmp instData arData =
        "programming error: ArNeedsRepair found as an initial state"
 
 -- | Query jobs of a pending repair, returning the new instance data.
-processPending :: Options -> L.Client -> InstanceData -> IO InstanceData
-processPending opts client instData =
+processPending :: L.Client -> InstanceData -> IO InstanceData
+processPending client instData =
   case arState instData of
     (ArPendingRepair arData) -> do
       sts <- L.queryJobsStatus client $ arJobs arData
@@ -248,7 +228,7 @@ processPending opts client instData =
                 destSt = arStateName arState'
             putStrLn ("Moving " ++ iname ++ " from " ++ show srcSt ++ " to " ++
                       show destSt)
-            commitChange opts client instData'
+            commitChange client instData'
           where
             instData' =
               instData { arState = arState'
@@ -284,15 +264,13 @@ updateTag arData =
 -- 'AutoRepairData', add its tag to the instance object. Additionally, if
 -- /tagsToRemove/ is not empty, remove those tags from the instance object. The
 -- returned /InstanceData/ object always has an empty /tagsToRemove/.
-commitChange :: Options -> L.Client -> InstanceData -> IO InstanceData
-commitChange opts client instData = do
-  now <- currentTimestamp
+commitChange :: L.Client -> InstanceData -> IO InstanceData
+commitChange client instData = do
   let iname = Instance.name $ arInstance instData
       arData = getArData $ arState instData
       rmTags = tagsToRemove instData
-      execJobsWaitOk' opcodes = unless (optDryRun opts) $ do
-        res <- execJobsWaitOk
-                 [map (annotateOpCode (optReason opts) now) opcodes] client
+      execJobsWaitOk' opcodes = do
+        res <- execJobsWaitOk [map wrapOpCode opcodes] client
         case res of
           Ok _ -> return ()
           Bad e -> exitErr e
@@ -403,25 +381,13 @@ detectBroken nl inst =
      _ -> Nothing  -- Other cases are unimplemented for now: DTDiskless,
                    -- DTFile, DTSharedFile, DTBlock, DTRbd, DTExt.
 
--- | Submit jobs, unless a dry-run is requested; in this case, just report
--- the job that would be submitted.
-submitJobs' :: Options -> [[MetaOpCode]] -> L.Client -> IO (Result [JobId])
-submitJobs' opts jobs client =
-  if optDryRun opts
-    then do
-      putStrLn . (++) "jobs: " . J.encode $ map (map metaOpCode) jobs
-      return $ Ok []
-    else
-      submitJobs jobs client
-
 -- | Perform the suggested repair on an instance if its policy allows it.
-doRepair :: Options
-         -> L.Client     -- ^ The Luxi client
+doRepair :: L.Client     -- ^ The Luxi client
          -> Double       -- ^ Delay to insert before the first repair opcode
          -> InstanceData -- ^ The instance data
          -> (AutoRepairType, [OpCode]) -- ^ The repair job to perform
          -> IO InstanceData -- ^ The updated instance data
-doRepair opts client delay instData (rtype, opcodes) =
+doRepair client delay instData (rtype, opcodes) =
   let inst = arInstance instData
       ipol = Instance.arPolicy inst
       iname = Instance.name inst
@@ -441,9 +407,8 @@ doRepair opts client delay instData (rtype, opcodes) =
         putStrLn ("Not performing a repair of type " ++ show rtype ++ " on " ++
           iname ++ " because only repairs up to " ++ show maxtype ++
           " are allowed")
-        commitChange opts client instData'  -- Adds "enoperm" result label.
+        commitChange client instData'  -- Adds "enoperm" result label.
       else do
-        now <- currentTimestamp
         putStrLn ("Executing " ++ show rtype ++ " repair on " ++ iname)
 
         -- After submitting the job, we must write an autorepair:pending tag,
@@ -480,10 +445,7 @@ doRepair opts client delay instData (rtype, opcodes) =
 
         uuid <- newUUID
         time <- getClockTime
-        jids <- submitJobs'
-                  opts
-                  [map (annotateOpCode (optReason opts) now) opcodes']
-                  client
+        jids <- submitJobs [map wrapOpCode opcodes'] client
 
         case jids of
           Bad e    -> exitErr e
@@ -494,7 +456,7 @@ doRepair opts client delay instData (rtype, opcodes) =
                                      , tagsToRemove = delCurTag instData
                                      }
             in
-             commitChange opts client instData'  -- Adds "pending" label.
+             commitChange client instData'  -- Adds "pending" label.
 
     otherSt -> do
       putStrLn ("Not repairing " ++ iname ++ " because it's in state " ++
@@ -518,7 +480,7 @@ main opts args = do
 
   -- First step: check all pending repairs, see if they are completed.
   iniData' <- bracket (L.getLuxiClient master) L.closeClient $
-              forM iniData . processPending opts
+              forM iniData . processPending
 
   -- Second step: detect any problems.
   let repairs = map (detectBroken nl . arInstance) iniData'
@@ -527,7 +489,7 @@ main opts args = do
   let maybeRepair c (i, r) = maybe (return i) (repairHealthy c i) r
       jobDelay = optJobDelay opts
       repairHealthy c i = case arState i of
-                            ArHealthy _ -> doRepair opts c jobDelay i
+                            ArHealthy _ -> doRepair c jobDelay i
                             _           -> const (return i)
 
   repairDone <- bracket (L.getLuxiClient master) L.closeClient $

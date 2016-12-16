@@ -35,6 +35,7 @@ import math
 import os
 import urllib2
 
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import hypervisor
@@ -511,6 +512,7 @@ def AdjustCandidatePool(
     lu.LogInfo("Promoted nodes to master candidate role: %s",
                utils.CommaJoin(node.name for node in mod_list))
     for node in mod_list:
+      lu.context.ReaddNode(node)
       AddNodeCertToCandidateCerts(lu, lu.cfg, node.uuid)
       if modify_ssh_setup:
         AddMasterCandidateSshKey(
@@ -998,13 +1000,9 @@ def LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
                  (name, _NodeEvacDest(use_nodes, group, node_names))
                  for (name, group, node_names) in moved))
 
-  return [
-    [
-      _SetOpEarlyRelease(early_release, opcodes.OpCode.LoadOpCode(o))
-      for o in ops
-    ]
-    for ops in jobs
-  ]
+  return [map(compat.partial(_SetOpEarlyRelease, early_release),
+              map(opcodes.OpCode.LoadOpCode, ops))
+          for ops in jobs]
 
 
 def _NodeEvacDest(use_nodes, group, node_names):

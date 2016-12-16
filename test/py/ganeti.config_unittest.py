@@ -51,7 +51,7 @@ from ganeti.config import TemporaryReservationManager
 import testutils
 import mocks
 import mock
-from testutils.config_mock import ConfigMock, _UpdateIvNames
+from testutils.config_mock import ConfigMock
 
 
 def _StubGetEntResolver():
@@ -303,6 +303,60 @@ class TestConfigRunner(unittest.TestCase):
       node2.uuid: ["myxenvg/disk0", "myxenvg/meta0"],
       })
 
+  def testUpdateCluster(self):
+    """Test updates on the cluster object"""
+    cfg = self._get_object()
+    # construct a fake cluster object
+    fake_cl = objects.Cluster()
+    # fail if we didn't read the config
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl, None)
+
+    cl = cfg.GetClusterInfo()
+    # first pass, must not fail
+    cfg.Update(cl, None)
+    # second pass, also must not fail (after the config has been written)
+    cfg.Update(cl, None)
+    # but the fake_cl update should still fail
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl, None)
+
+  def testUpdateNode(self):
+    """Test updates on one node object"""
+    cfg = self._get_object()
+    # construct a fake node
+    fake_node = objects.Node()
+    # fail if we didn't read the config
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node,
+                          None)
+
+    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
+    # first pass, must not fail
+    cfg.Update(node, None)
+    # second pass, also must not fail (after the config has been written)
+    cfg.Update(node, None)
+    # but the fake_node update should still fail
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node,
+                          None)
+
+  def testUpdateInstance(self):
+    """Test updates on one instance object"""
+    cfg = self._get_object_mock()
+    # construct a fake instance
+    inst = self._create_instance(cfg)
+    fake_instance = objects.Instance()
+    # fail if we didn't read the config
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
+                          None)
+
+    cfg.AddInstance(inst, "my-job")
+    instance = cfg.GetInstanceInfo(cfg.GetInstanceList()[0])
+    # first pass, must not fail
+    cfg.Update(instance, None)
+    # second pass, also must not fail (after the config has been written)
+    cfg.Update(instance, None)
+    # but the fake_instance update should still fail
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
+                          None)
+
   def testUpgradeSave(self):
     """Test that any modification done during upgrading is saved back"""
     cfg = self._get_object()
@@ -376,7 +430,7 @@ class TestConfigRunner(unittest.TestCase):
         constants.ND_CPU_SPEED: 1.0,
         }
 
-    cfg = self._get_object_mock()
+    cfg = self._get_object()
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     node.ndparams = my_ndparams
     cfg.Update(node, None)
@@ -404,7 +458,7 @@ class TestConfigRunner(unittest.TestCase):
       constants.ND_SSH_PORT: 222,
       constants.ND_CPU_SPEED: 1.0,
       }
-    cfg = self._get_object_mock()
+    cfg = self._get_object()
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     node.ndparams = node_ndparams
     cfg.Update(node, None)
@@ -462,7 +516,8 @@ class TestConfigRunner(unittest.TestCase):
                              uuid="798d0de3-680f-4a0e-b29a-0f54f693b3f1")
     grp2_serial = 1
     cfg.AddNodeGroup(grp2, "job")
-    self.assertEqual(set(ng.name for ng in cfg.GetAllNodeGroupsInfo().values()),
+    self.assertEqual(set(map(operator.attrgetter("name"),
+                             cfg.GetAllNodeGroupsInfo().values())),
                      set(["grp1", "grp2", constants.INITIAL_NODE_GROUP_NAME]))
 
     # No-op
@@ -652,13 +707,26 @@ class TestConfigRunner(unittest.TestCase):
     self.assertRaises(errors.ProgrammerError, cfg.DetachInstanceDisk,
                       "test-uuid", "disk0")
 
+    # Attach disk to non-existent instance
+    self.assertRaises(errors.ConfigurationError, cfg.AttachInstanceDisk,
+                      "1134", "disk0")
+
+    # Attach non-existent disk
+    self.assertRaises(errors.ConfigurationError, cfg.AttachInstanceDisk,
+                      "test-uuid", "disk1")
+
     # Attach disk
     cfg.AttachInstanceDisk("test-uuid", "disk0")
     instance_disks = cfg.GetInstanceDisks("test-uuid")
     self.assertEqual(instance_disks, [disk])
 
+    # Attach disk again
+    self.assertRaises(errors.ReservationError, cfg.AttachInstanceDisk,
+                      "test-uuid", "disk0")
+
+
 def _IsErrorInList(err_str, err_list):
-  return any((err_str in e) for e in err_list)
+  return any(map(lambda e: err_str in e, err_list))
 
 
 class TestTRM(unittest.TestCase):
@@ -687,7 +755,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
   def testNoError(self):
     disks = self._MakeDisks(["disk/0", "disk/1"])
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
-    _UpdateIvNames(0, disks)
+    config._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
   def testWrongNames(self):
@@ -698,7 +766,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
       ])
 
     # Fix names
-    _UpdateIvNames(0, disks)
+    config._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 

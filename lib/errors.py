@@ -469,17 +469,6 @@ class SshUpdateError(GenericError):
   """
 
 
-class JobSubmittedException(Exception):
-  """Job was submitted, client should exit.
-
-  This exception has one argument, the ID of the job that was
-  submitted. The handler should print this ID.
-
-  This is not an error, just a structured way to exit from clients.
-
-  """
-
-
 # errors should be added above
 
 

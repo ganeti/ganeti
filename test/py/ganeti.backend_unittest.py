@@ -133,73 +133,26 @@ class TestNodeVerify(testutils.GanetiTestCase):
 
   def testMasterIPLocalhost(self):
     # this a real functional test, but requires localhost to be reachable
-    my_name = netutils.Hostname.GetSysName()
-    local_data = (my_name,constants.IP4_ADDRESS_LOCALHOST, [my_name])
-    result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
-                                None, {})
-    self.failUnless(constants.NV_MASTERIP in result,
-                    "Master IP data not returned")
-    self.failUnless(result[constants.NV_MASTERIP],
-                    "Cannot reach localhost")
-
-  def testMasterIPSkipTest(self):
-    # this a real functional test, but requires localhost to be reachable
     local_data = (netutils.Hostname.GetSysName(),
-                  constants.IP4_ADDRESS_LOCALHOST, [])
+                  constants.IP4_ADDRESS_LOCALHOST)
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
-                                None, {})
+                                None, {}, {}, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
-    self.failUnless(result[constants.NV_MASTERIP] == None,
-                    "Test ran by non master candidate")
+    self.failUnless(result[constants.NV_MASTERIP], "Cannot reach localhost")
 
   def testMasterIPUnreachable(self):
     # Network 192.0.2.0/24 is reserved for test/documentation as per
     # RFC 5737
-    my_name = "master.example.com"
-    bad_data =  (my_name, "192.0.2.1", [my_name])
+    bad_data =  ("master.example.com", "192.0.2.1")
     # we just test that whatever TcpPing returns, VerifyNode returns too
     netutils.TcpPing = lambda a, b, source=None: False
     result = backend.VerifyNode({constants.NV_MASTERIP: bad_data},
-                                None, {})
+                                None, {}, {}, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failIf(result[constants.NV_MASTERIP],
                 "Result from netutils.TcpPing corrupted")
-
-  def testVerifyNodeNetTestMissingSelf(self):
-    my_name = netutils.Hostname.GetSysName()
-    local_data = ([('n1.test.com', "any", "any")], [my_name])
-    result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
-                                None, {})
-
-    self.failUnless(constants.NV_NODENETTEST in result,
-                    "NodeNetTest data not returned")
-    self.failUnless(my_name in result[constants.NV_NODENETTEST],
-                    "Missing failure in net test")
-
-  def testVerifyNodeNetTest(self):
-    my_name = netutils.Hostname.GetSysName()
-    local_data = ([(my_name, "any", "any")], [my_name])
-
-    # we just test that whatever TcpPing returns, VerifyNode returns too
-    netutils.TcpPing = lambda a, b, source=None: True
-    result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
-                                None, {})
-
-    self.failUnless(constants.NV_NODENETTEST in result,
-                    "NodeNetTest data not returned")
-    self.failUnless(result[constants.NV_NODENETTEST] == {},
-                    "NodeNetTest failed")
-
-  def testVerifyNodeNetSkipTest(self):
-    local_data = ([('n1.test.com', "any", "any")], [])
-    result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
-                                None, {})
-    self.failUnless(constants.NV_NODENETTEST in result,
-                    "NodeNetTest data not returned")
-    self.failUnless(result[constants.NV_NODENETTEST] == {},
-                    "Test ran by non master candidate")
 
   def testVerifyHvparams(self):
     test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
@@ -1104,7 +1057,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend._GenerateNodeSshKey(
         test_node_uuid, test_node_name,
         self._ssh_file_manager.GetSshPortMap(self._SSH_PORT),
-        "rsa", 2048,
         pub_key_file=self._pub_key_file,
         ssconf_store=self._ssconf_mock,
         noded_cert_file=self.noded_cert_file,
@@ -2003,8 +1955,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._read_file_mock = self._read_file_patcher.start()
     self._read_file_mock.return_value = self._NODE1_KEYS[0]
     self.tmpdir = tempfile.mkdtemp()
-    self.pub_keys_file = os.path.join(self.tmpdir, "pub_keys_file")
-    open(self.pub_keys_file, "w").close()
+    self.pub_key_file = os.path.join(self.tmpdir, "pub_key_file")
+    open(self.pub_key_file, "w").close()
 
   def tearDown(self):
     super(testutils.GanetiTestCase, self).tearDown()
@@ -2019,8 +1971,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     "dsa",
-                                     ganeti_pub_keys_file=self.pub_keys_file)
+                                     pub_key_file=self.pub_key_file)
     self.assertEqual(result, [])
 
   def testMissingKey(self):
@@ -2031,8 +1982,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     "dsa",
-                                     ganeti_pub_keys_file=self.pub_keys_file)
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue(self._NODE2_UUID in result[0])
 
   def testUnknownKey(self):
@@ -2043,8 +1993,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     "dsa",
-                                     ganeti_pub_keys_file=self.pub_keys_file)
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue("unkownnodeuuid" in result[0])
 
   def testMissingMasterCandidate(self):
@@ -2055,8 +2004,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     "dsa",
-                                     ganeti_pub_keys_file=self.pub_keys_file)
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue(self._NODE1_UUID in result[0])
 
   def testSuperfluousNormalNode(self):
@@ -2067,8 +2015,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     "dsa",
-                                     ganeti_pub_keys_file=self.pub_keys_file)
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue(self._NODE3_UUID in result[0])
 
 

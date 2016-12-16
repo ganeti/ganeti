@@ -39,6 +39,13 @@ module Ganeti.HTools.Cluster
   (
     -- * Types
     AllocDetails(..)
+  , GenericAllocSolution(..)
+  , AllocSolution
+  , emptyAllocSolution
+  , concatAllocs
+  , sumAllocs
+  , updateIl
+  , extractNl
   , Table(..)
   , CStats(..)
   , AllocNodes
@@ -61,6 +68,8 @@ module Ganeti.HTools.Cluster
   -- * Display functions
   , printNodes
   , printInsts
+  , genericAnnotateSolution
+  , solutionDescription
   -- * Balacing functions
   , doNextBalance
   , tryBalance
@@ -73,6 +82,7 @@ module Ganeti.HTools.Cluster
   , filterMGResults
   , sortMGResults
   , tryChangeGroup
+  , collapseFailures
   , allocList
   -- * Allocation functions
   , iterateAlloc
@@ -94,21 +104,15 @@ import Text.Printf (printf)
 import Ganeti.BasicTypes
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
-import Ganeti.HTools.Cluster.AllocatePrimitives ( allocateOnSingle
-                                                , allocateOnPair)
-import Ganeti.HTools.Cluster.AllocationSolution
-    ( GenericAllocSolution(..) , AllocSolution, emptyAllocSolution
-    , sumAllocs, extractNl, updateIl
-    , annotateSolution, solutionDescription, collapseFailures
-    , emptyAllocCollection, concatAllocCollections, collectionToSolution )
 import Ganeti.HTools.Cluster.Evacuate ( EvacSolution(..), emptyEvacSolution
                                       , updateEvacSolution, reverseEvacSolution
                                       , nodeEvacInstance)
-import Ganeti.HTools.Cluster.Metrics (compCV, compClusterStatistics)
-import Ganeti.HTools.Cluster.Moves (applyMoveEx)
+import Ganeti.HTools.Cluster.Metrics ( compCV, compCVfromStats
+                                     , compClusterStatistics
+                                     , updateClusterStatisticsTwice)
+import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore, applyMoveEx)
 import Ganeti.HTools.Cluster.Utils (splitCluster, instancePriGroup
                                    , availableGroupNodes, iMoveToJob)
-import Ganeti.HTools.GlobalN1 (allocGlobalN1, redundant)
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.HTools.Node as Node
@@ -116,6 +120,7 @@ import qualified Ganeti.HTools.Group as Group
 import Ganeti.HTools.Types
 import Ganeti.Compat
 import Ganeti.Utils
+import Ganeti.Utils.Statistics
 import Ganeti.Types (EvacMode(..))
 
 -- * Types
@@ -126,13 +131,23 @@ import Ganeti.Types (EvacMode(..))
 data AllocDetails = AllocDetails Int (Maybe String)
                     deriving (Show)
 
+-- | Allocation\/relocation solution.
+data GenericAllocSolution a = AllocSolution
+  { asFailures :: [FailMode]              -- ^ Failure counts
+  , asAllocs   :: Int                     -- ^ Good allocation count
+  , asSolution :: Maybe (Node.GenericAllocElement a) -- ^ The actual allocation
+                                          -- result
+  , asLog      :: [String]                -- ^ Informational messages
+  }
+
+type AllocSolution = GenericAllocSolution Score
+
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
                     [Instance.Instance], [CStats])
 
 -- | Type alias for easier handling.
-type GenericAllocSolutionList a =
-  [(Instance.Instance, GenericAllocSolution a)]
+type GenericAllocSolutionList a = [(Instance.Instance, GenericAllocSolution a)]
 type AllocSolutionList = GenericAllocSolutionList Score
 
 -- | A type denoting the valid allocation mode/pairs.
@@ -143,6 +158,11 @@ type AllocSolutionList = GenericAllocSolutionList Score
 -- association list, grouped by primary node and holding the potential
 -- secondary nodes in the sub-list.
 type AllocNodes = Either [Ndx] [(Ndx, [Ndx])]
+
+-- | The empty solution we start with when computing allocations.
+emptyAllocSolution :: GenericAllocSolution a
+emptyAllocSolution = AllocSolution { asFailures = [], asAllocs = 0
+                                   , asSolution = Nothing, asLog = [] }
 
 -- | The complete state for the balancing solution.
 data Table = Table Node.List Instance.List Score [Placement]
@@ -313,6 +333,42 @@ compareTables :: Table -> Table -> Table
 compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
   if a_cv > b_cv then b else a
 
+-- | Tries to allocate an instance on one given node.
+allocateOnSingle :: AlgorithmOptions
+                 -> Node.List -> Instance.Instance -> Ndx
+                 -> OpResult Node.AllocElement
+allocateOnSingle opts nl inst new_pdx =
+  let p = Container.find new_pdx nl
+      new_inst = Instance.setBoth inst new_pdx Node.noSecondary
+      force = algIgnoreSoftErrors opts
+  in do
+    Instance.instMatchesPolicy inst (Node.iPolicy p) (Node.exclStorage p)
+    new_p <- Node.addPriEx force p inst
+    let new_nl = Container.add new_pdx new_p nl
+        new_score = compCV new_nl
+    return (new_nl, new_inst, [new_p], new_score)
+
+-- | Tries to allocate an instance on a given pair of nodes.
+allocateOnPair :: AlgorithmOptions
+               -> [Statistics]
+               -> Node.List -> Instance.Instance -> Ndx -> Ndx
+               -> OpResult Node.AllocElement
+allocateOnPair opts stats nl inst new_pdx new_sdx =
+  let tgt_p = Container.find new_pdx nl
+      tgt_s = Container.find new_sdx nl
+      force = algIgnoreSoftErrors opts
+  in do
+    Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
+      (Node.exclStorage tgt_p)
+    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p tgt_s)
+                   new_pdx new_sdx
+    new_p <- Node.addPriEx force tgt_p new_inst
+    new_s <- Node.addSec tgt_s new_inst new_pdx
+    let new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
+        new_stats = updateClusterStatisticsTwice stats
+                      (tgt_p, new_p) (tgt_s, new_s)
+    return (new_nl, new_inst, [new_p, new_s], compCVfromStats new_stats)
+
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
 checkSingleStep :: Bool -- ^ Whether to unconditionally ignore soft errors
@@ -472,22 +528,99 @@ tryBalance opts ini_tbl =
 
 -- * Allocation functions
 
+-- | Build failure stats out of a list of failures.
+collapseFailures :: [FailMode] -> FailStats
+collapseFailures flst =
+    map (\k -> (k, foldl' (\a e -> if e == k then a + 1 else a) 0 flst))
+            [minBound..maxBound]
+
+-- | Compares two Maybe AllocElement and chooses the best score.
+bestAllocElement :: Ord a
+                 => Maybe (Node.GenericAllocElement a)
+                 -> Maybe (Node.GenericAllocElement a)
+                 -> Maybe (Node.GenericAllocElement a)
+bestAllocElement a Nothing = a
+bestAllocElement Nothing b = b
+bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
+  if ascore < bscore then a else b
+
+-- | Update current Allocation solution and failure stats with new
+-- elements.
+concatAllocs :: Ord a
+             => GenericAllocSolution a
+             -> OpResult (Node.GenericAllocElement a)
+             -> GenericAllocSolution a
+concatAllocs as (Bad reason) = as { asFailures = reason : asFailures as }
+
+concatAllocs as (Ok ns) =
+  let -- Choose the old or new solution, based on the cluster score
+    cntok = asAllocs as
+    osols = asSolution as
+    nsols = bestAllocElement osols (Just ns)
+    nsuc = cntok + 1
+    -- Note: we force evaluation of nsols here in order to keep the
+    -- memory profile low - we know that we will need nsols for sure
+    -- in the next cycle, so we force evaluation of nsols, since the
+    -- foldl' in the caller will only evaluate the tuple, but not the
+    -- elements of the tuple
+  in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
+
+-- | Sums two 'AllocSolution' structures.
+sumAllocs :: Ord a
+          => GenericAllocSolution a
+          -> GenericAllocSolution a
+          -> GenericAllocSolution a
+sumAllocs (AllocSolution aFails aAllocs aSols aLog)
+          (AllocSolution bFails bAllocs bSols bLog) =
+  -- note: we add b first, since usually it will be smaller; when
+  -- fold'ing, a will grow and grow whereas b is the per-group
+  -- result, hence smaller
+  let nFails  = bFails ++ aFails
+      nAllocs = aAllocs + bAllocs
+      nSols   = bestAllocElement aSols bSols
+      nLog    = bLog ++ aLog
+  in AllocSolution nFails nAllocs nSols nLog
+
+-- | Given a solution, generates a reasonable description for it.
+genericDescribeSolution :: (a -> String) -> GenericAllocSolution a -> String
+genericDescribeSolution formatMetrics as =
+  let fcnt = asFailures as
+      sols = asSolution as
+      freasons =
+        intercalate ", " . map (\(a, b) -> printf "%s: %d" (show a) b) .
+        filter ((> 0) . snd) . collapseFailures $ fcnt
+  in case sols of
+     Nothing -> "No valid allocation solutions, failure reasons: " ++
+                (if null fcnt then "unknown reasons" else freasons)
+     Just (_, _, nodes, cv) ->
+         printf ("score: %s, successes %d, failures %d (%s)" ++
+                 " for node(s) %s") (formatMetrics cv) (asAllocs as)
+               (length fcnt) freasons
+               (intercalate "/" . map Node.name $ nodes)
+
+-- | Annotates a solution with the appropriate string.
+genericAnnotateSolution :: (a -> String)
+                        ->GenericAllocSolution a -> GenericAllocSolution a
+genericAnnotateSolution formatMetrics as =
+  as { asLog = genericDescribeSolution formatMetrics as : asLog as }
+
+-- | Annotate a solution based on the standard metrics
+annotateSolution :: AllocSolution -> AllocSolution
+annotateSolution = genericAnnotateSolution (printf "%.8f")
+
 -- | Generate the valid node allocation singles or pairs for a new instance.
-genAllocNodes :: AlgorithmOptions  -- ^ algorithmic options to honor
-              -> Group.List        -- ^ Group list
+genAllocNodes :: Group.List        -- ^ Group list
               -> Node.List         -- ^ The node map
               -> Int               -- ^ The number of nodes required
               -> Bool              -- ^ Whether to drop or not
                                    -- unallocable nodes
               -> Result AllocNodes -- ^ The (monadic) result
-genAllocNodes opts gl nl count drop_unalloc =
+genAllocNodes gl nl count drop_unalloc =
   let filter_fn = if drop_unalloc
                     then filter (Group.isAllocable .
                                  flip Container.find gl . Node.group)
                     else id
-      restrict_fn = maybe id (\ns -> filter (flip elem ns . Node.name))
-                    $ algRestrictToNodes opts
-      all_nodes = restrict_fn . filter_fn $ getOnline nl
+      all_nodes = filter_fn $ getOnline nl
       all_pairs = [(Node.idx p,
                     [Node.idx s | s <- all_nodes,
                                        Node.idx p /= Node.idx s,
@@ -507,31 +640,32 @@ tryAlloc :: (Monad m) =>
          -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
 tryAlloc _ _  _ _    (Right []) = fail "Not enough online nodes"
-tryAlloc opts nl il inst (Right ok_pairs) =
+tryAlloc opts nl _ inst (Right ok_pairs) =
   let cstat = compClusterStatistics $ Container.elems nl
-      n1pred = if algCapacity opts
-                 then allocGlobalN1 opts nl il
-                 else const True
       psols = parMap rwhnf (\(p, ss) ->
-                              collectionToSolution FailN1 n1pred $
-                              foldl (\cstate ->
-                                      concatAllocCollections cstate
-                                      . allocateOnPair opts cstat nl inst p)
-                              emptyAllocCollection ss) ok_pairs
+                              foldl' (\cstate ->
+                                        concatAllocs cstate .
+                                        allocateOnPair opts cstat nl inst p)
+                              emptyAllocSolution ss) ok_pairs
       sols = foldl' sumAllocs emptyAllocSolution psols
   in return $ annotateSolution sols
 
 tryAlloc _ _  _ _    (Left []) = fail "No online nodes"
-tryAlloc opts nl il inst (Left all_nodes) =
-  let sols = foldl (\cstate ->
-                       concatAllocCollections cstate
-                       . allocateOnSingle opts nl inst
-                   ) emptyAllocCollection all_nodes
-      n1pred = if algCapacity opts
-                 then allocGlobalN1 opts nl il
-                 else const True
-  in return . annotateSolution
-       $ collectionToSolution FailN1 n1pred sols
+tryAlloc opts nl _ inst (Left all_nodes) =
+  let sols = foldl' (\cstate ->
+                       concatAllocs cstate . allocateOnSingle opts nl inst
+                    ) emptyAllocSolution all_nodes
+  in return $ annotateSolution sols
+
+-- | Given a group/result, describe it as a nice (list of) messages.
+solutionDescription :: (Group.Group, Result (GenericAllocSolution a))
+                    -> [String]
+solutionDescription (grp, result) =
+  case result of
+    Ok solution -> map (printf "Group %s (%s): %s" gname pol) (asLog solution)
+    Bad message -> [printf "Group %s: error %s" gname message]
+  where gname = Group.name grp
+        pol = allocPolicyToRaw (Group.allocPolicy grp)
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result. Note that the result will be
@@ -594,7 +728,7 @@ findAllocation opts mggl mgnl mgil gdx inst cnt = do
   unless (hasRequiredNetworks group' inst) . failError
          $ "The group " ++ Group.name group' ++ " is not connected to\
            \ a network required by instance " ++ Instance.name inst
-  solution <- genAllocNodes opts mggl nl cnt False >>= tryAlloc opts nl il inst
+  solution <- genAllocNodes mggl nl cnt False >>= tryAlloc opts nl il inst
   return (solution, solutionDescription (group', return solution))
 
 -- | Finds the best group for an instance on a multi-group cluster.
@@ -618,9 +752,9 @@ findBestAllocGroup opts mggl mgnl mgil allowed_gdxs inst cnt =
                 (\gs -> filter ((`elem` gs) . Group.idx . fst) groups)
                 allowed_gdxs
       (groups'', filter_group_msgs) = filterValidGroups groups' inst
-      sols = map (\(gr, (nl, _)) ->
-                   (gr, genAllocNodes opts mggl nl cnt False >>=
-                        tryAlloc opts mgnl mgil inst))
+      sols = map (\(gr, (nl, il)) ->
+                   (gr, genAllocNodes mggl nl cnt False >>=
+                        tryAlloc opts nl il inst))
              groups''::[(Group.Group, Result AllocSolution)]
       all_msgs = filter_group_msgs ++ concatMap solutionDescription sols
       goodSols = filterMGResults sols
@@ -662,6 +796,21 @@ tryGroupAlloc opts mggl mgnl ngil gn inst cnt = do
   (solution, msgs) <- findAllocation opts mggl mgnl ngil gdx inst cnt
   return $ solution { asLog = msgs }
 
+-- | Calculate the new instance list after allocation solution.
+updateIl :: Instance.List           -- ^ The original instance list
+         -> Maybe (Node.GenericAllocElement a) -- ^ The result of
+                                               -- the allocation attempt
+         -> Instance.List           -- ^ The updated instance list
+updateIl il Nothing = il
+updateIl il (Just (_, xi, _, _)) = Container.add (Container.size il) xi il
+
+-- | Extract the the new node list from the allocation solution.
+extractNl :: Node.List               -- ^ The original node list
+          -> Maybe (Node.GenericAllocElement a) -- ^ The result of the
+                                                -- allocation attempt
+          -> Node.List               -- ^ The new node list
+extractNl nl Nothing = nl
+extractNl _ (Just (xnl, _, _, _)) = xnl
 
 -- | Try to allocate a list of instances on a multi-group cluster.
 allocList :: AlgorithmOptions
@@ -681,7 +830,7 @@ allocList opts gl nl il ((xi, AllocDetails xicnt mgn):xies) result = do
     Nothing -> tryMGAlloc opts gl nl il xi xicnt
     Just gn -> tryGroupAlloc opts gl nl il gn xi xicnt
   let sol = asSolution ares
-      nl' = extractNl nl il sol
+      nl' = extractNl nl sol
       il' = updateIl il sol
   allocList opts gl nl' il' xies ((xi, ares):result)
 
@@ -748,17 +897,14 @@ tryChangeGroup opts gl ini_nl ini_il gdxs idxs =
 -- This places instances of the same size on the cluster until we're
 -- out of space. The result will be a list of identically-sized
 -- instances.
-iterateAllocSmallStep :: AlgorithmOptions -> AllocMethod
-iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats =
+iterateAlloc :: AlgorithmOptions -> AllocMethod
+iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
   let depth = length ixes
       newname = printf "new-%d" depth::String
       newidx = Container.size il
       newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
       newlimit = fmap (flip (-) 1) limit
-      opts' = if Instance.diskTemplate newi2 == DTDrbd8
-                then opts { algCapacity = False }
-                else opts
-  in case tryAlloc opts' nl il newi2 allocnodes of
+  in case tryAlloc opts nl il newi2 allocnodes of
        Bad s -> Bad s
        Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
          let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
@@ -767,66 +913,9 @@ iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats =
            Just (xnl, xi, _, _) ->
              if limit == Just 0
                then newsol
-               else iterateAllocSmallStep opts xnl (Container.add newidx xi il)
+               else iterateAlloc opts xnl (Container.add newidx xi il)
                       newlimit newinst allocnodes (xi:ixes)
                       (totalResources xnl:cstats)
-
--- | Guess a number of machines worth trying to put on the cluster in one step.
--- The goal is to guess a number close to the actual capacity of the cluster but
--- preferrably not bigger, unless it is quite small (as we don't want to do
--- big steps smaller than 10).
-guessBigstepSize :: Node.List -> Instance.Instance -> Int
-guessBigstepSize nl inst =
-  let nodes = Container.elems nl
-      totalUnusedMemory = sum $ map Node.fMem nodes
-      reserved = round . maximum $ map Node.tMem nodes
-      capacity = (totalUnusedMemory - reserved) `div` Instance.mem inst
-      -- however, at every node we might lose almost an instance if it just
-      -- doesn't fit by a tiny margin
-      guess = capacity - Container.size nl
-  in if guess < 20 then 20 else guess
-
--- | A speed-up version of `iterateAllocSmallStep`.
---
--- This function returns precisely the same result as `iterateAllocSmallStep`.
--- However the computation is speed up by the following heuristic: allocate
--- a group of instances iteratively without considering global N+1 redundancy;
--- if the result of this is globally N+1 redundant, then everything was OK
--- inbetween and we can continue from there. Only if that fails, do a
--- step-by-step iterative allocation.
--- In order to further speed up the computation while keeping it robust, we
--- first try (if the first argument is True) a number of steps guessed from
--- the node capacity, then, if that failed, a fixed step size and only as last
--- restort step-by-step iterative allocation.
-iterateAlloc' :: Bool -> AlgorithmOptions -> AllocMethod
-iterateAlloc' tryHugestep opts nl il limit newinst allocnodes ixes cstats =
-  if not $ algCapacity opts
-    then iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats
-    else let bigstepsize = if tryHugestep
-                             then guessBigstepSize nl newinst
-                             else 10
-             (limit', newlimit) = maybe (Just bigstepsize, Nothing)
-                                    (Just . min bigstepsize
-                                     &&& Just . max 0 . flip (-) bigstepsize)
-                                    limit
-             opts' = opts { algCapacity = False }
-         in case iterateAllocSmallStep opts' nl il limit'
-                                       newinst allocnodes ixes cstats of
-            Bad s -> Bad s
-            Ok res@(_, nl', il', ixes', cstats') | redundant opts nl' il' ->
-              if newlimit == Just 0 || length ixes' == length ixes
-                then return res
-                else iterateAlloc' tryHugestep opts nl' il' newlimit newinst
-                                   allocnodes ixes' cstats'
-            _ -> if tryHugestep
-                   then iterateAlloc' False opts nl il limit newinst allocnodes
-                                      ixes cstats
-                   else iterateAllocSmallStep opts nl il limit newinst
-                                              allocnodes ixes cstats
-
--- | A speed-up version of `iterateAllocSmallStep`.
-iterateAlloc :: AlgorithmOptions -> AllocMethod
-iterateAlloc = iterateAlloc' True
 
 -- | Predicate whether shrinking a single resource can lead to a valid
 -- allocation.

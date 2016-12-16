@@ -53,16 +53,6 @@ def _StubGetEntResolver():
   return mocks.FakeGetentResolver()
 
 
-def _UpdateIvNames(base_idx, disks):
-  """Update the C{iv_name} attribute of disks.
-
-  @type disks: list of L{objects.Disk}
-
-  """
-  for (idx, disk) in enumerate(disks):
-    disk.iv_name = "disk/%s" % (base_idx + idx)
-
-
 # pylint: disable=R0904
 class ConfigMock(config.ConfigWriter):
   """A mocked cluster configuration with added methods for easy customization.
@@ -274,12 +264,6 @@ class ConfigMock(config.ConfigWriter):
     if disks is None:
       if disk_template == constants.DT_DISKLESS:
         disks = []
-      elif disk_template == constants.DT_EXT:
-        provider = "mock_provider"
-        disks = [self.CreateDisk(dev_type=disk_template,
-                                 primary_node=primary_node,
-                                 secondary_node=secondary_node,
-                                 params={constants.IDISK_PROVIDER: provider})]
       else:
         disks = [self.CreateDisk(dev_type=disk_template,
                                  primary_node=primary_node,
@@ -613,9 +597,9 @@ class ConfigMock(config.ConfigWriter):
     return dict((node_uuid, {}) for node_uuid in self._ConfigData().nodes)
 
   def AllocateDRBDMinor(self, node_uuids, disk_uuid):
-    return [0] * len(node_uuids)
+    return map(lambda _: 0, node_uuids)
 
-  def ReleaseDRBDMinors(self, disk_uuid):
+  def _UnlockedReleaseDRBDMinors(self, disk_uuid):
     pass
 
   def SetIPolicyField(self, category, field, value):
@@ -873,135 +857,11 @@ class ConfigMock(config.ConfigWriter):
     instance.ctime = instance.mtime = time.time()
     self._ConfigData().instances[instance.uuid] = instance
     self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
-    self.ReleaseDRBDMinors(instance.uuid)
+    self._UnlockedReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
-
-  def _UnlockedAddDisk(self, disk):
-    disk.UpgradeConfig()
-    self._ConfigData().disks[disk.uuid] = disk
-    self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
-    self.ReleaseDRBDMinors(disk.uuid)
-
-  def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
-    instance = self._UnlockedGetInstanceInfo(inst_uuid)
-    if idx is None:
-      idx = len(instance.disks)
-    instance.disks.insert(idx, disk_uuid)
-    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
-    for (disk_idx, disk) in enumerate(instance_disks[idx:]):
-      disk.iv_name = "disk/%s" % (idx + disk_idx)
-    instance.serial_no += 1
-    instance.mtime = time.time()
-
-  def AddInstanceDisk(self, inst_uuid, disk, idx=None, replace=False):
-    self._UnlockedAddDisk(disk)
-    self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
-
-  def AttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
-    self._UnlockedAttachInstanceDisk(inst_uuid, disk_uuid, idx)
 
   def GetDisk(self, disk_uuid):
     """Retrieves a disk object if present.
 
     """
     return self._ConfigData().disks[disk_uuid]
-
-  def AllocatePort(self):
-    return 1
-
-  def Update(self, target, feedback_fn, ec_id=None):
-    def replace_in(target, tdict):
-      tdict[target.uuid] = target
-
-    update_serial = False
-    if isinstance(target, objects.Cluster):
-      self._ConfigData().cluster = target
-    elif isinstance(target, objects.Node):
-      replace_in(target, self._ConfigData().nodes)
-      update_serial = True
-    elif isinstance(target, objects.Instance):
-      replace_in(target, self._ConfigData().instances)
-    elif isinstance(target, objects.NodeGroup):
-      replace_in(target, self._ConfigData().nodegroups)
-    elif isinstance(target, objects.Network):
-      replace_in(target, self._ConfigData().networks)
-    elif isinstance(target, objects.Disk):
-      replace_in(target, self._ConfigData().disks)
-
-    target.serial_no += 1
-    target.mtime = now = time.time()
-
-    if update_serial:
-      self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
-      self._ConfigData().cluster.mtime = now
-
-  def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
-    self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
-
-  def _SetInstanceStatus(self, inst_uuid, status,
-                         disks_active, admin_state_source):
-    if inst_uuid not in self._ConfigData().instances:
-      raise errors.ConfigurationError("Unknown instance '%s'" %
-                                      inst_uuid)
-    instance = self._ConfigData().instances[inst_uuid]
-
-    if status is None:
-      status = instance.admin_state
-    if disks_active is None:
-      disks_active = instance.disks_active
-    if admin_state_source is None:
-      admin_state_source = instance.admin_state_source
-
-    assert status in constants.ADMINST_ALL, \
-           "Invalid status '%s' passed to SetInstanceStatus" % (status,)
-
-    if instance.admin_state != status or \
-       instance.disks_active != disks_active or \
-       instance.admin_state_source != admin_state_source:
-      instance.admin_state = status
-      instance.disks_active = disks_active
-      instance.admin_state_source = admin_state_source
-      instance.serial_no += 1
-      instance.mtime = time.time()
-    return instance
-
-  def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
-    """Detach a disk from an instance.
-
-    @type inst_uuid: string
-    @param inst_uuid: The UUID of the instance object
-    @type disk_uuid: string
-    @param disk_uuid: The UUID of the disk object
-
-    """
-    instance = self._UnlockedGetInstanceInfo(inst_uuid)
-    if instance is None:
-      raise errors.ConfigurationError("Instance %s doesn't exist"
-                                      % inst_uuid)
-    if disk_uuid not in self._ConfigData().disks:
-      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
-
-    # Check if disk is attached to the instance
-    if disk_uuid not in instance.disks:
-      raise errors.ProgrammerError("Disk %s is not attached to an instance"
-                                   % disk_uuid)
-
-    idx = instance.disks.index(disk_uuid)
-    instance.disks.remove(disk_uuid)
-    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
-    _UpdateIvNames(idx, instance_disks[idx:])
-    instance.serial_no += 1
-    instance.mtime = time.time()
-
-  def DetachInstanceDisk(self, inst_uuid, disk_uuid):
-    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
-
-  def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
-    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
-    self._UnlockedRemoveDisk(disk_uuid)
-
-  def RemoveInstance(self, inst_uuid):
-    del self._ConfigData().instances[inst_uuid]
-
-  def AddTcpUdpPort(self, port):
-    self._ConfigData().cluster.tcpudp_port_pool.add(port)

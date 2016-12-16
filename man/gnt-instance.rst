@@ -333,25 +333,6 @@ vif\_type
     - ioemu
     - vif
 
-scsi\_controller\_type
-    Valid for the KVM hypervisor.
-
-    This parameter specifies which type of SCSI controller to use.
-    The possible options are:
-
-    - lsi [default]
-    - megasas
-    - virtio-scsi-pci
-
-kvm\_pci\_reservations
-    Valid for the KVM hypervisor.
-
-    The nubmer of PCI slots that QEMU will manage implicitly. By default Ganeti
-    will let QEMU use the first 12 slots (i.e. PCI slots 0-11) on its own and
-    will start adding disks and NICs from the 13rd slot (i.e. PCI slot 12)
-    onwards. So by default one can add 20 PCI devices (32 - 12). To support more
-    than that, this hypervisor parameter should be set accordingly (e.g. to 8).
-
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
 
@@ -1541,8 +1522,7 @@ options.
 RENAME
 ^^^^^^
 
-| **rename** [\--no-ip-check] [\--no-name-check] [\--force]
-| [\--submit] [\--print-jobid]
+| **rename** [\--no-ip-check] [\--no-name-check] [\--submit] [\--print-jobid]
 | {*instance*} {*new\_name*}
 
 Renames the given instance. The instance must be stopped when running
@@ -1561,9 +1541,6 @@ the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
 that the resolved name matches the provided name. Since the name check
 is used to compute the IP address, if you pass this option you must also
 pass the ``--no-ip-check`` option.
-
-The ``--force`` option is used to skip the interactive confirmation
-when ``--no-name-check`` is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -2047,8 +2024,7 @@ a dead node, this will fail. Use the ``--ignore-consistency`` option
 for this purpose. Note that this option can be dangerous as errors in
 shutting down the instance will be ignored, resulting in possibly
 having the instance running on two machines in parallel (on
-disconnected DRBD drives). This flag requires the source node to be
-marked offline first to succeed.
+disconnected DRBD drives).
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm

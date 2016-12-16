@@ -44,20 +44,15 @@ import time
 from ganeti import mcpu
 from ganeti.server import masterd
 from ganeti.rpc import transport
-from ganeti import serializer
 from ganeti import utils
 from ganeti import pathutils
 from ganeti.utils import livelock
 
-from ganeti.jqueue import _JobProcessor
-
 
 def _GetMasterInfo():
-  """Retrieve job id, lock file name and secret params from the master process
+  """Retrieves the job id and lock file name from the master process
 
   This also closes standard input/output
-
-  @rtype: (int, string, json encoding of a list of dicts)
 
   """
   logging.debug("Opening transport over stdin/out")
@@ -68,27 +63,7 @@ def _GetMasterInfo():
     logging.debug("Reading the livelock name from the master process")
     livelock_name = livelock.LiveLockName(trans.Call(""))
     logging.debug("Got livelock %s", livelock_name)
-    logging.debug("Reading secret parameters from the master process")
-    secret_params = trans.Call("")
-    logging.debug("Got secret parameters.")
-  return (job_id, livelock_name, secret_params)
-
-
-def RestorePrivateValueWrapping(json):
-  """Wrap private values in JSON decoded structure.
-
-  @param json: the json-decoded value to protect.
-
-  """
-  result = []
-
-  for secrets_dict in json:
-    if secrets_dict is None:
-      data = serializer.PrivateDict()
-    else:
-      data = serializer.PrivateDict(secrets_dict)
-    result.append(data)
-  return result
+  return (job_id, livelock_name)
 
 
 def main():
@@ -98,15 +73,11 @@ def main():
   logname = pathutils.GetLogFilename("jobs")
   utils.SetupLogging(logname, "job-startup", debug=debug)
 
-  (job_id, livelock_name, secret_params_serialized) = _GetMasterInfo()
-
-  secret_params = ""
-  if secret_params_serialized:
-    secret_params_json = serializer.LoadJson(secret_params_serialized)
-    secret_params = RestorePrivateValueWrapping(secret_params_json)
+  (job_id, livelock_name) = _GetMasterInfo()
 
   utils.SetupLogging(logname, "job-%s" % (job_id,), debug=debug)
 
+  exit_code = 1
   try:
     logging.debug("Preparing the context and the configuration")
     context = masterd.GanetiContext(livelock_name)
@@ -132,30 +103,15 @@ def main():
       prio_change[0] = True
     signal.signal(signal.SIGUSR1, _User1Handler)
 
-    job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+    logging.debug("Picking up job %d", job_id)
+    context.jobqueue.PickupJob(job_id)
 
-    job.SetPid(os.getpid())
-
-    if secret_params:
-      for i in range(0, len(secret_params)):
-        if hasattr(job.ops[i].input, "osparams_secret"):
-          job.ops[i].input.osparams_secret = secret_params[i]
-
-    execfun = mcpu.Processor(context, job_id, job_id).ExecOpCode
-    proc = _JobProcessor(context.jobqueue, execfun, job)
-    result = _JobProcessor.DEFER
-    while result != _JobProcessor.FINISHED:
-      result = proc()
-      if result == _JobProcessor.WAITDEP and not cancel[0]:
-        # Normally, the scheduler should avoid starting a job where the
-        # dependencies are not yet finalised. So warn, but wait an continue.
-        logging.warning("Got started despite a dependency not yet finished")
-        time.sleep(5)
+    # waiting for the job to finish
+    time.sleep(1)
+    while not context.jobqueue.HasJobBeenFinalized(job_id):
       if cancel[0]:
         logging.debug("Got cancel request, cancelling job %d", job_id)
         r = context.jobqueue.CancelJob(job_id)
-        job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
-        proc = _JobProcessor(context.jobqueue, execfun, job)
         logging.debug("CancelJob result for job %d: %s", job_id, r)
         cancel[0] = False
       if prio_change[0]:
@@ -166,15 +122,21 @@ def main():
           utils.RemoveFile(fname)
           logging.debug("Changing priority of job %d to %d", job_id, new_prio)
           r = context.jobqueue.ChangeJobPriority(job_id, new_prio)
-          job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
-          proc = _JobProcessor(context.jobqueue, execfun, job)
           logging.debug("Result of changing priority of %d to %d: %s", job_id,
                         new_prio, r)
         except Exception: # pylint: disable=W0703
           logging.warning("Informed of priority change, but could not"
                           " read new priority")
         prio_change[0] = False
+      time.sleep(1)
 
+    # wait until the queue finishes
+    logging.debug("Waiting for the queue to finish")
+    while context.jobqueue.PrepareShutdown():
+      time.sleep(1)
+    logging.debug("Shutting the queue down")
+    context.jobqueue.Shutdown()
+    exit_code = 0
   except Exception: # pylint: disable=W0703
     logging.exception("Exception when trying to run job %d", job_id)
   finally:
@@ -182,7 +144,7 @@ def main():
     logging.debug("Removing livelock file %s", livelock_name.GetPath())
     os.remove(livelock_name.GetPath())
 
-  sys.exit(0)
+  sys.exit(exit_code)
 
 if __name__ == '__main__':
   main()

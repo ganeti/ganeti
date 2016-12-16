@@ -311,6 +311,8 @@ class LUNodeAdd(LogicalUnit):
       result = rpcrunner.call_node_verify_light(
           [node_name], vparams, cname,
           self.cfg.GetClusterInfo().hvparams,
+          {node_name: self.node_group},
+          self.cfg.GetAllNodeGroupsInfoDict()
         )[node_name]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:
@@ -436,7 +438,10 @@ class LUNodeAdd(LogicalUnit):
     result = self.rpc.call_node_verify(
                node_verifier_uuids, node_verify_param,
                self.cfg.GetClusterName(),
-               self.cfg.GetClusterInfo().hvparams)
+               self.cfg.GetClusterInfo().hvparams,
+               {self.new_node.name: self.cfg.LookupNodeGroup(self.node_group)},
+               self.cfg.GetAllNodeGroupsInfoDict()
+               )
     for verifier in node_verifier_uuids:
       result[verifier].Raise("Cannot communicate with node %s" % verifier)
       nl_payload = result[verifier].payload[constants.NV_NODELIST]
@@ -450,6 +455,7 @@ class LUNodeAdd(LogicalUnit):
     self._InitOpenVSwitch()
 
     if self.op.readd:
+      self.context.ReaddNode(self.new_node)
       RedistributeAncillaryFiles(self)
       # make sure we redistribute the config
       self.cfg.Update(self.new_node, feedback_fn)
@@ -459,7 +465,7 @@ class LUNodeAdd(LogicalUnit):
         result.Warn("Node failed to demote itself from master candidate status",
                     self.LogWarning)
     else:
-      self.cfg.AddNode(self.new_node, self.proc.GetECId())
+      self.context.AddNode(self.cfg, self.new_node, self.proc.GetECId())
       RedistributeAncillaryFiles(self)
 
     # We create a new certificate even if the node is readded
@@ -862,6 +868,7 @@ class LUNodeSetParams(LogicalUnit):
     # this will trigger job queue propagation or cleanup if the mc
     # flag changed
     if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
+      self.context.ReaddNode(node)
 
       if modify_ssh_setup:
         if self.old_role == self._ROLE_CANDIDATE:
@@ -1584,7 +1591,7 @@ class LUNodeRemove(LogicalUnit):
     AdjustCandidatePool(
         self, [self.node.uuid], master_node, potential_master_candidates,
         feedback_fn, modify_ssh_setup)
-    self.cfg.RemoveNode(self.node.uuid)
+    self.context.RemoveNode(self.cfg, self.node)
 
     # Run post hooks on the node before it's removed
     RunPostHook(self, self.node.name)

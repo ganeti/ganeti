@@ -859,9 +859,8 @@ class TestRpcRunner(unittest.TestCase):
 
     result = runner._encoder(NotImplemented,
                              (rpc_defs.ED_OBJECT_DICT_LIST, 5 * [inst]))
-    for r in result:
-      _CheckBasics(r)
-      self.assertEqual(len(r["hvparams"]), 2)
+    map(_CheckBasics, result)
+    map(lambda r: self.assertEqual(len(r["hvparams"]), 2), result)
 
     # Just an instance
     result = runner._encoder(NotImplemented, (rpc_defs.ED_INST_DICT, inst))

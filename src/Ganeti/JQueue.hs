@@ -113,7 +113,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Errors (ErrorResult, ResultG)
 import Ganeti.JQueue.Lens (qoInputL, validOpCodeL)
 import Ganeti.JQueue.Objects
-import Ganeti.JSON (fromJResult, fromObjWithDefault)
+import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Luxi
 import Ganeti.Objects (ConfigData, Node)
@@ -549,7 +549,7 @@ startJobs luxiLivelock forkLock jobs = do
         void . mkResultT . writeJobToDisk qdir
           $ job { qjLivelock = Just llfile }
   let runJob job = withLock forkLock $ do
-        (llfile, _) <- Exec.forkJobProcess job luxiLivelock
+        (llfile, _) <- Exec.forkJobProcess (qjId job) luxiLivelock
                                            (updateJob job)
         return $ job { qjLivelock = Just llfile }
   mapM (runResultT . runJob) jobs

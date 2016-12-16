@@ -150,6 +150,16 @@ def _CheckInstanceDiskIvNames(disks):
   return result
 
 
+def _UpdateIvNames(base_idx, disks):
+  """Update the C{iv_name} attribute of disks.
+
+  @type disks: list of L{objects.Disk}
+
+  """
+  for (idx, disk) in enumerate(disks):
+    disk.iv_name = "disk/%s" % (base_idx + idx)
+
+
 class ConfigWriter(object):
   """The interface to the cluster configuration.
 
@@ -301,21 +311,116 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceDisks(inst_uuid)
 
-  def AddInstanceDisk(self, inst_uuid, disk, idx=None, replace=False):
-    """Add a disk to the config and attach it to instance."""
+  def _UnlockedAddDisk(self, disk, replace=False):
+    """Add a disk to the config.
+
+    @type disk: L{objects.Disk}
+    @param disk: The disk object
+
+    """
     if not isinstance(disk, objects.Disk):
-      raise errors.ProgrammerError("Invalid type passed to AddInstanceDisk")
+      raise errors.ProgrammerError("Invalid type passed to _UnlockedAddDisk")
 
+    logging.info("Adding disk %s to configuration", disk.uuid)
+
+    if replace:
+      self._CheckUUIDpresent(disk)
+    else:
+      self._CheckUniqueUUID(disk, include_temporary=False)
+      disk.serial_no = 1
+      disk.ctime = disk.mtime = time.time()
     disk.UpgradeConfig()
-    utils.SimpleRetry(True, self._wconfd.AddInstanceDisk, 0.1, 30,
-                      args=[inst_uuid, disk.ToDict(), idx, replace])
-    self.OutDate()
+    self._ConfigData().disks[disk.uuid] = disk
+    self._ConfigData().cluster.serial_no += 1
+    self._UnlockedReleaseDRBDMinors(disk.uuid)
 
+  def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
+    """Attach a disk to an instance.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance object
+    @type disk_uuid: string
+    @param disk_uuid: The UUID of the disk object
+    @type idx: int
+    @param idx: the index of the newly attached disk; if not
+      passed, the disk will be attached as the last one.
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Instance %s doesn't exist"
+                                      % inst_uuid)
+    if disk_uuid not in self._ConfigData().disks:
+      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
+
+    if idx is None:
+      idx = len(instance.disks)
+    else:
+      if idx < 0:
+        raise IndexError("Not accepting negative indices other than -1")
+      elif idx > len(instance.disks):
+        raise IndexError("Got disk index %s, but there are only %s" %
+                         (idx, len(instance.disks)))
+
+    # Disk must not be attached anywhere else
+    for inst in self._ConfigData().instances.values():
+      if disk_uuid in inst.disks:
+        raise errors.ReservationError("Disk %s already attached to instance %s"
+                                      % (disk_uuid, inst.name))
+
+    instance.disks.insert(idx, disk_uuid)
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    _UpdateIvNames(idx, instance_disks[idx:])
+    instance.serial_no += 1
+    instance.mtime = time.time()
+
+  @ConfigSync()
+  def AddInstanceDisk(self, inst_uuid, disk, idx=None, replace=False):
+    """Add a disk to the config and attach it to instance.
+
+    This is a simple wrapper over L{_UnlockedAddDisk} and
+    L{_UnlockedAttachInstanceDisk}.
+
+    """
+    self._UnlockedAddDisk(disk, replace=replace)
+    self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
+
+  @ConfigSync()
   def AttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
-    """Attach an existing disk to an instance."""
-    utils.SimpleRetry(True, self._wconfd.AttachInstanceDisk, 0.1, 30,
-                      args=[inst_uuid, disk_uuid, idx])
-    self.OutDate()
+    """Attach an existing disk to an instance.
+
+    This is a simple wrapper over L{_UnlockedAttachInstanceDisk}.
+
+    """
+    self._UnlockedAttachInstanceDisk(inst_uuid, disk_uuid, idx)
+
+  def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
+    """Detach a disk from an instance.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance object
+    @type disk_uuid: string
+    @param disk_uuid: The UUID of the disk object
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Instance %s doesn't exist"
+                                      % inst_uuid)
+    if disk_uuid not in self._ConfigData().disks:
+      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
+
+    # Check if disk is attached to the instance
+    if disk_uuid not in instance.disks:
+      raise errors.ProgrammerError("Disk %s is not attached to an instance"
+                                   % disk_uuid)
+
+    idx = instance.disks.index(disk_uuid)
+    instance.disks.remove(disk_uuid)
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    _UpdateIvNames(idx, instance_disks[idx:])
+    instance.serial_no += 1
+    instance.mtime = time.time()
 
   def _UnlockedRemoveDisk(self, disk_uuid):
     """Remove the disk from the configuration.
@@ -338,17 +443,24 @@ class ConfigWriter(object):
     del self._ConfigData().disks[disk_uuid]
     self._ConfigData().cluster.serial_no += 1
 
+  @ConfigSync()
   def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
-    """Detach a disk from an instance and remove it from the config."""
-    utils.SimpleRetry(True, self._wconfd.RemoveInstanceDisk, 0.1, 30,
-                      args=[inst_uuid, disk_uuid])
-    self.OutDate()
+    """Detach a disk from an instance and remove it from the config.
 
+    This is a simple wrapper over L{_UnlockedDetachInstanceDisk} and
+    L{_UnlockedRemoveDisk}.
+
+    """
+    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
+    self._UnlockedRemoveDisk(disk_uuid)
+
+  @ConfigSync()
   def DetachInstanceDisk(self, inst_uuid, disk_uuid):
-    """Detach a disk from an instance."""
-    utils.SimpleRetry(True, self._wconfd.DetachInstanceDisk, 0.1, 30,
-                      args=[inst_uuid, disk_uuid])
-    self.OutDate()
+    """Detach a disk from an instance.
+
+    This is a simple wrapper over L{_UnlockedDetachInstanceDisk}.
+    """
+    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
 
   def _UnlockedGetDiskInfo(self, disk_uuid):
     """Returns information about a disk.
@@ -621,10 +733,31 @@ class ConfigWriter(object):
     """
     self._wconfd.ReserveMAC(self._GetWConfdContext(), mac)
 
-  @ConfigSync(shared=1)
-  def CommitTemporaryIps(self, _ec_id):
-    """Tell WConfD to commit all temporary ids"""
-    self._wconfd.CommitTemporaryIps(self._GetWConfdContext())
+  def _UnlockedCommitTemporaryIps(self, _ec_id):
+    """Commit all reserved IP address to their respective pools
+
+    """
+    if self._offline:
+      raise errors.ProgrammerError("Can't call CommitTemporaryIps"
+                                   " in offline mode")
+    ips = self._wconfd.ListReservedIps(self._GetWConfdContext())
+    for action, address, net_uuid in ips:
+      self._UnlockedCommitIp(action, net_uuid, address)
+
+  def _UnlockedCommitIp(self, action, net_uuid, address):
+    """Commit a reserved IP address to an IP pool.
+
+    The IP address is taken from the network's IP pool and marked as free.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    if nobj is None:
+      raise errors.ProgrammerError("Network '%s' not found" % (net_uuid, ))
+    pool = network.AddressPool(nobj)
+    if action == constants.RESERVE_ACTION:
+      pool.Reserve(address)
+    elif action == constants.RELEASE_ACTION:
+      pool.Release(address)
 
   def ReleaseIp(self, net_uuid, address, _ec_id):
     """Give a specific IP address back to an IP pool.
@@ -1024,11 +1157,6 @@ class ConfigWriter(object):
 
     return result
 
-  @ConfigSync(shared=1)
-  def VerifyConfigAndLog(self, feedback_fn=None):
-    """A simple wrapper around L{_UnlockedVerifyConfigAndLog}"""
-    return self._UnlockedVerifyConfigAndLog(feedback_fn=feedback_fn)
-
   def _UnlockedVerifyConfigAndLog(self, feedback_fn=None):
     """Verify the configuration and log any errors.
 
@@ -1069,10 +1197,19 @@ class ConfigWriter(object):
     """
     return self._UnlockedVerifyConfig()
 
+  @ConfigSync()
   def AddTcpUdpPort(self, port):
-    """Adds a new port to the available port pool."""
-    utils.SimpleRetry(True, self._wconfd.AddTcpUdpPort, 0.1, 30, args=[port])
-    self.OutDate()
+    """Adds a new port to the available port pool.
+
+    @warning: this method does not "flush" the configuration (via
+        L{_WriteConfig}); callers should do that themselves once the
+        configuration is stable
+
+    """
+    if not isinstance(port, int):
+      raise errors.ProgrammerError("Invalid type passed for port")
+
+    self._ConfigData().cluster.tcpudp_port_pool.add(port)
 
   @ConfigSync(shared=1)
   def GetPortList(self):
@@ -1081,17 +1218,26 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.tcpudp_port_pool.copy()
 
+  @ConfigSync()
   def AllocatePort(self):
-    """Allocate a port."""
-    def WithRetry():
-      port = self._wconfd.AllocatePort()
-      self.OutDate()
+    """Allocate a port.
 
-      if port is None:
-        raise utils.RetryAgain()
-      else:
-        return port
-    return utils.Retry(WithRetry, 0.1, 30)
+    The port will be taken from the available port pool or from the
+    default port range (and in this case we increase
+    highest_used_port).
+
+    """
+    # If there are TCP/IP ports configured, we use them first.
+    if self._ConfigData().cluster.tcpudp_port_pool:
+      port = self._ConfigData().cluster.tcpudp_port_pool.pop()
+    else:
+      port = self._ConfigData().cluster.highest_used_port + 1
+      if port >= constants.LAST_DRBD_PORT:
+        raise errors.ConfigurationError("The highest used port is greater"
+                                        " than %s. Aborting." %
+                                        constants.LAST_DRBD_PORT)
+      self._ConfigData().cluster.highest_used_port = port
+    return port
 
   @ConfigSync(shared=1)
   def ComputeDRBDMap(self):
@@ -1139,7 +1285,7 @@ class ConfigWriter(object):
                   node_uuids, result)
     return result
 
-  def ReleaseDRBDMinors(self, disk_uuid):
+  def _UnlockedReleaseDRBDMinors(self, disk_uuid):
     """Release temporary drbd minors allocated for a given disk.
 
     This is just a wrapper over a call to WConfd.
@@ -1155,6 +1301,22 @@ class ConfigWriter(object):
     # this is useful for testing
     if not self._offline:
       self._wconfd.ReleaseDRBDMinors(disk_uuid)
+
+  @ConfigSync()
+  def ReleaseDRBDMinors(self, disk_uuid):
+    """Release temporary drbd minors allocated for a given disk.
+
+    This should be called on the error paths, on the success paths
+    it's automatically called by the ConfigWriter add and update
+    functions.
+
+    This function is just a wrapper over L{_UnlockedReleaseDRBDMinors}.
+
+    @type disk_uuid: string
+    @param disk_uuid: the disk for which temporary minors should be released
+
+    """
+    self._UnlockedReleaseDRBDMinors(disk_uuid)
 
   @ConfigSync(shared=1)
   def GetInstanceDiskTemplate(self, inst_uuid):
@@ -1607,12 +1769,23 @@ class ConfigWriter(object):
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
 
+    all_macs = self._AllMACs()
+    for nic in instance.nics:
+      if nic.mac in all_macs:
+        raise errors.ConfigurationError("Cannot add instance %s:"
+                                        " MAC address '%s' already in use." %
+                                        (instance.name, nic.mac))
+
+    if replace:
+      self._CheckUUIDpresent(instance)
+    else:
+      self._CheckUniqueUUID(instance, include_temporary=False)
+
     instance.serial_no = 1
+    instance.ctime = instance.mtime = time.time()
 
     utils.SimpleRetry(True, self._wconfd.AddInstance, 0.1, 30,
-                      args=[instance.ToDict(),
-                            self._GetWConfdContext(),
-                            replace])
+                      args=[instance.ToDict(), self._GetWConfdContext()])
     self.OutDate()
 
   def _EnsureUUID(self, item, ec_id):
@@ -1663,17 +1836,32 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    def WithRetry():
-      result = self._wconfd.SetInstanceStatus(inst_uuid, status,
-                                              disks_active, admin_state_source)
-      self.OutDate()
+    if inst_uuid not in self._ConfigData().instances:
+      raise errors.ConfigurationError("Unknown instance '%s'" %
+                                      inst_uuid)
+    instance = self._ConfigData().instances[inst_uuid]
 
-      if result is None:
-        raise utils.RetryAgain()
-      else:
-        return result
-    return objects.Instance.FromDict(utils.Retry(WithRetry, 0.1, 30))
+    if status is None:
+      status = instance.admin_state
+    if disks_active is None:
+      disks_active = instance.disks_active
+    if admin_state_source is None:
+      admin_state_source = instance.admin_state_source
 
+    assert status in constants.ADMINST_ALL, \
+           "Invalid status '%s' passed to SetInstanceStatus" % (status,)
+
+    if instance.admin_state != status or \
+       instance.disks_active != disks_active or \
+       instance.admin_state_source != admin_state_source:
+      instance.admin_state = status
+      instance.disks_active = disks_active
+      instance.admin_state_source = admin_state_source
+      instance.serial_no += 1
+      instance.mtime = time.time()
+    return instance
+
+  @ConfigSync()
   def MarkInstanceUp(self, inst_uuid):
     """Mark the instance status to up in the config.
 
@@ -1686,6 +1874,7 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True,
                                    constants.ADMIN_SOURCE)
 
+  @ConfigSync()
   def MarkInstanceOffline(self, inst_uuid):
     """Mark the instance status to down in the config.
 
@@ -1698,13 +1887,32 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False,
                                    constants.ADMIN_SOURCE)
 
+  @ConfigSync()
   def RemoveInstance(self, inst_uuid):
     """Remove the instance from the configuration.
 
     """
-    utils.SimpleRetry(True, self._wconfd.RemoveInstance, 0.1, 30,
-                      args=[inst_uuid])
-    self.OutDate()
+    if inst_uuid not in self._ConfigData().instances:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    # If a network port has been allocated to the instance,
+    # return it to the pool of free ports.
+    inst = self._ConfigData().instances[inst_uuid]
+    network_port = getattr(inst, "network_port", None)
+    if network_port is not None:
+      self._ConfigData().cluster.tcpudp_port_pool.add(network_port)
+
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+
+    # FIXME: After RemoveInstance is moved to WConfd, use its internal
+    # function from TempRes module.
+    for nic in instance.nics:
+      if nic.network and nic.ip:
+        # Return all IP addresses to the respective address pools
+        self._UnlockedCommitIp(constants.RELEASE_ACTION, nic.network, nic.ip)
+
+    del self._ConfigData().instances[inst_uuid]
+    self._ConfigData().cluster.serial_no += 1
 
   @ConfigSync()
   def RenameInstance(self, inst_uuid, new_name):
@@ -1733,6 +1941,7 @@ class ConfigWriter(object):
     # Force update of ssconf files
     self._ConfigData().cluster.serial_no += 1
 
+  @ConfigSync()
   def MarkInstanceDown(self, inst_uuid):
     """Mark the status of an instance to down in the configuration.
 
@@ -1746,6 +1955,7 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
                                    constants.ADMIN_SOURCE)
 
+  @ConfigSync()
   def MarkInstanceUserDown(self, inst_uuid):
     """Mark the status of an instance to user down in the configuration.
 
@@ -1757,6 +1967,7 @@ class ConfigWriter(object):
     self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
                             constants.USER_SOURCE)
 
+  @ConfigSync()
   def MarkInstanceDisksActive(self, inst_uuid):
     """Mark the status of instance disks active.
 
@@ -1766,6 +1977,7 @@ class ConfigWriter(object):
     """
     return self._SetInstanceStatus(inst_uuid, None, True, None)
 
+  @ConfigSync()
   def MarkInstanceDisksInactive(self, inst_uuid):
     """Mark the status of instance disks inactive.
 
@@ -1985,6 +2197,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceNames(inst_uuids)
 
+  @ConfigSync()
   def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
     """Sets the primary node of an existing instance
 
@@ -1994,9 +2207,7 @@ class ConfigWriter(object):
     @type target_node_uuid: string
 
     """
-    utils.SimpleRetry(True, self._wconfd.SetInstancePrimaryNode, 0.1, 30,
-                      args=[inst_uuid, target_node_uuid])
-    self.OutDate()
+    self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
 
   @ConfigSync()
   def SetDiskNodes(self, disk_uuid, nodes):
@@ -2995,6 +3206,7 @@ class ConfigWriter(object):
     """
     return DetachedConfig(self._ConfigData())
 
+  @ConfigSync()
   def Update(self, target, feedback_fn, ec_id=None):
     """Notify function to be called after updates.
 
@@ -3010,57 +3222,60 @@ class ConfigWriter(object):
     @param feedback_fn: Callable feedback function
 
     """
+    if self._ConfigData() is None:
+      raise errors.ProgrammerError("Configuration file not read,"
+                                   " cannot save.")
 
-    update_function = None
+    def check_serial(target, current):
+      if current is None:
+        raise errors.ConfigurationError("Configuration object unknown")
+      elif current.serial_no != target.serial_no:
+        raise errors.ConfigurationError("Configuration object updated since"
+                                        " it has been read: %d != %d",
+                                        current.serial_no, target.serial_no)
+
+    def replace_in(target, tdict):
+      check_serial(target, tdict.get(target.uuid))
+      tdict[target.uuid] = target
+
+    update_serial = False
     if isinstance(target, objects.Cluster):
-      if self._offline:
-        self.UpdateOfflineCluster(target, feedback_fn)
-        return
-      else:
-        update_function = self._wconfd.UpdateCluster
+      check_serial(target, self._ConfigData().cluster)
+      self._ConfigData().cluster = target
     elif isinstance(target, objects.Node):
-      update_function = self._wconfd.UpdateNode
+      replace_in(target, self._ConfigData().nodes)
+      update_serial = True
     elif isinstance(target, objects.Instance):
-      update_function = self._wconfd.UpdateInstance
+      replace_in(target, self._ConfigData().instances)
     elif isinstance(target, objects.NodeGroup):
-      update_function = self._wconfd.UpdateNodeGroup
+      replace_in(target, self._ConfigData().nodegroups)
     elif isinstance(target, objects.Network):
-      update_function = self._wconfd.UpdateNetwork
+      replace_in(target, self._ConfigData().networks)
     elif isinstance(target, objects.Disk):
-      update_function = self._wconfd.UpdateDisk
+      replace_in(target, self._ConfigData().disks)
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
+    target.serial_no += 1
+    target.mtime = now = time.time()
 
-    def WithRetry():
-      result = update_function(target.ToDict())
-      self.OutDate()
+    if update_serial:
+      # for node updates, we need to increase the cluster serial too
+      self._ConfigData().cluster.serial_no += 1
+      self._ConfigData().cluster.mtime = now
 
-      if result is None:
-        raise utils.RetryAgain()
-      else:
-        return result
-    vals = utils.Retry(WithRetry, 0.1, 30)
-    self.OutDate()
-    target.serial_no = vals[0]
-    target.mtime = float(vals[1])
+    if isinstance(target, objects.Disk):
+      self._UnlockedReleaseDRBDMinors(target.uuid)
 
     if ec_id is not None:
       # Commit all ips reserved by OpInstanceSetParams and OpGroupSetParams
       # FIXME: After RemoveInstance is moved to WConfd, use its internal
       # functions from TempRes module.
-      self.CommitTemporaryIps(ec_id)
+      self._UnlockedCommitTemporaryIps(ec_id)
 
     # Just verify the configuration with our feedback function.
     # It will get written automatically by the decorator.
-    self.VerifyConfigAndLog(feedback_fn=feedback_fn)
-
-  @ConfigSync()
-  def UpdateOfflineCluster(self, target, feedback_fn):
-    self._ConfigData().cluster = target
-    target.serial_no += 1
-    target.mtime = time.time()
-    self.VerifyConfigAndLog(feedback_fn=feedback_fn)
+    self._UnlockedVerifyConfigAndLog(feedback_fn=feedback_fn)
 
   def _UnlockedDropECReservations(self, _ec_id):
     """Drop per-execution-context reservations
@@ -3338,16 +3553,6 @@ class ConfigWriter(object):
     """
     if not self._offline:
       self._wconfd.FlushConfig()
-
-  def FlushConfigGroup(self, uuid):
-    """Force the distribution of configuration to master candidates of a group.
-
-    It is not necessary to hold a lock for this operation, it is handled
-    internally by WConfd.
-
-    """
-    if not self._offline:
-      self._wconfd.FlushConfigGroup(uuid)
 
   @ConfigSync(shared=1)
   def GetAllDiskInfo(self):

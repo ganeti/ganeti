@@ -111,8 +111,7 @@ import Control.Arrow (second)
 import Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
-import Data.List (zipWith4)
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
@@ -129,7 +128,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Codec
 import Ganeti.Curl.Multi
 import Ganeti.Errors
-import Ganeti.JSON (ArrayObject(..), GenericContainer(..))
+import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Runtime
@@ -180,8 +179,8 @@ class (ArrayObject a) => RpcCall a where
   -- | Calculate the timeout value for the call execution.
   rpcCallTimeout :: a -> Int
   -- | Prepare arguments of the call to be send as POST.
-  rpcCallData :: a -> String
-  rpcCallData = J.encode . J.JSArray . toJSArray
+  rpcCallData :: Node -> a -> String
+  rpcCallData _ = J.encode . J.JSArray . toJSArray
   -- | Whether we accept offline nodes when making a call.
   rpcCallAcceptOffline :: a -> Bool
 
@@ -214,12 +213,12 @@ prepareUrl port node call =
 
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
-prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node
-                   -> String -> a -> ERpcError HttpClientRequest
-prepareHttpRequest port opts node reqdata call
+prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node -> a
+                   -> ERpcError HttpClientRequest
+prepareHttpRequest port opts node call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
       Right HttpClientRequest { requestUrl  = prepareUrl port node call
-                              , requestData = reqdata
+                              , requestData = rpcCallData node call
                               , requestOpts = opts ++ curlOpts
                               }
   | otherwise = Left OfflineNodeError
@@ -276,13 +275,9 @@ getNodedPort = withDefaultOnIOError C.defaultNodedPort
                . liftM (fromIntegral . servicePort)
                $ getServiceByName C.noded "tcp"
 
--- | Execute multiple distinct RPC calls in parallel
-executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
-executeRpcCalls = executeRpcCalls' . map (\(n, c) -> (n, c, rpcCallData c))
-
 -- | Execute multiple RPC calls in parallel
-executeRpcCalls' :: (Rpc a b) => [(Node, a, String)] -> IO [(Node, ERpcError b)]
-executeRpcCalls' nodeCalls = do
+executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
+executeRpcCalls nodeCalls = do
   port <- getNodedPort
   cert_file <- P.nodedCertFile
   client_cert_file_name <- P.nodedClientCertFile
@@ -292,16 +287,16 @@ executeRpcCalls' nodeCalls = do
   let client_cert_file = if client_file_exists
                          then client_cert_file_name
                          else cert_file
-      (nodes, calls, datas) = unzip3 nodeCalls
+      (nodes, calls) = unzip nodeCalls
       opts = map (getOptionsForCall cert_file client_cert_file) calls
-      opts_urls = zipWith4 (\n c d o ->
-                         case prepareHttpRequest port o n d c of
+      opts_urls = zipWith3 (\n c o ->
+                         case prepareHttpRequest port o n c of
                            Left v -> Left v
                            Right request ->
                              Right (CurlPostFields [requestData request]:
                                     requestOpts request,
                                     requestUrl request)
-                    ) nodes calls datas opts
+                    ) nodes calls opts
   -- split the opts_urls list; we don't want to pass the
   -- failed-already nodes to Curl
   let (lefts, rights, trail) = splitEithers opts_urls
@@ -316,10 +311,8 @@ executeRpcCalls' nodeCalls = do
   return pairedList
 
 -- | Execute an RPC call for many nodes in parallel.
--- NB this computes the RPC call payload string only once.
 executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
-executeRpcCall nodes call = executeRpcCalls' [(n, call, rpc_data) | n <- nodes]
-  where rpc_data = rpcCallData call
+executeRpcCall nodes call = executeRpcCalls . zip nodes $ repeat call
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
@@ -340,7 +333,7 @@ fromJResultToRes (J.Ok v) f = Right $ f v
 fromJSValueToRes :: (J.JSON a) => J.JSValue -> (a -> b) -> ERpcError b
 fromJSValueToRes val = fromJResultToRes (J.readJSON val)
 
--- | An opaque data type for representing data that might be compressed
+-- | An opaque data type for representing data that should be compressed
 -- over the wire.
 --
 -- On Python side it is decompressed by @backend._Decompress@.
@@ -349,16 +342,9 @@ newtype Compressed = Compressed { getCompressed :: BL.ByteString }
 
 -- TODO Add a unit test for all octets
 instance J.JSON Compressed where
-  -- zlib compress and Base64 encode the data but only if it's long enough
   showJSON = J.showJSON
-    . (\x ->
-      if BL.length (BL.take 4096 x) < 4096 then
-        (C.rpcEncodingNone, x)
-      else
-        (C.rpcEncodingZlibBase64, Base64.encode . compressZlib $ x)
-      )
-    . getCompressed
-
+             . (,) C.rpcEncodingZlibBase64
+             . Base64.encode . compressZlib . getCompressed
   readJSON = J.readJSON >=> decompress
     where
       decompress (enc, cont)
@@ -438,7 +424,7 @@ instance RpcCall RpcCallAllInstancesInfo where
   rpcCallName _          = "all_instances_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData call       = J.encode (
+  rpcCallData _ call     = J.encode (
     map fst $ rpcCallAllInstInfoHypervisors call,
     GenericContainer . Map.fromList $ rpcCallAllInstInfoHypervisors call)
 
@@ -493,7 +479,7 @@ instance RpcCall RpcCallInstanceConsoleInfo where
   rpcCallName _          = "instance_console_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData call       = J.encode .
+  rpcCallData _ call     = J.encode .
     GenericContainer $ Map.fromList (rpcCallInstConsInfoInstanceInfo call)
 
 instance Rpc RpcCallInstanceConsoleInfo RpcResultInstanceConsoleInfo where
@@ -529,7 +515,7 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 
 -- | Returns node information
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
-  [ simpleField "storage_units" [t| [StorageUnit] |]
+  [ simpleField "storage_units" [t| Map.Map String [StorageUnit] |]
   , simpleField "hypervisors" [t| [ (Hypervisor, HvParams) ] |]
   ])
 
@@ -564,8 +550,10 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallName _          = "node_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData call       = J.encode
-    ( rpcCallNodeInfoStorageUnits call
+  rpcCallData n call     = J.encode
+    ( fromMaybe (error $ "Programmer error: missing parameter for node named "
+                         ++ nodeName n)
+          $ Map.lookup (uuidOf n) (rpcCallNodeInfoStorageUnits call)
     , rpcCallNodeInfoHypervisors call
     )
 
@@ -587,7 +575,7 @@ instance RpcCall RpcCallVersion where
   rpcCallName _          = "version"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = True
-  rpcCallData            = J.encode
+  rpcCallData _          = J.encode
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
@@ -656,15 +644,15 @@ instance RpcCall RpcCallExportList where
   rpcCallName _          = "export_list"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData            = J.encode
+  rpcCallData _          = J.encode
 
 instance Rpc RpcCallExportList RpcResultExportList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
 
 -- ** Job Queue Replication
-
+  
 -- | Update a job queue file
-
+  
 $(buildObject "RpcCallJobqueueUpdate" "rpcCallJobqueueUpdate"
   [ simpleField "file_name" [t| String |]
   , simpleField "content" [t| String |]
@@ -676,7 +664,7 @@ instance RpcCall RpcCallJobqueueUpdate where
   rpcCallName _          = "jobqueue_update"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData call       = J.encode
+  rpcCallData _ call     = J.encode
     ( rpcCallJobqueueUpdateFileName call
     , toCompressed $ rpcCallJobqueueUpdateContent call
     )
@@ -714,9 +702,9 @@ instance Rpc RpcCallJobqueueRename RpcResultJobqueueRename where
              $ JsonDecodeError ("Expected JSNull, got " ++ show (pp_value res))
 
 -- ** Watcher Status Update
-
+      
 -- | Set the watcher status
-
+      
 $(buildObject "RpcCallSetWatcherPause" "rpcCallSetWatcherPause"
   [ optionalField $ timeAsDoubleField "time"
   ])
@@ -736,9 +724,9 @@ instance Rpc RpcCallSetWatcherPause RpcResultSetWatcherPause where
            ("Expected JSNull, got " ++ show (pp_value res))
 
 -- ** Queue drain status
-
+      
 -- | Set the queu drain flag
-
+      
 $(buildObject "RpcCallSetDrainFlag" "rpcCallSetDrainFlag"
   [ simpleField "value" [t| Bool |]
   ])

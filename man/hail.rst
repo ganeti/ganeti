@@ -116,15 +116,6 @@ The options that can be passed to the program are as follows:
   for possible allocations. In this way a useful decission can be made
   even in overloaded clusters.
 
-\--no-capacity-checks
-  Normally, hail will only consider those allocations where all instances
-  of a node can immediately restarted should that node fail. With this
-  option given, hail will check only N+1 redundancy for DRBD instances.
-
-\--restrict-allocation-to
-  Only consider alloctions on the specified nodes. This overrides any
-  restrictions given in the allocation request.
-
 \--simulate *description*
   Backend specification: similar to the **-t** option, this allows
   overriding the cluster data with a simulated cluster. For details

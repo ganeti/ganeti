@@ -30,7 +30,6 @@
 
 """Script for unittesting the asyncnotifier module"""
 
-import logging
 import unittest
 import signal
 import os
@@ -179,15 +178,10 @@ class TestSingleFileEventHandlerError(unittest.TestCase):
     handler = asyncnotifier.SingleFileEventHandler(wm, None,
                                                    utils.PathJoin(self.tmpdir,
                                                                   "nonexist"))
-    logger = logging.getLogger('pyinotify')
-    logger.disabled = True
-    try:
-      self.assertRaises(errors.InotifyError, handler.enable)
-      self.assertRaises(errors.InotifyError, handler.enable)
-      handler.disable()
-      self.assertRaises(errors.InotifyError, handler.enable)
-    finally:
-      logger.disabled = False
+    self.assertRaises(errors.InotifyError, handler.enable)
+    self.assertRaises(errors.InotifyError, handler.enable)
+    handler.disable()
+    self.assertRaises(errors.InotifyError, handler.enable)
 
 
 if __name__ == "__main__":

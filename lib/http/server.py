@@ -423,8 +423,6 @@ class HttpServerRequestExecutor(object):
           try:
             http.Handshake(sock, self.WRITE_TIMEOUT)
           except http.HttpSessionHandshakeUnexpectedEOF:
-            logging.debug("Unexpected EOF from %s:%s",
-                          client_addr[0], client_addr[1])
             # Ignore rest
             return
 
@@ -479,8 +477,9 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
   """Generic HTTP server class
 
   """
+  MAX_CHILDREN = 20
 
-  def __init__(self, mainloop, local_address, port, max_clients, handler,
+  def __init__(self, mainloop, local_address, port, handler,
                ssl_params=None, ssl_verify_peer=False,
                request_executor_class=None, ssl_verify_callback=None):
     """Initializes the HTTP server
@@ -491,11 +490,6 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     @param local_address: Local IP address to bind to
     @type port: int
     @param port: TCP port to listen on
-    @type max_clients: int
-    @param max_clients: maximum number of client connections
-        open simultaneously.
-    @type handler: HttpServerHandler
-    @param handler: Request handler object
     @type ssl_params: HttpSslParams
     @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
@@ -528,7 +522,6 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     self._children = []
     self.set_socket(self.socket)
     self.accepting = True
-    self.max_clients = max_clients
     mainloop.RegisterSignal(self)
 
   def Start(self):
@@ -554,7 +547,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     """
     if not quick:
       # Don't wait for other processes if it should be a quick check
-      while len(self._children) > self.max_clients:
+      while len(self._children) > self.MAX_CHILDREN:
         try:
           # Waiting without a timeout brings us into a potential DoS situation.
           # As soon as too many children run, we'll not respond to new
@@ -579,7 +572,6 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
 
     """
     # pylint: disable=W0212
-    t_start = time.time()
     (connection, client_addr) = self.socket.accept()
 
     self._CollectChildren(False)
@@ -612,13 +604,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
         # In case the handler code uses temporary files
         utils.ResetTempfileModule()
 
-        t_setup = time.time()
         self.request_executor(self, self.handler, connection, client_addr)
-        t_end = time.time()
-        logging.debug("Request from %s:%s executed in: %.4f [setup: %.4f] "
-                      "[workers: %d]", client_addr[0], client_addr[1],
-                      t_end - t_start, t_setup - t_start, len(self._children))
-
       except Exception: # pylint: disable=W0703
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])

@@ -583,16 +583,6 @@ def TestJobqueue(opts, _):
   return 0
 
 
-def TestOsParams(opts, _):
-  """Set secret os parameters.
-
-  """
-  op = opcodes.OpTestOsParams(osparams_secret=opts.osparams_secret)
-  SubmitOrSend(op, opts)
-
-  return 0
-
-
 def ListLocks(opts, args): # pylint: disable=W0613
   """List all locks.
 
@@ -795,10 +785,6 @@ commands = {
   "test-jobqueue": (
     TestJobqueue, ARGS_NONE, [PRIORITY_OPT],
     "", "Test a few aspects of the job queue"),
-  "test-osparams": (
-    TestOsParams, ARGS_NONE, [OSPARAMS_SECRET_OPT] + SUBMIT_OPTS,
-    "[--os-parameters-secret <params>]",
-    "Test secret os parameter transmission"),
   "locks": (
     ListLocks, ARGS_NONE,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, INTERVAL_OPT, VERBOSE_OPT],

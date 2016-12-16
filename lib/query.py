@@ -2199,21 +2199,18 @@ def _BuildInstanceFields():
     (_MakeField("snodes", "Secondary_Nodes", QFT_OTHER,
                 "Secondary nodes; usually this will just be one node"),
      IQ_NODES, 0,
-     lambda ctx, inst: [
-       _GetNodeName(ctx, None, uuid) for uuid in inst.secondary_nodes
-     ]),
+     lambda ctx, inst: map(compat.partial(_GetNodeName, ctx, None),
+                           inst.secondary_nodes)),
     (_MakeField("snodes.group", "SecondaryNodesGroups", QFT_OTHER,
                 "Node groups of secondary nodes"),
      IQ_NODES, 0,
-     lambda ctx, inst: [
-       _GetInstNodeGroupName(ctx, None, uuid) for uuid in inst.secondary_nodes
-     ]),
+     lambda ctx, inst: map(compat.partial(_GetInstNodeGroupName, ctx, None),
+                           inst.secondary_nodes)),
     (_MakeField("snodes.group.uuid", "SecondaryNodesGroupsUUID", QFT_OTHER,
                 "Node group UUIDs of secondary nodes"),
      IQ_NODES, 0,
-     lambda ctx, inst: [
-       _GetInstNodeGroup(ctx, None, uuid) for uuid in inst.secondary_nodes
-     ]),
+     lambda ctx, inst: map(compat.partial(_GetInstNodeGroup, ctx, None),
+                           inst.secondary_nodes)),
     (_MakeField("admin_state", "InstanceState", QFT_TEXT,
                 "Desired state of the instance"),
      IQ_CONFIG, 0, _GetItemAttr("admin_state")),

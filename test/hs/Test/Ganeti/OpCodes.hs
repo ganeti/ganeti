@@ -168,13 +168,8 @@ instance Arbitrary OpCodes.OpCode where
       "OP_TAGS_DEL" ->
         arbitraryOpTagsDel
       "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
-      "OP_CLUSTER_RENEW_CRYPTO" -> OpCodes.OpClusterRenewCrypto
-         <$> arbitrary -- Node SSL certificates
-         <*> arbitrary -- renew_ssh_keys
-         <*> arbitrary -- ssh_key_type
-         <*> arbitrary -- ssh_key_bits
-         <*> arbitrary -- verbose
-         <*> arbitrary -- debug
+      "OP_CLUSTER_RENEW_CRYPTO" -> OpCodes.OpClusterRenewCrypto <$>
+         arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
       "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
       "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
       "OP_CLUSTER_VERIFY" ->
@@ -188,8 +183,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpClusterVerifyGroup <$> genNameNE <*> arbitrary <*>
           arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
           arbitrary <*> arbitrary
-      "OP_CLUSTER_VERIFY_DISKS" ->
-        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE
+      "OP_CLUSTER_VERIFY_DISKS" -> pure OpCodes.OpClusterVerifyDisks
       "OP_GROUP_VERIFY_DISKS" ->
         OpCodes.OpGroupVerifyDisks <$> genNameNE
       "OP_CLUSTER_REPAIR_DISK_SIZES" ->
@@ -329,7 +323,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- no_install
           <*> pure emptyJSObject              -- osparams
           <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
-          <*> genMaybe arbitrarySecretJSObj  -- osparams_secret
+          <*> genMaybe arbitraryPrivateJSObj  -- osparams_secret
           <*> genMaybe genNameNE              -- os_type
           <*> genMaybe genNodeNameNE          -- pnode
           <*> return Nothing                  -- pnode_uuid
@@ -356,7 +350,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_REINSTALL" ->
         OpCodes.OpInstanceReinstall <$> genFQDN <*> return Nothing <*>
           arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
-          <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitrarySecretJSObj
+          <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitraryPrivateJSObj
       "OP_INSTANCE_REMOVE" ->
         OpCodes.OpInstanceRemove <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary
@@ -419,7 +413,6 @@ instance Arbitrary OpCodes.OpCode where
           <*> return Nothing                  -- pnode_uuid
           <*> genMaybe genNodeNameNE          -- remote_node
           <*> return Nothing                  -- remote_node_uuid
-          <*> genMaybe genNameNE              -- iallocator
           <*> genMaybe genNameNE              -- os_name
           <*> pure emptyJSObject              -- osparams
           <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
@@ -492,8 +485,6 @@ instance Arbitrary OpCodes.OpCode where
       "OP_TEST_JQUEUE" ->
         OpCodes.OpTestJqueue <$> arbitrary <*> arbitrary <*>
           resize 20 (listOf genFQDN) <*> arbitrary
-      "OP_TEST_OS_PARAMS" ->
-        OpCodes.OpTestOsParams <$> genMaybe arbitrarySecretJSObj
       "OP_TEST_DUMMY" ->
         OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
           pure J.JSNull <*> pure J.JSNull
@@ -583,13 +574,6 @@ arbitraryPrivateJSObj =
   constructor <$> (fromNonEmpty <$> genNameNE)
               <*> (fromNonEmpty <$> genNameNE)
     where constructor k v = showPrivateJSObject [(k, v)]
-
--- | JSObject of arbitrary secret data.
-arbitrarySecretJSObj :: Gen (J.JSObject (Secret J.JSValue))
-arbitrarySecretJSObj =
-  constructor <$> (fromNonEmpty <$> genNameNE)
-              <*> (fromNonEmpty <$> genNameNE)
-    where constructor k v = showSecretJSObject [(k, v)]
 
 -- | Arbitrary instance for MetaOpCode, defined here due to TH ordering.
 $(genArbitrary ''OpCodes.MetaOpCode)

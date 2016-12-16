@@ -49,7 +49,6 @@ import Control.Monad.Error
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Trans.Control
 import Data.Monoid
-import qualified Data.Set as Set
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
@@ -64,12 +63,6 @@ import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.Monad
 import Ganeti.WConfd.Ssconf
-
--- | From a distribution target get a predicate on nodes whether it
--- should be distributed to this node.
-targetToPredicate :: DistributionTarget -> Node -> Bool
-targetToPredicate Everywhere = const True
-targetToPredicate (ToGroups gs) = (`Set.member` gs) . nodeGroup
 
 -- | Loads the configuration from the file, if it hasn't been loaded yet.
 -- The function is internal and isn't thread safe.
@@ -154,19 +147,19 @@ mkStatefulAsyncTask logPrio logPrefix start action =
 saveConfigAsyncTask :: FilePath -- ^ Path to the config file
                     -> FStat  -- ^ The initial state of the config. file
                     -> IO ConfigState -- ^ An action to read the current config
-                    -> [AsyncWorker DistributionTarget ()]
-                    -- ^ Workers to be triggered afterwards
-                    -> ResultG (AsyncWorker (Any, DistributionTarget) ())
+                    -> [AsyncWorker () ()] -- ^ Workers to be triggered
+                                           -- afterwards
+                    -> ResultG (AsyncWorker Any ())
 saveConfigAsyncTask fpath fstat cdRef workers =
   lift . mkStatefulAsyncTask
            EMERGENCY "Can't write the master configuration file" fstat
-       $ \oldstat (Any flush, target) -> do
+       $ \oldstat (Any flush) -> do
             cd <- liftBase (csConfigData `liftM` cdRef)
             writeConfigToFile cd fpath oldstat
               <* if flush then logDebug "Running distribution synchronously"
-                               >> triggerAndWaitMany target workers
+                               >> triggerAndWaitMany_ workers
                           else logDebug "Running distribution asynchronously"
-                               >> mapM (trigger target) workers
+                               >> mapM trigger_ workers
 
 
 -- | Performs a RPC call on the given list of nodes and logs any failures.
@@ -182,17 +175,16 @@ execRpcCallAndLog nodes req = do
 distMCsAsyncTask :: RuntimeEnts
                  -> FilePath -- ^ Path to the config file
                  -> IO ConfigState -- ^ An action to read the current config
-                 -> ResultG (AsyncWorker DistributionTarget ())
+                 -> ResultG (AsyncWorker () ())
 distMCsAsyncTask ents cpath cdRef =
   lift . mkStatelessAsyncTask ERROR "Can't distribute the configuration\
                                     \ to master candidates"
-       $ \target -> do
+       $ \_ -> do
           cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
           logDebug $ "Distributing the configuration to master candidates,\
-                     \ serial no " ++ show (serialOf cd) ++ ", " ++ show target
+                     \ serial no " ++ show (serialOf cd)
           fupload <- prepareRpcCallUploadFile ents cpath
-          execRpcCallAndLog
-            (filter (targetToPredicate target) $ getMasterCandidates cd) fupload
+          execRpcCallAndLog (getMasterCandidates cd) fupload
           logDebug "Successfully finished distributing the configuration"
 
 -- | Construct an asynchronous worker whose action is to construct SSConf
@@ -202,10 +194,10 @@ distMCsAsyncTask ents cpath cdRef =
 -- if different, distributes it.
 distSSConfAsyncTask
     :: IO ConfigState -- ^ An action to read the current config
-    -> ResultG (AsyncWorker DistributionTarget ())
+    -> ResultG (AsyncWorker () ())
 distSSConfAsyncTask cdRef =
   lift . mkStatefulAsyncTask ERROR "Can't distribute Ssconf" emptySSConf
-       $ \oldssc target -> do
+       $ \oldssc _ -> do
             cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
             let ssc = mkSSConf cd
             if oldssc == ssc
@@ -213,9 +205,7 @@ distSSConfAsyncTask cdRef =
               else do
                 logDebug $ "Starting the distribution of SSConf\
                            \ serial no " ++ show (serialOf cd)
-                           ++ ", " ++ show target
-                execRpcCallAndLog (filter (targetToPredicate target)
-                                    $ getOnlineNodes cd)
+                execRpcCallAndLog (getOnlineNodes cd)
                                   (RpcCallWriteSsconfFiles ssc)
                 logDebug "Successfully finished distributing SSConf"
             return ssc

@@ -51,7 +51,6 @@ import Ganeti.Daemon (getFQDN, DaemonOptions, optNoVoting, optYesDoIt)
 import Ganeti.Logging
 import Ganeti.Objects
 import qualified Ganeti.Path as Path
-import Ganeti.Utils (frequency)
 import Ganeti.Rpc
 
 -- | Gather votes from all nodes and verify that we we are
@@ -74,14 +73,14 @@ verifyMasterVotes = runResultT $ do
       unknown = length missing
   liftIO . unless (null noDataNodes) . logWarning
     . (++) "No voting RPC result from " $ show noDataNodes
-  liftIO . logDebug . (++) "Valid votes: " $ show (frequency validVotes)
+  liftIO . logDebug . (++) "Valid votes: " $ show validVotes
   if 2 * inFavor > voters
     then return True
     else if 2 * (inFavor + unknown) > voters
            then return False
            else fail $ "Voting cannot be won by " ++ myName
                        ++ ", valid votes of " ++ show voters
-                       ++ " are " ++ show (frequency validVotes)
+                       ++ " are " ++ show validVotes
 
 -- | Verify, by voting, that this node is the master. Bad if we're not.
 -- Allow the given number of retries to wait for not available nodes.

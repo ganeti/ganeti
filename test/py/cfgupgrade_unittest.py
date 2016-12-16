@@ -74,8 +74,6 @@ def GetMinimalConfig():
         "cpu-avg-load": { "active": True, "interval": 5000000 },
         "xen-cpu-avg-load": { "active": True, "interval": 5000000 },
       },
-      "ssh_key_type": "dsa",
-      "ssh_key_bits": 1024,
     },
     "instances": {},
     "disks": {},
@@ -118,10 +116,6 @@ def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True,
 
 class TestCfgupgrade(unittest.TestCase):
   def setUp(self):
-    # Since we are comparing large dictionaries here, this is vital to getting
-    # useful feedback about differences in config content using assertEquals.
-    self.maxDiff = None
-
     self.tmpdir = tempfile.mkdtemp()
 
     self.config_path = utils.PathJoin(self.tmpdir, "config.data")
@@ -432,9 +426,6 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_14(self):
     self._TestUpgradeFromFile("cluster_config_2.14.json", False)
 
-  def testUpgradeFullConfigFrom_2_15(self):
-    self._TestUpgradeFromFile("cluster_config_2.15.json", False)
-
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -452,7 +443,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    oldconfname = "cluster_config_2.15.json"
+    oldconfname = "cluster_config_2.14.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)

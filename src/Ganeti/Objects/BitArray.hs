@@ -63,7 +63,7 @@ import qualified Data.IntSet as IS
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
-import Ganeti.JSON (readEitherString)
+import Ganeti.JSON
 
 -- | A fixed-size, space-efficient array of bits.
 data BitArray = BitArray

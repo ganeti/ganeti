@@ -92,6 +92,8 @@ module Ganeti.HTools.Node
   , list
   -- * Misc stuff
   , AssocList
+  , GenericAllocElement
+  , AllocElement
   , noSecondary
   , computeGroups
   , mkNodeGraph
@@ -208,11 +210,7 @@ data Node = Node
   , rmigTags :: Set.Set String -- ^ migration tags able to receive
   , locationTags :: Set.Set String -- ^ common-failure domains the node belongs
                                    -- to
-  , locationScore :: Int -- ^ Sum of instance location and desired location
-                         -- scores
-  , instanceMap :: Map.Map (String, String) Int -- ^ Number of instances with
-                                                -- each exclusion/location tags
-                                                -- pair
+  , locationScore :: Int
   } deriving (Show, Eq)
 {- A note on how we handle spindles
 
@@ -248,29 +246,37 @@ type AssocList = [(T.Ndx, Node)]
 -- | A simple name for a node map.
 type List = Container.Container Node
 
+-- | A simple name for an allocation element (here just for logistic
+-- reasons), generic in the type of the metric.
+type GenericAllocElement a = (List, Instance.Instance, [Node], a)
+
+-- | A simple name for an allocation element (here just for logistic
+-- reasons).
+type AllocElement = GenericAllocElement T.Score
+
 -- | Constant node index for a non-moveable instance.
 noSecondary :: T.Ndx
 noSecondary = -1
 
 -- * Helper functions
 
--- | Add a value to a map.
-addTag :: (Ord k) => Map.Map k Int -> k -> Map.Map k Int
+-- | Add a tag to a tagmap.
+addTag :: TagMap -> String -> TagMap
 addTag t s = Map.insertWith (+) s 1 t
 
--- | Add multiple values.
-addTags :: (Ord k) => Map.Map k Int -> [k] -> Map.Map k Int
+-- | Add multiple tags.
+addTags :: TagMap -> [String] -> TagMap
 addTags = foldl' addTag
 
--- | Adjust or delete a value from a map.
-delTag :: (Ord k) => Map.Map k Int -> k -> Map.Map k Int
+-- | Adjust or delete a tag from a tagmap.
+delTag :: TagMap -> String -> TagMap
 delTag t s = Map.update (\v -> if v > 1
                                  then Just (v-1)
                                  else Nothing)
              s t
 
--- | Remove multiple value.
-delTags :: (Ord k) => Map.Map k Int -> [k] -> Map.Map k Int
+-- | Remove multiple tags.
+delTags :: TagMap -> [String] -> TagMap
 delTags = foldl' delTag
 
 -- | Check if we can add a list of tags to a tagmap.
@@ -377,7 +383,6 @@ create name_init mem_t_init mem_n_init mem_f_init
        , rmigTags = Set.empty
        , locationTags = Set.empty
        , locationScore = 0
-       , instanceMap = Map.empty
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
@@ -539,28 +544,8 @@ calcFmemOfflineOrForthcoming node allInstances =
          . filter (not . Instance.usesMemory)
          $ nodeInstances
 
--- | Calculates the desired location score of an instance, given its primary
--- node.
-getInstanceDsrdLocScore :: Node -- ^ the primary node of the instance
-                        -> Instance.Instance -- ^ the original instance
-                        -> Int -- ^ the desired location score of the instance
-getInstanceDsrdLocScore p t =
-        desiredLocationScore (Instance.dsrdLocTags t) (locationTags p)
-  where desiredLocationScore instTags nodeTags =
-          Set.size instTags - Set.size ( instTags `Set.intersection` nodeTags )
-        -- this way we get the number of unsatisfied desired locations
-
--- | Returns list of all pairs of node location and instance
--- exclusion tags.
-getLocationExclusionPairs :: Node -- ^ the primary node of the instance
-                           -> Instance.Instance -- ^ the instance
-                           -> [(String, String)]
-getLocationExclusionPairs p inst =
-  [(loc, excl) | loc <- Set.toList (locationTags p)
-               , excl <- Instance.exclTags inst]
-
 -- | Assigns an instance to a node as primary and update the used VCPU
--- count, utilisation data, tags map and desired location score.
+-- count, utilisation data and tags map.
 setPri :: Node -> Instance.Instance -> Node
 setPri t inst
   -- Real instance, update real fields and forthcoming fields.
@@ -572,8 +557,6 @@ setPri t inst
           , utilLoad = utilLoad t `T.addUtil` Instance.util inst
           , instSpindles = calcSpindleUse True t inst
           , locationScore = locationScore t + Instance.locationScore inst
-                            + getInstanceDsrdLocScore t inst
-          , instanceMap = new_instance_map
           }
 
   -- Forthcoming instance, update forthcoming fields only.
@@ -583,8 +566,6 @@ setPri t inst
     new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst) (uCpu t)
     new_count_forth = Instance.applyIfOnline inst (+ Instance.vcpus inst)
                                              (uCpuForth t)
-    new_instance_map = addTags (instanceMap t)
-                     $ getLocationExclusionPairs t inst
 
     uses_disk = Instance.usesLocalStorage inst
 
@@ -766,9 +747,6 @@ removePri t inst =
                 new_rcpu = fromIntegral new_ucpu / tCpu t
                 new_load = utilLoad t `T.subUtil` Instance.util inst
 
-                new_instance_map = delTags (instanceMap t)
-                                 $ getLocationExclusionPairs t inst
-
             in updateForthcomingFields $
                  t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
                    , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
@@ -776,8 +754,6 @@ removePri t inst =
                    , instSpindles = new_inst_sp, fSpindles = new_free_sp
                    , locationScore = locationScore t
                                      - Instance.locationScore inst
-                                     - getInstanceDsrdLocScore t inst
-                   , instanceMap = new_instance_map
                    }
 
 -- | Removes a secondary instance.
@@ -867,6 +843,7 @@ addPriEx force t inst =
       l_cpu = T.iPolicyVcpuRatio $ iPolicy t
       old_tags = pTags t
       strict = not force
+
       inst_tags = Instance.exclTags inst
 
       new_mem_forth = fMemForth t - Instance.mem inst
@@ -929,9 +906,6 @@ addPriEx force t inst =
 
                new_plist = iname:pList t
                new_mp = fromIntegral new_mem / tMem t
-
-               new_instance_map = addTags (instanceMap t)
-                                $ getLocationExclusionPairs t inst
       in case () of
         _ | new_mem <= 0 -> Bad T.FailMem
           | uses_disk && new_dsk <= 0 -> Bad T.FailDisk
@@ -960,8 +934,6 @@ addPriEx force t inst =
                   , fSpindles = new_free_sp
                   , locationScore = locationScore t
                                     + Instance.locationScore inst
-                                    + getInstanceDsrdLocScore t inst
-                  , instanceMap = new_instance_map
                   }
 
 -- | Adds a secondary instance (basic version).

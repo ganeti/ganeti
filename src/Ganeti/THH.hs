@@ -74,12 +74,11 @@ module Ganeti.THH ( declareSADT
                   , buildParam
                   , genException
                   , excErrMsg
-                  , ssconfConstructorName
                   ) where
 
 import Control.Arrow ((&&&), second)
 import Control.Applicative
-import Control.Lens.Type (Lens, Lens')
+import Control.Lens.Type (Lens')
 import Control.Lens (lens, set, element)
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
@@ -102,7 +101,7 @@ import Language.Haskell.TH.Syntax (lift)
 import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
-import Ganeti.JSON (readJSONWithDesc, fromObj, DictObject(..), ArrayObject(..), maybeFromObj, mkUsedKeys, showJSONtoDict, readJSONfromDict, branchOnField, addField, allUsedKeys)
+import Ganeti.JSON
 import Ganeti.PartialParams
 import Ganeti.PyValue
 import Ganeti.THH.PyType
@@ -498,9 +497,9 @@ genFromRaw traw fname tname constructors = do
                      return (g, r)) constructors
   -- the otherwise clause (fallback)
   oth_clause <- do
-    let err = "Invalid string value for type " ++ (nameBase tname) ++ ": "
     g <- normalG [| otherwise |]
-    r <- [|fail $ $(litE (stringL err)) ++ show $varpe |]
+    r <- [|fail ("Invalid string value for type " ++
+                 $(litE (stringL (nameBase tname))) ++ ": " ++ show $varpe) |]
     return (g, r)
   let fun = FunD fname [Clause [VarP varp]
                         (GuardedB (clauses++[oth_clause])) []]
@@ -996,15 +995,8 @@ buildAccessor fnm fpfx rnm rpfx nm pfx field = do
              , Clause [ConP fnm [VarP x]] (NormalB f_body) []
              ]]
 
--- | Build lense declartions for a field.
---
--- If the type of the field is the same in
--- the forthcoming and the real variant, the lens
--- will be a simple lens (Lens' s a).
---
--- Otherwise, the type will be (Lens s s (Maybe a) a).
--- This is because the field in forthcoming variant
--- has type (Maybe a), but the real variant has type a.
+-- | Build lense declartions for a field, if the type of the field
+-- is the same in the forthcoming and the real variant.
 buildLens :: (Name, Name) -- ^ names of the forthcoming constructors
           -> (Name, Name) -- ^ names of the real constructors
           -> Name -- ^ name of the type
@@ -1015,45 +1007,32 @@ buildLens :: (Name, Name) -- ^ names of the forthcoming constructors
           -> Q [Dec]
 buildLens (fnm, fdnm) (rnm, rdnm) nm pfx ar (field, i) = do
   let optField = makeOptional field
-      isSimple = fieldIsOptional field == fieldIsOptional optField
-      lensnm = mkName $ pfx ++ fieldRecordName  field ++ "L"
-  (accnm, _, ftype) <- fieldTypeInfo pfx field
-  vars <- replicateM ar (newName "x")
-  var <- newName "val"
-  context <- newName "val"
-  jE <- [| Just |]
-  let body eJ cn cdn = NormalB
-                      . (ConE cn `AppE`)
-                      . foldl (\e (j, x) -> AppE e $
-                                                if i == j
-                                                  then if eJ
-                                                    then AppE jE (VarE var)
-                                                    else VarE var
-                                                  else VarE x)
-                        (ConE cdn)
-                     $ zip [0..] vars
-  let setterE = LamE [VarP context, VarP var] $ CaseE (VarE context)
-                   [ Match (ConP fnm [ConP fdnm . set (element i) WildP
-                                        $ map VarP vars])
-                           (body (not isSimple) fnm fdnm) []
-                   , Match (ConP rnm [ConP rdnm . set (element i) WildP
-                                        $ map VarP vars])
-                           (body False rnm rdnm) []
-                   ]
-  let lensD = ValD (VarP lensnm)
+  if fieldIsOptional field /= fieldIsOptional optField
+     then return []
+     else do
+       let lensnm = mkName $ pfx ++ fieldRecordName  field ++ "L"
+       (accnm, _, ftype) <- fieldTypeInfo pfx field
+       vars <- replicateM ar (newName "x")
+       var <- newName "val"
+       context <- newName "val"
+       let body cn cdn = NormalB
+                           . (ConE cn `AppE`)
+                           . foldl (\e (j, x) -> AppE e . VarE
+                                                   $ if i == j then var else x)
+                             (ConE cdn)
+                          $ zip [0..] vars
+       let setterE = LamE [VarP context, VarP var] $ CaseE (VarE context)
+                        [ Match (ConP fnm [ConP fdnm . set (element i) WildP
+                                             $ map VarP vars])
+                                (body fnm fdnm) []
+                        , Match (ConP rnm [ConP rdnm . set (element i) WildP
+                                             $ map VarP vars])
+                                (body rnm rdnm) []
+                        ]
+       return [ SigD lensnm $ ConT ''Lens' `AppT` ConT nm `AppT` ftype
+              , ValD (VarP lensnm)
                      (NormalB  $ VarE 'lens `AppE` VarE accnm `AppE` setterE) []
-
-  if isSimple
-     then
-       return $ (SigD lensnm $ ConT ''Lens' `AppT` ConT nm `AppT` ftype)
-              : lensD : []
-     else
-       return $ (SigD lensnm $ ConT ''Lens `AppT`
-                              ConT nm `AppT`
-                              ConT nm `AppT`
-                              (ConT ''Maybe `AppT` ftype) `AppT`
-                              ftype)
-              : lensD : []
+              ]
 
 -- | Build an object that can have a forthcoming variant.
 -- This will create 3 data types: two objects, prefixed by
@@ -1187,7 +1166,8 @@ defaultFromJSArray keys xs = do
 -- See 'defaultToJSArray' and 'defaultFromJSArray'.
 genArrayObjectInstance :: Name -> [Field] -> Q Dec
 genArrayObjectInstance name fields = do
-  let fnames = fieldsKeys fields
+  let fnames = map T.unpack $
+               concatMap (liftA2 (:) fieldName fieldExtraKeys) fields
   instanceD (return []) (appT (conT ''ArrayObject) (conT name))
     [ valD (varP 'toJSArray) (normalB [| defaultToJSArray $(lift fnames) |]) []
     , valD (varP 'fromJSArray) (normalB [| defaultFromJSArray fnames |]) []
@@ -1295,18 +1275,18 @@ loadObjectField allFields field = do
                $ $objvar |]
       _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
 
-fieldsKeys :: [Field] -> [String]
-fieldsKeys fields =
-  map T.unpack $ concatMap (liftA2 (:) fieldName fieldExtraKeys) fields
-
--- | Generates the set of all used JSON dictionary keys for a list of fields
--- The equivalent of S.fromList (map T.pack ["f1", "f2", "f3"] )
-fieldsDictKeys :: [Field] -> Exp
-fieldsDictKeys fields =
-  AppE (VarE 'S.fromList)
+-- | Generates the set of all used JSON dictionary keys for a field
+-- This is the equivalent of [| S.fromList (map T.pack 'fnames) |]
+fieldDictKeys :: Field -> Exp
+fieldDictKeys field = AppE (VarE 'S.fromList)
   . AppE (AppE (VarE 'map) (VarE 'T.pack))
   . ListE . map (LitE . StringL)
-  $ fieldsKeys fields
+  $ map T.unpack $ liftA2 (:) fieldName fieldExtraKeys field
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields
+fieldsDictKeys :: [Field] -> Exp
+fieldsDictKeys fields =
+  AppE (VarE 'S.unions) . ListE . map fieldDictKeys $ fields
 
 -- | Generates the list of all used JSON dictionary keys for a list of fields
 fieldsDictKeysQ :: [Field] -> Q Exp
@@ -1567,14 +1547,10 @@ genLoadExc tname sname opdefs = do
                                         (VarE exc_name))
                           (str_matches ++ [defmatch]))) []
   -- the fail expression for the second function clause
-  let err = "Invalid exception: expected '(string, [args])' " ++
-            "      but got "
-  fail_type <- [| fail $ err ++ show (pp_value $(varE arg_else)) ++ "'" |]
+  fail_type <- [| fail $ "Invalid exception: expected '(string, [args])' " ++
+                  "      but got " ++ show (pp_value $(varE arg_else)) ++ "'"
+                |]
   -- the second function clause
   let clause2 = Clause [VarP arg_else] (NormalB fail_type) []
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT tname) |]
   return $ (SigD fname sigt, FunD fname [clause1, clause2])
-
--- | Compute the ssconf constructor name from its file name.
-ssconfConstructorName :: String -> String
-ssconfConstructorName = camelCase . ("s_s_" ++)

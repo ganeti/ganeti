@@ -1,8 +1,8 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [2])
-m4_define([gnt_version_minor], [16])
-m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~rc1])
+m4_define([gnt_version_minor], [15])
+m4_define([gnt_version_revision], [2])
+m4_define([gnt_version_suffix], [])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -36,7 +36,7 @@ AC_ARG_ENABLE([versionfull],
   [[if test "$enableval" != no; then
       USE_VERSION_FULL=yes
     else
-      USE_VERSION_FULL=no
+      USER_VERSION_FULL=no
     fi
   ]],
   [USE_VERSION_FULL=no
@@ -337,7 +337,7 @@ AC_ARG_WITH([user-prefix],
     [ to change the default)]
   )],
   [user_masterd="${withval}masterd";
-   user_metad="${withval}metad";
+   user_metad="$user_default";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
    user_wconfd="${withval}masterd";
@@ -363,7 +363,6 @@ AC_SUBST(KVMD_USER, $user_kvmd)
 AC_SUBST(LUXID_USER, $user_luxid)
 AC_SUBST(NODED_USER, $user_noded)
 AC_SUBST(MOND_USER, $user_mond)
-AC_SUBST(METAD_USER, $user_metad)
 
 # --with-group-prefix=...
 AC_ARG_WITH([group-prefix],
@@ -379,7 +378,7 @@ AC_ARG_WITH([group-prefix],
    group_kvmd="$group_default";
    group_luxid="${withval}luxid";
    group_masterd="${withval}masterd";
-   group_metad="${withval}metad";
+   group_metad="$group_default";
    group_noded="$group_default";
    group_daemons="${withval}daemons";
    group_mond="$group_default"],
@@ -405,7 +404,6 @@ AC_SUBST(METAD_GROUP, $group_metad)
 AC_SUBST(NODED_GROUP, $group_noded)
 AC_SUBST(DAEMONS_GROUP, $group_daemons)
 AC_SUBST(MOND_GROUP, $group_mond)
-AC_SUBST(METAD_GROUP, $group_metad)
 
 # Print the config to the user
 AC_MSG_NOTICE([Running ganeti-masterd as $group_masterd:$group_masterd])

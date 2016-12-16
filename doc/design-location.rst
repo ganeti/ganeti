@@ -109,28 +109,3 @@ Advise only
 These tags are of advisory nature only. That is, all ``htools`` will strictly
 obey the restrictions imposed by those tags, but Ganeti will not prevent users
 from manually instructing other migrations.
-
-
-Instance pinning
-================
-
-Sometimes, administrators want specific instances located in a particular,
-typically geographic, location. To support these kind of requests, instances
-can be assigned tags of the form *htools:desiredlocation:x* where *x* is a
-failure tag. Those tags indicate the the instance wants to be placed on a
-node tagged *x*. To make ``htools`` honor those desires, the metric is extended,
-appropriately weighted, by the following component.
-
-- Sum of dissatisfied desired locations number among all cluster instances.
-  An instance desired location is dissatisfied when the instance is assigned
-  a desired-location tag *x* where the node is not tagged with the location
-  tag *x*.
-
-Such metric extension allows to specify multiple desired locations for each
-instance. These desired locations may be contradictive as well. Contradictive
-desired locations mean that we don't care which one of desired locations will
-be satisfied.
-
-Again, instance pinning is just heuristics, not a hard enforced requirement;
-it will only be achieved by the cluster metrics favouring such placements.
-

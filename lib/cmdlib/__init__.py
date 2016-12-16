@@ -128,7 +128,6 @@ from ganeti.cmdlib.misc import \
   LUExtStorageDiagnose, \
   LURestrictedCommand
 from ganeti.cmdlib.test import \
-  LUTestOsParams, \
   LUTestDelay, \
   LUTestJqueue, \
   LUTestAllocator

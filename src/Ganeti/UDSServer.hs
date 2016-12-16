@@ -83,8 +83,7 @@ import Data.List
 import Data.Word (Word8)
 import qualified Network.Socket as S
 import System.Directory (removeFile)
-import System.IO ( hClose, hFlush, hPutStr, hWaitForInput, Handle, IOMode(..)
-                 , hSetBuffering, BufferMode(..))
+import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
 import System.IO.Error (isEOFError)
 import System.Posix.Types (Fd)
 import System.Posix.IO (createPipe, fdToHandle, handleToFd)
@@ -95,7 +94,7 @@ import Text.JSON.Types
 
 import Ganeti.BasicTypes
 import Ganeti.Errors (GanetiException(..), ErrorResult)
-import Ganeti.JSON (fromJResult, fromJVal, fromJResultE, fromObj)
+import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.THH
 import Ganeti.Utils
@@ -288,12 +287,9 @@ clientToFd client | rh == wh  = join (,) <$> handleToFd rh
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
   t1 <- getCurrentTimeUSec
-  let handle = wsocket s
-  -- Allow buffering (up to 1MiB) when writing to the socket. Note that
-  -- otherwise we get the default of sending each byte in a separate
-  -- system call, resulting in very poor performance.
-  hSetBuffering handle (BlockBuffering . Just $ 1024 * 1024)
-  hPutStr handle buf
+  let encoded = UTF8.fromString buf
+      handle = wsocket s
+  B.hPut handle encoded
   B.hPut handle bEOM
   hFlush handle
   t2 <- getCurrentTimeUSec

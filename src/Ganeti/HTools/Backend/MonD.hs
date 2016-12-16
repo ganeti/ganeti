@@ -67,7 +67,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader (ClusterData(..))
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
-import Ganeti.JSON (fromJVal, tryFromObj, JSRecord, loadJSArray, maybeParseMap)
+import Ganeti.JSON
 import Ganeti.Logging.Lifted (logWarning)
 import Ganeti.Utils (exitIfBad)
 

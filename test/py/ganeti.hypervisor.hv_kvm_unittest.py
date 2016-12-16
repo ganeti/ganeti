@@ -462,55 +462,11 @@ class TestGenerateDeviceKVMId(unittest.TestCase):
     device = objects.NIC()
     target = constants.HOTPLUG_TARGET_NIC
     fn = hv_kvm._GenerateDeviceKVMId
+    self.assertRaises(errors.HotplugError, fn, target, device)
+
+    device.pci = 5
     device.uuid = "003fc157-66a8-4e6d-8b7e-ec4f69751396"
-    self.assertTrue(re.match("nic-003fc157-66a8-4e6d", fn(target, device)))
-
-
-class TestGenerateDeviceHVInfo(testutils.GanetiTestCase):
-  def testPCI(self):
-    """Test the placement of the first PCI device during startup."""
-    self.MockOut(mock.patch('ganeti.utils.EnsureDirs'))
-    hypervisor = hv_kvm.KVMHypervisor()
-    dev_type = constants.HOTPLUG_TARGET_NIC
-    kvm_devid = "nic-9e7c85f6-b6e5-4243"
-    hv_dev_type = constants.HT_NIC_PARAVIRTUAL
-    bus_slots = hypervisor._GetBusSlots()
-    hvinfo = hv_kvm._GenerateDeviceHVInfo(dev_type,
-                                          kvm_devid,
-                                          hv_dev_type,
-                                          bus_slots)
-    # NOTE: The PCI slot is zero-based, i.e. 13th slot has addr hex(12)
-    expected_hvinfo = {
-      "driver": "virtio-net-pci",
-      "id": kvm_devid,
-      "bus": "pci.0",
-      "addr": hex(constants.QEMU_DEFAULT_PCI_RESERVATIONS),
-      }
-
-    self.assertTrue(hvinfo == expected_hvinfo)
-
-  def testSCSI(self):
-    """Test the placement of the first SCSI device during startup."""
-    self.MockOut(mock.patch('ganeti.utils.EnsureDirs'))
-    hypervisor = hv_kvm.KVMHypervisor()
-    dev_type = constants.HOTPLUG_TARGET_DISK
-    kvm_devid = "disk-932df160-7a22-4067"
-    hv_dev_type = constants.HT_DISK_SCSI_BLOCK
-    bus_slots = hypervisor._GetBusSlots()
-    hvinfo = hv_kvm._GenerateDeviceHVInfo(dev_type,
-                                          kvm_devid,
-                                          hv_dev_type,
-                                          bus_slots)
-    expected_hvinfo = {
-      "driver": "scsi-block",
-      "id": kvm_devid,
-      "bus": "scsi.0",
-      "channel": 0,
-      "scsi-id": 0,
-      "lun": 0,
-      }
-
-    self.assertTrue(hvinfo == expected_hvinfo)
+    self.assertTrue(re.match("hotnic-003fc157-pci-5", fn(target, device)))
 
 
 class TestGetRuntimeInfo(unittest.TestCase):
@@ -534,7 +490,7 @@ class TestGetRuntimeInfo(unittest.TestCase):
 
     device.uuid = "003fc157-66a8-4e6d-8b7e-ec4f69751396"
     devinfo = hv_kvm._GetExistingDeviceInfo(target, device, runtime)
-    self.assertTrue(devinfo.hvinfo["addr"] == "0x8")
+    self.assertTrue(devinfo.pci==6)
 
   def testDisk(self):
     device = objects.Disk()
@@ -545,7 +501,7 @@ class TestGetRuntimeInfo(unittest.TestCase):
 
     device.uuid = "9f5c5bd4-6f60-480b-acdc-9bb1a4b7df79"
     (devinfo, _, __) = hv_kvm._GetExistingDeviceInfo(target, device, runtime)
-    self.assertTrue(devinfo.hvinfo["addr"] == "0xa")
+    self.assertTrue(devinfo.pci==5)
 
 
 class PostfixMatcher(object):

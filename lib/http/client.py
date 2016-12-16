@@ -227,15 +227,7 @@ class _PendingRequest(object):
 
     assert req.success is None, "Request has already been finalized"
 
-    try:
-      # LOCAL_* options added in pycurl 7.21.5
-      from_str = "from %s:%s " % (
-          curl.getinfo(pycurl.LOCAL_IP),
-          curl.getinfo(pycurl.LOCAL_PORT)
-      )
-    except AttributeError:
-      from_str = ""
-    logging.debug("Request %s%s finished, errmsg=%s", from_str, req, errmsg)
+    logging.debug("Request %s finished, errmsg=%s", req, errmsg)
 
     req.success = not bool(errmsg)
     req.error = errmsg

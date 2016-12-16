@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.Storage.Utils
-  ( getStorageUnitsOfNode
+  ( getStorageUnitsOfNodes
   , nodesWithValidConfig
   ) where
 
@@ -45,6 +45,7 @@ import qualified Ganeti.Types as T
 import Control.Monad
 import Data.List (nub)
 import Data.Maybe
+import qualified Data.Map as M
 
 -- | Get the cluster's default storage unit for a given disk template
 getDefaultStorageKey :: ConfigData -> DiskTemplate -> Maybe StorageKey
@@ -93,3 +94,8 @@ getStorageUnitsOfNode cfg n =
   let clusterSUs = getClusterStorageUnitRaws cfg
       es = fromJust (getExclusiveStorage cfg n)
   in  map (addParamsToStorageUnit es) clusterSUs
+
+-- | Get the storage unit map for all nodes
+getStorageUnitsOfNodes :: ConfigData -> [Node] -> M.Map String [StorageUnit]
+getStorageUnitsOfNodes cfg ns =
+  M.fromList (map (\n -> (uuidOf n, getStorageUnitsOfNode cfg n)) ns)

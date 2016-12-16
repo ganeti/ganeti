@@ -96,7 +96,6 @@ module Ganeti.Utils
   , ensurePermissions
   , ordNub
   , isSubsequenceOf
-  , frequency
   ) where
 
 import Control.Applicative
@@ -819,9 +818,3 @@ isSubsequenceOf []    _                    = True
 isSubsequenceOf _     []                   = False
 isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
                                | otherwise = isSubsequenceOf a b
-
-{-# ANN frequency "HLint: ignore Use alternative" #-}
--- | Returns a list of tuples of elements and the number of times they occur
--- in a list
-frequency :: Ord t => [t] -> [(Int, t)]
-frequency xs = map (\x -> (length x, head x)) . group . sort $ xs

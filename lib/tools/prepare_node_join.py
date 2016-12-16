@@ -50,7 +50,7 @@ from ganeti.tools import common
 _SSH_KEY_LIST_ITEM = \
   ht.TAnd(ht.TIsLength(3),
           ht.TItems([
-            ht.TSshKeyType,
+            ht.TElemOf(constants.SSHK_ALL),
             ht.Comment("public")(ht.TNonEmptyString),
             ht.Comment("private")(ht.TNonEmptyString),
           ]))
@@ -64,8 +64,6 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_SSH_ROOT_KEY: _SSH_KEY_LIST,
   constants.SSHS_SSH_AUTHORIZED_KEYS:
     ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString)),
-  constants.SSHS_SSH_KEY_TYPE: ht.TSshKeyType,
-  constants.SSHS_SSH_KEY_BITS: ht.TPositive,
   })
 
 
@@ -174,10 +172,7 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
   if dry_run:
     logging.info("This is a dry run, not replacing the SSH keys.")
   else:
-    ssh_key_type = data.get(constants.SSHS_SSH_KEY_TYPE)
-    ssh_key_bits = data.get(constants.SSHS_SSH_KEY_BITS)
-    common.GenerateRootSshKeys(ssh_key_type, ssh_key_bits, error_fn=JoinError,
-                               _homedir_fn=_homedir_fn)
+    common.GenerateRootSshKeys(error_fn=JoinError, _homedir_fn=_homedir_fn)
 
   if authorized_keys:
     if dry_run:

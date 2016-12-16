@@ -9,9 +9,8 @@ ganeti-noded - Ganeti node daemon
 Synopsis
 --------
 
-| **ganeti-noded** [-f] [-d] [-p *PORT*] [-b *ADDRESS*] [-i *INTERFACE*]
-| [\--max-clients *CLIENTS*] [\--no-mlock] [\--syslog] [\--no-ssl]
-| [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
+**ganeti-noded** [-f] [-d] [-p *PORT*] [-b *ADDRESS*] [-i *INTERFACE*]
+[--no-mlock] [--syslog] [--no-ssl] [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
 
 DESCRIPTION
 -----------
@@ -38,11 +37,6 @@ services database (usually ``/etc/services``) or by passing the ``-p``
 option.  The ``-b`` option can be used to specify the address to bind
 to (defaults to ``0.0.0.0``); alternatively, the ``-i`` option can be
 used to specify the interface to bind do.
-
-The maximum number of simultaneous client connections may be configured
-with the ``--max-clients`` option. This defaults to 20. Connections
-above this count are accepted, but no responses are sent until enough
-connections are closed.
 
 Ganeti noded communication is protected via SSL, with a key
 generated at cluster init time. This can be disabled with the

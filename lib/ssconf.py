@@ -39,6 +39,7 @@ import sys
 import errno
 import logging
 
+from ganeti import compat
 from ganeti import errors
 from ganeti import constants
 from ganeti import utils
@@ -49,7 +50,42 @@ from ganeti import pathutils
 SSCONF_LOCK_TIMEOUT = 10
 
 #: Valid ssconf keys
-_VALID_KEYS = constants.VALID_SS_KEYS
+_VALID_KEYS = compat.UniqueFrozenset([
+  constants.SS_CLUSTER_NAME,
+  constants.SS_CLUSTER_TAGS,
+  constants.SS_FILE_STORAGE_DIR,
+  constants.SS_SHARED_FILE_STORAGE_DIR,
+  constants.SS_GLUSTER_STORAGE_DIR,
+  constants.SS_MASTER_CANDIDATES,
+  constants.SS_MASTER_CANDIDATES_IPS,
+  constants.SS_MASTER_CANDIDATES_CERTS,
+  constants.SS_MASTER_IP,
+  constants.SS_MASTER_NETDEV,
+  constants.SS_MASTER_NETMASK,
+  constants.SS_MASTER_NODE,
+  constants.SS_NODE_LIST,
+  constants.SS_NODE_PRIMARY_IPS,
+  constants.SS_NODE_SECONDARY_IPS,
+  constants.SS_NODE_VM_CAPABLE,
+  constants.SS_OFFLINE_NODES,
+  constants.SS_ONLINE_NODES,
+  constants.SS_PRIMARY_IP_FAMILY,
+  constants.SS_INSTANCE_LIST,
+  constants.SS_RELEASE_VERSION,
+  constants.SS_HYPERVISOR_LIST,
+  constants.SS_MAINTAIN_NODE_HEALTH,
+  constants.SS_UID_POOL,
+  constants.SS_NODEGROUPS,
+  constants.SS_NETWORKS,
+  constants.SS_HVPARAMS_XEN_PVM,
+  constants.SS_HVPARAMS_XEN_FAKE,
+  constants.SS_HVPARAMS_XEN_HVM,
+  constants.SS_HVPARAMS_XEN_KVM,
+  constants.SS_HVPARAMS_XEN_CHROOT,
+  constants.SS_HVPARAMS_XEN_LXC,
+  constants.SS_ENABLED_USER_SHUTDOWN,
+  constants.SS_SSH_PORTS,
+  ])
 
 #: Maximum size for ssconf files
 _MAX_SIZE = 128 * 1024

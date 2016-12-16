@@ -465,10 +465,6 @@ opTestJqueue :: String
 opTestJqueue =
   "Utility opcode to test some aspects of the job queue."
 
-opTestOsParams :: String
-opTestOsParams =
-  "Utility opcode to test secret os parameter transmission."
-
 opTestDummy :: String
 opTestDummy =
   "Utility opcode used by unittests."

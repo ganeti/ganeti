@@ -445,7 +445,6 @@ class LUInstanceCreate(LogicalUnit):
       node_name_whitelist = self.cfg.GetNodeNames(
         set(self.owned_locks(locking.LEVEL_NODE)) &
         set(self.owned_locks(locking.LEVEL_NODE_RES)))
-      logging.debug("Trying to allocate on nodes %s", node_name_whitelist)
     else:
       node_name_whitelist = None
 
@@ -891,9 +890,7 @@ class LUInstanceCreate(LogicalUnit):
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES)), \
-      ("Node locks differ from node resource locks (%s vs %s)"
-       % (self.owned_locks(locking.LEVEL_NODE),
-          self.owned_locks(locking.LEVEL_NODE_RES)))
+      "Node locks differ from node resource locks"
 
     #### node related checks
 

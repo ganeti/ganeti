@@ -66,8 +66,6 @@ options =
     , oVerbose
     , oIgnoreDyn
     , oIgnoreSoftErrors
-    , oNoCapacityChecks
-    , oRestrictToNodes
     , oMonD
     , oMonDXen
     ]

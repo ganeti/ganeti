@@ -82,7 +82,7 @@ class BlockDev(object):
 
   """
   # pylint: disable=W0613
-  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
+  def __init__(self, unique_id, children, size, params, dyn_params, *args):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
@@ -92,19 +92,6 @@ class BlockDev(object):
     self.size = size
     self.params = params
     self.dyn_params = dyn_params
-
-  def __eq__(self, other):
-    if not isinstance(self, type(other)):
-      return False
-    return (self._children == other._children and # pylint: disable=W0212
-            self.dev_path == other.dev_path and
-            self.unique_id == other.unique_id and
-            self.major == other.major and
-            self.minor == other.minor and
-            self.attached == other.attached and
-            self.size == other.size and
-            self.params == other.params and
-            self.dyn_params == other.dyn_params)
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -120,7 +107,7 @@ class BlockDev(object):
     """
     pass
 
-  def Attach(self, **kwargs):
+  def Attach(self):
     """Find a device which matches our config and attach to it.
 
     """
@@ -134,7 +121,7 @@ class BlockDev(object):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, **kwargs):
+             dyn_params, *args):
     """Create the device.
 
     If the device cannot be created, it will return None

@@ -32,6 +32,8 @@
 
 """
 
+import operator
+
 from ganeti import utils
 from ganeti import constants
 from ganeti import pathutils
@@ -130,7 +132,8 @@ def CreateInstanceDrbd8(nodes, fail=False):
   """
   assert len(nodes) > 1
   return _CreateInstanceByDiskTemplateRaw(
-    ":".join(n.primary for n in nodes), constants.DT_DRBD8, fail=fail)
+    ":".join(map(operator.attrgetter("primary"), nodes)),
+    constants.DT_DRBD8, fail=fail)
 
 
 def CreateInstanceByDiskTemplateOneNode(nodes, disk_template, fail=False):

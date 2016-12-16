@@ -115,7 +115,7 @@ class LogicalUnit(object): # pylint: disable=R0902
   HTYPE = None
   REQ_BGL = True
 
-  def __init__(self, processor, op, cfg,
+  def __init__(self, processor, op, context, cfg,
                rpc_runner, wconfdcontext, wconfd):
     """Constructor for LogicalUnit.
 
@@ -135,6 +135,7 @@ class LogicalUnit(object): # pylint: disable=R0902
     self.cfg = cfg
     self.wconfdlocks = []
     self.wconfdcontext = wconfdcontext
+    self.context = context
     self.rpc = rpc_runner
     self.wconfd = wconfd # wconfd module to use, for testing
 

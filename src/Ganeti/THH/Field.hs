@@ -57,7 +57,7 @@ import qualified Text.JSON as JSON
 import System.Posix.Types (FileMode, ProcessID)
 import System.Time (ClockTime(..))
 
-import Ganeti.JSON (TimeAsDoubleJSON(..))
+import Ganeti.JSON
 import Ganeti.THH
 
 -- * Internal functions

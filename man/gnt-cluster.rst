@@ -127,7 +127,7 @@ time in seconds (fractions allowed) waited between powering on
 individual nodes.
 
 Please note that the master node will not be turned down or up
-automatically.  It will just be left in a state, where you can manually
+automatically.  It will just be left in a state, where you can manully
 perform the shutdown of that one node. If the master is in the list of
 affected nodes and this is not a complete cluster emergency power-off
 (e.g. using ``--all``), you're required to do a master failover to
@@ -206,8 +206,6 @@ INIT
 | [\--zeroing-image *image*]
 | [\--compression-tools [*tool*, [*tool*]]]
 | [\--user-shutdown {yes \| no}]
-| [\--ssh-key-type *type*]
-| [\--ssh-key-bits *bits*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -273,10 +271,7 @@ The ``--no-etc-hosts`` option allows you to initialize the cluster
 without modifying the /etc/hosts file.
 
 The ``--no-ssh-init`` option allows you to initialize the cluster
-without creating or distributing SSH key pairs. This also sets the
-cluster-wide configuration parameter ``modify ssh setup`` to False.
-When adding nodes, Ganeti will consider this parameter to determine
-whether to create and distributed SSH key pairs on new nodes as well.
+without creating or distributing SSH key pairs.
 
 The ``--file-storage-dir``, ``--shared-file-storage-dir`` and
 ``--gluster-storage-dir`` options allow you set the directory to use for
@@ -606,7 +601,7 @@ possible to create instances with disk templates that are not enabled in
 the cluster. It is also not possible to disable a disk template when there
 are still instances using it. The first disk template in the list of
 enabled disk template is the default disk template. It will be used for
-instance creation, if no disk template is requested explicitly.
+instance creation, if no disk template is requested explicitely.
 
 The ``--install-image`` option specifies the location of the OS image to
 use to run the OS scripts inside a virtualized environment. This can be
@@ -637,23 +632,10 @@ of testing whether the executable exists. These requirements are
 compatible with the gzip command line options, allowing many tools to
 be easily wrapped and used.
 
-The ``--ssh-key-type`` and ``--ssh-key-bits`` options determine the
-properties of the SSH keys Ganeti generates and uses to execute
-commands on nodes. The supported types are currently 'dsa', 'rsa', and
-'ecdsa'. The supported bit sizes vary across keys, reflecting the
-options **ssh-keygen**\(1) exposes. These are currently:
-
-- dsa: 1024 bits
-- rsa: >=768 bits
-- ecdsa: 256, 384, or 521 bits
-
-Ganeti defaults to using 2048-bit RSA keys.
-
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
-| **master-failover** [\--no-voting] [\--yes-do-it]
-| [\--ignore-offline-nodes]
+**master-failover** [\--no-voting] [\--yes-do-it]
 
 Failover the master role to the current node.
 
@@ -678,12 +660,6 @@ majority of nodes still needs to be functional. To avoid situations with
 daemons not starting up on the new master, master-failover without
 the ``--no-voting`` option verifies a healthy majority of nodes and refuses
 the operation otherwise.
-
-The ``--ignore-offline-nodes`` flag ignores offline nodes when the
-cluster is voting on the master. Any nodes that are offline are not
-counted towards the vote or towards the healthy nodes required for a
-majority, as they will be brought into sync with the rest of the cluster
-during a node readd operation.
 
 MASTER-PING
 ~~~~~~~~~~~
@@ -713,8 +689,8 @@ MODIFY
 | [\--add-uids *user-id pool definition*]
 | [\--remove-uids *user-id pool definition*]
 | [{-C|\--candidate-pool-size} *candidate\_pool\_size*]
-| [\--max-running-jobs *count* ]
-| [\--max-tracked-jobs *count* ]
+| [--max-running-jobs *count* ]
+| [--max-tracked-jobs *count* ]
 | [\--maintain-node-health {yes \| no}]
 | [\--prealloc-wipe-disks {yes \| no}]
 | [{-I|\--default-iallocator} *default instance allocator*]
@@ -724,7 +700,6 @@ MODIFY
 | [{-m|\--mac-prefix} *mac-prefix*]
 | [\--master-netdev *interface-name*]
 | [\--master-netmask *netmask*]
-| [\--modify-etc-hosts {yes \| no}]
 | [\--use-external-mip-script {yes \| no}]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
@@ -761,9 +736,6 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--shared-file-storage-dir``, ``--enabled-disk-templates``, and
 ``--user-shutdown`` options are
 described in the **init** command.
-
-The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
-the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
@@ -813,7 +785,7 @@ but it will still use that network for instance communication.
 
 The ``--enabled-data-collectors`` and ``--data-collector-interval``
 options are to control the behavior of the **ganeti-mond**\(8). The
-first expects a list name=bool pairs to activate or deactivate the mentioned
+first expects a list name=bool pairs to activate or decative the mentioned
 data collector. The second option expects similar pairs of collector name
 and number of seconds specifying the interval at which the collector
 shall be collected.
@@ -892,7 +864,6 @@ RENEW-CRYPTO
 | \--spice-ca-certificate *spice-ca-cert*]
 | [\--new-ssh-keys] [\--no-ssh-key-check]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
-| [\--ssh-key-type *type*] | [\--ssh-key-bits *bits*]
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
@@ -903,7 +874,7 @@ The option ``--new-cluster-certificate`` will regenerate the
 cluster-internal server SSL certificate. The option
 ``--new-node-certificates`` will generate new node SSL
 certificates for all nodes. Note that for the regeneration of
-of the server SSL certificate will invoke a regeneration of the
+of the server SSL certficate will invoke a regeneration of the
 node certificates as well, because node certificates are signed
 by the server certificate and thus have to be recreated and
 signed by the new server certificate. Nodes which are offline
@@ -933,10 +904,6 @@ Finally ``--new-cluster-domain-secret`` generates a new, random
 cluster domain secret, and ``--cluster-domain-secret`` reads the
 secret from a file. The cluster domain secret is used to sign
 information exchanged between separate clusters via a third party.
-
-The options ``--ssh-key-type`` and ``ssh-key-bits`` determine the
-properties of the disk types used. They are described in more detail
-in the ``init`` option description.
 
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~
@@ -1030,7 +997,7 @@ master candidates can fail if there are other concurrently running
 operations that modify the configuration.
 
 The ``--verify-ssh-clutter`` option checks if more than one SSH key for the
-same 'user@hostname' pair exists in the 'authorized_keys' file. This is only
+same 'user@hostname' pair exists in the 'authorizied_keys' file. This is only
 checked for hostnames of nodes which belong to the cluster. This check is
 optional, because there might be other systems manipulating the
 'authorized_keys' files, which would cause too many false positives
@@ -1043,13 +1010,10 @@ List of error codes:
 VERIFY-DISKS
 ~~~~~~~~~~~~
 
-**verify-disks** [\--node-group *nodegroup*]
+**verify-disks**
 
 The command checks which instances have degraded DRBD disks and
 activates the disks of those instances.
-
-With ``--node-group``, restrict the verification to those nodes and
-instances that live in the named group.
 
 This command is run from the **ganeti-watcher** tool, which also
 has a different, complementary algorithm for doing this check.

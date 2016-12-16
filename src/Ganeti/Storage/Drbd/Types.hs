@@ -54,7 +54,7 @@ import Control.Monad
 import Text.JSON
 import Text.Printf
 
-import Ganeti.JSON (optFieldsToObj, optionalJSField)
+import Ganeti.JSON
 
 --TODO: consider turning deviceInfos into an IntMap
 -- | Data type contaning all the data about the status of DRBD.

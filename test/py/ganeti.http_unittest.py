@@ -479,11 +479,7 @@ class TestClientStartRequest(unittest.TestCase):
 
           curl.info = {
             pycurl.RESPONSE_CODE: response_code,
-          }
-          if hasattr(pycurl, 'LOCAL_IP'):
-            curl.info[pycurl.LOCAL_IP] = '127.0.0.1'
-          if hasattr(pycurl, 'LOCAL_PORT'):
-            curl.info[pycurl.LOCAL_PORT] = port
+            }
 
           # Finalize request
           pending.Done(errmsg)
@@ -715,11 +711,7 @@ class TestProcessRequests(unittest.TestCase):
 
         curl.info = {
           pycurl.RESPONSE_CODE: response_code,
-        }
-        if hasattr(pycurl, 'LOCAL_IP'):
-          curl.info[pycurl.LOCAL_IP] = '127.0.0.1'
-        if hasattr(pycurl, 'LOCAL_PORT'):
-          curl.info[pycurl.LOCAL_PORT] = port
+          }
 
         # Prepare for reset
         self.assertFalse(curl.opts.pop(pycurl.POSTFIELDS))

@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.JQScheduler
   ( JQStatus
   , jqLivelock
+  , jqForkLock
   , emptyJQStatus
   , selectJobsToRun
   , scheduleSomeJobs
@@ -44,7 +45,6 @@ module Ganeti.JQScheduler
   , dequeueJob
   , setJobPriority
   , cleanupIfDead
-  , updateStatusAndScheduleSomeJobs
   , configChangeNeedsRescheduling
   ) where
 
@@ -484,9 +484,11 @@ cleanupIfDead state jid = do
   let jobWS = find ((==) jid . qjId . jJob) $ qRunning jobs
   maybe (return True) (checkForDeath state) jobWS
 
--- | Force the queue to check the state of all jobs.
-updateStatusAndScheduleSomeJobs :: JQStatus -> IO ()
-updateStatusAndScheduleSomeJobs qstate =  do
+-- | Time-based watcher for updating the job queue.
+onTimeWatcher :: JQStatus -> IO ()
+onTimeWatcher qstate = forever $ do
+  threadDelay watchInterval
+  logDebug "Job queue watcher timer fired"
   jobs <- readIORef (jqJobs qstate)
   mapM_ (checkForDeath qstate) $ qRunning jobs
   jobs' <- readIORef (jqJobs qstate)
@@ -495,13 +497,6 @@ updateStatusAndScheduleSomeJobs qstate =  do
   jobs'' <- readIORef (jqJobs qstate)
   logInfo $ showQueue jobs''
   scheduleSomeJobs qstate
-
--- | Time-based watcher for updating the job queue.
-onTimeWatcher :: JQStatus -> IO ()
-onTimeWatcher qstate = forever $ do
-  threadDelay watchInterval
-  logDebug "Job queue watcher timer fired"
-  updateStatusAndScheduleSomeJobs qstate
   logDebug "Job queue watcher cycle finished"
 
 -- | Read a single, non-archived, job, specified by its id, from disk.
@@ -605,8 +600,7 @@ setJobPriority state jid prio = runResultT $ do
 -- | Given old and new configs, determines if the changes between them should
 -- trigger the scheduler to run.
 configChangeNeedsRescheduling :: ConfigData -> ConfigData -> Bool
-configChangeNeedsRescheduling old new =
-  -- Trigger rescheduling if any of the following change:
-  (((/=) `on` configFilters) old new || -- filters
-   ((/=) `on` clusterMaxRunningJobs . configCluster) old new -- run queue length
-  )
+configChangeNeedsRescheduling oldConfig newConfig =
+  or -- Trigger rescheduling if:
+    [ configFilters oldConfig /= configFilters newConfig -- filters changed
+    ]

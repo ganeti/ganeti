@@ -90,7 +90,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Monoid
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -100,7 +100,7 @@ import System.IO
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Errors
-import Ganeti.JSON (fromJResult, fromContainer, GenericContainer(..))
+import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Types
 import qualified Ganeti.Utils.MultiMap as MM
@@ -158,36 +158,21 @@ instNodes :: ConfigData -> Instance -> S.Set String
 instNodes cfg inst = maybe id S.insert (instPrimaryNode inst)
                       $ instDiskNodes cfg inst
 
--- | Computes the secondary node UUID for a DRBD disk
-computeDiskSecondaryNode :: Disk -> String -> Maybe String
-computeDiskSecondaryNode dsk primary =
-  case diskLogicalId dsk of
-    Just (LIDDrbd8 a b _ _ _ _) -> Just $ if primary == a then b else a
-    _ -> Nothing
+-- | Computes the secondary nodes of an instance. Since this is valid
+-- only for DRBD, we call directly 'instDiskNodes', skipping over the
+-- extra primary insert.
+instSecondaryNodes :: ConfigData -> Instance -> S.Set String
+instSecondaryNodes cfg inst =
+  maybe id S.delete (instPrimaryNode inst) $ instDiskNodes cfg inst
 
 -- | Get instances of a given node.
 -- The node is specified through its UUID.
--- The secondary calculation is expensive and frequently called, so optimise
--- this to allocate fewer temporary values
 getNodeInstances :: ConfigData -> String -> ([Instance], [Instance])
 getNodeInstances cfg nname =
-    let all_insts = M.elems . fromContainer . configInstances $ cfg
-        all_disks = fromContainer . configDisks $ cfg
-
-        pri_inst = filter ((== Just nname) . instPrimaryNode) all_insts
-
-        find_disk :: String -> Maybe Disk
-        find_disk d_uuid = M.lookup (UTF8.fromString d_uuid) all_disks
-
-        inst_disks :: [(Instance, [Disk])]
-        inst_disks = [(i, mapMaybe find_disk $ instDisks i) | i <- all_insts]
-
-        sec_insts :: [Instance]
-        sec_insts = [inst |
-          (inst, disks) <- inst_disks,
-          s_uuid <- mapMaybe (\d -> (instPrimaryNode inst) >>= (computeDiskSecondaryNode d)) disks,
-          s_uuid == nname]
-    in (pri_inst, sec_insts)
+    let all_inst = M.elems . fromContainer . configInstances $ cfg
+        pri_inst = filter ((== Just nname) . instPrimaryNode) all_inst
+        sec_inst = filter ((nname `S.member`) . instSecondaryNodes cfg) all_inst
+    in (pri_inst, sec_inst)
 
 -- | Computes the role of a node.
 getNodeRole :: ConfigData -> Node -> NodeRole

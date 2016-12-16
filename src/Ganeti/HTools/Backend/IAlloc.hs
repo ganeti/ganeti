@@ -52,8 +52,6 @@ import Text.JSON (JSObject, JSValue(JSArray),
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
-import qualified Ganeti.HTools.Cluster.AllocateSecondary as AllocSecondary
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -61,11 +59,11 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.Constants as C
-import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(algRestrictToNodes))
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions)
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
-import Ganeti.JSON (maybeFromObj, JSRecord, tryFromObj, toArray, asObjectList, readEitherString, fromJResult, fromObj, fromObjWithDefault, asJSObject)
+import Ganeti.JSON
 import Ganeti.Types ( EvacMode(ChangePrimary, ChangeSecondary)
                     , adminStateFromRaw, AdminState(..))
 import Ganeti.Utils
@@ -229,10 +227,6 @@ parseData now body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
-  let ex_tags = extractExTags ctags
-      dsrd_loc_tags = extractDesiredLocations ctags
-      updateTags = updateExclTags ex_tags .
-                   updateDesiredLocationTags dsrd_loc_tags
   cdata1 <- mergeData [] [] [] [] now (ClusterData gl nl il ctags defIPolicy)
   let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
       cdata = cdata1 { cdNodes = fix_nl }
@@ -246,12 +240,10 @@ parseData now body = do
             do
               rname     <- extrReq "name"
               rgn       <- maybeFromObj request "group_name"
-              rest_nodes <- maybeFromObj request "restrict-to-nodes"
               req_nodes <- extrReq "required_nodes"
               inew      <- parseBaseInstance rname request
-              let io = updateTags $ snd inew
+              let io = updateExclTags (extractExTags ctags) $ snd inew
               return $ Allocate io (Cluster.AllocDetails req_nodes rgn)
-                                rest_nodes
         | optype == C.iallocatorModeReloc ->
             do
               rname     <- extrReq "name"
@@ -286,15 +278,11 @@ parseData now body = do
                                  rgn       <- maybeFromObj request "group_name"
                                  req_nodes <- extrFromReq r "required_nodes"
                                  inew      <- parseBaseInstance rname r
-                                 let io = updateTags $ snd inew
+                                 let io = updateExclTags (extractExTags ctags)
+                                            $ snd inew
                                  return (io, Cluster.AllocDetails
                                                req_nodes rgn))
               return $ MultiAllocate prqs
-        | optype == C.iallocatorModeAllocateSecondary ->
-            do
-              rname <- extrReq "name"
-              ridx  <- lookupInstance kti rname
-              return $ AllocateSecondary ridx
         | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return (msgs, Request rqtype cdata)
 
@@ -310,35 +298,21 @@ formatResponse success info result =
   in encodeStrict $ makeObj [e_success, e_info, e_result]
 
 -- | Flatten the log of a solution into a string.
-describeSolution :: AllocSol.GenericAllocSolution a -> String
-describeSolution = intercalate ", " . AllocSol.asLog
+describeSolution :: Cluster.GenericAllocSolution a -> String
+describeSolution = intercalate ", " . Cluster.asLog
 
 -- | Convert allocation/relocation results into the result format.
 formatAllocate :: Instance.List
-               -> AllocSol.GenericAllocSolution a
+               -> Cluster.GenericAllocSolution a
                -> Result IAllocResult
 formatAllocate il as = do
   let info = describeSolution as
-  case AllocSol.asSolution as of
+  case Cluster.asSolution as of
     Nothing -> fail info
     Just (nl, inst, nodes, _) ->
       do
         let il' = Container.add (Instance.idx inst) inst il
         return (info, showJSON $ map Node.name nodes, nl, il')
-
--- | Convert allocation/relocation results into the result format.
-formatAllocateSecondary :: Instance.List
-                        -> AllocSol.GenericAllocSolution a
-                        -> Result IAllocResult
-formatAllocateSecondary il as = do
-  let info = describeSolution as
-  case AllocSol.asSolution as of
-    Nothing -> fail info
-    Just (nl, inst, [_, snode], _) ->
-      do
-        let il' = Container.add (Instance.idx inst) inst il
-        return (info, showJSON $ Node.name snode, nl, il')
-    _ -> fail $ "Internal error (not a DRBD allocation); info was: " ++ info
 
 -- | Convert multi allocation results into the result format.
 formatMultiAlloc :: ( Node.List, Instance.List
@@ -346,9 +320,9 @@ formatMultiAlloc :: ( Node.List, Instance.List
                  -> Result IAllocResult
 formatMultiAlloc (fin_nl, fin_il, ars) =
   let rars = reverse ars
-      (allocated, failed) = partition (isJust . AllocSol.asSolution . snd) rars
+      (allocated, failed) = partition (isJust . Cluster.asSolution . snd) rars
       aars = map (\(_, ar) ->
-                     let (_, inst, nodes, _) = fromJust $ AllocSol.asSolution ar
+                     let (_, inst, nodes, _) = fromJust $ Cluster.asSolution ar
                          iname = Instance.name inst
                          nnames = map Node.name nodes
                      in (iname, nnames)) allocated
@@ -460,15 +434,10 @@ processRequest :: AlgorithmOptions -> Request -> Result IAllocResult
 processRequest opts request =
   let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
-       Allocate xi (Cluster.AllocDetails reqn Nothing) rest_nodes ->
-         let opts' = opts { algRestrictToNodes = algRestrictToNodes opts
-                                                 `mplus` rest_nodes }
-         in Cluster.tryMGAlloc opts' gl nl il xi reqn >>= formatAllocate il
-       Allocate xi (Cluster.AllocDetails reqn (Just gn)) rest_nodes ->
-         let opts' = opts { algRestrictToNodes = algRestrictToNodes opts
-                                                 `mplus` rest_nodes }
-         in Cluster.tryGroupAlloc opts' gl nl il gn xi reqn
-            >>= formatAllocate il
+       Allocate xi (Cluster.AllocDetails reqn Nothing) ->
+         Cluster.tryMGAlloc opts gl nl il xi reqn >>= formatAllocate il
+       Allocate xi (Cluster.AllocDetails reqn (Just gn)) ->
+         Cluster.tryGroupAlloc opts gl nl il gn xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
          processRelocate opts gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->
@@ -479,9 +448,6 @@ processRequest opts request =
                 formatNodeEvac gl nl il
        MultiAllocate xies ->
          Cluster.allocList opts gl nl il xies [] >>= formatMultiAlloc
-       AllocateSecondary xi ->
-         AllocSecondary.tryAllocateSecondary opts gl nl il xi
-           >>= formatAllocateSecondary il
 
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request

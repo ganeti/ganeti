@@ -47,7 +47,7 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.List (find, intercalate)
 
-import Ganeti.JSON (fromContainer)
+import Ganeti.JSON
 import Ganeti.Network
 import Ganeti.Objects
 import qualified Ganeti.Objects.BitArray as BA

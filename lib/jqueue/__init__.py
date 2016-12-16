@@ -30,6 +30,12 @@
 
 """Module implementing the job queue handling.
 
+Locking: there's a single, large lock in the L{JobQueue} class. It's
+used by all other classes in this module.
+
+@var JOBQUEUE_THREADS: the number of worker threads we start for
+    processing jobs
+
 """
 
 import logging
@@ -50,6 +56,7 @@ except ImportError:
 from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import serializer
+from ganeti import workerpool
 from ganeti import locking
 from ganeti import luxi
 from ganeti import opcodes
@@ -69,6 +76,12 @@ from ganeti import pathutils
 from ganeti import vcluster
 from ganeti.cmdlib import cluster
 
+
+JOBQUEUE_THREADS = 1
+
+# member lock names to be passed to @ssynchronized decorator
+_LOCK = "_lock"
+_QUEUE = "_queue"
 
 #: Retrieves "id" attribute
 _GetIdAttr = operator.attrgetter("id")
@@ -195,7 +208,7 @@ class _QueuedJob(object):
   # pylint: disable=W0212
   __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter", "cur_opctx",
                "received_timestamp", "start_timestamp", "end_timestamp",
-               "writable", "archived",
+               "processor_lock", "writable", "archived",
                "livelock", "process_id",
                "__weakref__"]
 
@@ -261,6 +274,12 @@ class _QueuedJob(object):
     obj.writable = writable
     obj.ops_iter = None
     obj.cur_opctx = None
+
+    # Read-only jobs are not processed and therefore don't need a lock
+    if writable:
+      obj.processor_lock = threading.Lock()
+    else:
+      obj.processor_lock = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -565,6 +584,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
       logging.debug("Canceling opcode")
       raise CancelJob()
 
+  @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
     """Mark the opcode as running, not lock-waiting.
 
@@ -589,6 +609,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     # And finally replicate the job status
     self._queue.UpdateJobUnlocked(self._job)
 
+  @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyRetry(self):
     """Mark opcode again as lock-waiting.
 
@@ -599,6 +620,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._op.status = constants.OP_STATUS_WAITING
     logging.debug("Opcode will be retried. Back to waiting.")
 
+  @locking.ssynchronized(_QUEUE, shared=1)
   def _AppendFeedback(self, timestamp, log_type, log_msgs):
     """Internal feedback append function, with locks
 
@@ -974,6 +996,7 @@ class _JobProcessor(object):
 
     logging.debug("Processing job %s", job.id)
 
+    queue.acquire(shared=1)
     try:
       opcount = len(job.ops)
 
@@ -1036,7 +1059,11 @@ class _JobProcessor(object):
 
           assert not opctx.jobdeps, "Not all dependencies were removed"
 
-          (op_status, op_result) = self._ExecOpCodeUnlocked(opctx)
+          queue.release()
+          try:
+            (op_status, op_result) = self._ExecOpCodeUnlocked(opctx)
+          finally:
+            queue.acquire(shared=1)
 
           op.status = op_status
           op.result = op_result
@@ -1141,6 +1168,115 @@ class _JobProcessor(object):
         return self.DEFER
     finally:
       assert job.writable, "Job became read-only while being processed"
+      queue.release()
+
+
+def _EvaluateJobProcessorResult(depmgr, job, result):
+  """Looks at a result from L{_JobProcessor} for a job.
+
+  To be used in a L{_JobQueueWorker}.
+
+  """
+  if result == _JobProcessor.FINISHED:
+    # Notify waiting jobs
+    depmgr.NotifyWaiters(job.id)
+
+  elif result == _JobProcessor.DEFER:
+    # Schedule again
+    raise workerpool.DeferTask(priority=job.CalcPriority())
+
+  elif result == _JobProcessor.WAITDEP:
+    # No-op, dependency manager will re-schedule
+    pass
+
+  else:
+    raise errors.ProgrammerError("Job processor returned unknown status %s" %
+                                 (result, ))
+
+
+class _JobQueueWorker(workerpool.BaseWorker):
+  """The actual job workers.
+
+  """
+  def RunTask(self, job): # pylint: disable=W0221
+    """Job executor.
+
+    @type job: L{_QueuedJob}
+    @param job: the job to be processed
+
+    """
+    assert job.writable, "Expected writable job"
+
+    # Ensure only one worker is active on a single job. If a job registers for
+    # a dependency job, and the other job notifies before the first worker is
+    # done, the job can end up in the tasklist more than once.
+    job.processor_lock.acquire()
+    try:
+      return self._RunTaskInner(job)
+    finally:
+      job.processor_lock.release()
+
+  def _RunTaskInner(self, job):
+    """Executes a job.
+
+    Must be called with per-job lock acquired.
+
+    """
+    queue = job.queue
+    assert queue == self.pool.queue
+
+    setname_fn = lambda op: self.SetTaskName(self._GetWorkerName(job, op))
+    setname_fn(None)
+
+    proc = mcpu.Processor(queue.context, job.id)
+
+    # Create wrapper for setting thread name
+    wrap_execop_fn = compat.partial(self._WrapExecOpCode, setname_fn,
+                                    proc.ExecOpCode)
+
+    _EvaluateJobProcessorResult(queue.depmgr, job,
+                                _JobProcessor(queue, wrap_execop_fn, job)())
+
+  @staticmethod
+  def _WrapExecOpCode(setname_fn, execop_fn, op, *args, **kwargs):
+    """Updates the worker thread name to include a short summary of the opcode.
+
+    @param setname_fn: Callable setting worker thread name
+    @param execop_fn: Callable for executing opcode (usually
+                      L{mcpu.Processor.ExecOpCode})
+
+    """
+    setname_fn(op)
+    try:
+      return execop_fn(op, *args, **kwargs)
+    finally:
+      setname_fn(None)
+
+  @staticmethod
+  def _GetWorkerName(job, op):
+    """Sets the worker thread name.
+
+    @type job: L{_QueuedJob}
+    @type op: L{opcodes.OpCode}
+
+    """
+    parts = ["Job%s" % job.id]
+
+    if op:
+      parts.append(op.TinySummary())
+
+    return "/".join(parts)
+
+
+class _JobQueueWorkerPool(workerpool.WorkerPool):
+  """Simple class implementing a job-processing workerpool.
+
+  """
+  def __init__(self, queue):
+    super(_JobQueueWorkerPool, self).__init__("Jq",
+                                              JOBQUEUE_THREADS,
+                                              _JobQueueWorker)
+    self.queue = queue
 
 
 class _JobDependencyManager(object):
@@ -1153,14 +1289,33 @@ class _JobDependencyManager(object):
    CONTINUE,
    WRONGSTATUS) = range(1, 6)
 
-  def __init__(self, getstatus_fn):
+  def __init__(self, getstatus_fn, enqueue_fn):
     """Initializes this class.
 
     """
     self._getstatus_fn = getstatus_fn
+    self._enqueue_fn = enqueue_fn
 
     self._waiters = {}
+    self._lock = locking.SharedLock("JobDepMgr")
 
+  @locking.ssynchronized(_LOCK, shared=1)
+  def GetLockInfo(self, requested): # pylint: disable=W0613
+    """Retrieves information about waiting jobs.
+
+    @type requested: set
+    @param requested: Requested information, see C{query.LQ_*}
+
+    """
+    # No need to sort here, that's being done by the lock manager and query
+    # library. There are no priorities for notifying jobs, hence all show up as
+    # one item under "pending".
+    return [("job/%s" % job_id, None, None,
+             [("job", [job.id for job in waiters])])
+            for job_id, waiters in self._waiters.items()
+            if waiters]
+
+  @locking.ssynchronized(_LOCK, shared=1)
   def JobWaiting(self, job):
     """Checks if a job is waiting.
 
@@ -1168,6 +1323,7 @@ class _JobDependencyManager(object):
     return compat.any(job in jobs
                       for jobs in self._waiters.values())
 
+  @locking.ssynchronized(_LOCK)
   def CheckAndRegister(self, job, dep_job_id, dep_status):
     """Checks if a dependency job has the requested status.
 
@@ -1233,6 +1389,31 @@ class _JobDependencyManager(object):
                    if not waiters]:
       del self._waiters[job_id]
 
+  def NotifyWaiters(self, job_id):
+    """Notifies all jobs waiting for a certain job ID.
+
+    @attention: Do not call until L{CheckAndRegister} returned a status other
+      than C{WAITDEP} for C{job_id}, or behaviour is undefined
+    @type job_id: int
+    @param job_id: Job ID
+
+    """
+    assert ht.TJobId(job_id)
+
+    self._lock.acquire()
+    try:
+      self._RemoveEmptyWaitersUnlocked()
+
+      jobs = self._waiters.pop(job_id, None)
+    finally:
+      self._lock.release()
+
+    if jobs:
+      # Re-add jobs to workerpool
+      logging.debug("Re-adding %s jobs which were waiting for job %s",
+                    len(jobs), job_id)
+      self._enqueue_fn(jobs)
+
 
 class JobQueue(object):
   """Queue used to manage the jobs.
@@ -1251,9 +1432,25 @@ class JobQueue(object):
         data and other ganeti objects
 
     """
+    self.primary_jid = None
     self.context = context
     self._memcache = weakref.WeakValueDictionary()
     self._my_hostname = netutils.Hostname.GetSysName()
+
+    # The Big JobQueue lock. If a code block or method acquires it in shared
+    # mode safe it must guarantee concurrency with all the code acquiring it in
+    # shared mode, including itself. In order not to acquire it at all
+    # concurrency must be guaranteed with all code acquiring it in shared mode
+    # and all code acquiring it exclusively.
+    self._lock = locking.SharedLock("JobQueue")
+
+    self.acquire = self._lock.acquire
+    self.release = self._lock.release
+
+    # Read serial file
+    self._last_serial = jstore.ReadSerial()
+    assert self._last_serial is not None, ("Serial file was modified between"
+                                           " check in jstore and here")
 
     # Get initial list of nodes
     self._nodes = dict((n.name, n.primary_ip)
@@ -1263,14 +1460,133 @@ class JobQueue(object):
     # Remove master node
     self._nodes.pop(self._my_hostname, None)
 
+    # TODO: Check consistency across nodes
+
+    self._queue_size = None
+    self._UpdateQueueSizeUnlocked()
+    assert ht.TInt(self._queue_size)
+
     # Job dependencies
-    self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies)
+    self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies,
+                                        self._EnqueueJobs)
+
+    # Setup worker pool
+    self._wpool = _JobQueueWorkerPool(self)
+
+  def _PickupJobUnlocked(self, job_id):
+    """Load a job from the job queue
+
+    Pick up a job that already is in the job queue and start/resume it.
+
+    """
+    if self.primary_jid:
+      logging.warning("Job process asked to pick up %s, but already has %s",
+                      job_id, self.primary_jid)
+
+    self.primary_jid = int(job_id)
+
+    job = self._LoadJobUnlocked(job_id)
+
+    if job is None:
+      logging.warning("Job %s could not be read", job_id)
+      return
+
+    job.AddReasons(pickup=True)
+
+    status = job.CalcStatus()
+    if status == constants.JOB_STATUS_QUEUED:
+      job.SetPid(os.getpid())
+      self._EnqueueJobsUnlocked([job])
+      logging.info("Restarting job %s", job.id)
+
+    elif status in (constants.JOB_STATUS_RUNNING,
+                    constants.JOB_STATUS_WAITING,
+                    constants.JOB_STATUS_CANCELING):
+      logging.warning("Unfinished job %s found: %s", job.id, job)
+
+      if status == constants.JOB_STATUS_WAITING:
+        job.MarkUnfinishedOps(constants.OP_STATUS_QUEUED, None)
+        job.SetPid(os.getpid())
+        self._EnqueueJobsUnlocked([job])
+        logging.info("Restarting job %s", job.id)
+      else:
+        to_encode = errors.OpExecError("Unclean master daemon shutdown")
+        job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
+                              _EncodeOpError(to_encode))
+        job.Finalize()
+
+    self.UpdateJobUnlocked(job)
+
+  @locking.ssynchronized(_LOCK)
+  def PickupJob(self, job_id):
+    self._PickupJobUnlocked(job_id)
 
   def _GetRpc(self, address_list):
     """Gets RPC runner with context.
 
     """
     return rpc.JobQueueRunner(self.context, address_list)
+
+  @locking.ssynchronized(_LOCK)
+  def AddNode(self, node):
+    """Register a new node with the queue.
+
+    @type node: L{objects.Node}
+    @param node: the node object to be added
+
+    """
+    node_name = node.name
+    assert node_name != self._my_hostname
+
+    # Clean queue directory on added node
+    result = self._GetRpc(None).call_jobqueue_purge(node_name)
+    msg = result.fail_msg
+    if msg:
+      logging.warning("Cannot cleanup queue directory on node %s: %s",
+                      node_name, msg)
+
+    if not node.master_candidate:
+      # remove if existing, ignoring errors
+      self._nodes.pop(node_name, None)
+      # and skip the replication of the job ids
+      return
+
+    # Upload the whole queue excluding archived jobs
+    files = [self._GetJobPath(job_id) for job_id in self._GetJobIDsUnlocked()]
+
+    # Upload current serial file
+    files.append(pathutils.JOB_QUEUE_SERIAL_FILE)
+
+    # Static address list
+    addrs = [node.primary_ip]
+
+    for file_name in files:
+      # Read file content
+      content = utils.ReadFile(file_name)
+
+      result = _CallJqUpdate(self._GetRpc(addrs), [node_name],
+                             file_name, content)
+      msg = result[node_name].fail_msg
+      if msg:
+        logging.error("Failed to upload file %s to node %s: %s",
+                      file_name, node_name, msg)
+
+    msg = result[node_name].fail_msg
+    if msg:
+      logging.error("Failed to set queue drained flag on node %s: %s",
+                    node_name, msg)
+
+    self._nodes[node_name] = node.primary_ip
+
+  @locking.ssynchronized(_LOCK)
+  def RemoveNode(self, node_name):
+    """Callback called when removing nodes from the cluster.
+
+    @type node_name: str
+    @param node_name: the name of the node to remove
+
+    """
+    self._nodes.pop(node_name, None)
 
   @staticmethod
   def _CheckRpcResult(result, nodes, failmsg):
@@ -1399,8 +1715,8 @@ class JobQueue(object):
 
     if archived:
       archive_path = pathutils.JOB_QUEUE_ARCHIVE_DIR
-      result.extend(utils.PathJoin(archive_path, job_file) for job_file in
-                        utils.ListVisibleFiles(archive_path))
+      result.extend(map(compat.partial(utils.PathJoin, archive_path),
+                        utils.ListVisibleFiles(archive_path)))
 
     return result
 
@@ -1507,6 +1823,15 @@ class JobQueue(object):
 
     if not raw_data:
       logging.debug("No data available for job %s", job_id)
+      if int(job_id) == self.primary_jid:
+        logging.warning("My own job file (%s) disappeared;"
+                        " this should only happy at cluster desctruction",
+                        job_id)
+        if mcpu.lusExecuting[0] == 0:
+          logging.warning("Not in execution; cleaning up myself due to missing"
+                          " job file")
+          logging.shutdown()
+          os._exit(1) # pylint: disable=W0212
       return None
 
     if writable is None:
@@ -1541,12 +1866,26 @@ class JobQueue(object):
       logging.exception("Can't load/parse job %s", job_id)
       return None
 
+  def _UpdateQueueSizeUnlocked(self):
+    """Update the queue size.
+
+    """
+    self._queue_size = len(self._GetJobIDsUnlocked(sort=False))
+
   @classmethod
   def SubmitManyJobs(cls, jobs):
     """Create and store multiple jobs.
 
     """
     return luxi.Client(address=pathutils.QUERY_SOCKET).SubmitManyJobs(jobs)
+
+  @staticmethod
+  def _FormatSubmitError(msg, ops):
+    """Formats errors which occurred while submitting a job.
+
+    """
+    return ("%s; opcodes %s" %
+            (msg, utils.CommaJoin(op.Summary() for op in ops)))
 
   @staticmethod
   def _ResolveJobDependencies(resolve_fn, deps):
@@ -1578,6 +1917,28 @@ class JobQueue(object):
       result.append((job_id, dep_status))
 
     return (True, result)
+
+  @locking.ssynchronized(_LOCK)
+  def _EnqueueJobs(self, jobs):
+    """Helper function to add jobs to worker pool's queue.
+
+    @type jobs: list
+    @param jobs: List of all jobs
+
+    """
+    return self._EnqueueJobsUnlocked(jobs)
+
+  def _EnqueueJobsUnlocked(self, jobs):
+    """Helper function to add jobs to worker pool's queue.
+
+    @type jobs: list
+    @param jobs: List of all jobs
+
+    """
+    assert self._lock.is_owned(shared=0), "Must own lock in exclusive mode"
+    self._wpool.AddManyTasks([(job, ) for job in jobs],
+                             priority=[job.CalcPriority() for job in jobs],
+                             task_id=map(_GetIdAttr, jobs))
 
   def _GetJobStatusForDependencies(self, job_id):
     """Gets the status of a job for dependencies.
@@ -1646,6 +2007,7 @@ class JobQueue(object):
     else:
       return None
 
+  @locking.ssynchronized(_LOCK)
   def CancelJob(self, job_id):
     """Cancels a job.
 
@@ -1659,6 +2021,7 @@ class JobQueue(object):
 
     return self._ModifyJobUnlocked(job_id, lambda job: job.Cancel())
 
+  @locking.ssynchronized(_LOCK)
   def ChangeJobPriority(self, job_id, priority):
     """Changes a job's priority.
 
@@ -1677,6 +2040,13 @@ class JobQueue(object):
 
     def fn(job):
       (success, msg) = job.ChangePriority(priority)
+
+      if success:
+        try:
+          self._wpool.ChangeTaskPriority(job.id, job.CalcPriority())
+        except workerpool.NoSuchTask:
+          logging.debug("Job %s is not in workerpool at this time", job.id)
+
       return (success, msg)
 
     return self._ModifyJobUnlocked(job_id, fn)
@@ -1707,3 +2077,124 @@ class JobQueue(object):
       self.UpdateJobUnlocked(job)
 
     return (success, msg)
+
+  def _ArchiveJobsUnlocked(self, jobs):
+    """Archives jobs.
+
+    @type jobs: list of L{_QueuedJob}
+    @param jobs: Job objects
+    @rtype: int
+    @return: Number of archived jobs
+
+    """
+    archive_jobs = []
+    rename_files = []
+    for job in jobs:
+      assert job.writable, "Can't archive read-only job"
+      assert not job.archived, "Can't cancel archived job"
+
+      if job.CalcStatus() not in constants.JOBS_FINALIZED:
+        logging.debug("Job %s is not yet done", job.id)
+        continue
+
+      archive_jobs.append(job)
+
+      old = self._GetJobPath(job.id)
+      new = self._GetArchivedJobPath(job.id)
+      rename_files.append((old, new))
+
+    # TODO: What if 1..n files fail to rename?
+    self._RenameFilesUnlocked(rename_files)
+
+    logging.debug("Successfully archived job(s) %s",
+                  utils.CommaJoin(job.id for job in archive_jobs))
+
+    # Since we haven't quite checked, above, if we succeeded or failed renaming
+    # the files, we update the cached queue size from the filesystem. When we
+    # get around to fix the TODO: above, we can use the number of actually
+    # archived jobs to fix this.
+    self._UpdateQueueSizeUnlocked()
+    return len(archive_jobs)
+
+  def _Query(self, fields, qfilter):
+    qobj = query.Query(query.JOB_FIELDS, fields, qfilter=qfilter,
+                       namefield="id")
+
+    # Archived jobs are only looked at if the "archived" field is referenced
+    # either as a requested field or in the filter. By default archived jobs
+    # are ignored.
+    include_archived = (query.JQ_ARCHIVED in qobj.RequestedData())
+
+    job_ids = qobj.RequestedNames()
+
+    list_all = (job_ids is None)
+
+    if list_all:
+      # Since files are added to/removed from the queue atomically, there's no
+      # risk of getting the job ids in an inconsistent state.
+      job_ids = self._GetJobIDsUnlocked(archived=include_archived)
+
+    jobs = []
+
+    for job_id in job_ids:
+      job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
+      if job is not None or not list_all:
+        jobs.append((job_id, job))
+
+    return (qobj, jobs, list_all)
+
+  def QueryJobs(self, fields, qfilter):
+    """Returns a list of jobs in queue.
+
+    @type fields: sequence
+    @param fields: List of wanted fields
+    @type qfilter: None or query2 filter (list)
+    @param qfilter: Query filter
+
+    """
+    (qobj, ctx, _) = self._Query(fields, qfilter)
+
+    return query.GetQueryResponse(qobj, ctx, sort_by_name=False)
+
+  def OldStyleQueryJobs(self, job_ids, fields):
+    """Returns a list of jobs in queue.
+
+    @type job_ids: list
+    @param job_ids: sequence of job identifiers or None for all
+    @type fields: list
+    @param fields: names of fields to return
+    @rtype: list
+    @return: list one element per job, each element being list with
+        the requested fields
+
+    """
+    # backwards compat:
+    job_ids = [int(jid) for jid in job_ids]
+    qfilter = qlang.MakeSimpleFilter("id", job_ids)
+
+    (qobj, ctx, _) = self._Query(fields, qfilter)
+
+    return qobj.OldStyleQuery(ctx, sort_by_name=False)
+
+  @locking.ssynchronized(_LOCK)
+  def PrepareShutdown(self):
+    """Prepare to stop the job queue.
+
+    Returns whether there are any jobs currently running. If the latter is the
+    case, the job queue is not yet ready for shutdown. Once this function
+    returns C{True} L{Shutdown} can be called without interfering with any job.
+
+    @rtype: bool
+    @return: Whether there are any running jobs
+
+    """
+    return self._wpool.HasRunningTasks()
+
+  @locking.ssynchronized(_LOCK)
+  def Shutdown(self):
+    """Stops the job queue.
+
+    This shutdowns all the worker threads an closes the queue.
+
+    """
+    self._wpool.TerminateWorkers()

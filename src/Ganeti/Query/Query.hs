@@ -82,7 +82,7 @@ import Ganeti.BasicTypes
 import Ganeti.Config
 import Ganeti.Errors
 import Ganeti.JQueue
-import Ganeti.JSON (Container, GenericContainer(..))
+import Ganeti.JSON
 import Ganeti.Locking.Allocation (OwnerState, LockRequest(..), OwnerState(..))
 import Ganeti.Locking.Locks (GanetiLocks, ClientId, lockName)
 import Ganeti.Logging

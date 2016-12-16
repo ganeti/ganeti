@@ -164,8 +164,6 @@ class TestUpdateSshDaemon(unittest.TestCase):
         (constants.SSHK_ECDSA, "ecdsapriv", "ecdsapub"),
         (constants.SSHK_RSA, "rsapriv", "rsapub"),
         ],
-      constants.SSHS_SSH_KEY_TYPE: "dsa",
-      constants.SSHS_SSH_KEY_BITS: 1024,
       }
     runcmd_fn = compat.partial(self._RunCmd, failcmd)
     if failcmd:
@@ -230,9 +228,7 @@ class TestUpdateSshRoot(unittest.TestCase):
     data = {
       constants.SSHS_SSH_ROOT_KEY: [
         (constants.SSHK_DSA, "privatedsa", "ssh-dss pubdsa"),
-        ],
-      constants.SSHS_SSH_KEY_TYPE: "dsa",
-      constants.SSHS_SSH_KEY_BITS: 1024,
+        ]
       }
 
     prepare_node_join.UpdateSshRoot(data, False,

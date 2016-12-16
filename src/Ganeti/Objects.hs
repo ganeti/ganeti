@@ -124,7 +124,7 @@ import qualified Text.JSON as J
 import qualified AutoConf
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.JSON (DictObject(..), Container, emptyContainer, GenericContainer)
+import Ganeti.JSON
 import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Objects.Disk
 import Ganeti.Objects.Nic
@@ -678,8 +678,6 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "compression_tools"              [t| [String]                |]
   , simpleField "enabled_user_shutdown"          [t| Bool                    |]
   , simpleField "data_collectors"         [t| Container DataCollectorConfig  |]
-  , simpleField "ssh_key_type"                   [t| SshKeyType              |]
-  , simpleField "ssh_key_bits"                   [t| Int                     |]
  ]
  ++ timeStampFields
  ++ uuidFields

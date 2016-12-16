@@ -88,7 +88,7 @@ genInstanceWithin min_mem min_dsk min_cpu min_spin
 -- | Generate an instance with maximum disk/mem/cpu values.
 genInstanceSmallerThan :: Int -> Int -> Int -> Maybe Int
                        -> Gen Instance.Instance
-genInstanceSmallerThan = genInstanceWithin 1 0 1 0
+genInstanceSmallerThan = genInstanceWithin 0 0 0 0
 
 -- | Generates an instance smaller than a node.
 genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance

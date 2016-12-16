@@ -67,7 +67,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Config
 import Ganeti.Errors
-import Ganeti.JSON (GenericContainer(..), fromContainer, TimeAsDoubleJSON(..))
+import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Rpc
 import Ganeti.Query.Language

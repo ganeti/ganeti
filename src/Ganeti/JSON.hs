@@ -544,4 +544,4 @@ addField _ jsval = jsval
 
 -- | Maybe obtain a map from a JSON object.
 maybeParseMap :: J.JSON a => J.JSValue -> Maybe (Map.Map String a)
-maybeParseMap =liftM fromContainer . readContainer <=< asJSObject
+maybeParseMap = liftM fromContainer . readContainer <=< asJSObject

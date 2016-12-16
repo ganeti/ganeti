@@ -299,9 +299,7 @@ module Ganeti.OpParams
   , pEnabledDataCollectors
   , pDataCollectorInterval
   , pNodeSslCerts
-  , pSshKeyBits
-  , pSshKeyType
-  , pRenewSshKeys
+  , pSshKeys
   , pNodeSetup
   , pVerifyClutter
   , pLongSleep
@@ -318,7 +316,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Utils
-import Ganeti.JSON (GenericContainer)
+import Ganeti.JSON
 import Ganeti.Types
 import qualified Ganeti.Query.Language as Qlang
 
@@ -1228,7 +1226,7 @@ pInstOsParamsSecret :: Field
 pInstOsParamsSecret =
   withDoc "Secret OS parameters for instance" .
   optionalField $
-  simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
+  simpleField "osparams_secret" [t| JSObject (Private JSValue) |]
 
 pPrimaryNode :: Field
 pPrimaryNode =
@@ -1348,7 +1346,7 @@ pTempOsParamsSecret :: Field
 pTempOsParamsSecret =
   withDoc "Secret OS parameters for instance reinstalls" .
   optionalField $
-  simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
+  simpleField "osparams_secret" [t| JSObject (Private JSValue) |]
 
 pShutdownTimeout :: Field
 pShutdownTimeout =
@@ -1897,21 +1895,11 @@ pNodeSslCerts =
   defaultField [| False |] $
   simpleField "node_certificates" [t| Bool |]
 
-pSshKeyBits :: Field
-pSshKeyBits =
-  withDoc "The number of bits of the SSH key Ganeti uses" .
-  optionalField $ simpleField "ssh_key_bits" [t| Positive Int |]
-
-pSshKeyType :: Field
-pSshKeyType =
-  withDoc "The type of the SSH key Ganeti uses" .
-  optionalField $ simpleField "ssh_key_type" [t| SshKeyType |]
-
-pRenewSshKeys :: Field
-pRenewSshKeys =
+pSshKeys :: Field
+pSshKeys =
   withDoc "Whether to renew SSH keys" .
   defaultField [| False |] $
-  simpleField "renew_ssh_keys" [t| Bool |]
+  simpleField "ssh_keys" [t| Bool |]
 
 pNodeSetup :: Field
 pNodeSetup =

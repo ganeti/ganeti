@@ -47,7 +47,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import pathutils
-from ganeti.rpc.node import RunWithRPC
 from ganeti import ssh
 from ganeti import compat
 
@@ -231,17 +230,12 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   (_, cert_pem) = \
     utils.ExtractX509Certificate(utils.ReadFile(pathutils.NODED_CERT_FILE))
 
-  (ssh_key_type, ssh_key_bits) = \
-    cl.QueryConfigValues(["ssh_key_type", "ssh_key_bits"])
-
   data = {
     constants.SSHS_CLUSTER_NAME: cluster_name,
     constants.SSHS_NODE_DAEMON_CERTIFICATE: cert_pem,
     constants.SSHS_SSH_HOST_KEY: host_keys,
     constants.SSHS_SSH_ROOT_KEY: root_keys,
     constants.SSHS_SSH_AUTHORIZED_KEYS: candidate_keys,
-    constants.SSHS_SSH_KEY_TYPE: ssh_key_type,
-    constants.SSHS_SSH_KEY_BITS: ssh_key_bits,
     }
 
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
@@ -250,9 +244,9 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          use_cluster_key=False, ask_key=options.ssh_key_check,
                          strict_host_check=options.ssh_key_check)
 
-  (_, pub_keyfile) = root_keyfiles[ssh_key_type]
-  pub_key = ssh.ReadRemoteSshPubKeys(pub_keyfile, node, cluster_name, ssh_port,
-                                     options.ssh_key_check,
+  (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
+  pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile, node, cluster_name,
+                                     ssh_port, options.ssh_key_check,
                                      options.ssh_key_check)
   # Unfortunately, we have to add the key with the node name rather than
   # the node's UUID here, because at this point, we do not have a UUID yet.
@@ -260,7 +254,7 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   ssh.AddPublicKey(node, pub_key)
 
 
-@RunWithRPC
+@UsesRPC
 def AddNode(opts, args):
   """Add a node to the cluster.
 
@@ -318,17 +312,7 @@ def AddNode(opts, args):
   # read the cluster name from the master
   (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
 
-  if not opts.node_setup:
-    ToStdout("-- WARNING -- \n"
-             "The option --no-node-setup is disabled. Whether or not the\n"
-             "SSH setup is manipulated while adding a node is determined\n"
-             "by the 'modify_ssh_setup' value in the cluster-wide\n"
-             "configuration instead.\n")
-
-  (modify_ssh_setup, ) = \
-    cl.QueryConfigValues(["modify_ssh_setup"])
-
-  if modify_ssh_setup:
+  if opts.node_setup:
     ToStderr("-- WARNING -- \n"
              "Performing this operation is going to perform the following\n"
              "changes to the target machine (%s) and the current cluster\n"
@@ -340,7 +324,7 @@ def AddNode(opts, args):
              "  generated public SSH key will be distributed to all other\n"
              "  cluster nodes.\n", node)
 
-  if modify_ssh_setup:
+  if opts.node_setup:
     _SetupSSH(opts, cluster_name, node, ssh_port, cl)
 
   bootstrap.SetupNodeDaemon(opts, cluster_name, node, ssh_port)
@@ -358,7 +342,7 @@ def AddNode(opts, args):
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
                          hv_state=hv_state,
-                         node_setup=modify_ssh_setup)
+                         node_setup=opts.node_setup)
   SubmitOpCode(op, opts=opts)
 
 
@@ -987,18 +971,6 @@ def SetNodeParams(opts, args):
     disk_state = utils.FlatToDict(opts.disk_state)
   else:
     disk_state = {}
-
-  # Comparing explicitly to false to distinguish between a parameter
-  # modification that doesn't set the node online (where the value will be None)
-  # and modifying the node to bring it online.
-  if opts.offline is False:
-    usertext = ("You are setting this node online manually. If the"
-                " configuration has changed, this can cause issues such as"
-                " split brain. To safely bring a node back online, please use"
-                " --readd instead. If you are confident that the configuration"
-                " hasn't changed, continue?")
-    if not AskUser(usertext):
-      return 1
 
   hv_state = dict(opts.hv_state)
 

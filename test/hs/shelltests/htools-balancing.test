@@ -148,25 +148,13 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>/Solution length=0/
 >>>=0
 
-./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors2.data
->>>/Solution length=0/
->>>=0
-
 # ...and suggest to the user to weaken movement restrictions;
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors.data
 >>>/consider using the --ignore-soft-errors option/
 >>>=0
 
-./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors2.data
->>>/consider using the --ignore-soft-errors option/
->>>=0
-
 # allowing soft errors, an improvement should be found.
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors.data --ignore-soft-errors
->>>/Solution length=[1-9]/
->>>=0
-
-./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors2.data --ignore-soft-errors
 >>>/Solution length=[1-9]/
 >>>=0
 

@@ -513,6 +513,9 @@ _NODE_CALLS = [
     ("checkdict", None, "What to verify"),
     ("cluster_name", None, "Cluster name"),
     ("all_hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
+    ("node_groups", None, "node names mapped to their group uuids"),
+    ("groups_cfg", None,
+      "a dictionary mapping group uuids to their configuration"),
     ], None, None, "Request verification of given parameters"),
   ("node_volumes", MULTI, None, constants.RPC_TMO_FAST, [], None, None,
    "Gets all volumes on node(s)"),
@@ -565,10 +568,7 @@ _NODE_CALLS = [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
     ("node_names", None, "Names of the nodes whose key is renewed"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
-    ("potential_master_candidates", None, "Potential master candidates"),
-    ("old_key_type", None, "The type of key previously used"),
-    ("new_key_type", None, "The type of key to generate"),
-    ("new_key_bits", None, "The length of the key to generate")],
+    ("potential_master_candidates", None, "Potential master candidates")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),
   ]
 
@@ -683,6 +683,9 @@ CALLS = {
       ("checkdict", None, "What to verify"),
       ("cluster_name", None, "Cluster name"),
       ("hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
+      ("node_groups", None, "node names mapped to their group uuids"),
+      ("groups_cfg", None,
+       "a dictionary mapping group uuids to their configuration"),
       ], None, None, "Request verification of given parameters"),
     ]),
   "RpcClientConfig": _Prepare([

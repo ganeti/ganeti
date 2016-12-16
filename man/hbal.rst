@@ -139,10 +139,6 @@ following components:
 - standard deviation of the CPU load provided by MonD
 - the count of instances with primary and secondary in the same failure
   domain
-- the count of instances sharing the same exclusion tags which primary
-  instances placed in the same failure domain
-- the overall sum of dissatisfied desired locations among all cluster
-  instances
 
 The free memory and free disk values help ensure that all nodes are
 somewhat balanced in their resource usage. The reserved memory helps
@@ -151,8 +147,8 @@ instances, and that no node keeps too much memory reserved for
 N+1. And finally, the N+1 percentage helps guide the algorithm towards
 eliminating N+1 failures, if possible.
 
-Except for the N+1 failures, offline instances counts, failure
-domain violation counts and desired locations count, we use the
+Except for the N+1 failures, offline instances counts, and failure
+domain violation counts, we use the
 standard deviation since when used with values within a fixed range
 (we use percents expressed as values between zero and one) it gives
 consistent results across all metrics (there are some small issues
@@ -190,10 +186,10 @@ heuristic, instances from nodes with high CPU load will tend to move to
 nodes with less CPU load.
 
 On a perfectly balanced cluster (all nodes the same size, all
-instances the same size and spread across the nodes equally,
-all desired locations satisfied), the values for all metrics
-would be zero, with the exception of the total percentage of
-reserved memory. This doesn't happen too often in practice :)
+instances the same size and spread across the nodes equally), the
+values for all metrics would be zero, with the exception of the total
+percentage of reserved memory. This doesn't happen too often in
+practice :)
 
 OFFLINE INSTANCES
 ~~~~~~~~~~~~~~~~~
@@ -203,21 +199,6 @@ Since current Ganeti versions do not report the memory used by offline
 wrong calculations. For this reason, the algorithm subtracts the
 memory size of down instances from the free node memory of their
 primary node, in effect simulating the startup of such instances.
-
-DESIRED LOCATION TAGS
-~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes, administrators want specific instances located in a particular,
-typically geographic, location. To suppoer this desired location tags are
-introduced.
-
-If the cluster is tagged *htools:desiredlocation:x* then tags starting with
-*x* are desired location tags. Instances can be assigned tags of the form *x*
-that means that instance wants to be placed on a node tagged with a location
-tag *x*. (That means that cluster should be tagged *htools:nlocation:x* too).
-
-Instance pinning is just heuristics, not a hard enforced requirement;
-it will only be achieved by the cluster metrics favouring such placements.
 
 EXCLUSION TAGS
 ~~~~~~~~~~~~~~
@@ -279,10 +260,9 @@ cluster tags *htools:nlocation:a*, *htools:nlocation:b*, etc
   This make make node tags of the form *a:\**, *b:\**, etc be considered
   to have a common cause of failure.
 
-Instances with primary and secondary node having a common cause of failure and
-instances sharing the same exclusion tag with primary nodes having a common
-failure are considered badly placed. While such placements are always allowed,
-they count heavily towards the cluster score.
+Instances with primary and secondary node having a common cause of failure are
+considered badly placed. While such placements are always allowed, they count
+heavily towards the cluster score.
 
 OPTIONS
 -------

@@ -32,6 +32,7 @@
 
 import unittest
 import random
+import operator
 import tempfile
 
 from ganeti import constants

@@ -34,6 +34,7 @@ import errno
 import fcntl
 import glob
 import mock
+import operator
 import os
 import os.path
 import random

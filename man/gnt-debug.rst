@@ -99,13 +99,6 @@ TEST-JOBQUEUE
 Executes a few tests on the job queue. This command might generate
 failed jobs deliberately.
 
-TEST_OSPARAMS
-~~~~~~~~~~~~~
-
-**test-osparams** {--os-parameters-secret *param*=*value*... }
-
-Tests secret os parameter transmission.
-
 LOCKS
 ~~~~~
 

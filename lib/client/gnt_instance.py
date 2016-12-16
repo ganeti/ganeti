@@ -458,11 +458,10 @@ def RenameInstance(opts, args):
   @return: the desired exit code
 
   """
-  if not opts.force:
-    if not opts.name_check:
-      if not AskUser("As you disabled the check of the DNS entry, please verify"
-                     " that '%s' is a FQDN. Continue?" % args[1]):
-        return 1
+  if not opts.name_check:
+    if not AskUser("As you disabled the check of the DNS entry, please verify"
+                   " that '%s' is a FQDN. Continue?" % args[1]):
+      return 1
 
   op = opcodes.OpInstanceRename(instance_name=args[0],
                                 new_name=args[1],
@@ -737,7 +736,6 @@ def FailoverInstance(opts, args):
   """
   cl = GetClient()
   instance_name = args[0]
-  ignore_consistency = opts.ignore_consistency
   force = opts.force
   iallocator = opts.iallocator
   target_node = opts.dst_node
@@ -755,14 +753,8 @@ def FailoverInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
-  if ignore_consistency:
-    usertext = ("To failover instance %s, the source node must be marked"
-                " offline first. Is this aready the case?") % instance_name
-    if not AskUser(usertext):
-      return 1
-
   op = opcodes.OpInstanceFailover(instance_name=instance_name,
-                                  ignore_consistency=ignore_consistency,
+                                  ignore_consistency=opts.ignore_consistency,
                                   shutdown_timeout=opts.shutdown_timeout,
                                   iallocator=iallocator,
                                   target_node=target_node,
@@ -1406,7 +1398,12 @@ def SetInstanceParams(opts, args):
 
   # verify the user provided parameters for disk template conversions
   if opts.disk_template:
-    if (opts.ext_params and
+    if (not opts.node and
+        opts.disk_template in constants.DTS_INT_MIRROR):
+      ToStderr("Changing the disk template to a mirrored one requires"
+               " specifying a secondary node")
+      return 1
+    elif (opts.ext_params and
           opts.disk_template != constants.DT_EXT):
       ToStderr("Specifying ExtStorage parameters requires converting"
                " to the '%s' disk template" % constants.DT_EXT)
@@ -1445,7 +1442,6 @@ def SetInstanceParams(opts, args):
                                    file_driver=opts.file_driver,
                                    file_storage_dir=opts.file_storage_dir,
                                    remote_node=opts.node,
-                                   iallocator=opts.iallocator,
                                    pnode=opts.new_primary_node,
                                    hvparams=opts.hvparams,
                                    beparams=opts.beparams,
@@ -1649,7 +1645,7 @@ commands = {
   "rename": (
     RenameInstance,
     [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
-    [FORCE_OPT, NOIPCHECK_OPT, NONAMECHECK_OPT] + SUBMIT_OPTS
+    [NOIPCHECK_OPT, NONAMECHECK_OPT] + SUBMIT_OPTS
     + [DRY_RUN_OPT, PRIORITY_OPT],
     "<instance> <new_name>", "Rename the instance"),
   "replace-disks": (
@@ -1662,8 +1658,7 @@ commands = {
   "modify": (
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT] + SUBMIT_OPTS +
-    [DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, IALLOCATOR_OPT,
-     OS_OPT, FORCE_VARIANT_OPT,
+    [DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,

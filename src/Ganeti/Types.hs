@@ -49,7 +49,6 @@ module Ganeti.Types
   , DiskTemplate(..)
   , diskTemplateToRaw
   , diskTemplateFromRaw
-  , diskTemplateMovable
   , TagKind(..)
   , tagKindToRaw
   , tagKindFromRaw
@@ -172,14 +171,8 @@ module Ganeti.Types
   , hotplugTargetToRaw
   , HotplugAction(..)
   , hotplugActionToRaw
-  , SshKeyType(..)
-  , sshKeyTypeToRaw
   , Private(..)
   , showPrivateJSObject
-  , Secret(..)
-  , showSecretJSObject
-  , revealValInJSObject
-  , redacted
   , HvParams
   , OsParams
   , OsParamsPrivate
@@ -199,7 +192,7 @@ import qualified Data.Set as Set
 import System.Time (ClockTime)
 
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.JSON (Container, HasStringRepr(..))
+import Ganeti.JSON
 import qualified Ganeti.THH as THH
 import Ganeti.Utils
 
@@ -338,21 +331,6 @@ instance HasStringRepr DiskTemplate where
   fromStringRepr = diskTemplateFromRaw
   toStringRepr = diskTemplateToRaw
 
--- | Predicate on disk templates indicating if instances based on this
--- disk template can freely be moved (to any node in the node group).
-diskTemplateMovable :: DiskTemplate -> Bool
--- Note: we deliberately do not use wildcard pattern to force an
--- update of this function whenever a new disk template is added.
-diskTemplateMovable DTDiskless    = True
-diskTemplateMovable DTFile        = False
-diskTemplateMovable DTSharedFile  = True
-diskTemplateMovable DTPlain       = False
-diskTemplateMovable DTBlock       = False
-diskTemplateMovable DTDrbd8       = False
-diskTemplateMovable DTRbd         = True
-diskTemplateMovable DTExt         = True
-diskTemplateMovable DTGluster     = True
-
 -- | Data type representing what items the tag operations apply to.
 $(THH.declareLADT ''String "TagKind"
   [ ("TagKindInstance", "instance")
@@ -447,7 +425,6 @@ $(THH.declareLADT ''String "CVErrorCode"
   , ("CvENODEGLUSTERSTORAGEPATHUNUSABLE",
      "ENODEGLUSTERSTORAGEPATHUNUSABLE")
   , ("CvEGROUPDIFFERENTPVSIZE",        "EGROUPDIFFERENTPVSIZE")
-  , ("CvEEXTAGS",                      "EEXTAGS")
   ])
 $(THH.makeJSONInstance ''CVErrorCode)
 
@@ -657,7 +634,6 @@ $(THH.makeJSONInstance ''IAllocatorTestDir)
 -- | IAllocator mode. FIXME: use this in "HTools.Backend.IAlloc".
 $(THH.declareLADT ''String "IAllocatorMode"
   [ ("IAllocatorAlloc",       "allocate")
-  , ("IAllocatorAllocateSecondary", "allocate-secondary")
   , ("IAllocatorMultiAlloc",  "multi-allocate")
   , ("IAllocatorReloc",       "relocate")
   , ("IAllocatorNodeEvac",    "node-evacuate")
@@ -950,24 +926,12 @@ $(THH.makeJSONInstance ''HotplugAction)
 -- | Hotplug Device Target.
 
 $(THH.declareLADT ''String "HotplugTarget"
-  [ ("HTDisk", "disk")
-  , ("HTNic",  "nic")
+  [ ("HTDisk", "hotdisk")
+  , ("HTNic",  "hotnic")
   ])
 $(THH.makeJSONInstance ''HotplugTarget)
 
--- | SSH key type.
-
-$(THH.declareLADT ''String "SshKeyType"
-  [ ("RSA", "rsa")
-  , ("DSA", "dsa")
-  , ("ECDSA", "ecdsa")
-  ])
-$(THH.makeJSONInstance ''SshKeyType)
-
 -- * Private type and instances
-
-redacted :: String
-redacted = "<redacted>"
 
 -- | A container for values that should be happy to be manipulated yet
 -- refuses to be shown unless explicitly requested.
@@ -983,7 +947,7 @@ instance (Show a, JSON.JSON a) => JSON.JSON (Private a) where
 -- It would be better not to implement this at all.
 -- Alas, Show OpCode requires Show Private.
 instance Show a => Show (Private a) where
-  show _ = redacted
+  show _ = "<redacted>"
 
 instance THH.PyValue a => THH.PyValue (Private a) where
   showValue (Private x) = "Private(" ++ THH.showValue x ++ ")"
@@ -1001,43 +965,6 @@ showPrivateJSObject :: (JSON.JSON a) =>
 showPrivateJSObject value = JSON.toJSObject $ map f value
   where f (k, v) = (k, Private $ JSON.showJSON v)
 
--- * Secret type and instances
-
--- | A container for values that behaves like Private, but doesn't leak the
--- value through showJSON
-newtype Secret a = Secret { getSecret :: a }
-  deriving (Eq, Ord, Functor)
-
-instance (Show a, JSON.JSON a) => JSON.JSON (Secret a) where
-  readJSON = liftM Secret . JSON.readJSON
-  showJSON = const . JSON.JSString $ JSON.toJSString redacted
-
-instance Show a => Show (Secret a) where
-  show _ = redacted
-
-instance THH.PyValue a => THH.PyValue (Secret a) where
-  showValue (Secret x) = "Secret(" ++ THH.showValue x ++ ")"
-
-instance Applicative Secret where
-  pure = Secret
-  Secret f <*> Secret x = Secret (f x)
-
-instance Monad Secret where
-  (Secret x) >>= f = f x
-  return = Secret
-
--- | We return "\<redacted\>" here to satisfy the idempotence of serialization
--- and deserialization, although this will impact the meaningfulness of secret
--- parameters within configuration tests.
-showSecretJSObject :: (JSON.JSON a) =>
-                       [(String, a)] -> JSON.JSObject (Secret JSON.JSValue)
-showSecretJSObject value = JSON.toJSObject $ map f value
-  where f (k, _) = (k, Secret $ JSON.showJSON redacted)
-
-revealValInJSObject :: JSON.JSObject (Secret JSON.JSValue)
-                  -> JSON.JSObject (Private JSON.JSValue)
-revealValInJSObject object = JSON.toJSObject . map f $ JSON.fromJSObject object
-  where f (k, v) = (k, Private $ getSecret v)
 
 -- | The hypervisor parameter type. This is currently a simple map,
 -- without type checking on key/value pairs.

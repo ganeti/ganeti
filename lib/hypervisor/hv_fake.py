@@ -327,6 +327,17 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       # ensure it's down
       self._MarkDown(instance.name)
 
+  def PostMigrationCleanup(self, instance):
+    """Clean-up after a migration.
+
+    To be executed on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+
+    """
+    pass
+
   def FinalizeMigrationSource(self, instance, success, live):
     """Finalize the instance migration on the source node.
 

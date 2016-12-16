@@ -61,7 +61,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Confd.ClientFunctions
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.Types
-import Ganeti.JSON (fromJResult)
+import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Storage.Lvm.LVParser
 import Ganeti.Storage.Lvm.Types

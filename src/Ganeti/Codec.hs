@@ -37,18 +37,16 @@ module Ganeti.Codec
   , decompressZlib
   ) where
 
-import Codec.Compression.Zlib
+import Codec.Compression.Zlib (compress)
 import qualified Codec.Compression.Zlib.Internal as I
 import Control.Monad.Error
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
 import Data.Monoid (mempty)
 
-
 -- | Compresses a lazy bytestring.
 compressZlib :: BL.ByteString -> BL.ByteString
-compressZlib = compressWith $
-  defaultCompressParams { compressLevel = CompressionLevel 3 }
+compressZlib = compress
 
 -- | Decompresses a lazy bytestring, throwing decoding errors using
 -- 'throwError'.

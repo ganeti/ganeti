@@ -70,8 +70,7 @@ class Transport(object):
     There are two timeouts used since we might want to wait for a long
     time for a response, but the connect timeout should be lower.
 
-    If not passed, we use the default luxi timeouts from the global
-    constants file.
+    If not passed, we use a default of 10 and respectively 60 seconds.
 
     Note that on reading data, since the timeout applies to an
     invidual receive, it might be that the total duration is longer

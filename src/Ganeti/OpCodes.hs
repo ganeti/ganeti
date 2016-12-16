@@ -188,8 +188,7 @@ $(genOpCode "OpCode"
   , ("OpClusterVerifyDisks",
      [t| JobIdListOnly |],
      OpDoc.opClusterVerifyDisks,
-     [ pOptGroupName
-     ],
+     [],
      [])
   , ("OpGroupVerifyDisks",
      [t| (Map String String, [String], Map String [[String]]) |],
@@ -283,9 +282,7 @@ $(genOpCode "OpCode"
      [t| () |],
      OpDoc.opClusterRenewCrypto,
      [ pNodeSslCerts
-     , pRenewSshKeys
-     , pSshKeyType
-     , pSshKeyBits
+     , pSshKeys
      , pVerbose
      , pDebug
      ],
@@ -694,7 +691,6 @@ $(genOpCode "OpCode"
      , withDoc
        "Secondary node UUID (used when changing disk template)"
        pRemoteNodeUuid
-     , pIallocator
      , pOsNameChange
      , pInstOsParams
      , pInstOsParamsPrivate
@@ -907,12 +903,6 @@ $(genOpCode "OpCode"
      , pJQueueNotifyExec
      , pJQueueLogMessages
      , pJQueueFail
-     ],
-     [])
-  , ("OpTestOsParams",
-     [t| () |],
-     OpDoc.opTestOsParams,
-     [ pInstOsParamsSecret
      ],
      [])
   , ("OpTestDummy",

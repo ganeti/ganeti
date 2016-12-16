@@ -90,19 +90,13 @@ class LUClusterRenewCrypto(NoHooksLU):
   def CheckPrereq(self):
     """Check prerequisites.
 
-    Notably the compatibility of specified key bits and key type.
+    This checks whether the cluster is empty.
+
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    cluster_info = self.cfg.GetClusterInfo()
-
-    self.ssh_key_type = self.op.ssh_key_type
-    if self.ssh_key_type is None:
-      self.ssh_key_type = cluster_info.ssh_key_type
-
-    self.ssh_key_bits = ssh.DetermineKeyBits(self.ssh_key_type,
-                                             self.op.ssh_key_bits,
-                                             cluster_info.ssh_key_type,
-                                             cluster_info.ssh_key_bits)
+    self._ssh_renewal_suppressed = \
+      not self.cfg.GetClusterInfo().modify_ssh_setup and self.op.ssh_keys
 
   def _RenewNodeSslCertificates(self, feedback_fn):
     """Renews the nodes' SSL certificates.
@@ -165,11 +159,8 @@ class LUClusterRenewCrypto(NoHooksLU):
 
     self.cfg.SetCandidateCerts(digest_map)
 
-  def _RenewSshKeys(self, feedback_fn):
+  def _RenewSshKeys(self):
     """Renew all nodes' SSH keys.
-
-    @type feedback_fn: function
-    @param feedback_fn: logging function, see L{ganeti.cmdlist.base.LogicalUnit}
 
     """
     master_uuid = self.cfg.GetMasterNode()
@@ -181,37 +172,23 @@ class LUClusterRenewCrypto(NoHooksLU):
     node_uuids = [uuid for (uuid, _) in nodes_uuid_names]
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
-
-    cluster_info = self.cfg.GetClusterInfo()
-
     result = self.rpc.call_node_ssh_keys_renew(
       [master_uuid],
       node_uuids, node_names,
       master_candidate_uuids,
-      potential_master_candidates,
-      cluster_info.ssh_key_type, # Old key type
-      self.ssh_key_type,         # New key type
-      self.ssh_key_bits)         # New key bits
+      potential_master_candidates)
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
-
-    # After the keys have been successfully swapped, time to commit the change
-    # in key type
-    cluster_info.ssh_key_type = self.ssh_key_type
-    cluster_info.ssh_key_bits = self.ssh_key_bits
-    self.cfg.Update(cluster_info, feedback_fn)
 
   def Exec(self, feedback_fn):
     if self.op.node_certificates:
       feedback_fn("Renewing Node SSL certificates")
       self._RenewNodeSslCertificates(feedback_fn)
-
-    if self.op.renew_ssh_keys:
-      if self.cfg.GetClusterInfo().modify_ssh_setup:
-        feedback_fn("Renewing SSH keys")
-        self._RenewSshKeys(feedback_fn)
-      else:
-        feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
-                    " modify the SSH setup.")
+    if self.op.ssh_keys and not self._ssh_renewal_suppressed:
+      feedback_fn("Renewing SSH keys")
+      self._RenewSshKeys()
+    elif self._ssh_renewal_suppressed:
+      feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
+                  " modify the SSH setup.")
 
 
 class LUClusterActivateMasterIp(NoHooksLU):
@@ -665,10 +642,8 @@ class LUClusterRepairDiskSizes(NoHooksLU):
     if self.wanted_names is None:
       self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
 
-    self.wanted_instances = [
-      info
-      for (_, info) in self.cfg.GetMultiInstanceInfoByName(self.wanted_names)
-    ]
+    self.wanted_instances = \
+        map(compat.snd, self.cfg.GetMultiInstanceInfoByName(self.wanted_names))
 
   def _EnsureChildSizes(self, disk):
     """Ensure children of the disk have the needed disk size.

@@ -62,13 +62,7 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
     ht.TItems(
       [ht.TElemOf(constants.SSHS_ACTIONS),
        ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString))]),
-  constants.SSHS_GENERATE:
-    ht.TItems(
-      [ht.TSshKeyType, # The type of key to generate
-       ht.TPositive, # The number of bits in the key
-       ht.TString]), # The suffix
-  constants.SSHS_SSH_KEY_TYPE: ht.TSshKeyType,
-  constants.SSHS_SSH_KEY_BITS: ht.TPositive,
+  constants.SSHS_GENERATE: ht.TDictOf(ht.TNonEmptyString, ht.TString),
   })
 
 
@@ -196,12 +190,11 @@ def GenerateRootSshKeys(data, dry_run):
   """
   generate_info = data.get(constants.SSHS_GENERATE)
   if generate_info:
-    key_type, key_bits, suffix = generate_info
+    suffix = generate_info[constants.SSHS_SUFFIX]
     if dry_run:
       logging.info("This is a dry run, not generating any files.")
     else:
-      common.GenerateRootSshKeys(key_type, key_bits, SshUpdateError,
-                                 _suffix=suffix)
+      common.GenerateRootSshKeys(SshUpdateError, _suffix=suffix)
 
 
 def Main():

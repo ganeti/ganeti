@@ -10,8 +10,8 @@ Synopsis
 --------
 
 | **ganeti-rapi** [-d] [-f] [-p *PORT*] [-b *ADDRESS*] [-i *INTERFACE*]
-| [\--max-clients *CLIENTS*] [\--no-ssl] [-K *SSL_KEY_FILE*]
-| [-C *SSL_CERT_FILE*] | [\--require-authentication]
+| [\--no-ssl] [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
+| [\--require-authentication]
 
 DESCRIPTION
 -----------
@@ -33,11 +33,6 @@ needs to be informed about it using its option ``--rapi-ip``, otherwise
 it will not be able to reach the RAPI interface and will attempt to
 restart it all the time. Alternatively to setting the IP with ``--b``,
 the ``-i`` option can be used to specify the interface to bind do.
-
-The maximum number of simultaneous client connections may be configured
-with the ``--max-clients`` option. This defaults to 20. Connections
-above this count are accepted, but no responses are sent until enough
-connections are closed.
 
 See the *Ganeti remote API* documentation for further information.
 

@@ -56,7 +56,6 @@ module Ganeti.HTools.CLI
   , oDataFile
   , oDiskMoves
   , oDiskTemplate
-  , oDryRun
   , oSpindleUse
   , oDynuFile
   , oMonD
@@ -105,7 +104,6 @@ module Ganeti.HTools.CLI
   , oQuiet
   , oRapiMaster
   , oReason
-  , oRestrictToNodes
   , oSaveCluster
   , oSelInst
   , oShowHelp
@@ -163,7 +161,6 @@ data Options = Options
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
-  , optDryRun      :: Bool           -- ^ Only do a dry run
   , optFirstJobGroup :: Bool         -- ^ Only execute the first group of jobs
   , optForce       :: Bool           -- ^ Force the execution
   , optFullEvacuation :: Bool        -- ^ Fully evacuate nodes to be rebooted
@@ -187,8 +184,6 @@ data Options = Options
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
   , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
   , optOffline     :: [String]       -- ^ Names of offline nodes
-  , optRestrictToNodes :: Maybe [String] -- ^ if not Nothing, restrict
-                                     -- allocation to those nodes
   , optOfflineMaintenance :: Bool    -- ^ Pretend all instances are offline
   , optOneStepOnly :: Bool           -- ^ Only do the first step
   , optOutPath     :: FilePath       -- ^ Path to the output directory
@@ -235,7 +230,6 @@ defaultOptions  = Options
   , optExInst      = []
   , optExTags      = Nothing
   , optExecJobs    = False
-  , optDryRun      = False
   , optFirstJobGroup = False
   , optForce       = False
   , optFullEvacuation = False
@@ -260,7 +254,6 @@ defaultOptions  = Options
   , optNodeTags    = Nothing
   , optSkipNonRedundant = False
   , optOffline     = []
-  , optRestrictToNodes = Nothing
   , optOfflineMaintenance = False
   , optOneStepOnly = False
   , optOutPath     = "."
@@ -479,13 +472,6 @@ oExecJobs =
    \ it for data gathering)",
    OptComplNone)
 
-oDryRun :: OptType
-oDryRun =
-  (Option "" ["dry-run"]
-   (NoArg (\ opts -> Ok opts { optDryRun = True}))
-   "do not execute any commands and just report what would be done",
-   OptComplNone)
-
 oReason :: OptType
 oReason =
   (Option "" ["reason"]
@@ -674,13 +660,6 @@ oOfflineNode =
    (ReqArg (\ n o -> Ok o { optOffline = n:optOffline o }) "NODE")
    "set node as offline",
    OptComplOneNode)
-
-oRestrictToNodes :: OptType
-oRestrictToNodes =
-  (Option "" ["restrict-allocation-to"]
-    (ReqArg (\ ns o -> Ok o { optRestrictToNodes = Just $ sepSplit ',' ns })
-     "NODE,...") "Restrict allocations to the given set of nodes",
-   OptComplManyNodes)
 
 oOneStepOnly :: OptType
 oOneStepOnly =

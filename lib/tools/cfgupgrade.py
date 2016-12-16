@@ -59,11 +59,11 @@ from ganeti.utils import version
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 16
+TARGET_MINOR = 15
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 15
+DOWNGRADE_MINOR = 14
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -183,8 +183,8 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.{0..15} to 2.16
-    elif config_major == 2 and config_minor in range(0, 16):
+    # Upgrade from 2.{0..14} to 2.15
+    elif config_major == 2 and config_minor in range(0, 15):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():
@@ -307,47 +307,30 @@ class CfgUpgrade(object):
     cluster = self.config_data.get("cluster", None)
     if cluster is None:
       raise Error("Cannot find cluster")
-
     ipolicy = cluster.setdefault("ipolicy", None)
     if ipolicy:
       self.UpgradeIPolicy(ipolicy, constants.IPOLICY_DEFAULTS, False)
     ial_params = cluster.get("default_iallocator_params", None)
-
     if not ial_params:
       cluster["default_iallocator_params"] = {}
-
     if not "candidate_certs" in cluster:
       cluster["candidate_certs"] = {}
-
     cluster["instance_communication_network"] = \
       cluster.get("instance_communication_network", "")
-
     cluster["install_image"] = \
       cluster.get("install_image", "")
-
     cluster["zeroing_image"] = \
       cluster.get("zeroing_image", "")
-
     cluster["compression_tools"] = \
       cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
-
     if "enabled_user_shutdown" not in cluster:
       cluster["enabled_user_shutdown"] = False
-
     cluster["data_collectors"] = cluster.get("data_collectors", {})
     for name in constants.DATA_COLLECTOR_NAMES:
       cluster["data_collectors"][name] = \
         cluster["data_collectors"].get(
             name, dict(active=True,
                        interval=constants.MOND_TIME_INTERVAL * 1e6))
-
-    # These parameters are set to pre-2.16 default values, which
-    # differ from post-2.16 default values
-    if "ssh_key_type" not in cluster:
-      cluster["ssh_key_type"] = constants.SSHK_DSA
-
-    if "ssh_key_bits" not in cluster:
-      cluster["ssh_key_bits"] = 1024
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
@@ -718,42 +701,19 @@ class CfgUpgrade(object):
 
   # DOWNGRADE ------------------------------------------------------------
 
-  @OrFail("Removing SSH parameters")
-  def DowngradeSshKeyParams(self):
-    """Removes the SSH key type and bits parameters from the config.
+  @classmethod
+  def DowngradeCollectors(cls, collectors):
+    if constants.DATA_COLLECTOR_XEN_CPU_LOAD in collectors:
+      del collectors[constants.DATA_COLLECTOR_XEN_CPU_LOAD]
 
-    Also fails if these have been changed from values appropriate in lower
-    Ganeti versions.
-
-    """
-    # pylint: disable=E1103
-    # Because config_data is a dictionary which has the get method.
-    cluster = self.config_data.get("cluster", None)
-    if cluster is None:
-      raise Error("Can't find the cluster entry in the configuration")
-
-    def _FetchAndDelete(key):
-      val = cluster.get(key, None)
-      if key in cluster:
-        del cluster[key]
-      return val
-
-    ssh_key_type = _FetchAndDelete("ssh_key_type")
-    _FetchAndDelete("ssh_key_bits")
-
-    if ssh_key_type is not None and ssh_key_type != "dsa":
-      raise Error("The current Ganeti setup is using non-DSA SSH keys, and"
-                  " versions below 2.16 do not support these. To downgrade,"
-                  " please perform a gnt-cluster renew-crypto using the "
-                  " --new-ssh-keys and --ssh-key-type=dsa options, generating"
-                  " DSA keys that older versions can also use.")
+  def DowngradeCluster(self, cluster):
+    self.DowngradeCollectors(cluster["data_collectors"])
 
   def DowngradeAll(self):
+    self.DowngradeCluster(self.config_data["cluster"])
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
-
-    self.DowngradeSshKeyParams()
-    return not self.errors
+    return True
 
   def _ComposePaths(self):
     # We need to keep filenames locally because they might be renamed between
