@@ -369,7 +369,7 @@ def _ParseNodeInfo(info):
     if len(fields) < 2:
       continue
 
-    (key, val) = (s.strip() for s in fields)
+    (key, val) = [s.strip() for s in fields]
 
     # Note: in Xen 3, memory has changed to total_memory
     if key in ("memory", "total_memory"):

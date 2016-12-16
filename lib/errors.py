@@ -547,5 +547,4 @@ def MaybeRaise(result):
   error = GetEncodedError(result)
   if error:
     (errcls, args) = error
-    # pylint: disable=W0142
     raise errcls(*args)

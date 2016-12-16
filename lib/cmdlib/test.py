@@ -173,7 +173,6 @@ class LUTestDelay(NoHooksLU):
       # Instance of '_socketobject' has no ... member
       conn.settimeout(time_to_go)
       conn.recv(1)
-      # pylint: enable=E1101
     except socket.timeout, _:
       # A second timeout can occur if no data is sent
       return False

@@ -33,7 +33,7 @@
 """Ganeti python modules"""
 
 try:
-  from ganeti import ganeti
+  from ganeti import ganeti # pylint: disable=W0406
 except ImportError:
   pass
 else:

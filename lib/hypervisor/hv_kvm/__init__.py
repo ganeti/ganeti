@@ -200,7 +200,7 @@ def _GetDriveURI(disk, link, uri):
   access_mode = disk.params.get(constants.LDP_ACCESS,
                                 constants.DISK_KERNELSPACE)
   # If uri is available, use it during startup/hot-add
-  if (uri and access_mode == constants.DISK_USERSPACE):
+  if uri and access_mode == constants.DISK_USERSPACE:
     drive_uri = uri
   # Otherwise use the link previously created
   else:
@@ -540,7 +540,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
-    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n"
+    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
                r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
                r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
 
@@ -1279,7 +1279,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO (2.8): kernel_irqchip and kvm_shadow_mem machine properties, as
       # extra hypervisor parameters. We should also investigate whether and how
       # shadow_mem should be considered for the resource model.
-      if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED):
+      if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
         specprop = ",accel=kvm"
       else:
         specprop = ""

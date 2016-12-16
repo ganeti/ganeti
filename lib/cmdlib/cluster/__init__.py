@@ -67,7 +67,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
   CheckDiskAccessModeConsistency, GetClientCertDigest, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
-  CheckImageValidity, CheckDiskAccessModeConsistency, EnsureKvmdOnNodes
+  CheckImageValidity, EnsureKvmdOnNodes
 
 import ganeti.masterd.instance
 

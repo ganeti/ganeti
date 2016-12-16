@@ -350,8 +350,8 @@ def _GetForbiddenFileStoragePaths():
     ])
 
   for prefix in ["", "/usr", "/usr/local"]:
-    paths.update(["%s/%s" % (prefix, s) for s in
-                     ["bin", "lib", "lib32", "lib64", "sbin"]])
+    paths.update(
+        "%s/%s" % (prefix, s) for s in ["bin", "lib", "lib32", "lib64", "sbin"])
 
   return compat.UniqueFrozenset(map(os.path.normpath, paths))
 
@@ -371,7 +371,7 @@ def _ComputeWrongFileStoragePaths(paths,
   def _Check(path):
     return (not os.path.isabs(path) or
             path in _forbidden or
-            filter(lambda p: utils.IsBelowDir(p, path), _forbidden))
+            [p for p in _forbidden if utils.IsBelowDir(p, path)])
 
   return utils.NiceSort(filter(_Check, map(os.path.normpath, paths)))
 

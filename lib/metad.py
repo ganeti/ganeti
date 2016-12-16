@@ -40,7 +40,7 @@ from ganeti import constants
 from ganeti import errors
 import ganeti.rpc.client as cl
 from ganeti.rpc.transport import Transport
-from ganeti.rpc import errors
+from ganeti.rpc.errors import TimeoutError
 
 
 # If the metadata daemon is disabled, there is no stub generated for it.
@@ -70,7 +70,7 @@ if constants.ENABLE_METAD:
         try:
           self._InitTransport()
           return
-        except errors.TimeoutError:
+        except TimeoutError:
           logging.debug("Timout trying to connect to MetaD")
           if try_no == retries - 1:
             raise

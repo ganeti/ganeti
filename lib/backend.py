@@ -47,11 +47,12 @@
 
 
 import base64
+import contextlib
+import collections
 import errno
 import logging
 import os
 import os.path
-import pycurl
 import random
 import re
 import shutil
@@ -60,8 +61,8 @@ import stat
 import tempfile
 import time
 import zlib
-import contextlib
-import collections
+
+import pycurl
 
 from ganeti import errors
 from ganeti import http
@@ -1836,9 +1837,10 @@ def RemoveNodeSshKeyBulk(node_list,
         if master_uuid:
           master_keys = ssh.QueryPubKeyFile([master_uuid],
                                             key_file=pub_key_file)
-          for master_key in master_keys:
-            if master_key in keys[node_info.uuid]:
-              keys[node_info.uuid].remove(master_key)
+
+          # Remove any master keys from the list of keys to remove from the node
+          keys[node_info.uuid] = list(
+              set(keys[node_info.uuid]) - set(master_keys))
 
       all_keys_to_remove.update(keys)
 
@@ -1901,9 +1903,13 @@ def RemoveNodeSshKeyBulk(node_list,
         error_msg_final = ("When removing the key of node '%s', updating the"
                            " SSH key files of node '%s' failed. Last error"
                            " was: %s.")
-        if node in potential_master_candidates:
-          logging.debug("Updating key setup of potential master candidate node"
-                        " %s.", node)
+
+        if node in potential_master_candidates or from_authorized_keys:
+          if node in potential_master_candidates:
+            node_desc = "potential master candidate"
+          else:
+            node_desc = "normal"
+          logging.debug("Updating key setup of %s node %s.", node_desc, node)
           try:
             utils.RetryByNumberOfTimes(
                 constants.SSHS_MAX_RETRIES,
@@ -1917,23 +1923,6 @@ def RemoveNodeSshKeyBulk(node_list,
                 node_info.name, node, last_exception)
             result_msgs.append((node, error_msg))
             logging.error(error_msg)
-
-        else:
-          if from_authorized_keys:
-            logging.debug("Updating key setup of normal node %s.", node)
-            try:
-              utils.RetryByNumberOfTimes(
-                  constants.SSHS_MAX_RETRIES,
-                  errors.SshUpdateError,
-                  run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
-                  ssh_port, base_data,
-                  debug=False, verbose=False, use_cluster_key=False,
-                  ask_key=False, strict_host_check=False)
-            except errors.SshUpdateError as last_exception:
-              error_msg = error_msg_final % (
-                  node_info.name, node, last_exception)
-              result_msgs.append((node, error_msg))
-              logging.error(error_msg)
 
   for node_info in node_list:
     if node_info.clear_authorized_keys or node_info.from_public_keys or \
@@ -3046,9 +3035,8 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
-      result = StartInstance(instance, False, reason, store_reason=False)
+      StartInstance(instance, False, reason, store_reason=False)
       _StoreInstReasonTrail(instance.name, reason)
-      return result
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance '%s': %s", instance.name, err)
   else:

@@ -1268,7 +1268,7 @@ class LUInstanceSetParams(LogicalUnit):
       res_min = ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min,
                                                     new_disk_types)
 
-      if (res_max or res_min):
+      if res_max or res_min:
         # FIXME: Improve error message by including information about whether
         # the upper or lower limit of the parameter fails the ipolicy.
         msg = ("Instance allocation to group %s (%s) violates policy: %s" %
@@ -1654,7 +1654,7 @@ class LUInstanceSetParams(LogicalUnit):
     disk = self.GenericGetDiskInfo(uuid, name)
 
     # Rename disk before attaching (if disk is filebased)
-    if disk.dev_type in (constants.DTS_INSTANCE_DEPENDENT_PATH):
+    if disk.dev_type in constants.DTS_INSTANCE_DEPENDENT_PATH:
       # Add disk size/mode, else GenerateDiskTemplate will not work.
       params[constants.IDISK_SIZE] = disk.size
       params[constants.IDISK_MODE] = str(disk.mode)

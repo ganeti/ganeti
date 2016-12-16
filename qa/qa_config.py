@@ -473,7 +473,7 @@ class _QaConfig(object):
     """Deletes a value from the configuration.
 
     """
-    del(self._data[key])
+    del self._data[key]
 
   def __len__(self):
     """Return the number of configuration items.

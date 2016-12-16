@@ -171,13 +171,13 @@ def AddAuthorizedKeys(file_obj, keys):
                            in key_field_list
                            if split_key != line_key]
       nl = line.endswith("\n")
-    else:
-      if not nl:
-        f.write("\n")
-      for (key, _) in key_field_list:
-        f.write(key.rstrip("\r\n"))
-        f.write("\n")
-      f.flush()
+
+    if not nl:
+      f.write("\n")
+    for (key, _) in key_field_list:
+      f.write(key.rstrip("\r\n"))
+      f.write("\n")
+    f.flush()
   finally:
     f.close()
 
@@ -727,7 +727,7 @@ def InitPubKeyFile(master_uuid, key_type, key_file=pathutils.SSH_PUB_KEYS):
   AddPublicKey(master_uuid, key, key_file=key_file)
 
 
-class SshRunner:
+class SshRunner(object):
   """Wrapper for SSH commands.
 
   """

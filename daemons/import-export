@@ -323,27 +323,37 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
 
           # Read up to 1 KB of data
           data = from_.read(1024)
-          if data:
-            if to:
-              to.write(data)
-            elif fd == signal_notify.fileno():
-              # Signal handling
-              if signal_handler.called:
-                signal_handler.Clear()
-                if exit_timeout:
-                  logging.info("Child process still has about %0.2f seconds"
-                               " to exit", exit_timeout.Remaining())
-                else:
-                  logging.info("Giving child process %0.2f seconds to exit",
-                               constants.CHILD_LINGER_TIMEOUT)
-                  exit_timeout = \
-                    utils.RunningTimeout(constants.CHILD_LINGER_TIMEOUT, True)
-          else:
+
+          # On error, remove the mapping
+          if not data:
             poller.unregister(fd)
             del fdmap[fd]
+            continue
 
-        elif event & (select.POLLNVAL | select.POLLHUP |
-                      select.POLLERR):
+          # If the data needs to be sent to another fd, write it
+          if to:
+            to.write(data)
+            continue
+
+          # Did we get a signal?
+          if fd != signal_notify.fileno():
+            continue
+
+          # Has it been handled?
+          if not signal_handler.called:
+            continue
+
+          # If so, clean up after it.
+          signal_handler.Clear()
+          if exit_timeout:
+            logging.info("Child process still has about %0.2f seconds"
+                         " to exit", exit_timeout.Remaining())
+          else:
+            logging.info("Giving child process %0.2f seconds to exit",
+                         constants.CHILD_LINGER_TIMEOUT)
+            exit_timeout = \
+              utils.RunningTimeout(constants.CHILD_LINGER_TIMEOUT, True)
+        elif event & (select.POLLNVAL | select.POLLHUP | select.POLLERR):
           poller.unregister(fd)
           del fdmap[fd]
 

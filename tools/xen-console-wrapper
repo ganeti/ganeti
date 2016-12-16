@@ -31,17 +31,17 @@ XEN_CMD="$1"
 INSTANCE="$2"
 
 unpause() {
-  ispaused=$(xm list -l "$INSTANCE" 2>/dev/null |
-             sed -n 's/^[[:blank:]]*(state ..\(.\)...)/\1/p')
+  ispaused=$(${XEN_CMD} list $INSTANCE 2>/dev/null | tail -n1 |
+             awk '{print $5}' | sed -n 's/..\(.\).../\1/p')
   [[ "$ispaused" == "p" ]] || return
-  # As there is no way to be sure when xm console has actually connected to the
+  # As there is no way to be sure when xen console has actually connected to the
   # instance, sleep for a few seconds before unpausing the instance. This is a
   # tradeoff between missing some console output if the node is overloaded and
   # making the user wait everytime when the node isn't so busy.
   sleep 3
   # Send \r\n after notice as terminal is in raw mode
   printf "Instance $INSTANCE is paused, unpausing\r\n"
-  xm unpause "$INSTANCE"
+  $(${XEN_CMD} unpause "$INSTANCE")
 }
 
 unpause &

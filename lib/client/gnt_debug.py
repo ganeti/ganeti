@@ -34,10 +34,11 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-backup
 
-import simplejson
-import time
-import socket
 import logging
+import socket
+import time
+
+import simplejson
 
 from ganeti.cli import *
 from ganeti import cli
@@ -103,7 +104,6 @@ def GenericOpCodes(opts, args):
     ToStdout("Loading...")
   for job_idx in range(opts.rep_job):
     for fname in args:
-      # pylint: disable=W0142
       op_data = simplejson.loads(utils.ReadFile(fname))
       op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
       op_list = op_list * opts.rep_op

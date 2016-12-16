@@ -934,7 +934,7 @@ def Main():
     logging.error("Job queue is full, can't query cluster state")
   except errors.JobQueueDrainError:
     logging.error("Job queue is drained, can't maintain cluster state")
-  except Exception, err:
+  except Exception, err: # pylint: disable=W0703
     logging.exception(str(err))
     return constants.EXIT_FAILURE
 

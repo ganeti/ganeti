@@ -303,7 +303,6 @@ def SetNetworkParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  # pylint: disable=W0142
   op = opcodes.OpNetworkSetParams(network_name=args[0], **all_changes)
 
   # TODO: add feedback to user, e.g. list the modifications

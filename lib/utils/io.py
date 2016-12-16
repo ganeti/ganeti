@@ -190,7 +190,7 @@ def WriteFile(file_name, fn=None, data=None,
     raise errors.ProgrammerError("Both atime and mtime must be either"
                                  " set or None")
 
-  if not keep_perms in KEEP_PERMS_VALUES:
+  if keep_perms not in KEEP_PERMS_VALUES:
     raise errors.ProgrammerError("Invalid value for keep_perms: %s" %
                                  keep_perms)
   if keep_perms == KP_ALWAYS and (uid != -1 or gid != -1 or mode is not None):

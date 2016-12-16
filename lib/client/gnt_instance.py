@@ -36,8 +36,9 @@
 
 import copy
 import itertools
-import simplejson
 import logging
+
+import simplejson
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -101,7 +102,6 @@ def _ExpandMultiNames(mode, names, client=None):
   @raise errors.OpPrereqError: for invalid input parameters
 
   """
-  # pylint: disable=W0142
 
   if client is None:
     client = GetClient()
@@ -300,7 +300,7 @@ def BatchCreate(opts, args):
                                  (idx, utils.CommaJoin(unknown)),
                                  errors.ECODE_INVAL)
 
-    op = opcodes.OpInstanceCreate(**inst) # pylint: disable=W0142
+    op = opcodes.OpInstanceCreate(**inst)
     op.Validate(False)
     instances.append(op)
 

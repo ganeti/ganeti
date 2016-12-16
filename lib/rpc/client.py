@@ -146,8 +146,8 @@ def CallRPCMethod(transport_cb, method, args, version=None):
   t3 = time.time() * 1000
   (success, result, resp_version) = ParseResponse(response_msg)
   t4 = time.time() * 1000
-  logging.info("CallRPCMethod %s: format: %dms, sock: %dms, parse: %dms",
-               method, int(t2 - t1), int(t3 - t2), int(t4 - t3))
+  logging.debug("CallRPCMethod %s: format: %dms, sock: %dms, parse: %dms",
+                method, int(t2 - t1), int(t3 - t2), int(t4 - t3))
   # Verify version if there was one in the response
   if resp_version is not None and resp_version != version:
     raise LuxiError("RPC version mismatch, client %s, response %s" %
