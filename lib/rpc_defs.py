@@ -147,7 +147,7 @@ def _NodeInfoPreProc(node, args):
   assert len(args) == 2
   # The storage_units argument is either a dictionary with one value for each
   # node, or a fixed value to be used for all the nodes
-  if type(args[0]) is dict:
+  if isinstance(args[0], dict):
     return [args[0][node], args[1]]
   else:
     return args

@@ -43,12 +43,13 @@
 # be standalone.
 
 import logging
-import simplejson
 import socket
-import urllib
 import threading
-import pycurl
 import time
+import urllib
+
+import pycurl
+import simplejson
 
 try:
   from cStringIO import StringIO

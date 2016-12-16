@@ -31,13 +31,14 @@
 
 """
 
-import time
-import OpenSSL
-import re
-import datetime
 import calendar
+import datetime
 import errno
 import logging
+import re
+import time
+
+import OpenSSL
 
 from ganeti import errors
 from ganeti import constants

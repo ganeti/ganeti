@@ -525,7 +525,6 @@ def CalculateFileStorageDir(disk_type, cfg, instance_name,
       joinargs.append(instance_name)
 
     if len(joinargs) > 1:
-      # pylint: disable=W0142
       instance_file_storage_dir = utils.PathJoin(*joinargs)
     else:
       instance_file_storage_dir = joinargs[0]
@@ -597,8 +596,8 @@ def GenerateDiskTemplate(
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node_uuid = secondary_node_uuids[0]
 
-    (drbd_params, _, _) = objects.Disk.ComputeLDParams(template_name,
-                                                       full_disk_params)
+    drbd_params = objects.Disk.ComputeLDParams(template_name,
+                                               full_disk_params)[0]
     drbd_default_metavg = drbd_params[constants.LDP_DEFAULT_METAVG]
 
     names = []
@@ -648,9 +647,9 @@ def GenerateDiskTemplate(
 
     elif template_name in constants.DTS_FILEBASED: # Gluster handled above
       logical_id_fn = \
-        lambda _, disk_index, disk: (file_driver,
-                                     "%s/%s" % (file_storage_dir,
-                                                names[idx]))
+        lambda idx, disk_index, disk: (file_driver,
+                                       "%s/%s" % (file_storage_dir,
+                                                  names[idx]))
       if template_name == constants.DT_FILE:
         disk_nodes = [primary_node_uuid]
 
@@ -2247,7 +2246,7 @@ class TLReplaceDisks(Tasklet):
                                  " %s" % (iallocator_name, ial.info),
                                  errors.ECODE_NORES)
 
-    remote_node_name = ial.result[0]
+    remote_node_name = ial.result[0] # pylint: disable=E1136
     remote_node = lu.cfg.GetNodeInfoByName(remote_node_name)
 
     if remote_node is None:
@@ -3015,7 +3014,7 @@ class TLReplaceDisks(Tasklet):
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
 
-class TemporaryDisk():
+class TemporaryDisk(object):
   """ Creates a new temporary bootable disk, and makes sure it is destroyed.
 
   Is a context manager, and should be used with the ``with`` statement as such.

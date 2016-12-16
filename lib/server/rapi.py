@@ -31,7 +31,7 @@
 
 """
 
-# pylint: disable=C0103,W0142
+# pylint: disable=C0103
 
 # C0103: Invalid name ganeti-watcher
 
@@ -61,7 +61,6 @@ from ganeti.rapi import connector
 from ganeti.rapi import baserlib
 
 import ganeti.http.auth   # pylint: disable=W0611
-import ganeti.http.server
 
 
 class RemoteApiRequestContext(object):

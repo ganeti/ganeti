@@ -66,7 +66,6 @@ class LUQuery(NoHooksLU):
   """Query for resources/items of a certain kind.
 
   """
-  # pylint: disable=W0142
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -88,7 +87,6 @@ class LUQueryFields(NoHooksLU):
   """Query for resources/items of a certain kind.
 
   """
-  # pylint: disable=W0142
   REQ_BGL = False
 
   def CheckArguments(self):

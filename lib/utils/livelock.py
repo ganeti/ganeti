@@ -96,8 +96,8 @@ def GuessLockfileFor(name):
       prefix in LIVELOCK_DIR, or the plain name, if none
       exists.
   """
-  lockfiles = filter(lambda n: n.startswith(name),
-                     os.listdir(pathutils.LIVELOCK_DIR))
+  lockfiles = [n for n in os.listdir(pathutils.LIVELOCK_DIR)
+               if n.startswith(name)]
   if len(lockfiles) > 0:
     lockfile = NiceSort(lockfiles)[-1]
   else:

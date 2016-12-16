@@ -39,7 +39,9 @@ import logging
 import errno
 import itertools
 import shlex
+
 from cStringIO import StringIO
+from optparse import (OptionParser, TitledHelpFormatter)
 
 from ganeti import utils
 from ganeti import errors
@@ -55,11 +57,9 @@ from ganeti import pathutils
 from ganeti import serializer
 import ganeti.cli_opts
 # Import constants
-from ganeti.cli_opts import *  # pylint: disable=W0401
+from ganeti.cli_opts import *  # pylint: disable=W0401,W0614
 
 from ganeti.runtime import (GetClient)
-
-from optparse import (OptionParser, TitledHelpFormatter)
 
 
 __all__ = [
@@ -1715,8 +1715,8 @@ def GenerateTable(headers, fields, separator, data,
   if unitfields is None:
     unitfields = []
 
-  numfields = utils.FieldSet(*numfields)   # pylint: disable=W0142
-  unitfields = utils.FieldSet(*unitfields) # pylint: disable=W0142
+  numfields = utils.FieldSet(*numfields)
+  unitfields = utils.FieldSet(*unitfields)
 
   format_fields = []
   for field in fields:
@@ -2341,10 +2341,9 @@ def GetNodesSshPorts(nodes, cl):
   @rtype: a list of tuples
 
   """
-  return [t[0] for t in
-             cl.QueryNodes(names=nodes,
-                           fields=["ndp/ssh_port"],
-                           use_locking=False)]
+  return [t[0] for t in cl.QueryNodes(names=nodes,
+                                      fields=["ndp/ssh_port"],
+                                      use_locking=False)]
 
 
 def GetNodeUUIDs(nodes, cl):
@@ -2358,10 +2357,9 @@ def GetNodeUUIDs(nodes, cl):
   @rtype: a list of tuples
 
   """
-  return [t[0] for t in
-             cl.QueryNodes(names=nodes,
-                           fields=["uuid"],
-                           use_locking=False)]
+  return [t[0] for t in cl.QueryNodes(names=nodes,
+                                      fields=["uuid"],
+                                      use_locking=False)]
 
 
 def _ToStream(stream, txt, *args):
@@ -2781,7 +2779,7 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
   else:
     forced_type = TISPECS_CLUSTER_TYPES
   for specs in ispecs_transposed.values():
-    assert type(specs) is dict
+    assert isinstance(specs, dict)
     utils.ForceDictType(specs, forced_type)
 
   # then transpose
@@ -2890,7 +2888,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
 
   split_specs = (ispecs_mem_size or ispecs_cpu_count or ispecs_disk_count or
                  ispecs_disk_size or ispecs_nic_count)
-  if (split_specs and (minmax_ispecs is not None or std_ispecs is not None)):
+  if split_specs and (minmax_ispecs is not None or std_ispecs is not None):
     raise errors.OpPrereqError("A --specs-xxx option cannot be specified"
                                " together with any --ipolicy-xxx-specs option",
                                errors.ECODE_INVAL)
@@ -2901,7 +2899,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     _InitISpecsFromSplitOpts(ipolicy_out, ispecs_mem_size, ispecs_cpu_count,
                              ispecs_disk_count, ispecs_disk_size,
                              ispecs_nic_count, group_ipolicy, fill_all)
-  elif (minmax_ispecs is not None or std_ispecs is not None):
+  elif minmax_ispecs is not None or std_ispecs is not None:
     _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
                             group_ipolicy, allowed_values)
 
@@ -2929,7 +2927,7 @@ def _NotAContainer(data):
   @rtype: bool
 
   """
-  return not (isinstance(data, (list, dict, tuple)))
+  return not isinstance(data, (list, dict, tuple))
 
 
 def _GetAlignmentMapping(data):

@@ -38,14 +38,13 @@ from ganeti import errors
 from ganeti import ht
 from ganeti import locking
 from ganeti.masterd import iallocator
-from ganeti import network
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import utils
 from ganeti.cmdlib.common import AnnotateDiskParams, \
   ComputeIPolicyInstanceViolation, CheckDiskTemplateEnabled, \
-  CheckDiskTemplateEnabled, ComputeIPolicySpecViolation
+  ComputeIPolicySpecViolation
 
 
 #: Type description for changes as returned by L{ApplyContainerMods}'s
@@ -131,7 +130,7 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
       if netinfo:
         nobj = objects.Network.FromDict(netinfo)
         env.update(nobj.HooksDict("INSTANCE_NIC%d_" % idx))
-      elif network:
+      elif net:
         # FIXME: broken network reference: the instance NIC specifies a
         # network, but the relevant network entry was not in the config. This
         # should be made impossible.
@@ -214,7 +213,7 @@ def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
   }
   if override:
     args.update(override)
-  return BuildInstanceHookEnv(**args) # pylint: disable=W0142
+  return BuildInstanceHookEnv(**args)
 
 
 def GetClusterDomainSecret():

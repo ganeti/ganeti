@@ -32,10 +32,11 @@
 """
 
 import logging
-import OpenSSL
 import os
-import uuid as uuid_module
 import time
+import uuid as uuid_module
+
+import OpenSSL
 
 from ganeti.utils import io
 from ganeti.utils import x509

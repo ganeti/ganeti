@@ -703,8 +703,6 @@ def HaskellOptToOptParse(opts, kind):
       kept in sync
 
   """
-  # pylint: disable=W0142
-  # since we pass *opts in a number of places
   opts = opts.split(",")
   if kind == "none":
     return cli.cli_option(*opts, action="store_true")
@@ -764,8 +762,6 @@ def HaskellArgToCliArg(kind, min_cnt, max_cnt):
     max_cnt = None
   else:
     max_cnt = int(max_cnt)
-  # pylint: disable=W0142
-  # since we pass **kwargs
   kwargs = {"min": min_cnt, "max": max_cnt}
 
   if kind.startswith("choices=") or kind.startswith("suggest="):
@@ -786,18 +782,18 @@ def ParseHaskellOptsArgs(script, output):
   cli_args = []
   for line in output.splitlines():
     v = line.split(None)
-    exc = lambda msg: Exception("Invalid %s output from %s: %s" %
-                                (msg, script, v))
+    exc = lambda msg, v: Exception("Invalid %s output from %s: %s" %
+                                   (msg, script, v))
     if len(v) < 2:
-      raise exc("help completion")
+      raise exc("help completion", v)
     if v[0].startswith("-"):
       if len(v) != 2:
-        raise exc("option format")
+        raise exc("option format", v)
       (opts, kind) = v
       cli_opts.append(HaskellOptToOptParse(opts, kind))
     else:
       if len(v) != 3:
-        raise exc("argument format")
+        raise exc("argument format", v)
       (kind, min_cnt, max_cnt) = v
       cli_args.append(HaskellArgToCliArg(kind, min_cnt, max_cnt))
   return (cli_opts, cli_args)

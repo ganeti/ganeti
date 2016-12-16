@@ -30,13 +30,10 @@
 
 """Ganeti node daemon"""
 
-# pylint: disable=C0103,W0142
+# pylint: disable=C0103
 
 # C0103: Functions in this module need to have a given name structure,
 # and the name of the daemon doesn't match
-
-# W0142: Used * or ** magic, since we do use it extensively in this
-# module
 
 import os
 import sys
@@ -203,7 +200,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
       # And return the error's arguments, which must be already in
       # correct tuple format
       result = err.args
-    except Exception, err:
+    except Exception, err: # pylint: disable=W0703
       logging.exception("Error in RPC call")
       result = (False, "Error while executing backend function: %s" % str(err))
 
@@ -1376,7 +1373,6 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   else:
     logging.error("Invalid errdepth value: %s.", errdepth)
     return False
-  # pylint: enable=W0613
 
 
 def PrepNoded(options, _):

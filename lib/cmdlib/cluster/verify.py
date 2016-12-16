@@ -141,7 +141,6 @@ class _VerifyErrors(object):
     # Report messages via the feedback_fn
     # pylint: disable=E1101
     self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list)
-    # pylint: enable=E1101
 
     # do not mark the operation as failed for WARN cases only
     if log_type == self.ETYPE_ERROR:
@@ -210,7 +209,7 @@ class LUClusterVerify(NoHooksLU):
       for group in groups)
 
     # Fix up all parameters
-    for op in itertools.chain(*jobs): # pylint: disable=W0142
+    for op in itertools.chain(*jobs):
       op.debug_simulate_errors = self.op.debug_simulate_errors
       op.verbose = self.op.verbose
       op.error_codes = self.op.error_codes
@@ -508,7 +507,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # We detect here the nodes that will need the extra RPC calls for verifying
     # split LV volumes; they should be locked.
-    extra_lv_nodes = set()
+    extra_lv_nodes = {}
 
     for inst in self.my_inst_info.values():
       disks = self.cfg.GetInstanceDisks(inst.uuid)
@@ -516,16 +515,23 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
         for nuuid in inst_nodes:
           if self.all_node_info[nuuid].group != self.group_uuid:
-            extra_lv_nodes.add(nuuid)
+            if nuuid in extra_lv_nodes:
+              extra_lv_nodes[nuuid].append(inst.name)
+            else:
+              extra_lv_nodes[nuuid] = [inst.name]
 
+    extra_lv_nodes_set = set(extra_lv_nodes.iterkeys())
     unlocked_lv_nodes = \
-        extra_lv_nodes.difference(self.owned_locks(locking.LEVEL_NODE))
+        extra_lv_nodes_set.difference(self.owned_locks(locking.LEVEL_NODE))
 
     if unlocked_lv_nodes:
+      node_strings = ['%s: [%s]' % (
+          self.cfg.GetNodeName(node), utils.CommaJoin(extra_lv_nodes[node]))
+            for node in unlocked_lv_nodes]
       raise errors.OpPrereqError("Missing node locks for LV check: %s" %
-                                 utils.CommaJoin(unlocked_lv_nodes),
+                                 utils.CommaJoin(node_strings),
                                  errors.ECODE_STATE)
-    self.extra_lv_nodes = list(extra_lv_nodes)
+    self.extra_lv_nodes = list(extra_lv_nodes_set)
 
   def _VerifyNode(self, ninfo, nresult):
     """Perform some basic validation on data returned from a node.
@@ -699,7 +705,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # exclusive_storage wants all PVs to have the same size (approximately),
     # if the smallest and the biggest ones are okay, everything is fine.
     # pv_min is None iff pv_max is None
-    vals = filter((lambda ni: ni.pv_min is not None), node_image.values())
+    vals = [ni for ni in node_image.values() if ni.pv_min is not None]
     if not vals:
       return
     (pvmin, minnode_uuid) = min((ni.pv_min, ni.uuid) for ni in vals)

@@ -32,11 +32,13 @@
 
 """
 
+import base64
 import logging
 import re
-import base64
-import pycurl
+
 from cStringIO import StringIO
+
+import pycurl
 
 from ganeti import errors
 from ganeti import opcodes
@@ -49,8 +51,8 @@ import ganeti.rpc.client as rpccl
 from ganeti import rapi
 
 import ganeti.http.server # pylint: disable=W0611
-import ganeti.server.rapi
-import ganeti.rapi.client
+import ganeti.server.rapi # pylint: disable=W0611
+import ganeti.rapi.client # pylint: disable=W0611
 
 
 _URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
@@ -103,7 +105,7 @@ def VerifyOpInput(op_id, data):
   op_cls = _GetOpById(op_id)
 
   try:
-    op = op_cls(**data) # pylint: disable=W0142
+    op = op_cls(**data)
   except TypeError, err:
     raise VerificationError("Unable to create opcode instance: %s" % err)
 
