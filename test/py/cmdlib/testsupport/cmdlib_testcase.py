@@ -167,7 +167,6 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     while self._cleanups:
       f, args, kwargs = self._cleanups.pop(-1)
       try:
-        # pylint: disable=W0142
         f(*args, **kwargs)
       except BaseException, e:
         sys.stderr.write('Error in cleanup: %s\n' % e)
@@ -424,7 +423,6 @@ def withLockedLU(func):
       prepare_fn = getattr(test, "PrepareLU")
       assert callable(prepare_fn)
 
-    # pylint: disable=W0142
     def callWithLU(lu):
       if prepare_fn:
         prepare_fn(lu)

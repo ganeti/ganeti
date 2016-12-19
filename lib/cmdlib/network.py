@@ -146,7 +146,7 @@ class LUNetworkAdd(LogicalUnit):
       "mac_prefix": self.op.mac_prefix,
       "tags": self.op.tags,
       }
-    return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
+    return _BuildNetworkHookEnv(**args)
 
   def Exec(self, feedback_fn):
     """Add the ip pool to the cluster.
@@ -341,7 +341,7 @@ class LUNetworkSetParams(LogicalUnit):
       "mac_prefix": self.mac_prefix,
       "tags": self.tags,
       }
-    return _BuildNetworkHookEnv(**args) # pylint: disable=W0142
+    return _BuildNetworkHookEnv(**args)
 
   def BuildHooksNodes(self):
     """Build hooks nodes.

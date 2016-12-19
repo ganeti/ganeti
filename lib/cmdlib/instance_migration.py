@@ -499,7 +499,8 @@ class TLMigrateInstance(Tasklet):
                                  " iallocator '%s': %s" %
                                  (self.lu.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-    self.target_node_uuid = self.cfg.GetNodeInfoByName(ial.result[0]).uuid
+    self.target_node_uuid = self.cfg.GetNodeInfoByName(
+        ial.result[0]).uuid # pylint: disable=E1136
     self.lu.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                     self.instance_name, self.lu.op.iallocator,
                     utils.CommaJoin(ial.result))
@@ -598,12 +599,58 @@ class TLMigrateInstance(Tasklet):
       nres.Raise("Cannot change disks config on node %s" %
                  self.cfg.GetNodeName(node_uuid))
 
+  def _FindInstanceLocations(self, name):
+    """Returns a list of nodes that have the given instance running
+
+    Args:
+      name: string, instance name string to search for
+
+    Returns:
+      list of strings, node uuids
+    """
+    self.feedback_fn("* checking where the instance actually runs (if this"
+                     " hangs, the hypervisor might be in a bad state)")
+
+    cluster_hvparams = self.cfg.GetClusterInfo().hvparams
+    online_node_uuids = self.cfg.GetOnlineNodeList()
+    instance_list = self.rpc.call_instance_list(
+        online_node_uuids, [self.instance.hypervisor], cluster_hvparams)
+
+    # Verify each result and raise an exception if failed
+    for node_uuid, result in instance_list.items():
+      result.Raise("Can't contact node %s" % self.cfg.GetNodeName(node_uuid))
+
+    # Xen renames the instance during migration, unfortunately we don't have
+    # a nicer way of identifying that it's the same instance. This is an awful
+    # leaking abstraction.
+
+    # xm and xl have different (undocumented) naming conventions
+    # xm: (in tools/python/xen/xend/XendCheckpoint.py save() & restore())
+    #                   source dom name    target dom name
+    # during copy:      migrating-$DOM     $DOM
+    # finalize migrate: <none>             $DOM
+    # finished:         <none>             $DOM
+    #
+    # xl: (in tools/libxl/xl_cmdimpl.c migrate_domain() & migrate_receive())
+    #                   source dom name    target dom name
+    # during copy:      $DOM               $DOM--incoming
+    # finalize migrate: $DOM--migratedaway $DOM
+    # finished:         <none>             $DOM
+    variants = [
+        name, 'migrating-' + name, name + '--incoming', name + '--migratedaway']
+    node_uuids = [node for node, data in instance_list.items()
+                  if any(var in data.payload for var in variants)]
+    self.feedback_fn("* instance running on: %s" % ','.join(
+        self.cfg.GetNodeName(uuid) for uuid in node_uuids))
+    return node_uuids
+
   def _ExecCleanup(self):
     """Try to cleanup after a failed migration.
 
     The cleanup is done by:
       - check that the instance is running only on one node
-        (and update the config if needed)
+      - try 'aborting' migration if it is running on two nodes
+      - update the config if needed
       - change disks on its secondary node to secondary
       - wait until disks are fully synchronized
       - disconnect from the network
@@ -611,22 +658,35 @@ class TLMigrateInstance(Tasklet):
       - wait again until disks are fully synchronized
 
     """
-    # check running on only one node
-    self.feedback_fn("* checking where the instance actually runs"
-                     " (if this hangs, the hypervisor might be in"
-                     " a bad state)")
-    cluster_hvparams = self.cfg.GetClusterInfo().hvparams
-    ins_l = self.rpc.call_instance_list(self.all_node_uuids,
-                                        [self.instance.hypervisor],
-                                        cluster_hvparams)
-    for node_uuid, result in ins_l.items():
-      result.Raise("Can't contact node %s" % node_uuid)
+    instance_locations = self._FindInstanceLocations(self.instance.name)
+    runningon_source = self.source_node_uuid in instance_locations
+    runningon_target = self.target_node_uuid in instance_locations
 
-    runningon_source = self.instance.name in \
-                         ins_l[self.source_node_uuid].payload
-    runningon_target = self.instance.name in \
-                         ins_l[self.target_node_uuid].payload
+    if runningon_source and runningon_target:
+      # If we have an instance on both the source and the destination, we know
+      # that instance migration was interrupted in the middle, we can try to
+      # do effectively the same as when aborting an interrupted migration.
+      self.feedback_fn("Trying to cleanup after failed migration")
+      result = self.rpc.call_migration_info(
+          self.source_node_uuid, self.instance)
+      if result.fail_msg:
+        raise errors.OpExecError(
+            "Failed fetching source migration information from %s: %s" %
+            (self.cfg.GetNodeName(self.source_node_uuid), result.fail_msg))
+      self.migration_info = result.payload
+      abort_results = self._AbortMigration()
 
+      if abort_results[0].fail_msg or abort_results[1].fail_msg:
+        raise errors.OpExecError(
+            "Instance migration cleanup failed: %s" % ','.join([
+                abort_results[0].fail_msg, abort_results[1].fail_msg]))
+
+      # AbortMigration() should have fixed instance locations, so query again
+      instance_locations = self._FindInstanceLocations(self.instance.name)
+      runningon_source = self.source_node_uuid in instance_locations
+      runningon_target = self.target_node_uuid in instance_locations
+
+    # Abort didn't work, manual intervention required
     if runningon_source and runningon_target:
       raise errors.OpExecError("Instance seems to be running on two nodes,"
                                " or the hypervisor is confused; you will have"
@@ -634,10 +694,19 @@ class TLMigrateInstance(Tasklet):
                                " and restart this operation")
 
     if not (runningon_source or runningon_target):
-      raise errors.OpExecError("Instance does not seem to be running at all;"
-                               " in this case it's safer to repair by"
-                               " running 'gnt-instance stop' to ensure disk"
-                               " shutdown, and then restarting it")
+      if len(instance_locations) == 1:
+        # The instance is running on a differrent node than expected, let's
+        # adopt it as if it was running on the secondary
+        self.target_node_uuid = instance_locations[0]
+        self.feedback_fn("* instance running on unexpected node (%s),"
+                         " updating as the new secondary" %
+                         self.cfg.GetNodeName(self.target_node_uuid))
+        runningon_target = True
+      else:
+        raise errors.OpExecError("Instance does not seem to be running at all;"
+                                 " in this case it's safer to repair by"
+                                 " running 'gnt-instance stop' to ensure disk"
+                                 " shutdown, and then restarting it")
 
     if runningon_target:
       # the migration has actually succeeded, we need to update the config
@@ -655,6 +724,7 @@ class TLMigrateInstance(Tasklet):
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
+    # TODO: Cleanup code duplication of _RevertDiskStatus()
     self._CloseInstanceDisks(demoted_node_uuid)
 
     if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
@@ -697,23 +767,26 @@ class TLMigrateInstance(Tasklet):
   def _AbortMigration(self):
     """Call the hypervisor code to abort a started migration.
 
+    Returns:
+      tuple of rpc call results
     """
-    abort_result = self.rpc.call_instance_finalize_migration_dst(
-                     self.target_node_uuid, self.instance, self.migration_info,
-                     False)
-    abort_msg = abort_result.fail_msg
+    src_result = self.rpc.call_instance_finalize_migration_dst(
+        self.target_node_uuid, self.instance, self.migration_info, False)
+    abort_msg = src_result.fail_msg
     if abort_msg:
       logging.error("Aborting migration failed on target node %s: %s",
                     self.cfg.GetNodeName(self.target_node_uuid), abort_msg)
-      # Don't raise an exception here, as we stil have to try to revert the
-      # disk status, even if this step failed.
 
-    abort_result = self.rpc.call_instance_finalize_migration_src(
-      self.source_node_uuid, self.instance, False, self.live)
-    abort_msg = abort_result.fail_msg
+    # Don't raise an exception here, as we stil have to try to revert the
+    # disk status, even if this step failed.
+    dst_result = self.rpc.call_instance_finalize_migration_src(
+        self.source_node_uuid, self.instance, False, self.live)
+    abort_msg = dst_result.fail_msg
     if abort_msg:
       logging.error("Aborting migration failed on source node %s: %s",
                     self.cfg.GetNodeName(self.source_node_uuid), abort_msg)
+
+    return src_result, dst_result
 
   def _ExecMigration(self):
     """Migrate an instance.
@@ -872,30 +945,41 @@ class TLMigrateInstance(Tasklet):
 
       time.sleep(self._MIGRATION_POLL_INTERVAL)
 
-    result = self.rpc.call_instance_finalize_migration_src(
-               self.source_node_uuid, self.instance, True, self.live)
-    msg = result.fail_msg
-    if msg:
-      logging.error("Instance migration succeeded, but finalization failed"
-                    " on the source node: %s", msg)
-      raise errors.OpExecError("Could not finalize instance migration: %s" %
-                               msg)
+    # Always call finalize on both source and target, they should compose
+    # a single operation, consisting of (potentially) parallel steps, that
+    # should be always attempted/retried together (like in _AbortMigration)
+    # without setting any expecetations in what order they execute.
+    result_src = self.rpc.call_instance_finalize_migration_src(
+        self.source_node_uuid, self.instance, True, self.live)
 
+    result_dst = self.rpc.call_instance_finalize_migration_dst(
+        self.target_node_uuid, self.instance, migration_info, True)
+
+    err_msg = []
+    if result_src.fail_msg:
+      logging.error("Instance migration succeeded, but finalization failed"
+                    " on the source node: %s", result_src.fail_msg)
+      err_msg.append(self.cfg.GetNodeName(self.source_node_uuid) + ': '
+                     + result_src.fail_msg)
+
+    if result_dst.fail_msg:
+      logging.error("Instance migration succeeded, but finalization failed"
+                    " on the target node: %s", result_dst.fail_msg)
+      err_msg.append(self.cfg.GetNodeName(self.target_node_uuid) + ': '
+                     + result_dst.fail_msg)
+
+    if err_msg:
+      raise errors.OpExecError(
+          "Could not finalize instance migration: %s" % ' '.join(err_msg))
+
+    # Update instance location only after finalize completed. This way, if
+    # either finalize fails, the config still stores the old primary location,
+    # so we can know which instance to delete if we need to (manually) clean up.
     self.cfg.SetInstancePrimaryNode(self.instance.uuid, self.target_node_uuid)
     self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
-    disks = self.cfg.GetInstanceDisks(self.instance_uuid)
-
-    result = self.rpc.call_instance_finalize_migration_dst(
-               self.target_node_uuid, self.instance, migration_info, True)
-    msg = result.fail_msg
-    if msg:
-      logging.error("Instance migration succeeded, but finalization failed"
-                    " on the target node: %s", msg)
-      raise errors.OpExecError("Could not finalize instance migration: %s" %
-                               msg)
 
     self._CloseInstanceDisks(self.source_node_uuid)
-
+    disks = self.cfg.GetInstanceDisks(self.instance_uuid)
     if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       self._WaitUntilSync()
       self._GoStandalone()

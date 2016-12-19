@@ -35,12 +35,14 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-cluster
 
-from cStringIO import StringIO
+import itertools
 import os
 import time
-import OpenSSL
 import tempfile
-import itertools
+
+from cStringIO import StringIO
+
+import OpenSSL
 
 from ganeti.cli import *
 from ganeti import bootstrap
@@ -203,7 +205,7 @@ def InitCluster(opts, args):
   # check the disk template types here, as we cannot rely on the type check done
   # by the opcode parameter types
   diskparams_keys = set(diskparams.keys())
-  if not (diskparams_keys <= constants.DISK_TEMPLATES):
+  if diskparams_keys > constants.DISK_TEMPLATES:
     unknown = utils.NiceSort(diskparams_keys - constants.DISK_TEMPLATES)
     ToStderr("Disk templates unknown: %s" % utils.CommaJoin(unknown))
     return 1
@@ -305,10 +307,7 @@ def InitCluster(opts, args):
 
   default_ialloc_params = opts.default_iallocator_params
 
-  if opts.enabled_user_shutdown:
-    enabled_user_shutdown = True
-  else:
-    enabled_user_shutdown = False
+  enabled_user_shutdown = bool(opts.enabled_user_shutdown)
 
   if opts.ssh_key_type:
     ssh_key_type = opts.ssh_key_type
@@ -848,14 +847,15 @@ def VerifyDisks(opts, args):
         if all_missing:
           ToStdout("Instance %s cannot be verified as it lives on"
                    " broken nodes", iname)
-        else:
-          ToStdout("Instance %s has missing logical volumes:", iname)
-          ival.sort()
-          for node, vol in ival:
-            if node in bad_nodes:
-              ToStdout("\tbroken node %s /dev/%s", node, vol)
-            else:
-              ToStdout("\t%s /dev/%s", node, vol)
+          continue
+
+        ToStdout("Instance %s has missing logical volumes:", iname)
+        ival.sort()
+        for node, vol in ival:
+          if node in bad_nodes:
+            ToStdout("\tbroken node %s /dev/%s", node, vol)
+          else:
+            ToStdout("\t%s /dev/%s", node, vol)
 
       ToStdout("You need to replace or recreate disks for all the above"
                " instances if this message persists after fixing broken nodes.")
@@ -1402,6 +1402,7 @@ def SetClusterParams(opts, args):
           opts.ipolicy_spindle_ratio is not None or
           opts.ipolicy_memory_ratio is not None or
           opts.modify_etc_hosts is not None or
+          opts.modify_ssh_setup is not None or
           opts.file_storage_dir is not None or
           opts.install_image is not None or
           opts.instance_communication_network is not None or
@@ -1538,6 +1539,7 @@ def SetClusterParams(opts, args):
     max_tracked_jobs=opts.max_tracked_jobs,
     maintain_node_health=mnh,
     modify_etc_hosts=opts.modify_etc_hosts,
+    modify_ssh_setup=opts.modify_ssh_setup,
     uid_pool=uid_pool,
     add_uids=add_uids,
     remove_uids=remove_uids,
@@ -2589,7 +2591,7 @@ commands = {
      PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
      DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT,
-      ENABLED_USER_SHUTDOWN_OPT] +
+      MODIFY_SSH_SETUP_OPT, ENABLED_USER_SHUTDOWN_OPT] +
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +

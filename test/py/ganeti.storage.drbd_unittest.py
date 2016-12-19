@@ -50,7 +50,7 @@ class TestDRBD8(testutils.GanetiTestCase):
       "version: 8.0.12 (api:76/proto:86-91)",
       "version: 8.2.7 (api:88/proto:0-100)",
       "version: 8.3.7.49 (api:188/proto:13-191)",
-      "version: 8.4.7-1 (api:1/proto:86-101)",
+      "version: 8.4.8-1 (api:1/proto:86-101)",
     ]
     result = [
       {
@@ -80,6 +80,7 @@ class TestDRBD8(testutils.GanetiTestCase):
         "k_major": 8,
         "k_minor": 3,
         "k_point": 7,
+        "k_fix_separator": ".",
         "k_fix": "49",
         "api": 188,
         "proto": 13,
@@ -88,8 +89,9 @@ class TestDRBD8(testutils.GanetiTestCase):
       {
         "k_major": 8,
         "k_minor": 4,
-        "k_point": 7,
-        "k_release": "1",
+        "k_point": 8,
+        "k_fix_separator": "-",
+        "k_fix": "1",
         "api": 1,
         "proto": 86,
         "proto2": "101",

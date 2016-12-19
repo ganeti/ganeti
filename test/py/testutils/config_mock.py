@@ -362,7 +362,7 @@ class ConfigMock(config.ConfigWriter):
     return net
 
   def AddOrphanDisk(self, **params):
-    disk = self.CreateDisk(**params)  # pylint: disable=W0142
+    disk = self.CreateDisk(**params)
     self._UnlockedAddDisk(disk)
 
   def ConnectNetworkToGroup(self, net, group, netparams=None):

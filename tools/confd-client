@@ -252,8 +252,6 @@ class TestClient(object):
       elif kwargs["type"] == constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP:
         kwargs["query"] = {constants.CONFD_REQQ_IPLIST: self.instance_ips}
 
-      # pylint: disable=W0142
-      # used ** magic
       req = confd_client.ConfdClientRequest(**kwargs)
       self.DoConfdRequestReply(req)
 
@@ -276,7 +274,6 @@ class TestClient(object):
     """
     start = time.time()
     for _ in range(self.opts.requests):
-      # pylint: disable=W0142
       req = confd_client.ConfdClientRequest(**kwargs)
       self.DoConfdRequestReply(req)
     stop = time.time()

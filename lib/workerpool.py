@@ -201,7 +201,7 @@ class BaseWorker(threading.Thread, object):
           logging.debug("Starting task %r, priority %s", args, priority)
           assert self.getName() == self._worker_id
           try:
-            self.RunTask(*args) # pylint: disable=W0142
+            self.RunTask(*args)
           finally:
             self.SetTaskName(None)
           logging.debug("Done with task %r, priority %s", args, priority)

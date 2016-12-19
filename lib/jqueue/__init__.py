@@ -417,7 +417,7 @@ class _QueuedJob(object):
 
     entries = []
     for op in self.ops:
-      entries.extend(filter(lambda entry: entry[0] > serial, op.log))
+      entries.extend([entry for entry in op.log if entry[0] > serial])
 
     return entries
 
@@ -684,7 +684,7 @@ def _EncodeOpError(err):
   return errors.EncodeException(to_encode)
 
 
-class _TimeoutStrategyWrapper:
+class _TimeoutStrategyWrapper(object):
   def __init__(self, fn):
     """Initializes this class.
 
@@ -716,7 +716,7 @@ class _TimeoutStrategyWrapper:
     return result
 
 
-class _OpExecContext:
+class _OpExecContext(object):
   def __init__(self, op, index, log_prefix, timeout_strategy_factory):
     """Initializes this class.
 
@@ -1145,7 +1145,7 @@ class _JobProcessor(object):
       assert job.writable, "Job became read-only while being processed"
 
 
-class _JobDependencyManager:
+class _JobDependencyManager(object):
   """Keeps track of job dependencies.
 
   """

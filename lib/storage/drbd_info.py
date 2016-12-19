@@ -31,8 +31,9 @@
 """DRBD information parsing utilities"""
 
 import errno
-import pyparsing as pyp
 import re
+
+import pyparsing as pyp
 
 from ganeti import constants
 from ganeti import utils
@@ -164,8 +165,7 @@ class DRBD8Info(object):
 
   """
 
-  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
-                           r"(?:\.(\d+))?(?:-(\d+))?"
+  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:([.-])(\d+))?"
                            r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
   _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
 
@@ -181,7 +181,7 @@ class DRBD8Info(object):
       - k_minor
       - k_point
       - k_fix (only on some drbd versions)
-      - k_release
+      - k_fix_separator (only when k_fix is present)
       - api
       - proto
       - proto2 (only on drbd > 8.2.X)
@@ -196,10 +196,8 @@ class DRBD8Info(object):
     version = self.GetVersion()
     retval = "%d.%d.%d" % \
              (version["k_major"], version["k_minor"], version["k_point"])
-    if "k_fix" in version:
-      retval += ".%s" % version["k_fix"]
-    if "k_release" in version:
-      retval += "-%s" % version["k_release"]
+    if ("k_fix_separator" in version) and ("k_fix" in version):
+      retval += "%s%s" % (version["k_fix_separator"], version["k_fix"])
 
     retval += " (api:%d/proto:%d" % (version["api"], version["proto"])
     if "proto2" in version:
@@ -237,10 +235,9 @@ class DRBD8Info(object):
       "api": int(values[5]),
       "proto": int(values[6]),
       }
-    if values[3] is not None:
-      retval["k_fix"] = values[3]
-    if values[4] is not None:
-      retval["k_release"] = values[4]
+    if (values[3] is not None) and (values[4] is not None):
+      retval["k_fix_separator"] = values[3]
+      retval["k_fix"] = values[4]
     if values[7] is not None:
       retval["proto2"] = values[7]
 

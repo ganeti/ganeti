@@ -1833,7 +1833,7 @@ class ConfigWriter(object):
 
     if expanded_name is not None:
       # there has to be exactly one instance with that name
-      inst = (filter(lambda n: n.name == expanded_name, all_insts)[0])
+      inst = [n for n in all_insts if n.name == expanded_name][0]
       return (inst.uuid, inst.name)
     else:
       return (None, None)
@@ -2118,7 +2118,7 @@ class ConfigWriter(object):
 
     if expanded_name is not None:
       # there has to be exactly one node with that name
-      node = (filter(lambda n: n.name == expanded_name, all_nodes)[0])
+      node = [n for n in all_nodes if n.name == expanded_name][0]
       return (node.uuid, node.name)
     else:
       return (None, None)
@@ -2577,7 +2577,7 @@ class ConfigWriter(object):
 
     # Update timestamps and serials (only once per node/group object)
     now = time.time()
-    for obj in frozenset(itertools.chain(*resmod)): # pylint: disable=W0142
+    for obj in frozenset(itertools.chain(*resmod)):
       obj.serial_no += 1
       obj.mtime = now
 

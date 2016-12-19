@@ -727,6 +727,7 @@ MODIFY
 | [\--master-netdev *interface-name*]
 | [\--master-netmask *netmask*]
 | [\--modify-etc-hosts {yes \| no}]
+| [\--modify-ssh-setup {yes \| no}]
 | [\--use-external-mip-script {yes \| no}]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
@@ -768,8 +769,8 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--user-shutdown`` options are
 described in the **init** command.
 
-The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
-the **init** command.
+The ``--modify-etc-hosts`` and ``--modify-ssh-setup`` options are described
+by ``--no-etc-hosts`` and ``--no-ssh-setup`` in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).

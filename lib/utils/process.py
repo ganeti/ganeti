@@ -361,15 +361,11 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
           # First fork
           pid = os.fork()
           if pid == 0:
-            try:
-              # Child process, won't return
-              _StartDaemonChild(errpipe_read, errpipe_write,
-                                pidpipe_read, pidpipe_write,
-                                cmd, cmd_env, cwd,
-                                output, output_fd, pidfile)
-            finally:
-              # Well, maybe child process failed
-              os._exit(1) # pylint: disable=W0212
+            # Try to start child process, will either execve or exit on failure.
+            _StartDaemonChild(errpipe_read, errpipe_write,
+                              pidpipe_read, pidpipe_write,
+                              cmd, cmd_env, cwd,
+                              output, output_fd, pidfile)
         finally:
           utils_wrapper.CloseFdNoError(errpipe_write)
 
@@ -536,6 +532,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
   @return: (out, err, status)
 
   """
+  # pylint: disable=R0101
   poller = select.poll()
 
   if interactive:
@@ -936,12 +933,12 @@ def Daemonize(logfile):
 
   # this might fail
   pid = os.fork()
-  if (pid == 0):  # The first child.
+  if pid == 0:  # The first child.
     SetupDaemonEnv()
 
     # this might fail
     pid = os.fork() # Fork a second child.
-    if (pid == 0):  # The second child.
+    if pid == 0:  # The second child.
       utils_wrapper.CloseFdNoError(rpipe)
     else:
       # exit() or _exit()?  See below.
@@ -1099,7 +1096,7 @@ def CloseFDs(noclose_fds=None):
     MAXFD = 1024
 
   maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-  if (maxfd == resource.RLIM_INFINITY):
+  if maxfd == resource.RLIM_INFINITY:
     maxfd = MAXFD
 
   # Iterate through and close all file descriptors (except the standard ones)

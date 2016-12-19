@@ -125,10 +125,11 @@ def CheckNodeGroupInstances(cfg, group_uuid, owned_instance_names):
   wanted_instances = frozenset(cfg.GetInstanceNames(
                                  cfg.GetNodeGroupInstances(group_uuid)))
   if owned_instance_names != wanted_instances:
+    group_name = cfg.GetNodeGroup(group_uuid).name
     raise errors.OpPrereqError("Instances in node group '%s' changed since"
                                " locks were acquired, wanted '%s', have '%s';"
                                " retry the operation" %
-                               (group_uuid,
+                               (group_name,
                                 utils.CommaJoin(wanted_instances),
                                 utils.CommaJoin(owned_instance_names)),
                                errors.ECODE_STATE)
@@ -1594,8 +1595,8 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None, silent_stop=False):
   if start_nodes:
     results = lu.rpc.call_node_ensure_daemon(start_nodes, constants.KVMD, True)
     for node_uuid in start_nodes:
-      results[node_uuid].Warn("Failed to start KVM daemon in node '%s'" %
-                              node_uuid, feedback_fn)
+      results[node_uuid].Warn("Failed to start KVM daemon on node '%s'" %
+                              lu.cfg.GetNodeName(node_uuid), feedback_fn)
 
   # Stop KVM where necessary
   if stop_nodes:
@@ -1603,7 +1604,7 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None, silent_stop=False):
     if not silent_stop:
       for node_uuid in stop_nodes:
         results[node_uuid].Warn("Failed to stop KVM daemon in node '%s'" %
-                                node_uuid, feedback_fn)
+                                lu.cfg.GetNodeName(node_uuid), feedback_fn)
 
 
 def WarnAboutFailedSshUpdates(result, master_uuid, feedback_fn):

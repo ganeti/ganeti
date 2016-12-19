@@ -30,8 +30,9 @@
 
 """Logical units dealing with backup operations."""
 
-import OpenSSL
 import logging
+
+import OpenSSL
 
 from ganeti import compat
 from ganeti import constants

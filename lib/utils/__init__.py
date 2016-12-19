@@ -532,7 +532,7 @@ def SplitTime(value):
 
   """
   (seconds, microseconds) = divmod(int(value * 1000000), 1000000)
-
+  # pylint: disable=C0122
   assert 0 <= seconds, \
     "Seconds must be larger than or equal to 0, but are %s" % seconds
   assert 0 <= microseconds <= 999999, \
@@ -550,7 +550,7 @@ def MergeTime(timetuple):
 
   """
   (seconds, microseconds) = timetuple
-
+  # pylint: disable=C0122
   assert 0 <= seconds, \
     "Seconds must be larger than or equal to 0, but are %s" % seconds
   assert 0 <= microseconds <= 999999, \

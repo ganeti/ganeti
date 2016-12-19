@@ -31,6 +31,9 @@
 """Module containing Ganeti's command line parsing options"""
 
 import re
+
+from optparse import (Option, OptionValueError)
+
 import simplejson
 
 from ganeti import utils
@@ -39,8 +42,6 @@ from ganeti import constants
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import serializer
-
-from optparse import (Option, OptionValueError)
 
 
 __all__ = [
@@ -151,6 +152,7 @@ __all__ = [
   "MC_OPT",
   "MIGRATION_MODE_OPT",
   "MODIFY_ETCHOSTS_OPT",
+  "MODIFY_SSH_SETUP_OPT",
   "NET_OPT",
   "NETWORK6_OPT",
   "NETWORK_OPT",
@@ -563,7 +565,7 @@ class CliOption(Option):
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
-cli_option = CliOption
+cli_option = CliOption # pylint: disable=C0103
 
 
 _YORNO = "yes|no"
@@ -1236,6 +1238,12 @@ MODIFY_ETCHOSTS_OPT = \
 NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
                                     help="Don't initialize SSH keys",
                                     action="store_false", default=True)
+
+MODIFY_SSH_SETUP_OPT = \
+ cli_option("--modify-ssh-setup", dest="modify_ssh_setup", metavar=_YORNO,
+            default=None, type="bool",
+            help="Defines whether the cluster should update node SSH keys"
+            " on node add and on renew-crypto")
 
 ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
                              help="Enable parseable error messages",

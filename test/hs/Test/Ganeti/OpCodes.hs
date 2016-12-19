@@ -246,6 +246,7 @@ genOpCodeFromId op_id cfg =
         <*> arbitrary                    -- use_external_mip_script
         <*> arbitrary                    -- enabled_disk_templates
         <*> arbitrary                    -- modify_etc_hosts
+        <*> arbitrary                    -- modify_ssh_config
         <*> genMaybe genName             -- file_storage_dir
         <*> genMaybe genName             -- shared_file_storage_dir
         <*> genMaybe genName             -- gluster_file_storage_dir
