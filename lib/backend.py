@@ -1683,8 +1683,8 @@ def AddNodeSshKeyBulk(node_list,
 
 
 # TODO: will be fixed with pending patch series.
-# pylint: disable=R0913
-def RemoveNodeSshKey(node_uuid, node_name,
+def RemoveNodeSshKey(node_uuid, # pylint: disable=R0913
+                     node_name,
                      master_candidate_uuids,
                      potential_master_candidates,
                      master_uuid=None,
@@ -2002,7 +2002,6 @@ def RemoveNodeSshKeyBulk(node_list,
       ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
 
   return result_msgs
-# pylint: enable=R0913
 
 
 def RemoveSshKeyFromPublicKeyFile(node_name,

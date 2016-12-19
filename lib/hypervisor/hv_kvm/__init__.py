@@ -907,6 +907,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       target_process.set_cpu_affinity(range(psutil.cpu_count()))
     else:
       target_process.set_cpu_affinity(cpus)
+      # psutil 2.x deprecated (but still supports) get_children and the wrapper
+      # method sig doesn't show the keyword args, so quell the pylint warning.
+      # pylint: disable=E1123
       for p in target_process.get_children(recursive=True):
         p.set_cpu_affinity(cpus)
 

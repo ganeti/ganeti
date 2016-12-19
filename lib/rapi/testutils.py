@@ -362,7 +362,7 @@ class InputTestClient(object):
     password = utils.GenerateSecret()
 
     # pylint: disable=W0232
-    class SimpleAuthenticator():
+    class SimpleAuthenticator(object):
       # pylint: disable=R0201
       def ValidateRequest(self, req, _handler_access, _realm):
         """Called to verify user credentials given in HTTP request.
