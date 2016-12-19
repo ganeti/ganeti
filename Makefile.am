@@ -997,6 +997,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/JQScheduler/Types.hs \
 	src/Ganeti/JQueue.hs \
 	src/Ganeti/JQueue/Lens.hs \
+	src/Ganeti/JQueue/LockDecls.hs \
 	src/Ganeti/JQueue/Objects.hs \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
@@ -1150,6 +1151,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Jobs.hs \
 	test/hs/Test/Ganeti/JQScheduler.hs \
 	test/hs/Test/Ganeti/JQueue.hs \
+	test/hs/Test/Ganeti/JQueue/LockDecls.hs \
 	test/hs/Test/Ganeti/JQueue/Objects.hs \
 	test/hs/Test/Ganeti/Kvmd.hs \
 	test/hs/Test/Ganeti/Luxi.hs \
