@@ -23,7 +23,7 @@ COMMANDS
 ARCHIVE
 ~~~~~~~
 
-**archive** {id...}
+**archive** {job-id...}
 
 This command can be used to archive job by their IDs. Only jobs
 that have finished execution (i.e either *success*, *error* or
@@ -60,8 +60,7 @@ CHANGE-PRIORITY
 ~~~~~~~~~~~~~~~
 
 | **change-priority** \--priority {low | normal | high}
-| {[\--force] {\--pending | \--queued | \--waiting} |
-|  *job-id* ...}
+| {[\--force] {\--pending | \--queued | \--waiting} | *job-id*...}
 
 Changes the priority of one or multiple pending jobs. Jobs currently
 running have only the priority of remaining opcodes changed.
@@ -72,7 +71,7 @@ includes both. To skip a confirmation, pass ``--force``.
 INFO
 ~~~~
 
-**info** {*id*...}
+**info** {*job-id*...}
 
 Show detailed information about the given job id(s). If no job id
 is given, all jobs are examined (warning, this is a lot of
@@ -134,17 +133,17 @@ Lists available fields for jobs.
 WAIT
 ~~~~~
 
-**wait** {id}
+**wait** {*job-id*}
 
-Wait for the job by the given *id* to finish; do not produce
+Wait for the job by the given *job-id* to finish; do not produce
 any output.
 
 WATCH
 ~~~~~
 
-**watch** {id}
+**watch** {*job-id*}
 
-This command follows the output of the job by the given *id* and
+This command follows the output of the job by the given *job-id* and
 prints it.
 
 .. vim: set textwidth=72 :
