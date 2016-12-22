@@ -175,7 +175,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeRoleByName }) = do
           clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =
-  -- note: we use foldlWithKey because that's present accross more
+  -- note: we use foldlWithKey because that's present across more
   -- versions of the library
   return (ReplyStatusOk, J.showJSON $
           M.foldlWithKey (\accu _ n -> nodePrimaryIp n:accu) []
@@ -183,7 +183,7 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =
           clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqMcPipList }) =
-  -- note: we use foldlWithKey because that's present accross more
+  -- note: we use foldlWithKey because that's present across more
   -- versions of the library
   return (ReplyStatusOk, J.showJSON $
           M.foldlWithKey (\accu _ n -> if nodeMasterCandidate n

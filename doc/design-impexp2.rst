@@ -89,7 +89,7 @@ import/export, allowing the certificate to be used as a Certificate
 Authority (CA). This worked by means of starting a new ``socat``
 instance per instance import/export.
 
-Under the version 2 model, a continously running HTTP server will be
+Under the version 2 model, a continuously running HTTP server will be
 used. This disallows the use of self-signed certificates for
 authentication as the CA needs to be the same for all issued
 certificates.
@@ -264,7 +264,7 @@ issues) it should be retried using an exponential backoff delay. The
 opcode submitter can specify for how long the transfer should be
 retried.
 
-At the end of a transfer, succssful or not, the source cluster must be
+At the end of a transfer, successful or not, the source cluster must be
 notified. A the same time the RSA key needs to be destroyed.
 
 Support for HTTP proxies can be implemented by setting

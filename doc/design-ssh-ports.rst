@@ -11,7 +11,7 @@ on nodes with non-standard port numbers.
 Current state and shortcomings
 ==============================
 
-All SSH deamons are expected to be running on the default port 22. It has been
+All SSH daemons are expected to be running on the default port 22. It has been
 requested by Ganeti users (`Issue 235`_) to allow SSH daemons run on
 non-standard ports as well.
 

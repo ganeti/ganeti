@@ -195,7 +195,7 @@ def AutoArchiveJobs(opts, args):
 
 
 def _MultiJobAction(opts, args, cl, stdout_fn, ask_fn, question, action_fn):
-  """Applies a function to multipe jobs.
+  """Applies a function to multiple jobs.
 
   @param opts: Command line options
   @type args: list

@@ -1,6 +1,6 @@
-====================================
-Moving instances accross node groups
-====================================
+===================================
+Moving instances across node groups
+===================================
 
 This design document explains the changes needed in Ganeti to perform
 instance moves across node groups. Reader familiarity with the following

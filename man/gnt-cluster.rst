@@ -601,7 +601,7 @@ possible to create instances with disk templates that are not enabled in
 the cluster. It is also not possible to disable a disk template when there
 are still instances using it. The first disk template in the list of
 enabled disk template is the default disk template. It will be used for
-instance creation, if no disk template is requested explicitely.
+instance creation, if no disk template is requested explicitly.
 
 The ``--install-image`` option specifies the location of the OS image to
 use to run the OS scripts inside a virtualized environment. This can be
@@ -874,7 +874,7 @@ The option ``--new-cluster-certificate`` will regenerate the
 cluster-internal server SSL certificate. The option
 ``--new-node-certificates`` will generate new node SSL
 certificates for all nodes. Note that for the regeneration of
-of the server SSL certficate will invoke a regeneration of the
+of the server SSL certificate will invoke a regeneration of the
 node certificates as well, because node certificates are signed
 by the server certificate and thus have to be recreated and
 signed by the new server certificate. Nodes which are offline

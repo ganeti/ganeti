@@ -5,7 +5,7 @@ N+1 redundancy for shared storage
 .. contents:: :depth: 4
 
 This document describes how N+1 redundancy is achieved
-for instanes using shared storage.
+for instances using shared storage.
 
 
 Current state and shortcomings
@@ -44,7 +44,7 @@ for DRBD is to be taken into account for all choices affecting instance
 location, including instance allocation and balancing.
 
 For shared-storage instances, they can move everywhere within the
-node group. So, in practise, this is mainly a question of capacity
+node group. So, in practice, this is mainly a question of capacity
 planing, especially is most instances have the same size. Nevertheless,
 offcuts if instances don't fill a node entirely may not be ignored.
 
@@ -53,7 +53,7 @@ Modifications to existing tools
 -------------------------------
 
 - ``hail`` will compute and rank possible allocations as usual. However,
-  before returing a choice it will filter out allocations that are
+  before returning a choice it will filter out allocations that are
   not N+1 redundant.
 
 - Normal ``gnt-cluster verify`` will not be changed; in particular,
@@ -68,6 +68,6 @@ Modifications to existing tools
 - ``hspace`` computing the capacity for DRBD instances will be unchanged.
   For shared storage instances, however, it will first evacuate one node
   and then compute capacity as normal pretending that node was offline.
-  While this technically deviates from interatively doing what hail does,
+  While this technically deviates from interactively doing what hail does,
   it should still give a reasonable estimate of the cluster capacity without
   significantly increasing the algorithmic complexity.

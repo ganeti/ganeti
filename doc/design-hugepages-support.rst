@@ -37,7 +37,7 @@ cluster level via the hypervisor parameter ``mem_path`` as::
 This hypervisor parameter is inherited by all the instances as
 default although it can be overriden at the instance level.
 
-The following changes will be made to the inheritence behaviour.
+The following changes will be made to the inheritance behaviour.
 
 -  The hypervisor parameter   ``mem_path`` and all other hypervisor
    parameters will be made available at the node group level (in
@@ -47,7 +47,7 @@ The following changes will be made to the inheritence behaviour.
 	$ gnt-group add/modify\
 	> -H hv:parameter=value
 
-   This changes the hypervisor inheritence level as::
+   This changes the hypervisor inheritance level as::
 
      cluster -> group -> OS -> instance
 

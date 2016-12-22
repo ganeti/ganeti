@@ -42,7 +42,7 @@ weight of 0.25, so that counting current violations still dominate.
 
 Another consequence of this metric change is that the value 0 is no longer
 obtainable: as soon as we have DRBD instance, we have to reserve memory.
-However, in most cases only differences of scores influence decissions made.
+However, in most cases only differences of scores influence decisions made.
 In the few cases, were absolute values of the cluster score are specified,
 they are interpreted as relative to the theoretical minimum of the reserved
 memory score.

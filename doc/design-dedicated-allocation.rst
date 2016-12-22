@@ -61,7 +61,7 @@ instance sizes.
 
 If allocating in a node group with ``exclusive_storage`` set
 to true, hail will try to minimise the pair of the lost-allocations
-vector and the remaining disk space on the node afer, ordered
+vector and the remaining disk space on the node after, ordered
 lexicographically.
 
 Example

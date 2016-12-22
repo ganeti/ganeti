@@ -42,7 +42,7 @@ the currently implemented disk templates: ``blockdev``, ``diskless``, ``drbd``,
 ``ext``, ``file``, ``plain``, ``rbd``, and ``sharedfile``. See
 ``DISK_TEMPLATES`` in ``constants.py``.
 
-Note that the abovementioned list of enabled disk types is just a "mechanism"
+Note that the above-mentioned list of enabled disk types is just a "mechanism"
 parameter that defines which disk templates the cluster can use. Further
 filtering about what's allowed can go in the ipolicy, which is not covered in
 this design doc. Note that it is possible to force an instance to use a disk

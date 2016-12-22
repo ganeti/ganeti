@@ -80,7 +80,7 @@ one:
   The IP address the ConfD daemon is listening on.
 
 -p *port-number*, \--port=*port-number*
-  The port the ConfD deamon is listening on.
+  The port the ConfD daemon is listening on.
 
 LOGICAL VOLUMES
 ~~~~~~~~~~~~~~~
@@ -100,7 +100,7 @@ where the daemon is listening, in case it's not the default one:
   The IP address the ConfD daemon is listening on.
 
 -p *port-number*, \--port=*port-number*
-  The port the ConfD deamon is listening on.
+  The port the ConfD daemon is listening on.
 
 Instead of accessing the live data on the cluster, the tool can also read data
 serialized on files (mainly for testing purposes). Namely:

@@ -629,7 +629,7 @@ in these structures:
 +---------------+----------------------------------+--------------+
 |disk_size      |Allowed disk size                 |int           |
 +---------------+----------------------------------+--------------+
-|nic_count      |Alowed NIC count                  |int           |
+|nic_count      |Allowed NIC count                 |int           |
 +---------------+----------------------------------+--------------+
 
 Inheritance
@@ -709,7 +709,7 @@ brackets.
 +========+==============+=========================+=====================+======+
 |plain   |stripes       |How many stripes to use  |Configured at        |int   |
 |        |              |for newly created (plain)|./configure time, not|      |
-|        |              |logical voumes           |overridable at       |      |
+|        |              |logical volumes          |overridable at       |      |
 |        |              |                         |runtime              |      |
 +--------+--------------+-------------------------+---------------------+------+
 |drbd    |data-stripes  |How many stripes to use  |Same as for          |int   |
@@ -829,7 +829,7 @@ For the new memory model, we'll add the following parameters, in a
 dictionary indexed by the hypervisor name (node attribute
 ``hv_state``). The rationale is that, even though multi-hypervisor
 clusters are rare, they make sense sometimes, and thus we need to
-support multipe node states (one per hypervisor).
+support multiple node states (one per hypervisor).
 
 Since usually only one of the multiple hypervisors is the 'main' one
 (and the others used sparringly), capacity computation will still only
@@ -893,7 +893,7 @@ are at node group level); the proposal is to do this via a cluster-level
 
 Beside the per-hypervisor attributes, we also have disk attributes,
 which are queried directly on the node (without hypervisor
-involvment). The are stored in a separate attribute (``disk_state``),
+involvement). The are stored in a separate attribute (``disk_state``),
 which is indexed per storage type and name; currently this will be just
 ``DT_PLAIN`` and the volume name as key.
 

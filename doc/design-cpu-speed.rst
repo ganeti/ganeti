@@ -20,7 +20,7 @@ instances, even for a cluster not running at full capacity.
 
 For for one resources, however, hardware differences are not taken into
 account: CPU speed. For CPU, the load is measured by the ratio of used virtual
-to physical CPUs on the node. Balancing this measure implictly assumes
+to physical CPUs on the node. Balancing this measure implicitly assumes
 equal speed of all CPUs.
 
 

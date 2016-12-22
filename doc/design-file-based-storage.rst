@@ -131,7 +131,7 @@ Disadvantages:
 
 * stable, but not as much tested as loopback driver
 
-3) ubklback driver
+3) ublkback driver
 ^^^^^^^^^^^^^^^^^^
 
 The Xen Roadmap states "Work is well under way to implement a
@@ -365,6 +365,6 @@ the file-based disk-template.
 Other hypervisors
 +++++++++++++++++
 
-Other hypervisors have mostly differnet ways to make storage available
+Other hypervisors have mostly different ways to make storage available
 to their virtual instances/machines. This is beyond the scope of this
 document.
