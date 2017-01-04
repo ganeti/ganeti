@@ -2,6 +2,10 @@
 GlusterFS Ganeti support
 ========================
 
+:Created: 2013-Jun-24
+:Status: Implemented
+:Ganeti-Version: 2.11.0
+
 This document describes the plan for adding GlusterFS support inside Ganeti.
 
 .. contents:: :depth: 4

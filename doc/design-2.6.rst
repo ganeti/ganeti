@@ -6,6 +6,7 @@ The following design documents have been implemented in Ganeti 2.6:
 
 - :doc:`design-cpu-pinning`
 - :doc:`design-ovf-support`
+- :doc:`design-resource-model`
 
 .. vim: set textwidth=72 :
 .. Local Variables:

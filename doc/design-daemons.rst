@@ -2,6 +2,10 @@
 Ganeti daemons refactoring
 ==========================
 
+:Created: 2013-Sep-27
+:Status: Implemented
+:Ganeti-Version: 2.12.0
+
 .. contents:: :depth: 2
 
 This is a design document detailing the plan for refactoring the internal

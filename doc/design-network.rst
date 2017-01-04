@@ -2,6 +2,10 @@
 Network management
 ==================
 
+:Created: 2011-Jun-17
+:Status: Partially Implemented
+:Ganeti-Version: 2.7.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of network resource

@@ -2,6 +2,10 @@
 Ganeti Instance Import/Export using Open Virtualization Format
 ==============================================================
 
+:Created: 2011-Jul-22
+:Status: Implemented
+:Ganeti-Version: 2.6.0
+
 Background
 ==========
 

@@ -2,6 +2,10 @@
 Design for supporting custom SSH ports for nodes
 ================================================
 
+:Created: 2013-Nov-08
+:Status: Implemented
+:Ganeti-Version: 2.11.0
+
 .. contents:: :depth: 4
 
 This design document describes the intention of supporting running SSH servers

@@ -2,6 +2,10 @@
 Multi-version tests
 ===================
 
+:Created: 2013-Oct-30
+:Status: Implemented
+:Ganeti-Version: 2.11.0
+
 .. contents:: :depth: 4
 
 This is a design document describing how tests which use multiple

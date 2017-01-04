@@ -2,6 +2,10 @@
 Ganeti Bulk Create
 ==================
 
+:Created: 2012-Sep-03
+:Status: Implemented
+:Ganeti-Version: 2.7.0
+
 .. contents:: :depth: 4
 .. highlight:: python
 

@@ -2,6 +2,10 @@
 Taking relative CPU speed into account
 ======================================
 
+:Created: 2014-Apr-17
+:Status: Implemented
+:Ganeti-Version: 2.12.0
+
 .. contents:: :depth: 4
 
 This document describes the suggested addition of a new

@@ -2,6 +2,11 @@
 Design for import/export version 2
 ==================================
 
+:Created: 2011-Mar-23
+:Status: Draft
+:Depends-On: - :doc:`design-x509-ca`
+             - :doc:`design-http-server`
+
 .. contents:: :depth: 4
 
 Current state and shortcomings

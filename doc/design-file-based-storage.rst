@@ -2,6 +2,10 @@
 File-based Storage
 ==================
 
+:Created: 2014-Jan-27
+:Status: Implemented
+:Ganeti-Version: 2.0.0
+
 This page describes the proposed file-based storage for the 2.0 version
 of Ganeti. The project consists in extending Ganeti in order to support
 a filesystem image as Virtual Block Device (VBD) in Dom0 as the primary

@@ -2,6 +2,10 @@
 Moving instances across node groups
 ===================================
 
+:Created: 2011-Mar-28
+:Status: Implemented
+:Ganeti-Version: 2.5.0
+
 This design document explains the changes needed in Ganeti to perform
 instance moves across node groups. Reader familiarity with the following
 existing documents is advised:

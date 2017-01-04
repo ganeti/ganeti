@@ -2,6 +2,10 @@
 N+1 redundancy for shared storage
 =================================
 
+:Created: 2015-Apr-13
+:Status: Partially Implemented
+:Ganeti-Version: 2.15
+
 .. contents:: :depth: 4
 
 This document describes how N+1 redundancy is achieved

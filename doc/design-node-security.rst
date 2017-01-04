@@ -2,6 +2,10 @@
 Improvements of Node Security
 =============================
 
+:Created: 2013-Dec-05
+:Status: Partially Implemented
+:Ganeti-Version: 2.11.0, 2.12.0, 2.13.0
+
 This document describes an enhancement of Ganeti's security by restricting
 the distribution of security-sensitive data to the master and master
 candidates only.

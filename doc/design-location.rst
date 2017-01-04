@@ -2,6 +2,10 @@
 Improving location awareness of Ganeti
 ======================================
 
+:Created: 2014-Jul-22
+:Status: Partially Implemented
+:Ganeti-Version: 2.13.0, 2.14.0
+
 This document describes an enhancement of Ganeti's instance
 placement by taking into account that some nodes are vulnerable
 to common failures.

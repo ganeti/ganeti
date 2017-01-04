@@ -2,6 +2,10 @@
 Linux HA integration
 ====================
 
+:Created: 2013-Oct-24
+:Status: Implemented
+:Ganeti-Version: 2.7.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the integration of Ganeti and Linux HA.

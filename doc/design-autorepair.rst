@@ -2,6 +2,10 @@
 Instance auto-repair
 ====================
 
+:Created: 2012-Sep-03
+:Status: Implemented
+:Ganeti-Version: 2.8.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of self-repair and

@@ -2,6 +2,10 @@
 Allocation for Partitioned Ganeti
 =================================
 
+:Created: 2015-Jan-22
+:Status: Implemented
+:Ganeti-Version: 2.15.0
+
 .. contents:: :depth: 4
 
 

@@ -2,6 +2,10 @@
 Ganeti Node OOB Management Framework
 ====================================
 
+:Created: 2010-Nov-04
+:Status: Implemented
+:Ganeti-Version: 2.4.0
+
 Objective
 ---------
 

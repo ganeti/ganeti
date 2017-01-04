@@ -2,6 +2,9 @@
  Resource model changes
 ========================
 
+:Created: 2011-Oct-12
+:Status: Implemented
+:Ganeti-Version: 2.6.0
 
 Introduction
 ============

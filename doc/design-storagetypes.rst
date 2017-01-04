@@ -2,6 +2,10 @@
 Management of storage types and disk templates, incl. storage space reporting
 =============================================================================
 
+:Created: 2013-Feb-15
+:Status: Implemented
+:Ganeti-Version: 2.8.0, 2.9.0, 2.10.0
+
 .. contents:: :depth: 4
 
 Background

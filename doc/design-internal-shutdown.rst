@@ -2,6 +2,10 @@
 Detection of user-initiated shutdown from inside an instance
 ============================================================
 
+:Created: 2011-Mar-23
+:Status: Partially Implemented
+:Ganeti-Version: 2.10.0, 2.11.0
+
 .. contents:: :depth: 2
 
 This is a design document detailing the implementation of a way for Ganeti to

@@ -2,6 +2,10 @@
 Chained jobs
 ============
 
+:Created: 2011-Jul-14
+:Status: Implemented
+:Ganeti-Version: 2.5.0
+
 .. contents:: :depth: 4
 
 This is a design document about the innards of Ganeti's job processing.

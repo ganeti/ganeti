@@ -2,6 +2,10 @@
 Ganeti monitoring agent
 =======================
 
+:Created: 2012-Oct-18
+:Status: Implemented
+:Ganeti-Version: 2.7.0, 2.8.0, 2.9.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of a Ganeti

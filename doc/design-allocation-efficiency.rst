@@ -2,6 +2,10 @@
 Improving allocation efficiency by considering the total reserved memory
 =========================================================================
 
+:Created: 2015-Mar-19
+:Status: Implemented
+:Ganeti-Version: 2.15.0
+
 This document describes a change to the cluster metric to enhance
 the allocation efficiency of Ganeti's ``htools``.
 

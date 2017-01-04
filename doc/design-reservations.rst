@@ -2,6 +2,10 @@
 Instance Reservations
 =====================
 
+:Created: 2014-Jul-22
+:Status: Partially Implemented
+:Ganeti-Version: 2.12.0, 2.14.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the addition of a concept

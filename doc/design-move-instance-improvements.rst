@@ -2,6 +2,10 @@
 Instance move improvements
 ========================================
 
+:Created: 2014-Apr-11
+:Status: Partially Implemented
+:Ganeti-Version: 2.12.0
+
 .. contents:: :depth: 3
 
 Ganeti provides tools for moving instances within and between clusters. Through

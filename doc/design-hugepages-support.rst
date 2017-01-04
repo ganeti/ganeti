@@ -1,6 +1,12 @@
 ===============================
 Huge Pages Support for Ganeti
 ===============================
+
+:Created: 2013-Jul-17
+:Status: Draft
+
+.. contents:: :depth: 4
+
 This is a design document about implementing support for huge pages in
 Ganeti. (Please note that Ganeti works with Transparent Huge Pages i.e.
 THP and any reference in this document to Huge Pages refers to explicit

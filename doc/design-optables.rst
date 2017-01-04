@@ -2,6 +2,10 @@
 Filtering of jobs for the Ganeti job queue
 ==========================================
 
+:Created: 2013-Jul-24
+:Status: Implemented
+:Ganeti-Version: 2.13.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the semantics of the fine-grained control

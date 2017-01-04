@@ -2,6 +2,10 @@
 Automatized Upgrade Procedure for Ganeti
 ========================================
 
+:Created: 2013-Aug-20
+:Status: Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the proposed changes to the

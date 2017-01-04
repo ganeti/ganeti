@@ -2,6 +2,10 @@
 Ganeti shared storage support
 =============================
 
+:Created: 2011-Mar-01
+:Status: Implemented
+:Ganeti-Version: 2.7.0
+
 This document describes the changes in Ganeti 2.3+ compared to Ganeti
 2.3 storage model. It also documents the ExtStorage Interface.
 

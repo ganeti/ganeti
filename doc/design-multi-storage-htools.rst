@@ -2,6 +2,9 @@
 HTools support for multiple storage units per node
 ==================================================
 
+:Created: 2015-Jan-21
+:Status: Draft
+
 .. contents:: :depth: 4
 
 This design document describes changes to hbal and related components (first

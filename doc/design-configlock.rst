@@ -2,6 +2,10 @@
 Removal of the Config Lock Overhead
 ===================================
 
+:Created: 2013-Jul-22
+:Status: Partially Implemented
+:Ganeti-Version: 2.14.0, 2.15.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing how the adverse effect of
