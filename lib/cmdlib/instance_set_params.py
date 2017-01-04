@@ -994,9 +994,9 @@ class LUInstanceSetParams(LogicalUnit):
                    else self.instance.os)
 
     if compat.any(
-        self.op.osparams, self.op.osparams_private,
-        self.op.clear_osparams, self.op.clear_osparams_private,
-        self.op.remove_osparams, self.op.remove_osparams_private):
+        [self.op.osparams, self.op.osparams_private,
+         self.op.clear_osparams, self.op.clear_osparams_private,
+         self.op.remove_osparams, self.op.remove_osparams_private]):
       public_parms = self.op.osparams or {}
       private_parms = self.op.osparams_private or {}
       remove_osparams = self.op.remove_osparams or []
