@@ -1814,6 +1814,9 @@ hvUsbMouse = "usb_mouse"
 hvUseBootloader :: String
 hvUseBootloader = "use_bootloader"
 
+hvUseGuestAgent :: String
+hvUseGuestAgent = "use_guest_agent"
+
 hvUseLocaltime :: String
 hvUseLocaltime = "use_localtime"
 
@@ -1948,6 +1951,7 @@ hvsParameterTypes = Map.fromList
   , (hvUsbDevices,                      VTypeString)
   , (hvUsbMouse,                        VTypeString)
   , (hvUseBootloader,                   VTypeBool)
+  , (hvUseGuestAgent,                   VTypeBool)
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
@@ -4099,6 +4103,7 @@ hvcDefaults =
           , (hvMigrationBandwidth,              PyValueEx (32 :: Int))
           , (hvMigrationDowntime,               PyValueEx (30 :: Int))
           , (hvMigrationMode,                   PyValueEx htMigrationLive)
+          , (hvUseGuestAgent,                   PyValueEx False)
           , (hvUseLocaltime,                    PyValueEx False)
           , (hvDiskCache,                       PyValueEx htCacheDefault)
           , (hvSecurityModel,                   PyValueEx htSmNone)
