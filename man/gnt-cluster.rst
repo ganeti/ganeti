@@ -209,6 +209,7 @@ INIT
 | [\--user-shutdown {yes \| no}]
 | [\--ssh-key-type *type*]
 | [\--ssh-key-bits *bits*]
+| [\--predictive-queue {yes \| no}]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -651,6 +652,10 @@ options **ssh-keygen**\(1) exposes. These are currently:
 
 Ganeti defaults to using 2048-bit RSA keys.
 
+The ``--predictive-queue`` option enables or disables the predictive
+queue algorithm for the job scheduler. If this option is not specified,
+Ganeti defaults to enabling the predictive scheduler.
+
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
@@ -751,6 +756,8 @@ MODIFY
 | [\--auto-balance-cluster {yes \| no }]
 | [\--auto-balance-threshold *score* ]
 | [\--diagnose-data-collector-filename *filename*]
+| [\--predictive-queue {yes \| no}]
+
 
 
 Modify the options for the cluster.
@@ -839,6 +846,9 @@ that move is at least the value specified by ``--auto-balance-threshold``
 in absolute terms, unless the cluster score it at least 10 times that
 value, in which case all beneficial steps will be done if auto-balancing
 is enabled.
+
+The ``--predictive-queue`` option enables or disables the predictive
+queue algorithm for the job scheduler.
 
 See **gnt-cluster init** for a description of ``--install-image`` and
 ``--zeroing-image``.

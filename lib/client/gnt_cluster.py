@@ -309,6 +309,11 @@ def InitCluster(opts, args):
 
   enabled_user_shutdown = bool(opts.enabled_user_shutdown)
 
+  if opts.enabled_predictive_queue  is not None:
+    enabled_predictive_queue = bool(opts.enabled_predictive_queue)
+  else:
+    enabled_predictive_queue = True # Predictive queue is enabled by default.
+
   if opts.ssh_key_type:
     ssh_key_type = opts.ssh_key_type
   else:
@@ -353,6 +358,7 @@ def InitCluster(opts, args):
                         enabled_user_shutdown=enabled_user_shutdown,
                         ssh_key_type=ssh_key_type,
                         ssh_key_bits=ssh_key_bits,
+                        enabled_predictive_queue=enabled_predictive_queue,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -635,6 +641,7 @@ def ShowClusterConfig(opts, args):
       ("modify ssh setup", result["modify_ssh_setup"]),
       ("ssh_key_type", result["ssh_key_type"]),
       ("ssh_key_bits", result["ssh_key_bits"]),
+      ("enabled predictive queue", result["enabled_predictive_queue"])
       ]),
 
     ("Default node parameters",
@@ -1416,7 +1423,8 @@ def SetClusterParams(opts, args):
           opts.maint_balance_threshold is not None or
           opts.data_collector_interval or
           opts.diagnose_data_collector_filename is not None or
-          opts.enabled_data_collectors):
+          opts.enabled_data_collectors or
+          opts.enabled_predictive_queue is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1567,7 +1575,8 @@ def SetClusterParams(opts, args):
     maint_balance_threshold=opts.maint_balance_threshold,
     enabled_data_collectors=enabled_data_collectors,
     data_collector_interval=data_collector_interval,
-    diagnose_data_collector_filename=opts.diagnose_data_collector_filename
+    diagnose_data_collector_filename=opts.diagnose_data_collector_filename,
+    enabled_predictive_queue=opts.enabled_predictive_queue
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2506,6 +2515,7 @@ commands = {
      IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, INSTALL_IMAGE_OPT,
      ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT,
      ENABLED_USER_SHUTDOWN_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT,
+     ENABLED_PREDICTIVE_QUEUE_OPT,
      ]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
@@ -2591,7 +2601,8 @@ commands = {
      PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
      DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT,
-      MODIFY_SSH_SETUP_OPT, ENABLED_USER_SHUTDOWN_OPT] +
+      MODIFY_SSH_SETUP_OPT, ENABLED_USER_SHUTDOWN_OPT,
+      ENABLED_PREDICTIVE_QUEUE_OPT] +
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +

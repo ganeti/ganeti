@@ -167,6 +167,12 @@ getMaxRunningJobs = getConfigValue clusterMaxRunningJobs 1
 getMaxTrackedJobs :: JQStatus -> IO Int
 getMaxTrackedJobs = getConfigValue clusterMaxTrackedJobs 1
 
+-- | Get the boolean that specifies whether or not the predictive queue
+-- scheduler is enabled in the cluster. If the configuration is not available,
+-- the predictive queue is enabled by default.
+getEnabledPredictiveQueue :: JQStatus -> IO Bool
+getEnabledPredictiveQueue = getConfigValue clusterEnabledPredictiveQueue True
+
 -- | Get the number of jobs currently running.
 getRQL :: JQStatus -> IO Int
 getRQL = liftM (length . qRunning) . readIORef . jqJobs
@@ -348,18 +354,22 @@ sortByStaticLocks cfg queue currTime = sortBy (compare `on` opWeight)
 -- pure function doing the scheduling.
 selectJobsToRun :: ConfigData
                 -> Int -- How many jobs are allowed to run at the same time.
+                -> Bool -- If the predictive scheduler is enabled
                 -> Timestamp -- Current time
                 -> Set FilterRule -- Filter rules to respect for scheduling
                 -> Queue
                 -> (Queue, [JobWithStat])
-selectJobsToRun cfg count currTime filters queue =
+selectJobsToRun cfg count isPredictive currTime filters queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
+      pickScheduler = if isPredictive
+                         then sortByStaticLocks cfg queue currTime
+                         else id
       chosen = take n
                . jobFiltering queue filters
                . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
-               . sortByStaticLocks cfg queue currTime
+               . pickScheduler
                $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
@@ -456,8 +466,10 @@ scheduleSomeJobs qstate = do
 
       -- Select the jobs to run.
       count <- getMaxRunningJobs qstate
-      chosen <- atomicModifyIORef (jqJobs qstate)
-                                  (selectJobsToRun cfg count ts filters)
+      isPredictive <- getEnabledPredictiveQueue qstate
+      let jobsToRun = selectJobsToRun cfg count isPredictive ts filters
+      chosen <- atomicModifyIORef (jqJobs qstate) jobsToRun
+
       let jobs = map jJob chosen
       unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
         $ map (show . fromJobId . qjId) jobs

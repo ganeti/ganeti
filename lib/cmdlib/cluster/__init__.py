@@ -1770,6 +1770,9 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.enabled_user_shutdown = self.op.enabled_user_shutdown
       ensure_kvmd = True
 
+    if self.op.enabled_predictive_queue is not None:
+      self.cluster.enabled_predictive_queue = self.op.enabled_predictive_queue
+
     def helper_os(aname, mods, desc):
       desc += " OS list"
       lst = getattr(self.cluster, aname)

@@ -1710,6 +1710,7 @@ class Cluster(TaggableObject):
     "diagnose_data_collector_filename",
     "ssh_key_type",
     "ssh_key_bits",
+    "enabled_predictive_queue",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):

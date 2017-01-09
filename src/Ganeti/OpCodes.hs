@@ -271,6 +271,7 @@ $(genOpCode "OpCode"
      , pMaintdRoundDelay
      , pMaintdEnableBalancing
      , pMaintdBalancingThreshold
+     , pEnabledPredictiveQueue
      ],
      [])
   , ("OpClusterRedistConf",

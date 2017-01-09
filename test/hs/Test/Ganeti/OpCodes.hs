@@ -265,6 +265,7 @@ genOpCodeFromId op_id cfg =
         <*> genMaybe (fromPositive <$> arbitrary) -- maintd round interval
         <*> genMaybe arbitrary           -- enable maintd balancing
         <*> genMaybe arbitrary           -- maintd balancing threshold
+        <*> arbitrary                    -- enabled_predictive_queue
     "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
     "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
       pure OpCodes.OpClusterActivateMasterIp

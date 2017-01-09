@@ -321,6 +321,7 @@ module Ganeti.OpParams
   , pVerifyClutter
   , pLongSleep
   , pIsStrict
+  , pEnabledPredictiveQueue
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -2030,3 +2031,9 @@ pIsStrict =
   withDoc "Whether the operation is in strict mode or not." .
   defaultField [| True |] $
   simpleField "is_strict" [t| Bool |]
+
+pEnabledPredictiveQueue :: Field
+pEnabledPredictiveQueue =
+  withDoc "Whether the predictive queue is enabled in the cluster." .
+  optionalField $
+  simpleField "enabled_predictive_queue" [t| Bool |]

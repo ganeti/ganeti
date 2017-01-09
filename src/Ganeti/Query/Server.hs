@@ -289,6 +289,8 @@ handleCall _ _ cdata QueryClusterInfo =
                showJSON $ clusterModifySshSetup cluster)
             , ("ssh_key_type", showJSON $ clusterSshKeyType cluster)
             , ("ssh_key_bits", showJSON $ clusterSshKeyBits cluster)
+            , ("enabled_predictive_queue",
+               showJSON $ clusterEnabledPredictiveQueue cluster)
             ]
 
   in case master of

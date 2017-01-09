@@ -88,6 +88,7 @@ __all__ = [
   "DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT",
   "ENABLED_DISK_TEMPLATES_OPT",
   "ENABLED_HV_OPT",
+  "ENABLED_PREDICTIVE_QUEUE_OPT",
   "ENABLED_USER_SHUTDOWN_OPT",
   "ERROR_CODES_OPT",
   "EXT_PARAMS_OPT",
@@ -1117,6 +1118,13 @@ ENABLED_DISK_TEMPLATES_OPT = cli_option("--enabled-disk-templates",
                                         help="Comma-separated list of "
                                              "disk templates",
                                         type="string", default=None)
+
+ENABLED_PREDICTIVE_QUEUE_OPT = cli_option("--predictive-queue",
+                                          default=None,
+                                          dest="enabled_predictive_queue",
+                                          help="Whether the predictive queue is"
+                                               "enabled",
+                                          type="bool")
 
 ENABLED_USER_SHUTDOWN_OPT = cli_option("--user-shutdown",
                                        default=None,
