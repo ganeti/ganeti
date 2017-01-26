@@ -3041,6 +3041,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          instance_name=inst.name,
                          disks=[[constants.DDM_REMOVE, -1,
                                  {}]])
+    self.rpc.call_instance_info.side_effect = [
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
+    ]
     self.rpc.call_file_storage_dir_remove.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master)
@@ -3055,6 +3059,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          instance_name=inst.name,
                          disks=[[constants.DDM_REMOVE, -1,
                                  {}]])
+    self.rpc.call_instance_info.side_effect = [
+      self.RpcResultsBuilder()
+        .CreateSuccessfulNodeResult(self.master)
+    ]
     self.rpc.call_file_storage_dir_remove.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master)
