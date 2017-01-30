@@ -265,10 +265,8 @@ def ShowNetworkConfig(_, args):
     if instances:
       ToStdout("  used by %d instances:", len(instances))
       for name in instances:
-        ((ips, networks), ) = cl.QueryInstances([name],
-                                                ["nic.ips", "nic.networks"],
-                                                use_locking=False)
-
+        (ips, networks) = cl.QueryInstances([name], ["nic.ips", "nic.networks"],
+                                            use_locking=False)[0]
         l = lambda value: ", ".join(str(idx) + ":" + str(ip)
                                     for idx, (ip, net) in enumerate(value)
                                       if net == uuid)

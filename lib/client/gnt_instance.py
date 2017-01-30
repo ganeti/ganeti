@@ -877,7 +877,7 @@ def ConnectToInstanceConsole(opts, args):
 
   del cl
 
-  ((console_data, oper_state), ) = idata
+  (console_data, oper_state) = idata[0]
   if not console_data:
     if oper_state:
       # Instance is running
