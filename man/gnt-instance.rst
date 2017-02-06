@@ -649,6 +649,15 @@ disk\_aio
     so if not explicitly specified, the native mode will not
     be used. Possible values are: threads or native.
 
+disk\_discard
+    Valid for the KVM hypervisor.
+
+    discard is one of "ignore", "unmap" or "default" and controls whether
+    discard (also known as trim or unmap) requests are ignored or passed
+    to the filesystem. Some machine types may not support discard requests.
+    For compatibility with older qemu versions "default" will not pass any
+    discard option to KVM.
+
 security\_model
     Valid for the KVM hypervisor.
 

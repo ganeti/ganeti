@@ -488,6 +488,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_KVM_SCSI_CONTROLLER_TYPE:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_SCSI_CONTROLLER_TYPES),
+    constants.HV_DISK_DISCARD:
+      hv_base.ParamInSet(False, constants.HT_VALID_DISCARD_TYPES),
     constants.HV_KVM_CDROM_DISK_TYPE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
@@ -1112,6 +1114,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       aio_val = ",aio=%s" % aio_mode
     else:
       aio_val = ""
+    # discard mode
+    discard_mode = up_hvp[constants.HV_DISK_DISCARD]
+    if discard_mode == constants.HT_DISCARD_DEFAULT:
+      discard_val = ""
+    else:
+      discard_val = ",discard=%s" % discard_mode
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
@@ -1139,8 +1147,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
-      drive_val = "file=%s,format=raw%s%s%s%s" % \
-                  (drive_uri, if_val, boot_val, cache_val, aio_val)
+      drive_val = "file=%s,format=raw%s%s%s%s%s" % \
+                  (drive_uri, if_val, boot_val, cache_val, aio_val, discard_val)
 
       # virtio-blk-pci case
       if device_driver is not None:
