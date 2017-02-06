@@ -1342,7 +1342,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                               (GANETI_RAPI_VERSION, instance)), query, body)
 
   def MigrateInstance(self, instance, mode=None, cleanup=None,
-                      target_node=None, reason=None):
+                      target_node=None, reason=None, allow_failover=None):
     """Migrates an instance.
 
     @type instance: string
@@ -1355,6 +1355,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param target_node: Target Node for externally mirrored instances
     @type reason: string
     @param reason: the reason for executing this operation
+    @type allow_failover: bool
+    @param allow_failover: Whether to fallback to failover if migration is not
+      possible
     @rtype: string
     @return: job id
 
@@ -1363,6 +1366,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _SetItemIf(body, mode is not None, "mode", mode)
     _SetItemIf(body, cleanup is not None, "cleanup", cleanup)
     _SetItemIf(body, target_node is not None, "target_node", target_node)
+    _SetItemIf(body, allow_failover is not None, "allow_failover", allow_failover)
 
     query = []
     _AppendReason(query, reason)
