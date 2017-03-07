@@ -166,6 +166,7 @@
 /src/ganeti-wconfd
 /src/ganeti-kvmd
 /src/ganeti-luxid
+/src/ganeti-maintd
 /src/ganeti-metad
 /src/ganeti-mond
 /src/rpc-test
