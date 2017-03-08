@@ -1020,8 +1020,6 @@ class RADOSBlockDevice(base.BlockDev):
       showmap_cmd = [
         constants.RBD_CMD,
         "showmapped",
-        "-p",
-        pool,
         "--format",
         "json"
         ]
@@ -1032,7 +1030,7 @@ class RADOSBlockDevice(base.BlockDev):
                       result.fail_reason, result.output)
         raise RbdShowmappedJsonError
 
-      return cls._ParseRbdShowmappedJson(result.output, volume_name)
+      return cls._ParseRbdShowmappedJson(result.output, pool, volume_name)
     except RbdShowmappedJsonError:
       # For older versions of rbd, we have to parse the plain / text output
       # manually.
@@ -1045,7 +1043,7 @@ class RADOSBlockDevice(base.BlockDev):
       return cls._ParseRbdShowmappedPlain(result.output, volume_name)
 
   @staticmethod
-  def _ParseRbdShowmappedJson(output, volume_name):
+  def _ParseRbdShowmappedJson(output, volume_pool, volume_name):
     """Parse the json output of `rbd showmapped'.
 
     This method parses the json output of `rbd showmapped' and returns the rbd
@@ -1053,8 +1051,10 @@ class RADOSBlockDevice(base.BlockDev):
 
     @type output: string
     @param output: the json output of `rbd showmapped'
+    @type volume_pool: string
+    @param volume_pool: name of the volume whose device we search for
     @type volume_name: string
-    @param volume_name: the name of the volume whose device we search for
+    @param volume_name: name of the pool in which we search
     @rtype: string or None
     @return: block device path if the volume is mapped, else None
 
@@ -1071,7 +1071,12 @@ class RADOSBlockDevice(base.BlockDev):
       except KeyError:
         base.ThrowError("'name' key missing from json object %s", devices)
 
-      if name == volume_name:
+      try:
+        pool = d["pool"]
+      except KeyError:
+        base.ThrowError("'pool' key missing from json object %s", devices)
+
+      if name == volume_name and pool == volume_pool:
         if rbd_dev is not None:
           base.ThrowError("rbd volume %s is mapped more than once", volume_name)
 
