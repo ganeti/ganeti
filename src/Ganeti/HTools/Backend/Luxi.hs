@@ -136,7 +136,7 @@ queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRInstance)
      ["name", "disk_usage", "be/memory", "be/vcpus",
-      "status", "pnode", "snodes", "tags", "oper_ram",
+      "status", "pnode", "snodes", "tags",
       "be/auto_balance", "disk_template",
       "be/spindle_use", "disk.sizes", "disk.spindles",
       "forthcoming"] Qlang.EmptyFilter
@@ -179,15 +179,13 @@ parseInstance :: NameAssoc
               -> [(JSValue, JSValue)]
               -> Result (String, Instance.Instance)
 parseInstance ktn [ name, disk, mem, vcpus
-                  , status, pnode, snodes, tags, oram
+                  , status, pnode, snodes, tags
                   , auto_balance, disk_template, su
                   , dsizes, dspindles, forthcoming ] = do
   xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
-  xmem <- case oram of -- FIXME: remove the "guessing"
-            (_, JSRational _ _) -> convert "oper_ram" oram
-            _ -> convert "be/memory" mem
+  xmem <- convert "be/memory" mem
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
   xsnodes <- convert "snodes" snodes::Result [String]
