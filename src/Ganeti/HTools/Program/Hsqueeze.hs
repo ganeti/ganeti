@@ -84,6 +84,7 @@ options = do
     , oPrintCommands
     , oVerbose
     , oNoHeaders
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.

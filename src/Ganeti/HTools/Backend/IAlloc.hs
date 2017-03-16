@@ -203,8 +203,9 @@ parseGroup u a = do
 -- value.
 parseData :: ClockTime -- ^ The current time
           -> String -- ^ The JSON message as received from Ganeti
+          -> Int -- ^ Static node memory size, see optStaticKvmNodeMemory
           -> Result ([String], Request) -- ^ Result tuple
-parseData now body = do
+parseData now body static_n_mem = do
   decoded <- fromJResult "Parsing input IAllocator message" (decodeStrict body)
   let obj = fromJSObject decoded
       extrObj x = tryFromObj "invalid iallocator message" obj x
@@ -233,8 +234,19 @@ parseData now body = do
       dsrd_loc_tags = extractDesiredLocations ctags
       updateTags = updateExclTags ex_tags .
                    updateDesiredLocationTags dsrd_loc_tags
-  cdata1 <- mergeData [] [] [] [] now (ClusterData gl nl il ctags defIPolicy)
-  let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
+  -- hypervisor
+  enabled_hypervisors <- extrObj "enabled_hypervisors"
+  -- This is ugly, unfortunately the  IAllocator "API" (which is a CLI not an
+  -- API to be precise) is different from other htools backends that receive
+  -- the 'default_hypervisor' field. Normally there is no reason to have
+  -- more than one hypervisor so in practice this should be fine. Ganeti 2.17
+  -- exports the hv_stat per node field with the missing information.
+  -- TODO: Remove, once the caller can get the correct nodes size on KVM.
+  let nl2 = case enabled_hypervisors of
+              hv : _ -> Container.map (`Node.setHypervisor` hv) nl
+              _ -> nl
+  cdata1 <- mergeData [] [] [] [] now (ClusterData gl nl2 il ctags defIPolicy)
+  let (msgs, fix_nl) = updateMissing (cdNodes cdata1) (cdInstances cdata1) static_n_mem
       cdata = cdata1 { cdNodes = fix_nl }
       map_n = cdNodes cdata
       map_i = cdInstances cdata
@@ -484,13 +496,15 @@ processRequest opts request =
            >>= formatAllocateSecondary il
 
 -- | Reads the request from the data file(s).
-readRequest :: FilePath -> IO Request
-readRequest fp = do
+readRequest :: FilePath -- ^ Path to IAllocator input file
+            -> Int -- ^ Static node memory size, see optStaticKvmNodeMemory
+            -> IO Request
+readRequest fp static_n_mem = do
   now <- getClockTime
   input_data <- case fp of
                   "-" -> getContents
                   _   -> readFile fp
-  case parseData now input_data of
+  case parseData now input_data static_n_mem of
     Bad err -> exitErr err
     Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
 
@@ -512,8 +526,9 @@ runIAllocator :: AlgorithmOptions
 runIAllocator opts request = formatIAllocResult $ processRequest opts request
 
 -- | Load the data from an iallocation request file
-loadData :: FilePath -- ^ The path to the file
+loadData :: FilePath -- ^ Path to IAllocator input file
+         -> Int -- ^ Static node memory size, see optStaticKvmNodeMemory
          -> IO (Result ClusterData)
-loadData fp = do
-  Request _ cdata <- readRequest fp
+loadData fp static_n_mem = do
+  Request _ cdata <- readRequest fp static_n_mem
   return $ Ok cdata

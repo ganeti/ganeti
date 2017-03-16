@@ -85,6 +85,7 @@ options = do
     , oIgnoreNonRedundant
     , oForce
     , oOneStepOnly
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.
