@@ -1,5 +1,7 @@
 language: haskell
 
+sudo: false
+
 addons:
   apt:
     packages: &core_packages
