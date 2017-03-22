@@ -213,8 +213,12 @@ prop_NodeLSIdempotent :: Property
 prop_NodeLSIdempotent =
   forAll (genNode (Just 1) Nothing) $ \node ->
   -- override failN1 to what loadNode returns by default
+  -- override pMem, xMem as they are updated after loading [in updateMemStat]
   let n = Node.setPolicy Types.defIPolicy $
-          node { Node.failN1 = True, Node.offline = False }
+          node { Node.failN1 = True,
+                 Node.offline = False,
+                 Node.pMem = 0,
+                 Node.xMem = 0 }
   in
     (Text.loadNode defGroupAssoc.
          Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==?
@@ -276,7 +280,12 @@ prop_CreateSerialise =
        Ok (_, _, _, [], _) -> counterexample
                               "Failed to allocate: no allocations" False
        Ok (_, nl', il, _, _) ->
-         let cdata = Loader.ClusterData defGroupList nl' il ctags
+         let
+             -- makeSmallCluster created an empty cluster, that had some instances allocated,
+             -- so we need to simulate that the hyperwisor now reports less fMem, otherwise
+             -- Loader.checkData will detect missing memory after deserialization.
+             nl1 = Container.map (\n -> n { Node.fMem = Node.recordedFreeMem n }) nl'
+             cdata = Loader.ClusterData defGroupList nl1 il ctags
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
          in case Text.parseData saved >>= Loader.mergeData [] [] [] [] (TOD 0 0)
@@ -288,7 +297,7 @@ prop_CreateSerialise =
                            , cpol2 ==? Types.defIPolicy
                            , il2 ==? il
                            , gl2 ==? defGroupList
-                           , nl3 ==? nl'
+                           , nl3 ==? nl1
                            ]
 
 testSuite "HTools/Backend/Text"
