@@ -112,7 +112,7 @@ available memory (``amem``)
 
        max(0, umem - rmem)
 
-    so unless we use DRBD, this will be equal to ``fmem``
+    so unless we use DRBD, this will be equal to ``umem``
 
 ``tmem``, ``nmem`` and ``xmem`` are presumed constant during the
 instance moves, whereas the ``fmem``, ``imem``, ``rmem``, ``umem`` and
