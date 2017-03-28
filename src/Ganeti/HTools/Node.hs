@@ -1149,7 +1149,7 @@ missingMem t =
 unallocatedMem :: Node -> Int
 unallocatedMem t =
  let state_of_record = recordedFreeMem t
- in state_of_record - max 0 (missingMem t)
+ in state_of_record - max 0 (xMem t)
 
 -- | Computes the amount of available memory on a given node.
 -- Compared to unallocatedMem, this takes into account also memory reserved for
