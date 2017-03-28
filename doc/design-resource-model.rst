@@ -80,22 +80,43 @@ reserved memory (``rmem``)
     lists is the node's ``rmem``; when not using DRBD, this will be
     equal to zero
 
-unaccounted memory (``xmem``)
+missing memory (``xmem``)
     memory that cannot be unaccounted for via the Ganeti model; this is
-    computed at startup as::
+    computed at startup as:
 
         tmem - imem - nmem - fmem
 
-    and is presumed to remain constant irrespective of any instance
-    moves
+    if we define state-of-record free mem as:
+
+        tmem - imem - nmem
+
+    then we can interpret this as the difference between the state-of-record
+    and state-of-world free memory; it presumed to remain constant irrespective
+    of any instance moves
+
+unallocated memory (``umem``)
+    the memory that is guaranteed to be not allocated to existing processes;
+    in case of a static node model this is simply:
+
+       min(state-of-record_free_mem, fmem)
+
+    since the state-of-record changes during instance placement simulations,
+    we can't use that definition directly (see the above note about missing
+    memory presumed being constant); we need to use an equivalent definiton:
+
+       state-of-record_free_mem - max(0, missing_memory)
 
 available memory (``amem``)
-    this is simply ``fmem - rmem``, so unless we use DRBD, this will be
-    equal to ``fmem``
+    this is defined as a zero bounded difference between unallocated and
+    reserved memory:
+
+       max(0, umem - rmem)
+
+    so unless we use DRBD, this will be equal to ``umem``
 
 ``tmem``, ``nmem`` and ``xmem`` are presumed constant during the
-instance moves, whereas the ``fmem``, ``imem``, ``rmem`` and ``amem``
-values are updated according to the executed moves.
+instance moves, whereas the ``fmem``, ``imem``, ``rmem``, ``umem`` and
+``amem`` values are updated according to the executed moves.
 
 CPU
 ~~~

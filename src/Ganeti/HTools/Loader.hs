@@ -388,11 +388,10 @@ setStaticKvmNodeMem nl static_node_mem =
 -- | Update node memory stat based on instance list.
 updateMemStat :: Node.Node -> Instance.List -> Node.Node
 updateMemStat node il =
-    let missing = truncate (Node.tMem node)
-                  - Node.nMem node
-                  - Node.fMem node
-                  - nodeImem node il
-    in node { Node.xMem = missing }
+  let node2 = node { Node.iMem = nodeImem node il }
+      node3 = node2 { Node.xMem = Node.missingMem node2 }
+  in node3 { Node.pMem = fromIntegral (Node.unallocatedMem node3)
+                         / Node.tMem node3 }
 
 -- | Check the cluster for memory/disk allocation consistency and update stats.
 updateMissing :: Node.List -- ^ All nodes in the cluster
