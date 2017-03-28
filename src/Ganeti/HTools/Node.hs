@@ -1126,9 +1126,7 @@ recordedFreeMem t =
 -- (-) on Xen manually downsized domains (xen mem-set)
 missingMem :: Node -> Int
 missingMem t =
-  let state_of_world = reportedFreeMem t
-      state_of_record = recordedFreeMem t
-  in state_of_record - state_of_world
+  recordedFreeMem t - reportedFreeMem t
 
 -- | Computes the 'guaranteed' free memory, that is the minimum of what
 -- is reported by the node (available bytes) and our calculation based on
