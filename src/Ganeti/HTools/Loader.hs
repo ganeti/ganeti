@@ -381,7 +381,9 @@ setStaticKvmNodeMem nl static_node_mem =
   let updateNM n
           | Node.hypervisor n == Just Kvm = n { Node.nMem = static_node_mem }
           | otherwise = n
-  in Container.map updateNM nl
+  in if static_node_mem > 0
+     then Container.map updateNM nl
+     else nl
 
 -- | Update node memory stat based on instance list.
 updateMemStat :: Node.Node -> Instance.List -> Node.Node
@@ -400,9 +402,7 @@ updateMissing :: Node.List -- ^ All nodes in the cluster
 updateMissing nl il static_node_mem =
     -- This overrides node mem on KVM as loaded from backend. Ganeti 2.17
     -- handles this using obtainNodeMemory.
-    let nl2 = if static_node_mem > 0
-              then setStaticKvmNodeMem nl static_node_mem
-              else nl
+    let nl2 = setStaticKvmNodeMem nl static_node_mem
         updateSingle msgs node =
             let nname = Node.name node
                 newn = updateMemStat node il
