@@ -378,9 +378,9 @@ setStaticKvmNodeMem :: Node.List -- ^ Nodes to update
                        -> Int -- ^ Static node size
                        -> Node.List -- ^ Updated nodes
 setStaticKvmNodeMem nl static_node_mem =
-  let updateNM n = if Node.hypervisor n == Just Kvm
-                   then n { Node.nMem = static_node_mem }
-                   else n
+  let updateNM n
+          | Node.hypervisor n == Just Kvm = n { Node.nMem = static_node_mem }
+          | otherwise = n
   in Container.map updateNM nl
 
 -- | Update node memory stat based on instance list.
