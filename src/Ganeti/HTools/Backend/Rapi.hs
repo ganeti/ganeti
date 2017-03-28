@@ -51,12 +51,14 @@ import Text.Printf (printf)
 import System.FilePath
 
 import Ganeti.BasicTypes
+import Ganeti.Types (Hypervisor(..))
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import Ganeti.JSON (loadJSArray, JSRecord, tryFromObj, fromJVal, maybeFromObj, fromJResult, tryArrayMaybeFromObj, readEitherString, fromObjWithDefault, asJSObject)
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.Constants as C
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
@@ -204,14 +206,15 @@ parseGroup a = do
   return (uuid, Group.create name uuid apol [] ipol tags)
 
 -- | Parse cluster data from the info resource.
-parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String)
+parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String, Hypervisor)
 parseCluster obj = do
   let obj' = fromJSObject obj
       extract s = tryFromObj "Parsing cluster data" obj' s
   master <- extract "master"
   tags <- extract "tags"
   ipolicy <- extract "ipolicy"
-  return (tags, ipolicy, master)
+  hypervisor <- extract "default_hypervisor"
+  return (tags, ipolicy, master, hypervisor)
 
 -- | Loads the raw cluster data from an URL.
 readDataHttp :: String -- ^ Cluster or URL to use as source
@@ -252,12 +255,13 @@ parseData (group_body, node_body, inst_body, info_body) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (tags, ipolicy, master) <-
+  (tags, ipolicy, master, hypervisor) <-
     info_body >>=
     (fromJResult "Parsing cluster info" . decodeStrict) >>=
     parseCluster
   node_idx' <- setMaster node_names node_idx master
-  return (ClusterData group_idx node_idx' inst_idx tags ipolicy)
+  let node_idx'' = Container.map (`Node.setHypervisor` hypervisor) node_idx'
+  return (ClusterData group_idx node_idx'' inst_idx tags ipolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Cluster or URL to use as source

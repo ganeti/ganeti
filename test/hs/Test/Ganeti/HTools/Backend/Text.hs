@@ -283,7 +283,7 @@ prop_CreateSerialise =
             of
               Bad msg -> failTest $ "Failed to load/merge: " ++ msg
               Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
-                let (_, nl3) = Loader.checkData nl2 il2
+                let (_, nl3) = Loader.updateMissing nl2 il2 0
                 in conjoin [ ctags2 ==? ctags
                            , cpol2 ==? Types.defIPolicy
                            , il2 ==? il

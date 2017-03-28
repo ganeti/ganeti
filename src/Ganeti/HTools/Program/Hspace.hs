@@ -93,6 +93,7 @@ options = do
     , oStdSpec
     , oTieredSpec
     , oSaveCluster
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.

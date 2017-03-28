@@ -134,6 +134,7 @@ genEmptyOnlineNode =
                        , Node.rMemForth = 0
                        , Node.pRem = 0
                        , Node.pRemForth = 0
+                       , Node.xMem = 0
                        }
       return node') `suchThat` (\ n -> not (Node.failN1 n) &&
                                        Node.availDisk n > 0 &&

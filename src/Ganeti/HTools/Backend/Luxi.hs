@@ -46,8 +46,10 @@ import Ganeti.BasicTypes
 import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import qualified Ganeti.Query.Language as Qlang
+import Ganeti.Types (Hypervisor(..))
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -257,14 +259,15 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
 
 -- | Parses the cluster tags.
-getClusterData :: JSValue -> Result ([String], IPolicy, String)
+getClusterData :: JSValue -> Result ([String], IPolicy, String, Hypervisor)
 getClusterData (JSObject obj) = do
   let errmsg = "Parsing cluster info"
       obj' = fromJSObject obj
   ctags <- tryFromObj errmsg obj' "tags"
   cpol <- tryFromObj errmsg obj' "ipolicy"
   master <- tryFromObj errmsg obj' "master"
-  return (ctags, cpol, master)
+  hypervisor <- tryFromObj errmsg obj' "default_hypervisor"
+  return (ctags, cpol, master, hypervisor)
 
 getClusterData _ = Bad "Cannot parse cluster info, not a JSON record"
 
@@ -314,9 +317,10 @@ parseData (groups, nodes, instances, cinfo) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (ctags, cpol, master) <- cinfo >>= getClusterData
+  (ctags, cpol, master, hypervisor) <- cinfo >>= getClusterData
   node_idx' <- setMaster node_names node_idx master
-  return (ClusterData group_idx node_idx' inst_idx ctags cpol)
+  let node_idx'' = Container.map (`Node.setHypervisor` hypervisor) node_idx'
+  return (ClusterData group_idx node_idx'' inst_idx ctags cpol)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Unix socket to use as source

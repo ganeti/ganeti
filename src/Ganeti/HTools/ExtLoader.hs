@@ -60,7 +60,7 @@ import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Backend.MonD as MonD
 import Ganeti.HTools.CLI
-import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
+import Ganeti.HTools.Loader (mergeData, updateMissing, ClusterData(..)
                             , commonSuffix, clearDynU)
 import Ganeti.HTools.Types
 import Ganeti.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
@@ -117,11 +117,15 @@ loadExternalData opts = do
         | setLuxi -> wrapIO . Luxi.loadData $ fromJust lsock
         | setSim -> Simu.loadData simdata
         | setFile -> wrapIO . Text.loadData $ fromJust tfile
-        | setIAllocSrc -> wrapIO . IAlloc.loadData $ fromJust iallocsrc
+        -- IAlloc.loadData calls updateMissing internally because Hail does not
+        -- loadExternalData for loading the JSON config (see wrapReadRequest).
+        -- Here we just pass a 0 as the 'generic' call to updateMissing follows.
+        | setIAllocSrc -> wrapIO . flip IAlloc.loadData 0 $ fromJust iallocsrc
         | otherwise -> return $ Bad "No backend selected! Exiting."
   now <- getClockTime
 
   let ignoreDynU = optIgnoreDynu opts
+      staticNodeMem = optStaticKvmNodeMemory opts
       eff_u = if ignoreDynU then [] else util_data
       ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
                             >>= mergeData eff_u exTags selInsts exInsts now
@@ -131,7 +135,7 @@ loadExternalData opts = do
                                  else return cdata
   exitWhen (optMonDExitMissing opts && not (getAll ok))
       "Not all required data available"
-  let (fix_msgs, nl) = checkData (cdNodes cdata') (cdInstances cdata')
+  let (fix_msgs, nl) = updateMissing (cdNodes cdata') (cdInstances cdata') staticNodeMem
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
 

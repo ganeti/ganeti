@@ -75,6 +75,7 @@ options = do
     , oIgnoreDyn
     , oMonD
     , oMonDDataFile
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.
