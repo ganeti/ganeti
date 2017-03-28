@@ -770,7 +770,8 @@ oStaticKvmNodeMemory =
   (Option "" ["static-kvm-node-memory"]
    (reqWithConversion (tryRead "static node memory")
     (\i opts -> Ok opts { optStaticKvmNodeMemory = i }) "N")
-   "use static node memory [in MB] on KVM instead of value reported by hypervisor.",
+   "use static node memory [in MB] on KVM instead of value reported by hypervisor.\
+   \ Use 0 to take value reported from hypervisor.",
    OptComplInteger)
 
 oStdSpec :: OptType
