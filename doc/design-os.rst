@@ -2,6 +2,10 @@
 Ganeti OS installation redesign
 ===============================
 
+:Created: 2013-Dec-12
+:Status: Partially Implemented
+:Ganeti-Version: 2.12.0, 2.13.0
+
 .. contents:: :depth: 3
 
 This is a design document detailing a new OS installation procedure, which is

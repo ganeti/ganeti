@@ -2,6 +2,10 @@
 Support for Open vSwitch
 ========================
 
+:Created: 2013-Jun-28
+:Status: Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 3
 
 This is a design document detailing the implementation of support for

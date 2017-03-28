@@ -335,6 +335,11 @@ def RemoveDisks(lu, instance, disks=None,
     disks = all_disks
 
   anno_disks = AnnotateDiskParams(instance, disks, lu.cfg)
+
+  uuid_idx_map = {}
+  for (idx, device) in enumerate(all_disks):
+    uuid_idx_map[device.uuid] = idx
+
   for (idx, device) in enumerate(anno_disks):
     if target_node_uuid:
       edata = [(target_node_uuid, device)]
@@ -344,7 +349,7 @@ def RemoveDisks(lu, instance, disks=None,
       result = lu.rpc.call_blockdev_remove(node_uuid, (disk, instance))
       if result.fail_msg:
         lu.LogWarning("Could not remove disk %s on node %s,"
-                      " continuing anyway: %s", idx,
+                      " continuing anyway: %s", uuid_idx_map.get(device.uuid),
                       lu.cfg.GetNodeName(node_uuid), result.fail_msg)
         if not (result.offline and node_uuid != instance.primary_node):
           all_result = False

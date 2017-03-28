@@ -2,6 +2,10 @@
 Filtering of jobs for the Ganeti job queue
 ==========================================
 
+:Created: 2013-Jul-24
+:Status: Implemented
+:Ganeti-Version: 2.13.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the semantics of the fine-grained control
@@ -39,7 +43,7 @@ Proposed changes
 ================
 
 We propose to add filters on the job queue. These will be part of the
-configuration and as such are persisted with it. Conceptionally, the
+configuration and as such are persisted with it. Conceptually, the
 filters are always processed when a job enters the queue and while it
 is still in the queue. Of course, in the implementation, reevaluation
 is only carried out, if something could make the result change, e.g.,

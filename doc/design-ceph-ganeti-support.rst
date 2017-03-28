@@ -2,6 +2,10 @@
 RADOS/Ceph support in Ganeti
 ============================
 
+:Created: 2013-Jul-26
+:Status: Partially Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 4
 
 Objective

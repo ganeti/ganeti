@@ -2,6 +2,10 @@
 Ganeti shared storage support
 =============================
 
+:Created: 2011-Mar-01
+:Status: Implemented
+:Ganeti-Version: 2.7.0
+
 This document describes the changes in Ganeti 2.3+ compared to Ganeti
 2.3 storage model. It also documents the ExtStorage Interface.
 
@@ -284,15 +288,15 @@ command line::
                                             param1=value1,param2=value2
 
 The above parameters will be exported to the ExtStorage provider's
-scripts as the enviromental variables:
+scripts as the environment variables:
 
 - `EXTP_PARAM1 = str(value1)`
 - `EXTP_PARAM2 = str(value2)`
 
 We will also introduce a new Ganeti client called `gnt-storage` which
 will be used to diagnose ExtStorage providers and show information about
-them, similarly to the way  `gnt-os diagose` and `gnt-os info` handle OS
-definitions.
+them, similarly to the way  `gnt-os diagnose` and `gnt-os info` handle
+OS definitions.
 
 ExtStorage Interface support for userspace access
 =================================================

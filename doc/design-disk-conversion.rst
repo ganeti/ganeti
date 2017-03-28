@@ -2,6 +2,10 @@
 Conversion between disk templates
 =================================
 
+:Created: 2014-May-23
+:Status: Implemented
+:Ganeti-Version: 2.13.0
+
 .. contents:: :depth: 4
 
 This design document describes the support for generic disk template

@@ -2,6 +2,10 @@
 Unit tests for cmdlib / LogicalUnit's
 =====================================
 
+:Created: 2013-Jul-22
+:Status: Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 4
 
 This is a design document describing unit tests for the cmdlib module.

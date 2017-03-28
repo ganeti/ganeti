@@ -2,6 +2,10 @@
 Partitioned Ganeti
 ==================
 
+:Created: 2012-Oct-05
+:Status: Implemented
+:Ganeti-Version: 2.7.0, 2.8.0, 2.9.0
+
 .. contents:: :depth: 4
 
 Current state and shortcomings

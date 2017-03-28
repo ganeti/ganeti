@@ -2,6 +2,10 @@
 Hotplug
 =======
 
+:Created: 2013-Jul-24
+:Status: Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of device

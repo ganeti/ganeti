@@ -265,10 +265,8 @@ def ShowNetworkConfig(_, args):
     if instances:
       ToStdout("  used by %d instances:", len(instances))
       for name in instances:
-        ((ips, networks), ) = cl.QueryInstances([name],
-                                                ["nic.ips", "nic.networks"],
-                                                use_locking=False)
-
+        (ips, networks) = cl.QueryInstances([name], ["nic.ips", "nic.networks"],
+                                            use_locking=False)[0]
         l = lambda value: ", ".join(str(idx) + ":" + str(ip)
                                     for idx, (ip, net) in enumerate(value)
                                       if net == uuid)
@@ -330,57 +328,57 @@ commands = {
     [DRY_RUN_OPT, NETWORK_OPT, GATEWAY_OPT, ADD_RESERVED_IPS_OPT,
      MAC_PREFIX_OPT, NETWORK6_OPT, GATEWAY6_OPT,
      NOCONFLICTSCHECK_OPT, TAG_ADD_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<network_name>", "Add a new IP network to the cluster"),
+    "<network-name>", "Add a new IP network to the cluster"),
   "list": (
     ListNetworks, ARGS_MANY_NETWORKS,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT],
-    "[<network_id>...]",
+    "[<network-name>...]",
     "Lists the IP networks in the cluster. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."
     " The default list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
   "list-fields": (
-    ListNetworkFields, [ArgUnknown()], [NOHDR_OPT, SEP_OPT], "[fields...]",
+    ListNetworkFields, [ArgUnknown()], [NOHDR_OPT, SEP_OPT], "[<fields>...]",
     "Lists all available fields for networks"),
   "info": (
     ShowNetworkConfig, ARGS_MANY_NETWORKS, [],
-    "[<network_name>...]", "Show information about the network(s)"),
+    "[<network>...]", "Show information about the network(s)"),
   "modify": (
     SetNetworkParams, ARGS_ONE_NETWORK,
     [DRY_RUN_OPT] + SUBMIT_OPTS +
     [ADD_RESERVED_IPS_OPT,
      REMOVE_RESERVED_IPS_OPT, GATEWAY_OPT, MAC_PREFIX_OPT, NETWORK6_OPT,
      GATEWAY6_OPT, PRIORITY_OPT],
-    "<network_name>", "Alters the parameters of a network"),
+    "<network>", "Alters the parameters of a network"),
   "connect": (
     ConnectNetwork,
     [ArgNetwork(min=1, max=1),
      ArgGroup()],
     [NOCONFLICTSCHECK_OPT, PRIORITY_OPT, NIC_PARAMS_OPT],
-    "<network_name> [<node_group>...]",
+    "<network> [<group>...]",
     "Map a given network to the specified node group"
     " with given mode and link (netparams)"),
   "disconnect": (
     DisconnectNetwork,
     [ArgNetwork(min=1, max=1), ArgGroup()],
     [PRIORITY_OPT],
-    "<network_name> [<node_group>...]",
+    "<network> [<group>...]",
     "Unmap a given network from a specified node group"),
   "remove": (
     RemoveNetwork, ARGS_ONE_NETWORK,
     [FORCE_OPT, DRY_RUN_OPT] + SUBMIT_OPTS + [PRIORITY_OPT],
-    "[--dry-run] <network_id>",
+    "[--dry-run] <network>",
     "Remove an (empty) network from the cluster"),
   "list-tags": (
     ListTags, ARGS_ONE_NETWORK, [],
-    "<network_name>", "List the tags of the given network"),
+    "<network>", "List the tags of the given network"),
   "add-tags": (
     AddTags, [ArgNetwork(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<network_name> tag...", "Add tags to the given network"),
+    "<network> <tag>...", "Add tags to the given network"),
   "remove-tags": (
     RemoveTags, [ArgNetwork(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<network_name> tag...", "Remove tags from given network"),
+    "<network> <tag>...", "Remove tags from given network"),
 }
 
 

@@ -2,6 +2,10 @@
 Linux HA integration
 ====================
 
+:Created: 2013-Oct-24
+:Status: Implemented
+:Ganeti-Version: 2.7.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the integration of Ganeti and Linux HA.
@@ -101,7 +105,7 @@ as a cloned resource that is active on all nodes.
 
 In partial mode it will always return success (and thus trigger a
 failure only upon an HA level or network failure). Full mode, which
-initially will not be implemented, couls also check for the node daemon
+initially will not be implemented, could also check for the node daemon
 being unresponsive or other local conditions (TBD).
 
 When a failure happens the HA notification system will trigger on all

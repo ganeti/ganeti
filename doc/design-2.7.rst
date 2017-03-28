@@ -16,6 +16,7 @@ The following design documents have been implemented in Ganeti 2.7:
 
 The following designs have been partially implemented in Ganeti 2.7:
 
+- :doc:`design-network`
 - :doc:`design-query-splitting`: only queries not needing RPC are
   supported, through confd
 - :doc:`design-partitioned`: only exclusive use of disks is implemented

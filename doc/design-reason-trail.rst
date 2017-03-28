@@ -2,6 +2,10 @@
 Ganeti reason trail
 ===================
 
+:Created: 2013-Mar-15
+:Status: Implemented
+:Ganeti-Version: 2.9.0
+
 .. contents:: :depth: 2
 
 This is a design document detailing the implementation of a way for Ganeti to

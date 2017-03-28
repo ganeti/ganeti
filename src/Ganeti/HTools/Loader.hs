@@ -177,7 +177,7 @@ setMaster node_names node_idx master = do
 setLocationScore :: Node.List -> Instance.Instance -> Instance.Instance
 setLocationScore nl inst =
   let pnode = Container.find (Instance.pNode inst) nl
-      snode = Container.find (Instance.sNode inst) nl
+      snode = Container.lookup (Instance.sNode inst) nl
   in Moves.setInstanceLocationScore inst pnode snode
 
 -- | For each instance, add its index to its primary and secondary nodes.

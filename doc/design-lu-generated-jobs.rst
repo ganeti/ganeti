@@ -2,6 +2,10 @@
 Submitting jobs from logical units
 ==================================
 
+:Created: 2011-Mar-23
+:Status: Implemented
+:Ganeti-Version: 2.5.0
+
 .. contents:: :depth: 4
 
 This is a design document about the innards of Ganeti's job processing.
