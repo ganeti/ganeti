@@ -2,6 +2,10 @@
 HRoller tool
 ============
 
+:Created: 2013-Feb-15
+:Status: Implemented
+:Ganeti-Version: 2.8.0, 2.9.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the cluster maintenance scheduler,

@@ -2,6 +2,10 @@
 Improving location awareness of Ganeti
 ======================================
 
+:Created: 2014-Jul-22
+:Status: Partially Implemented
+:Ganeti-Version: 2.13.0, 2.14.0
+
 This document describes an enhancement of Ganeti's instance
 placement by taking into account that some nodes are vulnerable
 to common failures.
@@ -65,7 +69,7 @@ static information into account, essentially amounts to counting disks. In
 this way, Ganeti will be willing to sacrifice equal numbers of disks on every
 node in order to fulfill location requirements.
 
-Appart from changing the balancedness metric, common-failure tags will
+Apart from changing the balancedness metric, common-failure tags will
 not have any other effect. In particular, as opposed to exclusion tags,
 no hard guarantees are made: ``hail`` will try allocate an instance in
 a common-failure avoiding way if possible, but still allocate the instance

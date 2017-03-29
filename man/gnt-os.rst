@@ -46,12 +46,13 @@ are or are not valid.
 INFO
 ~~~~
 
-**info**
+**info** {*OS*}
 
 This command will list detailed information about each OS available
 in the cluster, including its validity status, the supported API
 versions, the supported parameters and variants (if any), and their
-documentation, etc.
+documentation, etc. If an *OS* name is given, then only the specified
+OS details will be shown.
 
 Note that this command besides the information about the given OS(es),
 shows detailed information about the given available/supported OS

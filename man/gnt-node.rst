@@ -30,7 +30,7 @@ ADD
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | [\--no-node-setup]
-| {*nodename*}
+| {*node-name*}
 
 Adds the given node to the cluster.
 
@@ -98,7 +98,7 @@ EVACUATE
 ~~~~~~~~
 
 | **evacuate** [-f] [\--early-release] [\--submit] [\--print-jobid]
-| [{-I|\--iallocator} *NAME* \| {-n|\--new-secondary} *destination\_node*]
+| [{-I|\--iallocator} *name* \| {-n|\--new-secondary} *destination\_node*]
 | [--ignore-soft-errors]
 | [{-p|\--primary-only} \| {-s|\--secondary-only} ]
 |  {*node*}
@@ -202,7 +202,7 @@ LIST
 | [\--no-headers] [\--separator=*SEPARATOR*]
 | [\--units=*UNITS*] [-v] [{-o|\--output} *[+]FIELD,...*]
 | [\--filter]
-| [node...]
+| [*node-name*...]
 
 Lists the nodes in the cluster.
 
@@ -266,7 +266,7 @@ only the given nodes will be listed.
 LIST-DRBD
 ~~~~~~~~~
 
-**list-drbd** [\--no-headers] [\--separator=*SEPARATOR*] node
+**list-drbd** [\--no-headers] [\--separator=*SEPARATOR*] *node*
 
 Lists the mapping of DRBD minors for a given node. This outputs a static
 list of fields (it doesn't accept the ``--output`` option), as follows:
@@ -339,7 +339,7 @@ MODIFY
 | [\--node-powered=``yes|no``]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
-| {*node*}
+| {*node-name*}
 
 This command changes the role of the node. Each options takes
 either a literal yes or no, and only one option should be given as
@@ -383,7 +383,7 @@ Example (setting the node back to online and master candidate)::
 REMOVE
 ~~~~~~
 
-**remove** {*nodename*}
+**remove** {*node-name*}
 
 Removes a node from the cluster. Instances must be removed or
 migrated to another cluster before.
@@ -398,7 +398,7 @@ VOLUMES
 
 | **volumes** [\--no-headers] [\--human-readable]
 | [\--separator=*SEPARATOR*] [{-o|\--output} *FIELDS*]
-| [*node*...]
+| [*node-name*...]
 
 Lists all logical volumes and their physical disks from the node(s)
 provided.
@@ -452,7 +452,7 @@ LIST-STORAGE
 | **list-storage** [\--no-headers] [\--human-readable]
 | [\--separator=*SEPARATOR*] [\--storage-type=*STORAGE\_TYPE*]
 | [{-o|\--output} *FIELDS*]
-| [*node*...]
+| [*node-name*...]
 
 Lists the available storage units and their details for the given
 node(s).
@@ -521,7 +521,7 @@ MODIFY-STORAGE
 ~~~~~~~~~~~~~~
 
 | **modify-storage** [\--allocatable={yes|no}] [\--submit] [\--print-jobid]
-| {*node*} {*storage-type*} {*volume-name*}
+| {*node-name*} {*storage-type*} {*volume-name*}
 
 Modifies storage volumes on a node. Only LVM physical volumes can
 be modified at the moment. They have a storage type of "lvm-pv".
@@ -535,7 +535,7 @@ REPAIR-STORAGE
 ~~~~~~~~~~~~~~
 
 | **repair-storage** [\--ignore-consistency] ]\--submit]
-| {*node*} {*storage-type*} {*volume-name*}
+| {*node-name*} {*storage-type*} {*volume-name*}
 
 Repairs a storage volume on a node. Only LVM volume groups can be
 repaired at this time. They have the storage type "lvm-vg".
@@ -560,7 +560,7 @@ Example::
 POWERCYCLE
 ~~~~~~~~~~
 
-**powercycle** [\--yes] [\--force] [\--submit] [\--print-jobid] {*node*}
+**powercycle** [\--yes] [\--force] [\--submit] [\--print-jobid] {*node-name*}
 
 This command (tries to) forcefully reboot a node. It is a command
 that can be used if the node environment is broken, such that the
@@ -583,7 +583,7 @@ POWER
 ~~~~~
 
 **power** [``--force``] [``--ignore-status``] [``--all``]
-[``--power-delay``] on|off|cycle|status [*nodes*]
+[``--power-delay``] on|off|cycle|status [*node-name*...]
 
 This command calls out to out-of-band management to change the power
 state of given node. With ``status`` you get the power status as reported
@@ -608,15 +608,15 @@ and continue with power off.
 waited between powering on the next node. This is by default 2 seconds
 but can increased if needed with this option.
 
-*nodes* are optional. If not provided it will call out for every node in
-the cluster. Except for the ``off`` and ``cycle`` command where you've
+The list of node names is optional. If not provided it will call out for every
+node in the cluster. Except for the ``off`` and ``cycle`` command where you've
 to explicit use ``--all`` to select all.
 
 
 HEALTH
 ~~~~~~
 
-**health** [*nodes*]
+**health** [*node-name*...]
 
 This command calls out to out-of-band management to ask for the health status
 of all or given nodes. The health contains the node name and then the items
@@ -630,7 +630,7 @@ RESTRICTED-COMMAND
 ~~~~~~~~~~~~~~~~~~
 
 | **restricted-command** [-M] [\--sync]
-| { -g *group* *command* | *command* *nodes*... }
+| { -g *group* *command* | *command* *node-name*... }
 
 Executes a restricted command on the specified nodes. Restricted commands are
 not arbitrary, but must reside in
@@ -660,7 +660,7 @@ Tags
 ADD-TAGS
 ^^^^^^^^
 
-**add-tags** [\--from *file*] {*nodename*} {*tag*...}
+**add-tags** [\--from *file*] {*node-name*} {*tag*...}
 
 Add tags to the given node. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -674,14 +674,14 @@ interpreted as stdin.
 LIST-TAGS
 ^^^^^^^^^
 
-**list-tags** {*nodename*}
+**list-tags** {*node-name*}
 
 List the tags of the given node.
 
 REMOVE-TAGS
 ^^^^^^^^^^^
 
-**remove-tags** [\--from *file*] {*nodename*} {*tag*...}
+**remove-tags** [\--from *file*] {*node-name*} {*tag*...}
 
 Remove tags from the given node. If any of the tags are not
 existing on the node, the entire operation will abort.

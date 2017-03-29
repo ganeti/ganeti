@@ -964,7 +964,7 @@ getMoves (Table _ initial_il _ initial_plc, Table final_nl _ _ final_plc) =
           (_, cmds) = computeMoves inst inst_name mv np ns
       in (affected, idx, mv, cmds)
   in map plctoMoves . reverse . drop (length initial_plc) $ reverse final_plc
-             
+
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
 mergeJobs :: ([JobSet], [Ndx]) -> MoveJob -> ([JobSet], [Ndx])

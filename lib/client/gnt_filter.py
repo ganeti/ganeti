@@ -203,29 +203,29 @@ commands = {
   "list": (
     ListFilters, ARGS_MANY_FILTERS,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT],
-    "[<filter_uuid>...]",
+    "[<filter-uuid>...]",
     "Lists the job filter rules. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."
     " The default list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
   "list-fields": (
     ListFilterFields, [ArgUnknown()],
     [NOHDR_OPT, SEP_OPT],
-    "[fields...]",
+    "[<fields>...]",
     "Lists all available fields for filters"),
   "info": (
     ShowFilter, ARGS_MANY_FILTERS,
     [],
-    "[<filter_uuid>...]",
+    "[<filter-uuid>...]",
     "Shows information about the filter(s)"),
   "replace": (
     ReplaceFilter, ARGS_ONE_FILTER,
     [FILTER_PRIORITY_OPT, FILTER_PREDICATES_OPT, FILTER_ACTION_OPT],
-    "<filter_uuid>",
+    "<filter-uuid>",
     "Replaces a filter"),
   "delete": (
     DeleteFilter, ARGS_ONE_FILTER,
     [],
-    "<filter_uuid>",
+    "<filter-uuid>",
     "Removes a filter"),
 }
 

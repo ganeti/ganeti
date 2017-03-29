@@ -2,6 +2,10 @@
 Instance Reservations
 =====================
 
+:Created: 2014-Jul-22
+:Status: Partially Implemented
+:Ganeti-Version: 2.12.0, 2.14.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the addition of a concept
@@ -83,8 +87,8 @@ Representation in the Configuration
 -----------------------------------
 
 As for most part of the system, forthcoming instances and their disks are to
-be treated as if they were real. Therefore, the wire representation will
-be by adding an additional, optional, ``fortcoming`` flag to the ``instances``
+be treated as if they were real. Therefore, the wire representation will be
+by adding an additional, optional, ``forthcoming`` flag to the ``instances``
 and ``disks`` objects. Additionally, the internal consistency condition will
 be relaxed to have all non-uuid fields optional if an instance or disk is
 forthcoming.
@@ -112,7 +116,7 @@ and the remaining fields depend on the value of that field). Of course, in
 the Haskell part of our code base, this will be represented in the standard way
 having two constructors for the type; additionally there will be accessors
 for all the fields of the JSON representation (yielding ``Maybe`` values,
-as they can be optional if we're in the ``Forthcoming`` constuctor).
+as they can be optional if we're in the ``Forthcoming`` constructor).
 
 
 Adaptions of htools

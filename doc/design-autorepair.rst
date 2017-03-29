@@ -2,6 +2,10 @@
 Instance auto-repair
 ====================
 
+:Created: 2012-Sep-03
+:Status: Implemented
+:Ganeti-Version: 2.8.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of self-repair and
@@ -107,7 +111,7 @@ present at this time. While this is known we won't solve these race
 conditions in the first version.
 
 It might also be useful to easily have an operation that tags all
-instances matching a  filter on some charateristic. But again, this
+instances matching a filter on some characteristic. But again, this
 wouldn't be specific to this tag.
 
 If there are multiple
@@ -273,8 +277,8 @@ needs to look at it. To be decided).
 
 A graph with the possible transitions follows; note that in the graph,
 following the implementation, the two ``Needs repair`` states have been
-coalesced into one; and the ``Suspended`` state disapears, for it
-becames an attribute of the instance object (its auto-repair policy).
+coalesced into one; and the ``Suspended`` state disappears, for it
+becomes an attribute of the instance object (its auto-repair policy).
 
 .. digraph:: "auto-repair-states"
 
@@ -343,7 +347,7 @@ Possible repairs are:
 
 Note that more than one of these operations may need to happen before a
 full repair is completed (eg. if a drbd primary goes offline first a
-failover will happen, then a replce-disks).
+failover will happen, then a replace-disks).
 
 The self-repair tool will first take care of all needs-repair instance
 that can be brought into ``pending`` state, and transition them as

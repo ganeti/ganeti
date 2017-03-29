@@ -2,6 +2,9 @@
 Design for replacing Ganeti's HTTP server
 =========================================
 
+:Created: 2011-Mar-23
+:Status: Draft
+
 .. contents:: :depth: 4
 
 .. _http-srv-shortcomings:

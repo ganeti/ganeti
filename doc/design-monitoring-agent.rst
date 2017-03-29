@@ -2,6 +2,10 @@
 Ganeti monitoring agent
 =======================
 
+:Created: 2012-Oct-18
+:Status: Implemented
+:Ganeti-Version: 2.7.0, 2.8.0, 2.9.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of a Ganeti
@@ -85,7 +89,7 @@ the data collectors:
 ``category``
   A collector can belong to a given category of collectors (e.g.: storage
   collectors, daemon collector). This means that it will have to provide a
-  minumum set of prescribed fields, as documented for each category.
+  minimum set of prescribed fields, as documented for each category.
   This field will contain the name of the category the collector belongs to,
   if any, or just the ``null`` value.
 
@@ -175,7 +179,7 @@ in its ``data`` section, at least the following field:
     It assumes a numeric value, encoded in such a way to allow using a bitset
     to easily distinguish which states are currently present in the whole
     cluster. If the bitwise OR of all the ``status`` fields is 0, the cluster
-    is completely healty.
+    is completely healthy.
     The status codes are as follows:
 
     ``0``
@@ -206,7 +210,7 @@ in its ``data`` section, at least the following field:
 
     If the status code is ``2``, the message should specify what has gone
     wrong.
-    If the status code is ``4``, the message shoud explain why it was not
+    If the status code is ``4``, the message should explain why it was not
     possible to determine a proper status.
 
 The ``data`` section will also contain all the fields describing the gathered
@@ -450,7 +454,7 @@ each representing one logical volume and providing the following fields:
   Type of LV segment.
 
 ``seg_start``
-  Offset within the LVto the start of the segment in bytes.
+  Offset within the LV to the start of the segment in bytes.
 
 ``seg_start_pe``
   Offset within the LV to the start of the segment in physical extents.
@@ -603,7 +607,7 @@ collector will provide the following fields:
       The speed of the synchronization.
 
     ``want``
-      The desiderd speed of the synchronization.
+      The desired speed of the synchronization.
 
     ``speedUnit``
       The measurement unit of the ``speed`` and ``want`` values. Expressed
@@ -655,7 +659,7 @@ that is not generic enough be abstracted.
 
 The ``kind`` field will be ``0`` (`Performance reporting collectors`_).
 
-Each of the hypervisor data collectory will be of ``category``: ``hypervisor``.
+Each of the hypervisor data collectors will be of ``category``: ``hypervisor``.
 
 Node OS resources report
 ++++++++++++++++++++++++
@@ -869,7 +873,7 @@ from the nodes from a monitoring system and for Ganeti itself.
 One extra feature we may need is a way to query for only sub-parts of
 the report (eg. instances status only). This can be done by passing
 arguments to the HTTP GET, which will be defined when we get to this
-funtionality.
+functionality.
 
 Finally the :doc:`autorepair system design <design-autorepair>`. system
 (see its design) can be expanded to use the monitoring agent system as a

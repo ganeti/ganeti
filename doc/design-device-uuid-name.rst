@@ -2,6 +2,10 @@
 Design for adding UUID and name to devices
 ==========================================
 
+:Created: 2013-Apr-17
+:Status: Implemented
+:Ganeti-Version: 2.9.0
+
 .. contents:: :depth: 4
 
 This is a design document about adding UUID and name to instance devices

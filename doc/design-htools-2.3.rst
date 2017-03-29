@@ -2,6 +2,10 @@
  Synchronising htools to Ganeti 2.3
 ====================================
 
+:Created: 2011-Mar-18
+:Status: Implemented
+:Ganeti-Version: 2.5.0
+
 Ganeti 2.3 introduces a number of new features that change the cluster
 internals significantly enough that the htools suite needs to be
 updated accordingly in order to function correctly.

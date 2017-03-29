@@ -2,6 +2,9 @@
 Design for adding ifdown script to KVM
 ======================================
 
+:Created: 2014-Jun-23
+:Status: Draft
+
 .. contents:: :depth: 4
 
 This is a design document about adding support for an ifdown script responsible
