@@ -1367,6 +1367,12 @@ class LUClusterSetParams(LogicalUnit):
             else:
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
 
+      # Cleanup any OS that has an empty hypervisor parameter list, as we don't
+      # need them in the cluster config anymore.
+      for os_name, hvs in self.new_os_hvp.items():
+        if not hvs:
+          self.new_os_hvp.pop(os_name, None)
+
     # os parameters
     self._BuildOSParams(cluster)
 
