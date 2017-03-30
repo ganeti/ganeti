@@ -2,6 +2,10 @@
 Query version 2 design
 ======================
 
+:Created: 2010-Nov-12
+:Status: Implemented
+:Ganeti-Version: 2.4.0
+
 .. contents:: :depth: 4
 .. highlight:: python
 

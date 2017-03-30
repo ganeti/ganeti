@@ -49,6 +49,7 @@ module Ganeti.HTools.Container
   , find
   , IntMap.findMax
   , IntMap.member
+  , IntMap.lookup
   -- * Update
   , add
   , addTwo

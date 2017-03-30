@@ -1,5 +1,9 @@
+=========================
 DRBD Sync Rate Throttling
 =========================
+
+:Created: 2014-Sep-16
+:Status: Draft
 
 Objective
 ---------

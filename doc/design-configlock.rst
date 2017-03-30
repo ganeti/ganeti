@@ -2,6 +2,10 @@
 Removal of the Config Lock Overhead
 ===================================
 
+:Created: 2013-Jul-22
+:Status: Partially Implemented
+:Ganeti-Version: 2.14.0, 2.15.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing how the adverse effect of
@@ -11,7 +15,7 @@ Current state and shortcomings
 ==============================
 
 As a result of the :doc:`design-daemons`, the configuration is held
-in a proccess different from the processes carrying out the Ganeti
+in a process different from the processes carrying out the Ganeti
 jobs. Therefore, job processes have to contact WConfD in order to
 change the configuration. Of course, these modifications of the
 configuration need to be synchronised.
@@ -23,7 +27,7 @@ update the configuration is to
 
 - acquire the ``ConfigLock`` from WConfD,
 
-- read the configration,
+- read the configuration,
 
 - write the modified configuration, and
 
@@ -53,7 +57,7 @@ Proposed changes for an incremental improvement
 
 Ideally, jobs would just send patches for the configuration to WConfD
 that are applied by means of atomically updating the respective ``IORef``.
-This, however, would require chaning all of Ganeti's logical units in
+This, however, would require changing all of Ganeti's logical units in
 one big change. Therefore, we propose to keep the ``ConfigLock`` and,
 step by step, reduce its impact till it eventually will be just used
 internally in the WConfD process.
@@ -66,7 +70,7 @@ a shared config lock, and therefore necessarily read-only, will instead
 use WConfD's ``readConfig`` used to obtain a snapshot of the configuration.
 This will be done without modifying the locks. It is sound, as reads to
 a Haskell ``IORef`` always yield a consistent value. From that snapshot
-the required view is computed locally. This saves two lock-configurtion
+the required view is computed locally. This saves two lock-configuration
 write cycles per read and, additionally, does not block any concurrent
 modifications.
 
@@ -98,7 +102,7 @@ For a lot of operations, the regular locks already ensure that only
 one job can modify a certain part of the configuration. For example,
 only jobs with an exclusive lock on an instance will modify that
 instance. Therefore, it can update that entity atomically,
-without relying on the configuration lock to achive consistency.
+without relying on the configuration lock to achieve consistency.
 ``WConfD`` will provide such operations. To
 avoid interference with non-atomic operations that still take the
 config lock and write the configuration as a whole, this operation
@@ -111,7 +115,7 @@ triggering a writeout of the lock status.
 Note that the thread handling the request has to take the lock in its
 own name and not in that of the requesting job. A writeout of the lock
 status can still happen, triggered by other requests. Now, if
-``WConfD`` gets restarted after the lock acquisition, if that happend
+``WConfD`` gets restarted after the lock acquisition, if that happened
 in the name of the job, it would own a lock without knowing about it,
 and hence that lock would never get released.
 

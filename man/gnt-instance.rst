@@ -47,9 +47,9 @@ ADD
 | [\--ignore-ipolicy]
 | [\--no-wait-for-sync]
 | [{-c|\--communication=yes|no}]
-| {*instance*}
+| {*instance-name*}
 
-Creates a new instance on the specified host. The *instance* argument
+Creates a new instance on the specified host. The *instance-name* argument
 must be in DNS, but depending on the bridge/routing setup, need not be
 in the same network as the nodes in the cluster.
 
@@ -1258,7 +1258,7 @@ REMOVE
 ^^^^^^
 
 | **remove** [\--ignore-failures] [\--shutdown-timeout=*N*] [\--submit]
-| [\--print-jobid] [\--force] {*instance*}
+| [\--print-jobid] [\--force] {*instance-name*}
 
 Remove an instance. This will remove all data from the instance and
 there is *no way back*. If you are not sure if you use an instance
@@ -1290,7 +1290,7 @@ LIST
 
 | **list**
 | [\--no-headers] [\--separator=*SEPARATOR*] [\--units=*UNITS*] [-v]
-| [{-o|\--output} *[+]FIELD,...*] [\--filter] [instance...]
+| [{-o|\--output} *[+]FIELD,...*] [\--filter] [*instance-name*...]
 
 Shows the currently configured instances with memory usage, disk
 usage, the node they are running on, and their run status.
@@ -1350,7 +1350,7 @@ Lists available fields for instances.
 INFO
 ^^^^
 
-**info** [-s \| \--static] [\--roman] {\--all \| *instance*}
+**info** [-s \| \--static] [\--roman] {\--all \| *instance-name*}
 
 Show detailed information about the given instance(s). This is
 different from **list** as it shows detailed data about the instance's
@@ -1399,7 +1399,7 @@ MODIFY
 | [\--ignore-ipolicy]
 | [\--hotplug]
 | [\--hotplug-if-possible]
-| {*instance*}
+| {*instance-name*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
 and/or NIC parameters for an instance. It can also add and remove
@@ -1556,10 +1556,9 @@ options.
 
 RENAME
 ^^^^^^
-
 | **rename** [\--no-ip-check] [\--no-name-check] [\--force]
 | [\--submit] [\--print-jobid]
-| {*instance*} {*new\_name*}
+| {*instance*} {*new_name*}
 
 Renames the given instance. The instance must be stopped when running
 this command. The requirements for the new name are the same as for
@@ -1598,7 +1597,7 @@ STARTUP
 | [{-H|\--hypervisor-parameters} ``key=value...``]
 | [{-B|\--backend-parameters} ``key=value...``]
 | [\--submit] [\--print-jobid] [\--paused]
-| {*name*...}
+| {*instance*...}
 
 Starts one or more instances, depending on the following options.  The
 four available modes are:
@@ -1696,7 +1695,7 @@ SHUTDOWN
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
 | \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
 | [\--submit] [\--print-jobid]
-| {*name*...}
+| {*instance*...}
 
 Stops one or more instances. If the instance cannot be cleanly stopped
 during a hardcoded interval (currently 2 minutes), it will forcibly
@@ -1750,7 +1749,7 @@ REBOOT
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
 | \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
 | [\--submit] [\--print-jobid]
-| [*name*...]
+| [*instance*...]
 
 Reboots one or more instances. The type of reboot depends on the value
 of ``-t (--type)``. A soft reboot does a hypervisor reboot, a hard reboot
@@ -1814,17 +1813,18 @@ REPLACE-DISKS
 ^^^^^^^^^^^^^
 
 | **replace-disks** [\--submit] [\--print-jobid] [\--early-release]
-| [\--ignore-ipolicy] {-p} [\--disks *idx*] {*instance*}
+| [\--ignore-ipolicy] {-p} [\--disks *idx*] {*instance-name*}
 
 | **replace-disks** [\--submit] [\--print-jobid] [\--early-release]
-| [\--ignore-ipolicy] {-s} [\--disks *idx*] {*instance*}
+| [\--ignore-ipolicy] {-s} [\--disks *idx*] {*instance-name*}
 
 | **replace-disks** [\--submit] [\--print-jobid] [\--early-release]
 | [\--ignore-ipolicy]
-| {{-I\|\--iallocator} *name* \| {{-n|\--new-secondary} *node* } {*instance*}
+| {{-I\|\--iallocator} *name* \| {{-n|\--new-secondary} *node* }
+| {*instance-name*}
 
 | **replace-disks** [\--submit] [\--print-jobid] [\--early-release]
-| [\--ignore-ipolicy] {-a\|\--auto} {*instance*}
+| [\--ignore-ipolicy] {-a\|\--auto} {*instance-name*}
 
 This command is a generalized form for replacing disks. It is
 currently only valid for the mirrored (DRBD) disk template.
@@ -1873,7 +1873,7 @@ ACTIVATE-DISKS
 ^^^^^^^^^^^^^^
 
 | **activate-disks** [\--submit] [\--print-jobid] [\--ignore-size]
-| [\--wait-for-sync] {*instance*}
+| [\--wait-for-sync] {*instance-name*}
 
 Activates the block devices of the given instance. If successful, the
 command will show the location and name of the block devices::
@@ -1911,7 +1911,7 @@ options.
 DEACTIVATE-DISKS
 ^^^^^^^^^^^^^^^^
 
-**deactivate-disks** [-f] [\--submit] [\--print-jobid] {*instance*}
+**deactivate-disks** [-f] [\--submit] [\--print-jobid] {*instance-name*}
 
 De-activates the block devices of the given instance. Note that if you
 run this command for an instance with a drbd disk template, while it
@@ -1934,7 +1934,7 @@ GROW-DISK
 
 | **grow-disk** [\--no-wait-for-sync] [\--submit] [\--print-jobid]
 | [\--absolute]
-| {*instance*} {*disk*} {*amount*}
+| {*instance-name*} {*disk*} {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
 plain, drbd, file, sharedfile, rbd or ext disk template. For the ext
@@ -1993,7 +1993,8 @@ RECREATE-DISKS
 
 | **recreate-disks** [\--submit] [\--print-jobid]
 | [{-n node1:[node2] \| {-I\|\--iallocator *name*}}]
-| [\--disk=*N*[:[size=*VAL*][,spindles=*VAL*][,mode=*ro\|rw*]]] {*instance*}
+| [\--disk=*N*[:[size=*VAL*][,spindles=*VAL*][,mode=*ro\|rw*]]]
+| {*instance-name*}
 
 Recreates all or a subset of disks of the given instance.
 
@@ -2037,7 +2038,7 @@ FAILOVER
 | [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*]
 | [\--cleanup]
 | [\--submit] [\--print-jobid]
-| {*instance*}
+| {*instance-name*}
 
 Failover will stop the instance (if running), change its primary node,
 and if it was originally running it will start it again (on the new
@@ -2098,9 +2099,9 @@ MIGRATE
 | **migrate** [-f] [\--allow-failover] [\--non-live]
 | [\--migration-mode=live\|non-live] [\--ignore-ipolicy] [\--ignore-hvversions]
 | [\--no-runtime-changes] [\--submit] [\--print-jobid]
-| [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance*}
+| [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance-name*}
 
-| **migrate** [-f] \--cleanup [\--submit] [\--print-jobid] {*instance*}
+| **migrate** [-f] \--cleanup [\--submit] [\--print-jobid] {*instance-name*}
 
 Migrate will move the instance to its secondary node without shutdown.
 As with failover, it works for instances having the drbd disk template
@@ -2196,7 +2197,7 @@ MOVE
 | **move** [-f] [\--ignore-consistency]
 | [-n *node*] [\--compress=*compression-mode*] [\--shutdown-timeout=*N*]
 | [\--submit] [\--print-jobid] [\--ignore-ipolicy]
-| {*instance*}
+| {*instance-name*}
 
 Move will move the instance to an arbitrary node in the cluster. This
 works only for instances having a plain or file disk template.
@@ -2233,7 +2234,7 @@ CHANGE-GROUP
 ^^^^^^^^^^^^
 
 | **change-group** [\--submit] [\--print-jobid]
-| [\--iallocator *NAME*] [\--to *GROUP*...] {*instance*}
+| [\--iallocator *name*] [\--to *group*...] {*instance-name*}
 
 This command moves an instance to another node group. The move is
 calculated by an iallocator, either given on the command line or as a
@@ -2258,7 +2259,7 @@ Tags
 ADD-TAGS
 ^^^^^^^^
 
-**add-tags** [\--from *file*] {*instancename*} {*tag*...}
+**add-tags** [\--from *file*] {*instance-name*} {*tag*...}
 
 Add tags to the given instance. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -2272,14 +2273,14 @@ as stdin.
 LIST-TAGS
 ^^^^^^^^^
 
-**list-tags** {*instancename*}
+**list-tags** {*instance-name*}
 
 List the tags of the given instance.
 
 REMOVE-TAGS
 ^^^^^^^^^^^
 
-**remove-tags** [\--from *file*] {*instancename*} {*tag*...}
+**remove-tags** [\--from *file*] {*instance-name*} {*tag*...}
 
 Remove tags from the given instance. If any of the tags are not
 existing on the node, the entire operation will abort.

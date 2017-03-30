@@ -2,6 +2,10 @@
 Ganeti file-based disks ownership
 =================================
 
+:Created: 2015-Jan-20
+:Status: Implemented
+:Ganeti-Version: 2.14.0
+
 .. contents:: :depth: 2
 
 This design document explains the issue that emerges from the usage of the
