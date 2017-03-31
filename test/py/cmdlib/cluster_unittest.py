@@ -805,6 +805,22 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
     assert constants.HT_FAKE not in self.cluster.os_hvp["mocked_os"]
 
+  def testRemoveOsFromOsHvpList(self):
+    os_hvp = {
+        "mocked_os_1": {
+            constants.HT_FAKE: {
+                constants.HV_MIGRATION_MODE: constants.HT_MIGRATION_NONLIVE
+            }
+        },
+        "mocked_os_2": {} # This is the one that needs to be removed.
+    }
+
+    op = opcodes.OpClusterSetParams(os_hvp=os_hvp)
+    self.ExecOpCode(op)
+
+    assert (constants.HT_FAKE in self.cluster.os_hvp["mocked_os_1"] and
+            "mocked_os_2" not in self.cluster.os_hvp)
+
   def testDefaultOsHvp(self):
     os_hvp = {"mocked_os": constants.HVC_DEFAULTS.copy()}
     self.cluster.os_hvp = {"mocked_os": {}}
