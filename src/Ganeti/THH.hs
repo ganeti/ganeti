@@ -1062,7 +1062,7 @@ buildLens (fnm, fdnm) (rnm, rdnm) nm pfx ar (field, i) = do
 -- be a JSON object, dispatching on the "forthcoming" key.
 buildObjectWithForthcoming ::
   String -- ^ Name of the newly defined type
-  -> String -- ^ base prefix for field names; for the real and fortcoming
+  -> String -- ^ base prefix for field names; for the real and forthcoming
             -- variant, with base prefix will be prefixed with "real"
             -- and forthcoming, respectively.
   -> [Field] -- ^ List of fields in the real version

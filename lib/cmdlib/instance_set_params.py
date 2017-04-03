@@ -164,16 +164,18 @@ class LUInstanceSetParams(LogicalUnit):
         utils.ForceDictType(params, (key_types if op != constants.DDM_ATTACH
                                      else key_types_attach))
 
+      if op not in (constants.DDM_ADD, constants.DDM_ATTACH,
+                    constants.DDM_MODIFY, constants.DDM_REMOVE,
+                    constants.DDM_DETACH):
+        raise errors.ProgrammerError("Unhandled operation '%s'" % op)
+
       if op in (constants.DDM_REMOVE, constants.DDM_DETACH):
         if params:
           raise errors.OpPrereqError("No settings should be passed when"
                                      " removing or detaching a %s" % kind,
                                      errors.ECODE_INVAL)
-      elif op in (constants.DDM_ADD, constants.DDM_ATTACH,
-                  constants.DDM_MODIFY):
-        item_fn(op, params)
-      else:
-        raise errors.ProgrammerError("Unhandled operation '%s'" % op)
+
+      item_fn(op, params)
 
   def _VerifyDiskModification(self, op, params, excl_stor, group_access_types):
     """Verifies a disk modification.
@@ -264,6 +266,11 @@ class LUInstanceSetParams(LogicalUnit):
       name = params.get(constants.IDISK_NAME, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
+
+    if op == constants.DDM_REMOVE and not self.op.hotplug:
+      CheckInstanceState(self, self.instance, INSTANCE_NOT_RUNNING,
+                         msg="can't remove volume from a running instance"
+                             " without using hotplug")
 
   @staticmethod
   def _VerifyNicModification(op, params):

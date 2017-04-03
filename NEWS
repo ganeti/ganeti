@@ -1759,7 +1759,7 @@ Version 2.10.6
 
 *(Released Mon, 30 Jun 2014)*
 
-- Make Ganeti tolerant towards differnt openssl library
+- Make Ganeti tolerant towards different openssl library
   version on different nodes (issue 853).
 - Allow hspace to make useful predictions in multi-group
   clusters with one group overfull (isse 861).
@@ -1900,7 +1900,7 @@ New features
   specified if the destination cluster has a default iallocator.
 - Users can now change the soundhw and cpuid settings for XEN hypervisors.
 - Hail and hbal now have the (optional) capability of accessing average CPU
-  load information through the monitoring deamon, and to use it to dynamically
+  load information through the monitoring daemon, and to use it to dynamically
   adapt the allocation of instances.
 - Hotplug support. Introduce new option '--hotplug' to ``gnt-instance modify``
   so that disk and NIC modifications take effect without the need of actual
@@ -2262,7 +2262,7 @@ Incompatible/important changes
   '--file-storage-dir' and '--shared-file-storage-dir'.
 - Cluster verification now includes stricter checks regarding the
   default file and shared file storage directories. It now checks that
-  the directories are explicitely allowed in the 'file-storage-paths' file and
+  the directories are explicitly allowed in the 'file-storage-paths' file and
   that the directories exist on all nodes.
 - The list of allowed disk templates in the instance policy and the list
   of cluster-wide enabled disk templates is now checked for consistency
@@ -4435,7 +4435,7 @@ fixes/small improvements/cleanups.
 Significant features
 ~~~~~~~~~~~~~~~~~~~~
 
-The node deamon now tries to mlock itself into memory, unless the
+The node daemon now tries to mlock itself into memory, unless the
 ``--no-mlock`` flag is passed. It also doesn't fail if it can't write
 its logs, and falls back to console logging. This allows emergency
 features such as ``gnt-node powercycle`` to work even in the event of a

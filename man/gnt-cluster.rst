@@ -30,7 +30,7 @@ Activates the master IP on the master node.
 COMMAND
 ~~~~~~~
 
-**command** [-n *node*] [-g *group*] [-M] {*command*}
+**command** [-n *node-name*] [-g *group*] [-M] {*command*}
 
 Executes a command on all nodes. This command is designed for simple
 usage. For more complex use cases the commands **dsh**\(1) or **cssh**\(1)
@@ -72,7 +72,7 @@ and the command which will be executed will be ``ls -l /etc``.
 COPYFILE
 ~~~~~~~~
 
-| **copyfile** [\--use-replication-network] [-n *node*] [-g *group*]
+| **copyfile** [\--use-replication-network] [-n *node-name*] [-g *group*]
 | {*file*}
 
 Copies a file to all or to some nodes. The argument specifies the
@@ -208,14 +208,14 @@ INIT
 | [\--user-shutdown {yes \| no}]
 | [\--ssh-key-type *type*]
 | [\--ssh-key-bits *bits*]
-| {*clustername*}
+| {*cluster-name*}
 
 This commands is only run once initially on the first node of the
 cluster. It will initialize the cluster configuration, setup the
 ssh-keys, start the daemons on the master node, etc. in order to have
 a working one-node cluster.
 
-Note that the *clustername* is not any random name. It has to be
+Note that the *cluster-name* is not any random name. It has to be
 resolvable to an IP address using DNS, and it is best if you give the
 fully-qualified domain name. This hostname must resolve to an IP
 address reserved exclusively for this purpose, i.e. not already in
@@ -870,7 +870,7 @@ options.
 RENAME
 ~~~~~~
 
-**rename** [-f] {*name*}
+**rename** [-f] {*new-name*}
 
 Renames the cluster and in the process updates the master IP
 address to the one the new name resolves to. At least one of either
@@ -941,7 +941,7 @@ in the ``init`` option description.
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~
 
-**repair-disk-sizes** [instance...]
+**repair-disk-sizes** [instance-name...]
 
 This command checks that the recorded size of the given instance's
 disks matches the actual size and updates any mismatches found.

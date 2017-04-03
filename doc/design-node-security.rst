@@ -2,6 +2,10 @@
 Improvements of Node Security
 =============================
 
+:Created: 2013-Dec-05
+:Status: Partially Implemented
+:Ganeti-Version: 2.11.0, 2.12.0, 2.13.0
+
 This document describes an enhancement of Ganeti's security by restricting
 the distribution of security-sensitive data to the master and master
 candidates only.
@@ -17,7 +21,7 @@ Objective
 Up till 2.10, Ganeti distributes security-relevant keys to all nodes,
 including nodes that are neither master nor master-candidates. Those
 keys are the private and public SSH keys for node communication and the
-SSL certficate and private key for RPC communication. Objective of this
+SSL certificate and private key for RPC communication. Objective of this
 design is to limit the set of nodes that can establish ssh and RPC
 connections to the master and master candidates.
 
@@ -125,7 +129,7 @@ the current powers a user of the RAPI interface would have. The
 That means, an attacker that has access to the RAPI interface, can make
 all non-master-capable nodes master-capable, and then increase the master
 candidate pool size till all machines are master candidates (or at least
-a particular machine that he is aming for). This means that with RAPI
+a particular machine that he is aiming for). This means that with RAPI
 access and a compromised normal node, one can make this node a master
 candidate and then still have the power to compromise the whole cluster.
 
@@ -137,7 +141,7 @@ To mitigate this issue, we propose the following changes:
   set to ``False`` by default and can itself only be changed on the
   commandline. In this design doc, we refer to the flag as the
   "rapi flag" from here on.
-- Only if the ``master_capabability_rapi_modifiable`` switch is set to
+- Only if the ``master_capability_rapi_modifiable`` switch is set to
   ``True``, it is possible to modify the master-capability flag of
   nodes.
 
@@ -168,7 +172,7 @@ However, we think these are rather confusing semantics of the involved
 flags and thus we go with proposed design.
 
 Note that this change will break RAPI compatibility, at least if the
-rapi flag is not explicitely set to ``True``. We made this choice to
+rapi flag is not explicitly set to ``True``. We made this choice to
 have the more secure option as default, because otherwise it is
 unlikely to be widely used.
 
@@ -272,7 +276,7 @@ it was issued, Ganeti does not do anything.
 
 Note that when you demote a node from master candidate to normal node, another
 master-capable and normal node will be promoted to master candidate. For this
-newly promoted node, the same changes apply as if it was explicitely promoted.
+newly promoted node, the same changes apply as if it was explicitly promoted.
 
 The same behavior should be ensured for the corresponding rapi command.
 
@@ -283,7 +287,7 @@ Offlining and onlining a node
 When offlining a node, it immediately loses its role as master or master
 candidate as well. When it is onlined again, it will become master
 candidate again if it was so before. The handling of the keys should be done
-in the same way as when the node is explicitely promoted or demoted to or from
+in the same way as when the node is explicitly promoted or demoted to or from
 master candidate. See the previous section for details.
 
 This affects the command:
@@ -346,7 +350,7 @@ will be backed up and not simply overridden.
 Downgrades
 ~~~~~~~~~~
 
-These downgrading steps will be implemtented from 2.13 to 2.12:
+These downgrading steps will be implemented from 2.13 to 2.12:
 
 - The master node's private/public key pair will be distributed to all
   nodes (via SSH) and the individual SSH keys will be backed up.
@@ -389,7 +393,7 @@ in the design.
   and client certificate, we generate a common server certificate (and
   the corresponding private key) for all nodes and a different client
   certificate (and the corresponding private key) for each node. The
-  server certificate will be self-signed. The client certficate will
+  server certificate will be self-signed. The client certificate will
   be signed by the server certificate. The client certificates will
   use the node UUID as serial number to ensure uniqueness within the
   cluster. They will use the host's hostname as the certificate
@@ -466,7 +470,7 @@ Alternative proposals:
   as trusted CAs. As this would have resulted in having to restart
   noded on all nodes every time a node is added, removed, demoted
   or promoted, this was not feasible and we switched to client
-  certficates which are signed by the server certificate.
+  certificates which are signed by the server certificate.
 - Instead of generating a client certificate per node, one could think
   of just generating two different client certificates, one for normal
   nodes and one for master candidates. Noded could then just check if
@@ -495,7 +499,7 @@ created. With our design, two certificates (and corresponding keys)
 need to be created, a server certificate to be distributed to all nodes
 and a client certificate only to be used by this particular node. In the
 following, we use the term node daemon certificate for the server
-certficate only.
+certificate only.
 
 In the cluster configuration, the candidate map is created. It is
 populated with the respective entry for the master node. It is also
@@ -508,7 +512,7 @@ written to ssconf.
 When a node is added, the server certificate is copied to the node (as
 before). Additionally, a new client certificate (and the corresponding
 private key) is created on the new node to be used only by the new node
-as client certifcate.
+as client certificate.
 
 If the new node is a master candidate, the candidate map is extended by
 the new node's data. As before, the updated configuration is distributed
@@ -532,7 +536,7 @@ distributed to all nodes. If there was already an entry for the node,
 we override it.
 
 On demotion of a master candidate, the node's entry in the candidate map
-gets removed and the updated configuration gets redistibuted.
+gets removed and the updated configuration gets redistributed.
 
 The same procedure applied to onlining and offlining master candidates.
 

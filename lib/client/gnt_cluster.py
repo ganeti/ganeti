@@ -1193,7 +1193,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   if new_rapi_cert or new_spice_cert or new_confd_hmac_key or new_cds:
     RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
 
-  # If only node certficates are recreated, call _RenewClientCerts only.
+  # If only node certificates are recreated, call _RenewClientCerts only.
   if new_node_cert and not new_cluster_cert:
     RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
                            _RenewClientCerts, verbose=verbose, debug=debug)
@@ -2472,14 +2472,14 @@ commands = {
      ENABLED_USER_SHUTDOWN_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT,
      ]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
-    "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
+    "[<opts>...] <cluster-name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
     "", "Destroy cluster"),
   "rename": (
     RenameCluster, [ArgHost(min=1, max=1)],
     [FORCE_OPT, DRY_RUN_OPT],
-    "<new_name>",
+    "<new-name>",
     "Renames the cluster"),
   "redist-conf": (
     RedistributeConfig, ARGS_NONE, SUBMIT_OPTS +
@@ -2497,7 +2497,7 @@ commands = {
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
-    "[instance...]", "Updates mismatches in recorded disk sizes"),
+    "[<instance-name>...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
     MasterFailover, ARGS_NONE,
     [NOVOTING_OPT, FORCE_FAILOVER, IGNORE_OFFLINE_NODES_FAILOVER],
@@ -2514,11 +2514,12 @@ commands = {
   "copyfile": (
     ClusterCopyFile, [ArgFile(min=1, max=1)],
     [NODE_LIST_OPT, USE_REPL_NET_OPT, NODEGROUP_OPT],
-    "[-n node...] <filename>", "Copies a file to all (or only some) nodes"),
+    "[-n <node-name>...] <filename>",
+    "Copies a file to all (or only some) nodes"),
   "command": (
     RunClusterCommand, [ArgCommand(min=1)],
     [NODE_LIST_OPT, NODEGROUP_OPT, SHOW_MACHINE_OPT, FAILURE_ONLY_OPT],
-    "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
+    "[-n <node-name>...] <command>", "Runs a command on all (or only some) nodes"),
   "info": (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
     "[--roman]", "Show cluster configuration"),
@@ -2526,10 +2527,10 @@ commands = {
     ListTags, ARGS_NONE, [], "", "List the tags of the cluster"),
   "add-tags": (
     AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "tag...", "Add tags to the cluster"),
+    "<tag>...", "Add tags to the cluster"),
   "remove-tags": (
     RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "tag...", "Remove tags from the cluster"),
+    "<tag>...", "Remove tags from the cluster"),
   "search-tags": (
     SearchTags, [ArgUnknown(min=1, max=1)], [PRIORITY_OPT], "",
     "Searches the tags on all objects on"
@@ -2561,7 +2562,7 @@ commands = {
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
      [ENABLED_DATA_COLLECTORS_OPT, DATA_COLLECTOR_INTERVAL_OPT],
-    "[opts...]",
+    "[<opts>...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
     RenewCrypto, ARGS_NONE,
@@ -2571,13 +2572,13 @@ commands = {
      NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
      NEW_NODE_CERT_OPT, NEW_SSH_KEY_OPT, NOSSH_KEYCHECK_OPT,
      VERBOSE_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT],
-    "[opts...]",
+    "[<opts>...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (
     Epo, [ArgUnknown()],
     [FORCE_OPT, ON_OPT, GROUPS_OPT, ALL_OPT, OOB_TIMEOUT_OPT,
      SHUTDOWN_TIMEOUT_OPT, POWER_DELAY_OPT],
-    "[opts...] [args]",
+    "[<opts>...] [args]",
     "Performs an emergency power-off on given args"),
   "activate-master-ip": (
     ActivateMasterIp, ARGS_NONE, [], "", "Activates the master IP"),

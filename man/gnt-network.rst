@@ -34,15 +34,15 @@ ADD
 ~~~
 
 | **add**
-| --network=*NETWORK*
-| [\--gateway=*GATEWAY*]
-| [\--add-reserved-ips=*RESERVEDIPS*]
-| [\--network6=*NETWORK6*]
-| [\--gateway6=*GATEWAY6*]
-| [\--mac-prefix=*MACPREFIX*]
+| --network=*network*
+| [\--gateway=*gateway*]
+| [\--add-reserved-ips=*reserved-ips*]
+| [\--network6=*network6*]
+| [\--gateway6=*gateway6*]
+| [\--mac-prefix=*macprefix*]
 | [\--submit] [\--print-jobid]
 | [\--no-conflicts-check]
-| {*network*}
+| {*network-name*}
 
 Creates a new network with the given name. The network will be unused
 initially. To connect it to a node group, use ``gnt-network connect``.
@@ -74,12 +74,12 @@ MODIFY
 ~~~~~~
 
 | **modify**
-| [\--gateway=*GATEWAY*]
-| [\--add-reserved-ips=*RESERVEDIPS*]
-| [\--remove-reserved-ips=*RESERVEDIPS*]
-| [\--network6=*NETWORK6*]
-| [\--gateway6=*GATEWAY6*]
-| [\--mac-prefix=*MACPREFIX*]
+| [\--gateway=*gateway*]
+| [\--add-reserved-ips=*reserved-ips*]
+| [\--remove-reserved-ips=*reserved-ips*]
+| [\--network6=*network6*]
+| [\--gateway6=*gateway6*]
+| [\--mac-prefix=*macprefix*]
 | [\--submit] [\--print-jobid]
 | {*network*}
 
@@ -104,8 +104,8 @@ See **ganeti**\(7) for a description of ``--submit`` and other common options.
 LIST
 ~~~~
 
-| **list** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [network...]
+| **list** [\--no-headers] [\--separator=*separator*] [-v]
+| [-o *[+]field,...*] [network-name...]
 
 Lists all existing networks in the cluster. If no group names are given,
 then all groups are included. Otherwise, only the named groups will be
@@ -175,7 +175,7 @@ Tags
 ADD-TAGS
 ^^^^^^^^
 
-**add-tags** [\--from *file*] {*networkname*} {*tag*...}
+**add-tags** [\--from *file*] {*network*} {*tag*...}
 
 Add tags to the given network. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -189,14 +189,14 @@ stdin.
 LIST-TAGS
 ^^^^^^^^^
 
-**list-tags** {*networkname*}
+**list-tags** {*network*}
 
 List the tags of the given network.
 
 REMOVE-TAGS
 ^^^^^^^^^^^
 
-**remove-tags** [\--from *file*] {*networkname*} {*tag*...}
+**remove-tags** [\--from *file*] {*network*} {*tag*...}
 
 Remove tags from the given network. If any of the tags are not existing
 on the network, the entire operation will abort.

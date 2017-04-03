@@ -2,6 +2,10 @@
 Automatized Upgrade Procedure for Ganeti
 ========================================
 
+:Created: 2013-Aug-20
+:Status: Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the proposed changes to the
@@ -50,7 +54,7 @@ These paths will be changed in the following way.
   ``${PREFIX}/share/ganeti/${VERSION}`` so that they see their respective
   Ganeti library. ``${PREFIX}/share/ganeti/default`` is a symbolic link to
   ``${sysconfdir}/ganeti/share`` which, in turn, is a symbolic link to
-  ``${PREFIX}/share/ganeti/${VERSION}``. For all python executatables (like
+  ``${PREFIX}/share/ganeti/${VERSION}``. For all python executables (like
   ``gnt-cluster``, ``gnt-node``, etc) symbolic links going through
   ``${PREFIX}/share/ganeti/default`` are added under ``${PREFIX}/sbin``.
 
@@ -67,12 +71,12 @@ These paths will be changed in the following way.
 
 The set of links for ganeti binaries might change between the versions.
 However, as the file structure under ``${libdir}/ganeti/${VERSION}`` reflects
-that of ``/``, two links of differnt versions will never conflict. Similarly,
+that of ``/``, two links of different versions will never conflict. Similarly,
 the symbolic links for the python executables will never conflict, as they
 always point to a file with the same basename directly under
 ``${PREFIX}/share/ganeti/default``. Therefore, each version will make sure that
 enough symbolic links are present in ``${PREFIX}/bin``, ``${PREFIX}/sbin`` and
-so on, even though some might be dangling, if a differnt version of ganeti is
+so on, even though some might be dangling, if a different version of ganeti is
 currently active.
 
 The extra indirection through ``${sysconfdir}`` allows installations that choose
@@ -201,7 +205,7 @@ following actions.
 
 - A backup of all Ganeti-related status information is created for
   manual rollbacks. While the normal way of rolling back after an
-  upgrade should be calling ``gnt-clsuter upgrade`` from the newer version
+  upgrade should be calling ``gnt-cluster upgrade`` from the newer version
   with the older version as argument, a full backup provides an
   additional safety net, especially for jump-upgrades (skipping
   intermediate minor versions).
@@ -252,7 +256,7 @@ rolled back).
 To achieve this, ``gnt-cluster upgrade`` will support a ``--resume``
 option. It is recommended
 to have ``gnt-cluster upgrade --resume`` as an at-reboot task in the crontab.
-The ``gnt-cluster upgrade --resume`` comand first verifies that
+The ``gnt-cluster upgrade --resume`` command first verifies that
 it is running on the master node, using the same requirement as for
 starting the master daemon, i.e., confirmed by a majority of all
 nodes. If it is not the master node, it will remove any possibly

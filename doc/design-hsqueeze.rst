@@ -2,6 +2,10 @@
 HSqueeze tool
 =============
 
+:Created: 2013-Oct-14
+:Status: Implemented
+:Ganeti-Version: 2.11.0, 2.12.0, 2.13.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the node-freeing scheduler, HSqueeze.

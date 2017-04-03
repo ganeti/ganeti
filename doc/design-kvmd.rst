@@ -2,6 +2,10 @@
 KVM daemon
 ==========
 
+:Created: 2014-Jan-09
+:Status: Implemented
+:Ganeti-Version: 2.11.0
+
 .. toctree::
    :maxdepth: 2
 

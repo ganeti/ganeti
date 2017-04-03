@@ -27,7 +27,7 @@ Replacing SSL keys
 The cluster-wide SSL key is stored in ``/var/lib/ganeti/server.pem``.
 Besides that, since Ganeti 2.11, each node has an individual node
 SSL key, which is stored in ``/var/lib/ganeti/client.pem``. This
-client certificate is signed by the cluster-wide SSL certficate.
+client certificate is signed by the cluster-wide SSL certificate.
 
 To renew the individual node certificates, run this command::
 

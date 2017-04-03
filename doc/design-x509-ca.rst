@@ -2,6 +2,9 @@
 Design for a X509 Certificate Authority
 =======================================
 
+:Created: 2011-Mar-23
+:Status: Draft
+
 .. contents:: :depth: 4
 
 Current state and shortcomings

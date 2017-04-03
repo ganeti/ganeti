@@ -855,7 +855,7 @@ IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
 IGNORE_HVVERSIONS_OPT = cli_option("--ignore-hvversions",
                                    dest="ignore_hvversions",
                                    action="store_true", default=False,
-                                   help="Ignore imcompatible hypervisor"
+                                   help="Ignore incompatible hypervisor"
                                    " versions between source and target")
 
 ALLOW_FAILOVER_OPT = cli_option("--allow-failover",

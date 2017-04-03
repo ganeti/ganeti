@@ -75,7 +75,7 @@ allocateOnPair opts stats nl inst new_pdx new_sdx =
   in do
     Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
       (Node.exclStorage tgt_p)
-    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p tgt_s)
+    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p (Just tgt_s))
                    new_pdx new_sdx
     new_p <- Node.addPriEx force tgt_p new_inst
     new_s <- Node.addSec tgt_s new_inst new_pdx

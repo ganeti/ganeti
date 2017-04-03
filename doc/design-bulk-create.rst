@@ -2,6 +2,10 @@
 Ganeti Bulk Create
 ==================
 
+:Created: 2012-Sep-03
+:Status: Implemented
+:Ganeti-Version: 2.7.0
+
 .. contents:: :depth: 4
 .. highlight:: python
 
@@ -58,7 +62,7 @@ of ``request`` dicts as described in :doc:`Operation specific input
 placements in the order of the ``request`` field.
 
 In addition, the old ``allocate`` request type will be deprecated and at
-latest in Ganeti 2.8 incooperated into this new request. Current code
+latest in Ganeti 2.8 incorporated into this new request. Current code
 will need slight adaption to work with the new request. This needs
 careful testing.
 

@@ -2,6 +2,10 @@
 Network management
 ==================
 
+:Created: 2011-Jun-17
+:Status: Partially Implemented
+:Ganeti-Version: 2.7.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of network resource
@@ -34,7 +38,7 @@ b) The NIC network information is incomplete, lacking netmask and
    enable Ganeti nodes to become more self-contained and be able to
    infer system configuration (e.g. /etc/network/interfaces content)
    from Ganeti configuration. This should make configuration of
-   newly-added nodes a lot easier and less dependant on external
+   newly-added nodes a lot easier and less dependent on external
    tools/procedures.
 
 c) Instance placement must explicitly take network availability in
@@ -112,7 +116,7 @@ reservation, using a TemporaryReservationManager.
 
 It should be noted that IP pool management is performed only for IPv4
 networks, as they are expected to be densely populated. IPv6 networks
-can use different approaches, e.g. sequential address asignment or
+can use different approaches, e.g. sequential address assignment or
 EUI-64 addresses.
 
 New NIC parameter: network
@@ -255,7 +259,7 @@ Network addition/deletion
  gnt-network add --network=192.168.100.0/28 --gateway=192.168.100.1 \
                  --network6=2001:db8:2ffc::/64 --gateway6=2001:db8:2ffc::1 \
                  --add-reserved-ips=192.168.100.10,192.168.100.11 net100
-  (Checks for already exising name and valid IP values)
+  (Checks for already existing name and valid IP values)
  gnt-network remove network_name
   (Checks if not connected to any nodegroup)
 

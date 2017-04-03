@@ -99,8 +99,10 @@ Draft designs
    design-allocation-efficiency.rst
    design-autorepair.rst
    design-bulk-create.rst
+   design-ceph-ganeti-support.rst
    design-chained-jobs.rst
    design-cmdlib-unittests.rst
+   design-configlock.rst
    design-cpu-speed.rst
    design-cpu-pinning.rst
    design-dedicated-allocation.rst
@@ -110,6 +112,7 @@ Draft designs
    design-disks.rst
    design-file-based-storage.rst
    design-file-based-disks-ownership.rst
+   design-glusterfs-ganeti-support.rst
    design-hroller.rst
    design-hsqueeze.rst
    design-hotplug.rst
@@ -117,6 +120,7 @@ Draft designs
    design-kvmd.rst
    design-location.rst
    design-linuxha.rst
+   design-location.rst
    design-lu-generated-jobs.rst
    design-monitoring-agent.rst
    design-move-instance-improvements.rst
@@ -137,6 +141,8 @@ Draft designs
    design-query2.rst
    design-query-splitting.rst
    design-reason-trail.rst
+   design-reservations.rst
+   design-resource-model.rst
    design-restricted-commands.rst
    design-shared-storage.rst
    design-shared-storage-redundancy.rst

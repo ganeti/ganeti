@@ -1,5 +1,10 @@
+====================================================================
 Design for parallelized instance creations and opportunistic locking
 ====================================================================
+
+:Created: 2012-Dec-03
+:Status: Implemented
+:Ganeti-Version: 2.7.0
 
 .. contents:: :depth: 3
 

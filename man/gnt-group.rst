@@ -33,7 +33,7 @@ ADD
 | [\--ipolicy-vcpu-ratio *ratio*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
-| {*group*}
+| {*group-name*}
 
 Creates a new group with the given name. The node group will be
 initially empty; to add nodes to it, use ``gnt-group assign-nodes``.
@@ -76,7 +76,7 @@ ASSIGN-NODES
 
 | **assign-nodes**
 | [\--force] [\--submit] [\--print-jobid]
-| {*group*} {*node*...}
+| {*group-name*} {*node-name*...}
 
 Assigns one or more nodes to the specified group, moving them from their
 original group (or groups).
@@ -136,7 +136,7 @@ LIST
 ~~~~
 
 | **list** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [\--filter] [group...]
+| [-o *[+]FIELD,...*] [\--filter] [*group-name*...]
 
 Lists all existing node groups in the cluster.
 
@@ -188,7 +188,7 @@ EVACUATE
 ~~~~~~~~
 
 | **evacuate** [\--submit] [\--print-jobid] [\--sequential] [\--force-failover]
-| [\--iallocator *NAME*] [\--to *GROUP*...] {*group*}
+| [\--iallocator *name*] [\--to *group*...] {*source-group*}
 
 This command will move all instances out of the given node group.
 Instances are placed in a new group by an iallocator, either given on
@@ -219,7 +219,7 @@ Tags
 ADD-TAGS
 ^^^^^^^^
 
-**add-tags** [\--from *file*] {*groupname*} {*tag*...}
+**add-tags** [\--from *file*] {*group*} {*tag*...}
 
 Add tags to the given node group. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -233,14 +233,14 @@ stdin.
 LIST-TAGS
 ^^^^^^^^^
 
-**list-tags** {*groupname*}
+**list-tags** {*group*}
 
 List the tags of the given node group.
 
 REMOVE-TAGS
 ^^^^^^^^^^^
 
-**remove-tags** [\--from *file*] {*groupname*} {*tag*...}
+**remove-tags** [\--from *file*] {*group*} {*tag*...}
 
 Remove tags from the given node group. If any of the tags are not
 existing on the node, the entire operation will abort.

@@ -1,6 +1,12 @@
 ===============================
 Huge Pages Support for Ganeti
 ===============================
+
+:Created: 2013-Jul-17
+:Status: Draft
+
+.. contents:: :depth: 4
+
 This is a design document about implementing support for huge pages in
 Ganeti. (Please note that Ganeti works with Transparent Huge Pages i.e.
 THP and any reference in this document to Huge Pages refers to explicit
@@ -37,7 +43,7 @@ cluster level via the hypervisor parameter ``mem_path`` as::
 This hypervisor parameter is inherited by all the instances as
 default although it can be overriden at the instance level.
 
-The following changes will be made to the inheritence behaviour.
+The following changes will be made to the inheritance behaviour.
 
 -  The hypervisor parameter   ``mem_path`` and all other hypervisor
    parameters will be made available at the node group level (in
@@ -47,7 +53,7 @@ The following changes will be made to the inheritence behaviour.
 	$ gnt-group add/modify\
 	> -H hv:parameter=value
 
-   This changes the hypervisor inheritence level as::
+   This changes the hypervisor inheritance level as::
 
      cluster -> group -> OS -> instance
 

@@ -195,7 +195,7 @@ def AutoArchiveJobs(opts, args):
 
 
 def _MultiJobAction(opts, args, cl, stdout_fn, ask_fn, question, action_fn):
-  """Applies a function to multipe jobs.
+  """Applies a function to multiple jobs.
 
   @param opts: Command line options
   @type args: list
@@ -527,7 +527,7 @@ commands = {
     ListJobs, [ArgJobId()],
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT,
      _PENDING_OPT, _RUNNING_OPT, _ERROR_OPT, _FINISHED_OPT, _ARCHIVED_OPT],
-    "[job_id ...]",
+    "[<job-id>...]",
     "Lists the jobs and their status. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."
     " The default field list is (in order): %s." %
@@ -535,11 +535,11 @@ commands = {
   "list-fields": (
     ListJobFields, [ArgUnknown()],
     [NOHDR_OPT, SEP_OPT],
-    "[fields...]",
+    "[<fields>...]",
     "Lists all available fields for jobs"),
   "archive": (
     ArchiveJobs, [ArgJobId(min=1)], [],
-    "<job-id> [<job-id> ...]", "Archive specified jobs"),
+    "<job-id> [<job-id>...]", "Archive specified jobs"),
   "autoarchive": (
     AutoArchiveJobs,
     [ArgSuggest(min=1, max=1, choices=["1d", "1w", "4w", "all"])],
@@ -550,11 +550,11 @@ commands = {
     [FORCE_OPT, _KILL_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT,
      _YES_DOIT_OPT],
     "{[--force] [--kill --yes-do-it] {--pending | --queued | --waiting} |"
-    " <job-id> [<job-id> ...]}",
+    " <job-id> [<job-id>...]}",
     "Cancel jobs"),
   "info": (
     ShowJobs, [ArgJobId(min=1)], [],
-    "<job-id> [<job-id> ...]",
+    "<job-id> [<job-id>...]",
     "Show detailed information about the specified jobs"),
   "wait": (
     WaitJob, [ArgJobId(min=1, max=1)], [],
@@ -566,7 +566,7 @@ commands = {
     ChangePriority, [ArgJobId()],
     [PRIORITY_OPT, FORCE_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT],
     "--priority <priority> {[--force] {--pending | --queued | --waiting} |"
-    " <job-id> [<job-id> ...]}",
+    " <job-id> [<job-id>...]}",
     "Change the priority of jobs"),
   }
 
