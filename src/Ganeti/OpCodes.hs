@@ -256,6 +256,7 @@ $(genOpCode "OpCode"
      , pUseExternalMipScript
      , pEnabledDiskTemplates
      , pModifyEtcHosts
+     , pModifySshSetup
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir
@@ -270,6 +271,7 @@ $(genOpCode "OpCode"
      , pMaintdRoundDelay
      , pMaintdEnableBalancing
      , pMaintdBalancingThreshold
+     , pEnabledPredictiveQueue
      ],
      [])
   , ("OpClusterRedistConf",
@@ -534,6 +536,10 @@ $(genOpCode "OpCode"
      , pTempOsParams
      , pTempOsParamsPrivate
      , pTempOsParamsSecret
+     , pTempOsParamsClear
+     , pTempOsParamsPrivateClear
+     , pTempOsParamsRemove
+     , pTempOsParamsPrivateRemove
      ],
      "instance_name")
   , ("OpInstanceRemove",
@@ -720,6 +726,10 @@ $(genOpCode "OpCode"
      , pOsNameChange
      , pInstOsParams
      , pInstOsParamsPrivate
+     , pInstOsParamsClear
+     , pInstOsParamsPrivateClear
+     , pInstOsParamsRemove
+     , pInstOsParamsPrivateRemove
      , pWaitForSync
      , withDoc "Whether to mark the instance as offline" pOffline
      , pIpConflictsCheck

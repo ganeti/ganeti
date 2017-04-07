@@ -1378,6 +1378,10 @@ MODIFY
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
 | [--os-parameters-private *param*=*value*... ]
+| [--clear-os-parameters]
+| [--clear-os-parameters-private]
+| [--remove-os-parameters *param*[,*param*...]]
+| [--remove-os-parameters-private *param*[,*param*...]]
 | [\--offline \| \--online]
 | [\--submit] [\--print-jobid]
 | [\--ignore-ipolicy]
@@ -1394,6 +1398,13 @@ The ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``
 and ``-O (--os-parameters)`` options specifies hypervisor, backend and
 OS parameter options in the form of name=value[,...]. For details
 which options can be specified, see the **add** command.
+
+The ``--clear-os-parameters`` option will clear all current (public)
+instance OS parameters and the ``--clear-os-parameters-private`` will
+clear all current private OS parameters. Similarly, the
+``--remove-os-parameters`` option will clear only the specified
+parameters and the ``--remove-os-parameters-private`` will clear only
+the specified private OS parameters.
 
 The ``-t (--disk-template)`` option will change the disk template of
 the instance.  Currently, conversions between all the available
@@ -1515,6 +1526,8 @@ REINSTALL
 | [{-O|\--os-parameters} *OS\_PARAMETERS*]
 | [--os-parameters-private} *OS\_PARAMETERS*]
 | [--os-parameters-secret} *OS\_PARAMETERS*]
+| [--clear-os-parameters]
+| [--clear-os-parameters-private]
 | [\--submit] [\--print-jobid]
 | {*instance*...}
 
@@ -1527,6 +1540,14 @@ The user is prompted to select the OS template from the list of
 available OS templates. OS parameters can be overridden using ``-O
 (--os-parameters)`` (more documentation for this option under the
 **add** command).
+
+The ``--clear-os-parameters(-private)`` option will clear all
+public/private OS parameters before applying any updates from
+``--os-parameters(-private)`` during an instance reinstall. Similarly,
+the ``--remove-os-parameters(-private)`` option will clear only the
+specified public/private parameters and will pass the rest to the
+'create' command provided by the appropriate OS interface (see
+**ganeti-os-interface**\(7) man page for more information).
 
 Since this is a potentially dangerous command, the user will be
 required to confirm this action, unless the ``-f`` flag is passed.

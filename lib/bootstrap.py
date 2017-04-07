@@ -501,7 +501,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 use_external_mip_script=False, hv_state=None, disk_state=None,
                 enabled_disk_templates=None, install_image=None,
                 zeroing_image=None, compression_tools=None,
-                enabled_user_shutdown=False):
+                enabled_user_shutdown=False, enabled_predictive_queue=True):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -684,7 +684,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   for template, dt_params in diskparams.items():
     param_keys = set(dt_params.keys())
     default_param_keys = set(constants.DISK_DT_DEFAULTS[template].keys())
-    if not (param_keys <= default_param_keys):
+    if param_keys > default_param_keys:
       unknown_params = param_keys - default_param_keys
       raise errors.OpPrereqError("Invalid parameters for disk template %s:"
                                  " %s" % (template,
@@ -805,6 +805,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     enabled_user_shutdown=enabled_user_shutdown,
     ssh_key_type=ssh_key_type,
     ssh_key_bits=ssh_key_bits,
+    enabled_predictive_queue=enabled_predictive_queue,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

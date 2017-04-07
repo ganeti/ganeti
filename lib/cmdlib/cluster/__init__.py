@@ -67,7 +67,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
   CheckDiskAccessModeConsistency, GetClientCertDigest, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
-  CheckImageValidity, CheckDiskAccessModeConsistency, EnsureKvmdOnNodes
+  CheckImageValidity, EnsureKvmdOnNodes
 
 import ganeti.masterd.instance
 
@@ -1732,6 +1732,15 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.modify_etc_hosts is not None:
       self.cluster.modify_etc_hosts = self.op.modify_etc_hosts
 
+    if self.op.modify_ssh_setup is not None:
+      if (self.op.modify_ssh_setup and
+          not self.cfg.GetClusterInfo().modify_ssh_setup):
+        feedback_fn(
+          "Enabling modify_ssh_setup for cluster. You may need to run"
+          " 'gnt-cluster renew-crypto --new-ssh-keys --no-ssh-key-check'"
+          " to redistribute the ssh public key settings for each node.")
+      self.cluster.modify_ssh_setup = self.op.modify_ssh_setup
+
     if self.op.prealloc_wipe_disks is not None:
       self.cluster.prealloc_wipe_disks = self.op.prealloc_wipe_disks
 
@@ -1760,6 +1769,9 @@ class LUClusterSetParams(LogicalUnit):
           self.cluster.enabled_user_shutdown != self.op.enabled_user_shutdown:
       self.cluster.enabled_user_shutdown = self.op.enabled_user_shutdown
       ensure_kvmd = True
+
+    if self.op.enabled_predictive_queue is not None:
+      self.cluster.enabled_predictive_queue = self.op.enabled_predictive_queue
 
     def helper_os(aname, mods, desc):
       desc += " OS list"

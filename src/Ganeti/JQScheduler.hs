@@ -167,6 +167,12 @@ getMaxRunningJobs = getConfigValue clusterMaxRunningJobs 1
 getMaxTrackedJobs :: JQStatus -> IO Int
 getMaxTrackedJobs = getConfigValue clusterMaxTrackedJobs 1
 
+-- | Get the boolean that specifies whether or not the predictive queue
+-- scheduler is enabled in the cluster. If the configuration is not available,
+-- the predictive queue is enabled by default.
+getEnabledPredictiveQueue :: JQStatus -> IO Bool
+getEnabledPredictiveQueue = getConfigValue clusterEnabledPredictiveQueue True
+
 -- | Get the number of jobs currently running.
 getRQL :: JQStatus -> IO Int
 getRQL = liftM (length . qRunning) . readIORef . jqJobs
@@ -332,28 +338,38 @@ extractFirstOpCode job =
 
 -- | Sort the given job queue by its static lock weight in relation to the
 -- currently running jobs.
-sortByStaticLocks :: ConfigData -> Queue -> [JobWithStat] -> [JobWithStat]
-sortByStaticLocks cfg queue = sortBy (compare `on` opWeight)
+sortByStaticLocks :: ConfigData
+                  -> Queue
+                  -> Timestamp -- Current time
+                  -> [JobWithStat]
+                  -> [JobWithStat]
+sortByStaticLocks cfg queue currTime = sortBy (compare `on` opWeight)
   where opWeight :: JobWithStat -> Double
-        opWeight job = staticWeight cfg (extractFirstOpCode job) runningOps
+        opWeight job = adjustedWeight currTime (recvTime job)
+                       . staticWeight cfg (extractFirstOpCode job) $ runningOps
+        recvTime = fromMaybe noTimestamp . qjReceivedTimestamp . jJob
         runningOps = catMaybes . (fmap extractFirstOpCode) . qRunning $ queue
 
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
 selectJobsToRun :: ConfigData
-                -> Int  -- ^ How many jobs are allowed to run at the
-                        -- same time.
-                -> Set FilterRule -- ^ Filter rules to respect for scheduling
+                -> Int -- How many jobs are allowed to run at the same time.
+                -> Bool -- If the predictive scheduler is enabled
+                -> Timestamp -- Current time
+                -> Set FilterRule -- Filter rules to respect for scheduling
                 -> Queue
                 -> (Queue, [JobWithStat])
-selectJobsToRun cfg count filters queue =
+selectJobsToRun cfg count isPredictive currTime filters queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
+      pickScheduler = if isPredictive
+                         then sortByStaticLocks cfg queue currTime
+                         else id
       chosen = take n
                . jobFiltering queue filters
                . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
-               . sortByStaticLocks cfg queue
+               . pickScheduler
                $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
@@ -446,10 +462,14 @@ scheduleSomeJobs qstate = do
       -- Check if jobs are rejected by a REJECT filter, and cancel them.
       cancelRejectedJobs qstate cfg filters
 
+      ts <- currentTimestamp
+
       -- Select the jobs to run.
       count <- getMaxRunningJobs qstate
-      chosen <- atomicModifyIORef (jqJobs qstate)
-                                  (selectJobsToRun cfg count filters)
+      isPredictive <- getEnabledPredictiveQueue qstate
+      let jobsToRun = selectJobsToRun cfg count isPredictive ts filters
+      chosen <- atomicModifyIORef (jqJobs qstate) jobsToRun
+
       let jobs = map jJob chosen
       unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
         $ map (show . fromJobId . qjId) jobs

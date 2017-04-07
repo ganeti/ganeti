@@ -30,13 +30,10 @@
 
 """Ganeti node daemon"""
 
-# pylint: disable=C0103,W0142
+# pylint: disable=C0103
 
 # C0103: Functions in this module need to have a given name structure,
 # and the name of the daemon doesn't match
-
-# W0142: Used * or ** magic, since we do use it extensively in this
-# module
 
 import os
 import sys
@@ -203,7 +200,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
       # And return the error's arguments, which must be already in
       # correct tuple format
       result = err.args
-    except Exception, err:
+    except Exception, err: # pylint: disable=W0703
       logging.exception("Error in RPC call")
       result = (False, "Error while executing backend function: %s" % str(err))
 
@@ -1314,7 +1311,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.CleanupImportExport(params[0])
 
 
-def CheckNoded(_, args):
+def CheckNoded(options, args):
   """Initial checks whether to run or exit with a failure.
 
   """
@@ -1322,6 +1319,12 @@ def CheckNoded(_, args):
     print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
                           sys.argv[0])
     sys.exit(constants.EXIT_FAILURE)
+
+  if options.max_clients < 1:
+    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
+                          sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
   try:
     codecs.lookup("string-escape")
   except LookupError:
@@ -1401,7 +1404,6 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   else:
     logging.error("Invalid errdepth value: %s.", errdepth)
     return False
-  # pylint: enable=W0613
 
 
 def PrepNoded(options, _):
@@ -1435,11 +1437,11 @@ def PrepNoded(options, _):
   handler = NodeRequestHandler()
 
   mainloop = daemon.Mainloop()
-  server = \
-    http.server.HttpServer(mainloop, options.bind_address, options.port,
-                           handler, ssl_params=ssl_params, ssl_verify_peer=True,
-                           request_executor_class=request_executor_class,
-                           ssl_verify_callback=SSLVerifyPeer)
+  server = http.server.HttpServer(
+      mainloop, options.bind_address, options.port, options.max_clients,
+      handler, ssl_params=ssl_params, ssl_verify_peer=True,
+      request_executor_class=request_executor_class,
+      ssl_verify_callback=SSLVerifyPeer)
   server.Start()
 
   return (mainloop, server)
@@ -1468,6 +1470,10 @@ def Main():
   parser.add_option("--no-mlock", dest="mlock",
                     help="Do not mlock the node memory in ram",
                     default=True, action="store_false")
+  parser.add_option("--max-clients", dest="max_clients",
+                    default=20, type="int",
+                    help="Number of simultaneous connections accepted"
+                    " by noded")
 
   daemon.GenericMain(constants.NODED, parser, CheckNoded, PrepNoded, ExecNoded,
                      default_ssl_cert=pathutils.NODED_CERT_FILE,

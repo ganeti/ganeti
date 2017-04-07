@@ -209,6 +209,7 @@ INIT
 | [\--user-shutdown {yes \| no}]
 | [\--ssh-key-type *type*]
 | [\--ssh-key-bits *bits*]
+| [\--predictive-queue {yes \| no}]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -651,6 +652,10 @@ options **ssh-keygen**\(1) exposes. These are currently:
 
 Ganeti defaults to using 2048-bit RSA keys.
 
+The ``--predictive-queue`` option enables or disables the predictive
+queue algorithm for the job scheduler. If this option is not specified,
+Ganeti defaults to enabling the predictive scheduler.
+
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
@@ -727,6 +732,7 @@ MODIFY
 | [\--master-netdev *interface-name*]
 | [\--master-netmask *netmask*]
 | [\--modify-etc-hosts {yes \| no}]
+| [\--modify-ssh-setup {yes \| no}]
 | [\--use-external-mip-script {yes \| no}]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
@@ -750,6 +756,8 @@ MODIFY
 | [\--auto-balance-cluster {yes \| no }]
 | [\--auto-balance-threshold *score* ]
 | [\--diagnose-data-collector-filename *filename*]
+| [\--predictive-queue {yes \| no}]
+
 
 
 Modify the options for the cluster.
@@ -768,8 +776,8 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--user-shutdown`` options are
 described in the **init** command.
 
-The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
-the **init** command.
+The ``--modify-etc-hosts`` and ``--modify-ssh-setup`` options are described
+by ``--no-etc-hosts`` and ``--no-ssh-setup`` in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
@@ -838,6 +846,9 @@ that move is at least the value specified by ``--auto-balance-threshold``
 in absolute terms, unless the cluster score it at least 10 times that
 value, in which case all beneficial steps will be done if auto-balancing
 is enabled.
+
+The ``--predictive-queue`` option enables or disables the predictive
+queue algorithm for the job scheduler.
 
 See **gnt-cluster init** for a description of ``--install-image`` and
 ``--zeroing-image``.

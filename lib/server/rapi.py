@@ -31,7 +31,7 @@
 
 """
 
-# pylint: disable=C0103,W0142
+# pylint: disable=C0103
 
 # C0103: Invalid name ganeti-watcher
 
@@ -52,7 +52,6 @@ from ganeti.rapi.auth import basic_auth
 from ganeti.rapi.auth import pam
 
 import ganeti.http.auth   # pylint: disable=W0611
-import ganeti.http.server
 
 
 class RemoteApiRequestContext(object):
@@ -212,6 +211,11 @@ def CheckRapi(options, args):
                           sys.argv[0])
     sys.exit(constants.EXIT_FAILURE)
 
+  if options.max_clients < 1:
+    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
+                          sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
   ssconf.CheckMaster(options.debug)
 
   # Read SSL certificate (this is a little hackish to read the cert as root)
@@ -236,10 +240,9 @@ def PrepRapi(options, _):
 
   handler = RemoteApiHandler(authenticator, options.reqauth)
 
-  server = \
-    http.server.HttpServer(mainloop, options.bind_address, options.port,
-                           handler,
-                           ssl_params=options.ssl_params, ssl_verify_peer=False)
+  server = http.server.HttpServer(
+      mainloop, options.bind_address, options.port, options.max_clients,
+      handler, ssl_params=options.ssl_params, ssl_verify_peer=False)
   server.Start()
 
   return (mainloop, server)
@@ -275,6 +278,10 @@ def Main():
                     default=False, action="store_true",
                     help=("Enable RAPI authentication and authorization via"
                           " PAM"))
+  parser.add_option("--max-clients", dest="max_clients",
+                    default=20, type="int",
+                    help="Number of simultaneous connections accepted"
+                    " by ganeti-rapi")
 
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=pathutils.RAPI_CERT_FILE,

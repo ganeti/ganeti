@@ -80,8 +80,14 @@ fsyncFileChecked path =
 atomicUpdateFile :: (MonadBaseControl IO m)
                  => FilePath -> (FilePath -> Handle -> m a) -> m a
 atomicUpdateFile path action = do
+  -- Put a separator on the filename pattern to produce temporary filenames
+  -- such as job-1234-NNNNNN.tmp instead of job-1234NNNNNN. The latter can cause
+  -- problems (as well as user confusion) because temporary filenames have the
+  -- same format as real filenames, and anything that scans a directory won't be
+  -- able to tell them apart.
+  let filenameTemplate = takeBaseName path ++ "-.tmp"
   (tmppath, tmphandle) <- liftBase $ openBinaryTempFile (takeDirectory path)
-                                                        (takeBaseName path)
+                                                        filenameTemplate
   r <- L.finally (action tmppath tmphandle)
                  (liftBase (hClose tmphandle >> fsyncFileChecked tmppath))
   -- if all went well, rename the file

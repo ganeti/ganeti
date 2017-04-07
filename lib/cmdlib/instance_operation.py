@@ -370,12 +370,34 @@ class LUInstanceReinstall(LogicalUnit):
     self.op.osparams = self.op.osparams or {}
     self.op.osparams_private = self.op.osparams_private or {}
     self.op.osparams_secret = self.op.osparams_secret or {}
+    self.op.remove_osparams = self.op.remove_osparams or []
+    self.op.remove_osparams_private = self.op.remove_osparams_private or []
 
     # Handle the use of 'default' values.
+    if self.op.clear_osparams:
+      instance.osparams.clear()
+
+    if self.op.clear_osparams_private:
+      instance.osparams_private.clear()
+
     params_public = GetUpdatedParams(instance.osparams, self.op.osparams)
     params_private = GetUpdatedParams(instance.osparams_private,
                                         self.op.osparams_private)
     params_secret = self.op.osparams_secret
+
+    for osp in self.op.remove_osparams:
+      if osp in params_public:
+        del params_public[osp]
+      else:
+        self.LogWarning("Trying to remove OS parameter %s but parameter"
+                        " does not exist" % osp)
+
+    for osp in self.op.remove_osparams_private:
+      if osp in params_private:
+        del params_private[osp]
+      else:
+        self.LogWarning("Trying to remove private OS parameter %s but"
+                        " parameter does not exist" % osp)
 
     # Handle OS parameters
     if self.op.os_type is not None:
@@ -429,8 +451,7 @@ class LUInstanceReinstall(LogicalUnit):
     os_image = objects.GetOSImage(self.op.osparams)
 
     if os_image is not None:
-      feedback_fn("Using OS image '%s', not changing instance"
-                  " configuration" % os_image)
+      feedback_fn("Using OS image '%s'" % os_image)
     else:
       os_image = objects.GetOSImage(self.instance.osparams)
 
@@ -447,6 +468,11 @@ class LUInstanceReinstall(LogicalUnit):
       self.LogInfo("No OS scripts or OS image specified or found in the"
                    " instance's configuration, nothing to install")
     else:
+      if self.op.osparams is not None:
+        self.instance.osparams = self.op.osparams
+      if self.op.osparams_private is not None:
+        self.instance.osparams_private = self.op.osparams_private
+      self.cfg.Update(self.instance, feedback_fn)
       StartInstanceDisks(self, self.instance, None)
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
       try:

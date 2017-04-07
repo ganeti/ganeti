@@ -698,6 +698,7 @@ $(buildObject "Cluster" "cluster" $
       "diagnose_data_collector_filename"         [t| String                  |]
   , simpleField "ssh_key_type"                   [t| SshKeyType              |]
   , simpleField "ssh_key_bits"                   [t| Int                     |]
+  , simpleField "enabled_predictive_queue"       [t| Bool                    |]
  ]
  ++ timeStampFields
  ++ uuidFields

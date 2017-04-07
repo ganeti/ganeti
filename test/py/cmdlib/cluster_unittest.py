@@ -1005,6 +1005,28 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.assertEqual(["/dev/mock_lv"], self.cluster.reserved_lvs)
     self.assertEqual(True, self.cluster.use_external_mip_script)
 
+  def testEnableSshSetup(self):
+    # Check the flag is disabled by default
+    old = False
+    self.assertEqual(old, self.cluster.modify_ssh_setup)
+
+    # Try all 4 permutations of off->off, off->on, on->on, on->off
+    for new in (False, True, True, False):
+      self.mcpu.ClearLogMessages()
+      self.ExecOpCode(opcodes.OpClusterSetParams(modify_ssh_setup=new))
+
+      # Check the flag is updated to the new value
+      self.assertEqual(new, self.cluster.modify_ssh_setup)
+
+      # Switching off modify_ssh_setup should succeed silently,
+      # Switching it on should warn, and leaving it the same should do nothing
+      if not old and new:
+        self.mcpu.assertLogContainsRegex("gnt-cluster renew-crypto")
+      else:
+        self.mcpu.assertLogIsEmpty()
+
+      old = new
+
   def testAddHiddenOs(self):
     self.cluster.hidden_os = ["hidden1", "hidden2"]
     op = opcodes.OpClusterSetParams(hidden_os=[(constants.DDM_ADD, "hidden2"),

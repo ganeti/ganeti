@@ -47,11 +47,12 @@
 
 
 import base64
+import contextlib
+import collections
 import errno
 import logging
 import os
 import os.path
-import pycurl
 import random
 import re
 import shutil
@@ -60,8 +61,8 @@ import stat
 import tempfile
 import time
 import zlib
-import contextlib
-import collections
+
+import pycurl
 
 from ganeti import errors
 from ganeti import http
@@ -1019,16 +1020,17 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
     missing_uuids = set([])
     if pub_uuids_set != pot_mc_uuids_set:
       unknown_uuids = pub_uuids_set - pot_mc_uuids_set
+      pub_key_path = "%s:%s" % (my_name, ganeti_pub_keys_file)
       if unknown_uuids:
-        result.append("The following node UUIDs are listed in the public key"
-                      " file on node '%s', but are not potential master"
-                      " candidates: %s."
-                      % (my_name, ", ".join(list(unknown_uuids))))
+        result.append("The following node UUIDs are listed in the shared public"
+                      " keys file %s, but are not potential master"
+                      " candidates: %s." %
+                      (pub_key_path, ", ".join(list(unknown_uuids))))
       missing_uuids = pot_mc_uuids_set - pub_uuids_set
       if missing_uuids:
         result.append("The following node UUIDs of potential master candidates"
-                      " are missing in the public key file on node %s: %s."
-                      % (my_name, ", ".join(list(missing_uuids))))
+                      " are missing in the shared public keys file %s: %s." %
+                      (pub_key_path, ", ".join(list(missing_uuids))))
 
     (_, key_files) = \
       ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
@@ -1037,17 +1039,19 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
     my_keys = pub_keys[my_uuid]
 
     node_pub_key = utils.ReadFile(node_pub_key_file)
+    node_pub_key_path = "%s:%s" % (my_name, node_pub_key_file)
     if node_pub_key.strip() not in my_keys:
-      result.append("The dsa key of node %s does not match this node's key"
-                    " in the pub key file." % my_name)
+      result.append("The key for node %s in the cluster config does not match"
+                    " this node's key in the node public key file %s." %
+                    (my_name, node_pub_key_path))
     if len(my_keys) != 1:
-      result.append("There is more than one key for node %s in the public key"
-                    " file." % my_name)
+      result.append("There is more than one key for node %s in the node public"
+                    " key file %s." % (my_name, node_pub_key_path))
   else:
     if len(pub_keys.keys()) > 0:
-      result.append("The public key file of node '%s' is not empty, although"
-                    " the node is not a potential master candidate."
-                    % my_name)
+      result.append("The public key file %s is not empty, although"
+                    " the node is not a potential master candidate." %
+                    node_pub_key_path)
 
   # Check that all master candidate keys are in the authorized_keys file
   (auth_key_file, _) = \
@@ -1679,8 +1683,8 @@ def AddNodeSshKeyBulk(node_list,
 
 
 # TODO: will be fixed with pending patch series.
-# pylint: disable=R0913
-def RemoveNodeSshKey(node_uuid, node_name,
+def RemoveNodeSshKey(node_uuid, # pylint: disable=R0913
+                     node_name,
                      master_candidate_uuids,
                      potential_master_candidates,
                      master_uuid=None,
@@ -1850,9 +1854,10 @@ def RemoveNodeSshKeyBulk(node_list,
         if master_uuid:
           master_keys = ssh.QueryPubKeyFile([master_uuid],
                                             key_file=pub_key_file)
-          for master_key in master_keys:
-            if master_key in keys[node_info.uuid]:
-              keys[node_info.uuid].remove(master_key)
+
+          # Remove any master keys from the list of keys to remove from the node
+          keys[node_info.uuid] = list(
+              set(keys[node_info.uuid]) - set(master_keys))
 
       all_keys_to_remove.update(keys)
 
@@ -1915,9 +1920,13 @@ def RemoveNodeSshKeyBulk(node_list,
         error_msg_final = ("When removing the key of node '%s', updating the"
                            " SSH key files of node '%s' failed. Last error"
                            " was: %s.")
-        if node in potential_master_candidates:
-          logging.debug("Updating key setup of potential master candidate node"
-                        " %s.", node)
+
+        if node in potential_master_candidates or from_authorized_keys:
+          if node in potential_master_candidates:
+            node_desc = "potential master candidate"
+          else:
+            node_desc = "normal"
+          logging.debug("Updating key setup of %s node %s.", node_desc, node)
           try:
             backoff = 5  # seconds
             utils.RetryByNumberOfTimes(
@@ -1931,23 +1940,6 @@ def RemoveNodeSshKeyBulk(node_list,
                 node_info.name, node, last_exception)
             result_msgs.append((node, error_msg))
             logging.error(error_msg)
-
-        else:
-          if from_authorized_keys:
-            logging.debug("Updating key setup of normal node %s.", node)
-            try:
-              backoff = 5  # seconds
-              utils.RetryByNumberOfTimes(
-                  constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
-                  run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
-                  ssh_port, base_data,
-                  debug=ssh_update_debug, verbose=ssh_update_verbose,
-                  use_cluster_key=False, ask_key=False, strict_host_check=False)
-            except errors.SshUpdateError as last_exception:
-              error_msg = error_msg_final % (
-                  node_info.name, node, last_exception)
-              result_msgs.append((node, error_msg))
-              logging.error(error_msg)
 
   for node_info in node_list:
     if node_info.clear_authorized_keys or node_info.from_public_keys or \
@@ -2010,7 +2002,6 @@ def RemoveNodeSshKeyBulk(node_list,
       ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
 
   return result_msgs
-# pylint: enable=R0913
 
 
 def RemoveSshKeyFromPublicKeyFile(node_name,
@@ -2936,15 +2927,21 @@ def StartInstance(instance, startup_paused, reason, store_reason=True):
   @rtype: None
 
   """
-  instance_info = _GetInstanceInfo(instance)
-
-  if instance_info and not _IsInstanceUserDown(instance_info):
-    logging.info("Instance '%s' already running, not starting", instance.name)
-    return
-
   try:
-    block_devices = _GatherAndLinkBlockDevs(instance)
+    instance_info = _GetInstanceInfo(instance)
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
+
+    if instance_info and not _IsInstanceUserDown(instance_info):
+      logging.info("Instance '%s' already running, not starting", instance.name)
+      if hyper.VerifyInstance(instance):
+        return
+      logging.info("Instance '%s' hypervisor config out of date. Restoring.",
+                   instance.name)
+      block_devices = _GatherAndLinkBlockDevs(instance)
+      hyper.RestoreInstance(instance, block_devices)
+      return
+
+    block_devices = _GatherAndLinkBlockDevs(instance)
     hyper.StartInstance(instance, block_devices, startup_paused)
     if store_reason:
       _StoreInstReasonTrail(instance.name, reason)
@@ -3065,9 +3062,8 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
-      result = StartInstance(instance, False, reason, store_reason=False)
+      StartInstance(instance, False, reason, store_reason=False)
       _StoreInstReasonTrail(instance.name, reason)
-      return result
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance '%s': %s", instance.name, err)
   else:

@@ -416,7 +416,7 @@ class JobHandler(FeedbackAccumulator):
       cli.SetGenericOpcodeOpts(ops, self.opts)
       self.queued_ops.append((ops, name, post_process))
     else:
-      val = self.ExecOp(self.queue_retry, *ops) # pylint: disable=W0142
+      val = self.ExecOp(self.queue_retry, *ops)
       if post_process is not None:
         post_process()
       return val
@@ -458,7 +458,7 @@ class JobHandler(FeedbackAccumulator):
     self.ClearFeedbackBuf()
     jex = cli.JobExecutor(cl=self.cl, feedback_fn=self.Feedback)
     for ops, name, _ in jobs:
-      jex.QueueJob(name, *ops) # pylint: disable=W0142
+      jex.QueueJob(name, *ops)
     try:
       results = jex.GetResults()
     except Exception, err: # pylint: disable=W0703
@@ -677,8 +677,10 @@ class Burner(JobHandler):
                                     hypervisor=self.hypervisor,
                                     osparams=self.opts.osparams,
                                     )
-      remove_instance = lambda name: lambda: self.to_rem.append(name)
-      self.ExecOrQueue(instance, [op], post_process=remove_instance(instance))
+      # NB the i=instance default param is needed here so the lambda captures
+      # the variable. See https://docs.python.org/2/faq/programming.html#id11
+      rm_inst = lambda i=instance: self.to_rem.append(i) # pylint: disable=C0322
+      self.ExecOrQueue(instance, [op], post_process=rm_inst)
 
   @_DoBatch(False)
   def BurnModifyRuntimeMemory(self):

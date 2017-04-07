@@ -36,8 +36,9 @@
 
 import copy
 import itertools
-import simplejson
 import logging
+
+import simplejson
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -101,7 +102,6 @@ def _ExpandMultiNames(mode, names, client=None):
   @raise errors.OpPrereqError: for invalid input parameters
 
   """
-  # pylint: disable=W0142
 
   if client is None:
     client = GetClient()
@@ -300,7 +300,7 @@ def BatchCreate(opts, args):
                                  (idx, utils.CommaJoin(unknown)),
                                  errors.ECODE_INVAL)
 
-    op = opcodes.OpInstanceCreate(**inst) # pylint: disable=W0142
+    op = opcodes.OpInstanceCreate(**inst)
     op.Validate(False)
     instances.append(op)
 
@@ -398,14 +398,33 @@ def ReinstallInstance(opts, args):
       if not AskUser(usertext):
         return 1
 
+  if opts.clear_osparams and opts.remove_osparams is not None:
+    raise errors.OpPrereqError(
+      "Using --remove-os-parameters with "
+      "--clear-os-parameters is not possible", errors.ECODE_INVAL)
+
+  if opts.clear_osparams_private and opts.remove_osparams_private is not None:
+    raise errors.OpPrereqError(
+      "Using --remove-os-parameters-private with "
+      "--clear-os-parameters-private is not possible", errors.ECODE_INVAL)
+
+  remove_osparams = opts.remove_osparams or []
+  remove_osparams_private = opts.remove_osparams_private or []
+
   jex = JobExecutor(verbose=multi_on, opts=opts)
   for instance_name in inames:
-    op = opcodes.OpInstanceReinstall(instance_name=instance_name,
-                                     os_type=os_name,
-                                     force_variant=opts.force_variant,
-                                     osparams=opts.osparams,
-                                     osparams_private=opts.osparams_private,
-                                     osparams_secret=opts.osparams_secret)
+    op = opcodes.OpInstanceReinstall(
+      instance_name=instance_name,
+      os_type=os_name,
+      force_variant=opts.force_variant,
+      osparams=opts.osparams,
+      osparams_private=opts.osparams_private,
+      osparams_secret=opts.osparams_secret,
+      clear_osparams=opts.clear_osparams,
+      clear_osparams_private=opts.clear_osparams_private,
+      remove_osparams=remove_osparams,
+      remove_osparams_private=remove_osparams_private
+    )
     jex.QueueJob(instance_name, op)
 
   results = jex.WaitOrShow(not opts.submit_only)
@@ -1371,6 +1390,8 @@ def SetInstanceParams(opts, args):
   """
   if not (opts.nics or opts.disks or opts.disk_template or opts.hvparams or
           opts.beparams or opts.os or opts.osparams or opts.osparams_private
+          or opts.clear_osparams or opts.clear_osparams_private
+          or opts.remove_osparams or opts.remove_osparams_private
           or opts.offline_inst or opts.online_inst or opts.runtime_mem or
           opts.new_primary_node or opts.instance_communication is not None):
     ToStderr("Please give at least one of the parameters.")
@@ -1435,31 +1456,50 @@ def SetInstanceParams(opts, args):
 
   instance_comm = opts.instance_communication
 
-  op = opcodes.OpInstanceSetParams(instance_name=args[0],
-                                   nics=nics,
-                                   disks=disks,
-                                   hotplug=opts.hotplug,
-                                   hotplug_if_possible=opts.hotplug_if_possible,
-                                   disk_template=opts.disk_template,
-                                   ext_params=ext_params,
-                                   file_driver=opts.file_driver,
-                                   file_storage_dir=opts.file_storage_dir,
-                                   remote_node=opts.node,
-                                   iallocator=opts.iallocator,
-                                   pnode=opts.new_primary_node,
-                                   hvparams=opts.hvparams,
-                                   beparams=opts.beparams,
-                                   runtime_mem=opts.runtime_mem,
-                                   os_name=opts.os,
-                                   osparams=opts.osparams,
-                                   osparams_private=opts.osparams_private,
-                                   force_variant=opts.force_variant,
-                                   force=opts.force,
-                                   wait_for_sync=opts.wait_for_sync,
-                                   offline=offline,
-                                   conflicts_check=opts.conflicts_check,
-                                   ignore_ipolicy=opts.ignore_ipolicy,
-                                   instance_communication=instance_comm)
+  if opts.clear_osparams and opts.remove_osparams is not None:
+    raise errors.OpPrereqError(
+      "Using --remove-os-parameters with "
+      "--clear-os-parameters is not possible", errors.ECODE_INVAL)
+
+  if opts.clear_osparams_private and opts.remove_osparams_private is not None:
+    raise errors.OpPrereqError(
+      "Using --remove-os-parameters-private with "
+      "--clear-os-parameters-private is not possible", errors.ECODE_INVAL)
+
+  remove_osparams = opts.remove_osparams or []
+  remove_osparams_private = opts.remove_osparams_private or []
+
+  op = opcodes.OpInstanceSetParams(
+    instance_name=args[0],
+    nics=nics,
+    disks=disks,
+    hotplug=opts.hotplug,
+    hotplug_if_possible=opts.hotplug_if_possible,
+    disk_template=opts.disk_template,
+    ext_params=ext_params,
+    file_driver=opts.file_driver,
+    file_storage_dir=opts.file_storage_dir,
+    remote_node=opts.node,
+    iallocator=opts.iallocator,
+    pnode=opts.new_primary_node,
+    hvparams=opts.hvparams,
+    beparams=opts.beparams,
+    runtime_mem=opts.runtime_mem,
+    os_name=opts.os,
+    osparams=opts.osparams,
+    osparams_private=opts.osparams_private,
+    clear_osparams=opts.clear_osparams,
+    clear_osparams_private=opts.clear_osparams_private,
+    remove_osparams=remove_osparams,
+    remove_osparams_private=remove_osparams_private,
+    force_variant=opts.force_variant,
+    force=opts.force,
+    wait_for_sync=opts.wait_for_sync,
+    offline=offline,
+    conflicts_check=opts.conflicts_check,
+    ignore_ipolicy=opts.ignore_ipolicy,
+    instance_communication=instance_comm
+  )
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1639,7 +1679,9 @@ commands = {
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT]
     + SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT,
-                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
+                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT,
+                     CLEAR_OSPARAMS_OPT, CLEAR_OSPARAMS_PRIVATE_OPT,
+                     REMOVE_OSPARAMS_OPT, REMOVE_OSPARAMS_PRIVATE_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   "remove": (
     RemoveInstance, ARGS_ONE_INSTANCE,
@@ -1668,7 +1710,9 @@ commands = {
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
      HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT,
-     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT],
+     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT,
+     CLEAR_OSPARAMS_OPT, CLEAR_OSPARAMS_PRIVATE_OPT,
+     REMOVE_OSPARAMS_OPT, REMOVE_OSPARAMS_PRIVATE_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

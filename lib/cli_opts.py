@@ -31,6 +31,9 @@
 """Module containing Ganeti's command line parsing options"""
 
 import re
+
+from optparse import (Option, OptionValueError)
+
 import simplejson
 
 from ganeti import utils
@@ -39,8 +42,6 @@ from ganeti import constants
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import serializer
-
-from optparse import (Option, OptionValueError)
 
 
 __all__ = [
@@ -58,6 +59,8 @@ __all__ = [
   "CAPAB_MASTER_OPT",
   "CAPAB_VM_OPT",
   "CLEANUP_OPT",
+  "CLEAR_OSPARAMS_OPT",
+  "CLEAR_OSPARAMS_PRIVATE_OPT",
   "cli_option",
   "CLUSTER_DOMAIN_SECRET_OPT",
   "COMMIT_OPT",
@@ -85,6 +88,7 @@ __all__ = [
   "DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT",
   "ENABLED_DISK_TEMPLATES_OPT",
   "ENABLED_HV_OPT",
+  "ENABLED_PREDICTIVE_QUEUE_OPT",
   "ENABLED_USER_SHUTDOWN_OPT",
   "ERROR_CODES_OPT",
   "EXT_PARAMS_OPT",
@@ -149,6 +153,7 @@ __all__ = [
   "MC_OPT",
   "MIGRATION_MODE_OPT",
   "MODIFY_ETCHOSTS_OPT",
+  "MODIFY_SSH_SETUP_OPT",
   "NET_OPT",
   "NETWORK6_OPT",
   "NETWORK_OPT",
@@ -219,6 +224,8 @@ __all__ = [
   "REASON_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
+  "REMOVE_OSPARAMS_OPT",
+  "REMOVE_OSPARAMS_PRIVATE_OPT",
   "REMOVE_RESERVED_IPS_OPT",
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
@@ -559,7 +566,7 @@ class CliOption(Option):
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
-cli_option = CliOption
+cli_option = CliOption # pylint: disable=C0103
 
 
 _YORNO = "yes|no"
@@ -728,6 +735,34 @@ OSPARAMS_SECRET_OPT = cli_option("--os-parameters-secret",
                                  help="Secret OS parameters (won't be logged or"
                                       " saved; you must supply these for every"
                                       " operation.)")
+
+CLEAR_OSPARAMS_OPT = cli_option("--clear-os-parameters",
+                                dest="clear_osparams",
+                                action="store_true",
+                                default=False,
+                                help="Clear current OS parameters")
+
+CLEAR_OSPARAMS_PRIVATE_OPT = cli_option("--clear-os-parameters-private",
+                                        dest="clear_osparams_private",
+                                        action="store_true",
+                                        default=False,
+                                        help="Clear current private OS"
+                                             " parameters")
+
+REMOVE_OSPARAMS_OPT = cli_option("--remove-os-parameters",
+                                 dest="remove_osparams",
+                                 type="list",
+                                 default=None,
+                                 help="Comma-separated list of OS parameters"
+                                      " that should be removed")
+
+REMOVE_OSPARAMS_PRIVATE_OPT = cli_option("--remove-os-parameters-private",
+                                         dest="remove_osparams_private",
+                                         type="list",
+                                         default=None,
+                                         help="Comma-separated list of private"
+                                              " OS parameters that should be"
+                                              " removed")
 
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
@@ -1084,6 +1119,13 @@ ENABLED_DISK_TEMPLATES_OPT = cli_option("--enabled-disk-templates",
                                              "disk templates",
                                         type="string", default=None)
 
+ENABLED_PREDICTIVE_QUEUE_OPT = cli_option("--predictive-queue",
+                                          default=None,
+                                          dest="enabled_predictive_queue",
+                                          help="Whether the predictive queue is"
+                                               "enabled",
+                                          type="bool")
+
 ENABLED_USER_SHUTDOWN_OPT = cli_option("--user-shutdown",
                                        default=None,
                                        dest="enabled_user_shutdown",
@@ -1204,6 +1246,12 @@ MODIFY_ETCHOSTS_OPT = \
 NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
                                     help="Don't initialize SSH keys",
                                     action="store_false", default=True)
+
+MODIFY_SSH_SETUP_OPT = \
+ cli_option("--modify-ssh-setup", dest="modify_ssh_setup", metavar=_YORNO,
+            default=None, type="bool",
+            help="Defines whether the cluster should update node SSH keys"
+            " on node add and on renew-crypto")
 
 ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
                              help="Enable parseable error messages",

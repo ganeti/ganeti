@@ -36,10 +36,10 @@ import re
 import base64
 import binascii
 
+from cStringIO import StringIO
+
 from ganeti import compat
 from ganeti import http
-
-from cStringIO import StringIO
 
 # Digest types from RFC2617
 HTTP_BASIC_AUTH = "Basic"

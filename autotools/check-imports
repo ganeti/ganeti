@@ -32,8 +32,9 @@
 
 """
 
-# pylint: disable=C0103
+# pylint: disable=C0103, C0413
 # C0103: Invalid name
+# C0413: Wrong import position
 
 import sys
 
@@ -62,7 +63,7 @@ def main():
 
   for filename in args:
     # Reset global state
-    for name in sys.modules.keys():
+    for name in sys.modules:
       if name not in _STANDARD_MODULES:
         sys.modules.pop(name, None)
 

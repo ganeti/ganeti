@@ -267,7 +267,7 @@ class _LvmBase(_Base): # pylint: disable=W0223
 
         if callable(mapper):
           # we got a function, call it with all the declared fields
-          val = mapper(*values) # pylint: disable=W0142
+          val = mapper(*values)
         elif len(values) == 1:
           assert mapper is None, ("Invalid mapper value (neither callable"
                                   " nor None) for one-element fields")

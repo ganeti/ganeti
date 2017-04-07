@@ -448,10 +448,7 @@ class Merger(object):
       check_params_strict.append("shared_file_storage_dir")
     check_params.extend(check_params_strict)
 
-    if self.params == _PARAMS_STRICT:
-      params_strict = True
-    else:
-      params_strict = False
+    params_strict = (self.params == _PARAMS_STRICT)
 
     for param_name in check_params:
       my_param = getattr(my_cluster, param_name)

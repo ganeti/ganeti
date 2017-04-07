@@ -139,6 +139,10 @@ module Ganeti.OpParams
   , pInstOsParams
   , pInstOsParamsPrivate
   , pInstOsParamsSecret
+  , pInstOsParamsClear
+  , pInstOsParamsPrivateClear
+  , pInstOsParamsRemove
+  , pInstOsParamsPrivateRemove
   , pCandidatePoolSize
   , pMaxRunningJobs
   , pMaxTrackedJobs
@@ -147,6 +151,7 @@ module Ganeti.OpParams
   , pRemoveUids
   , pMaintainNodeHealth
   , pModifyEtcHosts
+  , pModifySshSetup
   , pPreallocWipeDisks
   , pNicParams
   , pInstNics
@@ -213,6 +218,10 @@ module Ganeti.OpParams
   , pTempOsParams
   , pTempOsParamsPrivate
   , pTempOsParamsSecret
+  , pTempOsParamsClear
+  , pTempOsParamsPrivateClear
+  , pTempOsParamsRemove
+  , pTempOsParamsPrivateRemove
   , pTempHvParams
   , pTempBeParams
   , pIgnoreFailures
@@ -312,6 +321,7 @@ module Ganeti.OpParams
   , pVerifyClutter
   , pLongSleep
   , pIsStrict
+  , pEnabledPredictiveQueue
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -769,6 +779,10 @@ pMaintainNodeHealth =
 -- | Whether to modify and keep in sync the @/etc/hosts@ files of nodes.
 pModifyEtcHosts :: Field
 pModifyEtcHosts = optionalField $ booleanField "modify_etc_hosts"
+
+-- | Whether to modify SSH setup on node add or when renewing crypto
+pModifySshSetup :: Field
+pModifySshSetup = optionalField $ booleanField "modify_ssh_setup"
 
 -- | Whether to wipe disks before allocating them to instances.
 pPreallocWipeDisks :: Field
@@ -1248,6 +1262,26 @@ pInstOsParamsSecret =
   optionalField $
   simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
 
+pInstOsParamsClear :: Field
+pInstOsParamsClear =
+  withDoc "Clear current OS parameters from instance" $
+  defaultFalse "clear_osparams"
+
+pInstOsParamsPrivateClear :: Field
+pInstOsParamsPrivateClear =
+  withDoc "Clear current private OS parameters from instance" $
+  defaultFalse "clear_osparams_private"
+
+pInstOsParamsRemove :: Field
+pInstOsParamsRemove =
+  withDoc "Remove OS parameters from instance" .
+  optionalField $ simpleField "remove_osparams" [t| [String] |]
+
+pInstOsParamsPrivateRemove :: Field
+pInstOsParamsPrivateRemove =
+  withDoc "Remove private OS parameters from instance" .
+  optionalField $ simpleField "remove_osparams_private" [t| [String] |]
+
 pPrimaryNode :: Field
 pPrimaryNode =
   withDoc "Primary node for an instance" $
@@ -1367,6 +1401,26 @@ pTempOsParamsSecret =
   withDoc "Secret OS parameters for instance reinstalls" .
   optionalField $
   simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
+
+pTempOsParamsClear :: Field
+pTempOsParamsClear =
+  withDoc "Clear current OS parameters before instance reinstalls" $
+  defaultFalse "clear_osparams"
+
+pTempOsParamsPrivateClear :: Field
+pTempOsParamsPrivateClear =
+  withDoc "Clear current OS private parameters before instance reinstalls" $
+  defaultFalse "clear_osparams_private"
+
+pTempOsParamsRemove :: Field
+pTempOsParamsRemove =
+  withDoc "Remove OS parameters before instance reinstalls" .
+  optionalField $ simpleField "remove_osparams" [t| [String] |]
+
+pTempOsParamsPrivateRemove :: Field
+pTempOsParamsPrivateRemove =
+  withDoc "Remove private OS parameters before instance reinstalls" .
+  optionalField $ simpleField "remove_osparams_private" [t| [String] |]
 
 pShutdownTimeout :: Field
 pShutdownTimeout =
@@ -1977,3 +2031,9 @@ pIsStrict =
   withDoc "Whether the operation is in strict mode or not." .
   defaultField [| True |] $
   simpleField "is_strict" [t| Bool |]
+
+pEnabledPredictiveQueue :: Field
+pEnabledPredictiveQueue =
+  withDoc "Whether the predictive queue is enabled in the cluster." .
+  optionalField $
+  simpleField "enabled_predictive_queue" [t| Bool |]

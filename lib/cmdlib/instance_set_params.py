@@ -337,6 +337,8 @@ class LUInstanceSetParams(LogicalUnit):
             self.op.hvparams or self.op.beparams or self.op.os_name or
             self.op.osparams or self.op.offline is not None or
             self.op.runtime_mem or self.op.pnode or self.op.osparams_private or
+            self.op.clear_osparams or self.op.clear_osparams_private or
+            self.op.remove_osparams or self.op.remove_osparams_private or
             self.op.instance_communication is not None):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
@@ -991,14 +993,53 @@ class LUInstanceSetParams(LogicalUnit):
                    if self.op.os_name and not self.op.force
                    else self.instance.os)
 
-    if self.op.osparams or self.op.osparams_private:
+    if compat.any(
+        [self.op.osparams, self.op.osparams_private,
+         self.op.clear_osparams, self.op.clear_osparams_private,
+         self.op.remove_osparams, self.op.remove_osparams_private]):
       public_parms = self.op.osparams or {}
       private_parms = self.op.osparams_private or {}
+      remove_osparams = self.op.remove_osparams or []
+      remove_osparams_private = self.op.remove_osparams_private or []
+      self.os_inst_removed = []
+      self.os_inst_private_removed = []
       dupe_keys = utils.GetRepeatedKeys(public_parms, private_parms)
 
       if dupe_keys:
         raise errors.OpPrereqError("OS parameters repeated multiple times: %s" %
                                    utils.CommaJoin(dupe_keys))
+
+      if self.op.clear_osparams:
+        self.os_inst_removed = self.instance.osparams
+        self.instance.osparams = {}
+
+      if self.op.clear_osparams_private:
+        self.os_inst_private_removed = self.instance.osparams_private
+        self.instance.osparams_private = {}
+
+      for osp in remove_osparams:
+        if osp in public_parms:
+          raise errors.OpPrereqError("Requested both removal and addition of"
+                                     " parameter %s" % osp)
+
+        if osp in self.instance.osparams:
+          self.os_inst_removed.append(osp)
+          del self.instance.osparams[osp]
+        else:
+          self.LogWarning("Trying to remove OS parameter %s but parameter"
+                          " does not exist" % osp)
+
+      for osp in remove_osparams_private:
+        if osp in private_parms:
+          raise errors.OpPrereqError("Requested both removal and addition of"
+                                     " private parameter %s" % osp)
+
+        if osp in self.instance.osparams_private:
+          self.os_inst_private_removed.append(osp)
+          del self.instance.osparams_private[osp]
+        else:
+          self.LogWarning("Trying to remove private OS parameter %s but"
+                          " parameter does not exist" % osp)
 
       self.os_inst = GetUpdatedParams(self.instance.osparams,
                                       public_parms)
@@ -1268,7 +1309,7 @@ class LUInstanceSetParams(LogicalUnit):
       res_min = ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min,
                                                     new_disk_types)
 
-      if (res_max or res_min):
+      if res_max or res_min:
         # FIXME: Improve error message by including information about whether
         # the upper or lower limit of the parameter fails the ipolicy.
         msg = ("Instance allocation to group %s (%s) violates policy: %s" %
@@ -1654,7 +1695,7 @@ class LUInstanceSetParams(LogicalUnit):
     disk = self.GenericGetDiskInfo(uuid, name)
 
     # Rename disk before attaching (if disk is filebased)
-    if disk.dev_type in (constants.DTS_INSTANCE_DEPENDENT_PATH):
+    if disk.dev_type in constants.DTS_INSTANCE_DEPENDENT_PATH:
       # Add disk size/mode, else GenerateDiskTemplate will not work.
       params[constants.IDISK_SIZE] = disk.size
       params[constants.IDISK_MODE] = str(disk.mode)
@@ -1955,6 +1996,16 @@ class LUInstanceSetParams(LogicalUnit):
       self.instance.os = self.op.os_name
 
     # osparams changes
+    if self.op.clear_osparams or self.op.remove_osparams:
+      self.instance.osparams = self.os_inst
+      for osp in self.os_inst_removed:
+        result.append(("os/%s" % osp, "<removed>"))
+
+    if self.op.clear_osparams_private or self.op.remove_osparams_private:
+      self.instance.osparams_private = self.os_inst_private
+      for osp in self.os_inst_private_removed:
+        result.append(("os_private/%s" % osp, "<removed>"))
+
     if self.op.osparams:
       self.instance.osparams = self.os_inst
       for key, val in self.op.osparams.iteritems():

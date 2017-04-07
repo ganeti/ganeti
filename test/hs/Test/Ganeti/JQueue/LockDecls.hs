@@ -38,9 +38,7 @@ module Test.Ganeti.JQueue.LockDecls (testLockDecls) where
 
 import Test.QuickCheck
 import Test.HUnit
-import qualified Data.Foldable as F
 import Data.List
-import qualified Data.Map as Map
 import Data.Maybe
 
 import Prelude ()
@@ -52,12 +50,9 @@ import Test.Ganeti.OpCodes (genOpCodeFromId)
 import Test.Ganeti.TestCommon
 
 import qualified Ganeti.Constants as C
-import Ganeti.Config
 import Ganeti.JQueue.LockDecls
-import Ganeti.JSON
 import Ganeti.OpCodes
 import Ganeti.Objects
-import Ganeti.Types
 
 
 prop_staticWeight :: ConfigData -> Maybe OpCode -> [OpCode] -> Property
@@ -73,11 +68,8 @@ genExclusiveInstanceOp cfg = do
              , "OP_INSTANCE_REBOOT"
              , "OP_INSTANCE_RENAME"
              ]
-      insts = map instName . Map.elems . fromContainer . configInstances $ cfg
   op_id <- elements list
-  op <- genOpCodeFromId op_id
-  name <- elements insts
-  return $ op { opInstanceName = fromMaybe "" name }
+  genOpCodeFromId op_id (Just cfg)
 
 prop_instNameConflictCheck :: Property
 prop_instNameConflictCheck = do
@@ -103,11 +95,8 @@ genExclusiveNodeOp cfg = do
              , "OP_NODE_MODIFY_STORAGE"
              , "OP_REPAIR_NODE_STORAGE"
              ]
-      nodes = map nodeName . F.toList . configNodes $ cfg
   op_id <- elements list
-  op <- genOpCodeFromId op_id
-  name <- elements nodes
-  return $ op { opNodeName = fromJust $ mkNonEmpty name }
+  genOpCodeFromId op_id (Just cfg)
 
 prop_nodeNameConflictCheck :: Property
 prop_nodeNameConflictCheck = do
@@ -130,11 +119,11 @@ prop_nodeNameConflictCheck = do
 case_queueLockOpOrder :: Assertion
 case_queueLockOpOrder = do
   cfg <- generate $ genConfigDataWithValues 10 50
-  diagnoseOp <- generate . genOpCodeFromId $ "OP_OS_DIAGNOSE"
-  networkAddOp <- generate . genOpCodeFromId $ "OP_NETWORK_ADD"
-  groupVerifyOp <- generate . genOpCodeFromId $ "OP_GROUP_VERIFY_DISKS"
-  nodeAddOp <- generate . genOpCodeFromId $ "OP_NODE_ADD"
-  currentOp <- generate . genExclusiveInstanceOp $ cfg
+  diagnoseOp <- generate $ genOpCodeFromId "OP_OS_DIAGNOSE" (Just cfg)
+  networkAddOp <- generate $ genOpCodeFromId "OP_NETWORK_ADD" (Just cfg)
+  groupVerifyOp <- generate $ genOpCodeFromId "OP_GROUP_VERIFY_DISKS" (Just cfg)
+  nodeAddOp <- generate $ genOpCodeFromId "OP_NODE_ADD" (Just cfg)
+  currentOp <- generate $ genExclusiveInstanceOp cfg
   let w1 = staticWeight cfg (Just diagnoseOp) [currentOp]
       w2 = staticWeight cfg (Just networkAddOp) [currentOp]
       w3 = staticWeight cfg (Just groupVerifyOp) [currentOp]

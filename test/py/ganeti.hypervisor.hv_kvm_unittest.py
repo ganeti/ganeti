@@ -175,7 +175,7 @@ class TestQmpMessage(testutils.GanetiTestCase):
     message = hv_kvm.QmpMessage(test_data)
 
     oldLen = len(message)
-    del(message[toDelete])
+    del message[toDelete]
     newLen = len(message)
     self.assertEqual(oldLen - 1, newLen)
 

@@ -39,13 +39,14 @@
 # if they need to start using instance attributes
 # R0904: Too many public methods
 
-import logging
-import zlib
 import base64
-import pycurl
-import threading
 import copy
+import logging
 import os
+import threading
+import zlib
+
+import pycurl
 
 from ganeti import utils
 from ganeti import objects
@@ -252,7 +253,7 @@ class RpcResult(object):
       args = (msg, ecode)
     else:
       args = (msg, )
-    raise ec(*args) # pylint: disable=W0142
+    raise ec(*args)
 
   def Warn(self, msg, feedback_fn):
     """If the result has failed, call the feedback_fn.
@@ -304,7 +305,7 @@ def _SsconfResolver(ssconf_ips, node_list, _,
   return result
 
 
-class _StaticResolver:
+class _StaticResolver(object):
   def __init__(self, addresses):
     """Initializes this class.
 
@@ -362,7 +363,7 @@ def _NodeConfigResolver(single_node_fn, all_nodes_fn, node_uuids, opts):
             for uuid in node_uuids]
 
 
-class _RpcProcessor:
+class _RpcProcessor(object):
   def __init__(self, resolver, port, lock_monitor_cb=None):
     """Initializes this class.
 
@@ -471,7 +472,7 @@ class _RpcProcessor:
     return self._CombineResults(results, requests, procedure)
 
 
-class _RpcClientBase:
+class _RpcClientBase(object):
   def __init__(self, resolver, encoder_fn, lock_monitor_cb=None,
                _req_process_fn=None):
     """Initializes this class.
@@ -952,7 +953,7 @@ class RpcRunner(_RpcClientBase,
     """Wrapper for L{AnnotateDiskParams}.
 
     """
-    (anno_disk,) = self._DisksDictDP(node, ([disk], instance))
+    anno_disk = self._DisksDictDP(node, ([disk], instance))[0]
     return anno_disk
 
   def _EncodeNodeToDiskDictDP(self, node, value):
