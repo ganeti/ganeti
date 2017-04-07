@@ -84,9 +84,10 @@ The Pull Request message should explain WHY these changes are needed and, if
 they're not trivial, explain HOW they are being implemented. Also, make sure
 that it follows the canonical commit message criteria: 
 
-* It MUST have a single line heading with no dot, at most 80 characters
+* It MUST have a single line heading with no period, at most 80 characters
 * It MUST have a description, as described above
-* It MUST have a "Signed-off-by: author@org" line (Same generated when using the --signoff flag)
+* It MUST have a "Signed-off-by: author@org" line (Same generated when using
+  the --signoff flag)
 
 ### 7. Google CLA
 
@@ -115,7 +116,8 @@ during the review.
 4.  git push origin
 5.  Make changes to the Pull Request message as needed
     1.  Respond to individual comments as needed
-    2.  Ask the reviewer to take a look (PTAL) in the main pull request thread, as individual comments on changes won't send notifications to the reviewer.
+    2.  Ask the reviewer to take a look (PTAL) in the main pull request thread,
+        as individual comments on changes won't send notifications to the reviewer.
 
 Keep doing this until you receive an Approval from the reviewer.
 
@@ -159,8 +161,8 @@ This closes #1234.
 
 Signed-off-by: Your Name <yourname@yourorg.com>
 ```
-Your Pull Request is then assigned to a reviewer. He/she notices that you forgot
-to add some comments to your code, so he/she asks you to do so. You then add the
+Your Pull Request is then assigned to some reviewers. They notice that you forgot
+to add some comments to your code, so they ask you to do so. You then add the
 comments, push these changes to your fork. You then ask the reviewer to take
 another look on your Pull Request (PTAL = Please Take Another Look). These
 changes are automatically sent to the reviewer:
