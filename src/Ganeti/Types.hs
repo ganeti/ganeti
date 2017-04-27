@@ -670,6 +670,7 @@ $(THH.declareLADT ''String "NICMode"
   [ ("NMBridged", "bridged")
   , ("NMRouted",  "routed")
   , ("NMOvs",     "openvswitch")
+  , ("NMExt",     "ext")
   , ("NMPool",    "pool")
   ])
 $(THH.makeJSONInstance ''NICMode)

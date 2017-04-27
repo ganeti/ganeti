@@ -1011,6 +1011,8 @@ class ConfigWriter(object):
           link = "route:%s" % nic_link
         elif nic_mode == constants.NIC_MODE_OVS:
           link = "ovs:%s" % nic_link
+        elif nic_mode == constants.NIC_MODE_EXT:
+          link = "ext:%s" % nic_link
         else:
           raise errors.ProgrammerError("NIC mode '%s' not handled" % nic_mode)
 

@@ -84,6 +84,7 @@ parseNic n a = do
                Just "bridged" -> Ok $ Just Nic.Bridged
                Just "routed" -> Ok $ Just Nic.Routed
                Just "openvswitch" -> Ok $ Just Nic.OpenVSwitch
+               Just "ext" -> Ok Nothing
                Nothing -> Ok Nothing
                _ -> Bad $ "invalid NIC mode in instance " ++ n
   link    <- maybeFromObj a "link"
