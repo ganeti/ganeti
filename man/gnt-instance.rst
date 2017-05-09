@@ -658,6 +658,19 @@ disk\_discard
     For compatibility with older qemu versions "default" will not pass any
     discard option to KVM.
 
+disk\_bps
+    Valid for the KVM hypervisor.
+
+    Limit the sequential read an write speed from a Instancedisk.
+    Total throughput limit per Instance-disk (in bytes/second).
+
+disk\_iops
+    Valid for the KVM hypervisor.
+
+    Disk I/O limits allow us to control the amount of I/O that a guest can perform,
+    this is to avoid other VMs to have less performance because of I/O the usage from a single VM.
+    Total I/O operations limit per Instance-disk(per second)
+
 security\_model
     Valid for the KVM hypervisor.
 
