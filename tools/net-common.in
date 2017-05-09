@@ -125,15 +125,3 @@ function setup_route {
     fi
   fi
 }
-
-function setup_ext {
-  if [ "$MODE" = "ext" ]; then
-    for NETWORK_TAG in ${NETWORK_TAGS}; do
-      KEY=${NETWORK_TAG//:*/}
-      VAL=${NETWORK_TAG//*:/}
-      if [ "${KEY}" == "ext_provider" -a -x "/usr/share/ganeti/extnetwork/${VAL}/up" ]; then
-         exec "/usr/share/ganeti/extnetwork/${VAL}/up"
-      fi
-    done
-  fi
-}

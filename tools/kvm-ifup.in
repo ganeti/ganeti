@@ -46,5 +46,4 @@ if ! is_instance_communication_tap; then
   setup_bridge
   setup_ovs
   setup_route
-  setup_ext
 fi
