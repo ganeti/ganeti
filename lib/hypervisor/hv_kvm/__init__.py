@@ -1130,7 +1130,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       bps_val = ",throttling.bps-total=%d" % bps_limit
     # iops limit
     iops_limit = up_hvp[constants.HV_DISK_IOPS]
-    if iops_limit == constants.HT_iops_DEFAULT:
+    if iops_limit == constants.HT_IOPS_DEFAULT:
       iops_val = ""
     else:
       iops_val = ",throttling.iops-total=%d" % iops_limit
