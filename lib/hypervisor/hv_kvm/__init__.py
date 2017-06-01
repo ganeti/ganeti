@@ -1123,6 +1123,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                           " to prevent shared storage corruption on migration",
                           disk_cache)
         cache_val = ",cache=none"
+      elif aio_mode == constants.HT_KVM_AIO_NATIVE and disk_cache != "none":
+        # TODO: make this a hard error, instead of a silent overwrite
+        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                        " to prevent QEMU failures in version 2.6+",
+                        disk_cache)
+        cache_val = ",cache=none"
       elif disk_cache != constants.HT_CACHE_DEFAULT:
         cache_val = ",cache=%s" % disk_cache
       else:
