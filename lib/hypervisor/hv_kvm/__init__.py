@@ -361,6 +361,8 @@ def _UpgradeSerializedRuntime(serialized_runtime):
       # handle old instances in the cluster properly.
       if "pci" in dev:
         # This is practically the old _GenerateDeviceKVMId()
+        hv_dev_type = _DEVICE_TYPE[dev_type](hvparams)
+        dev["hvinfo"]["driver"] = _DEVICE_DRIVER[dev_type](hv_dev_type)
         dev["hvinfo"]["id"] = "hot%s-%s-%s-%s" % (dev_type.lower(),
                                                   uuid.split("-")[0],
                                                   "pci",
