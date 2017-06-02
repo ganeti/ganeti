@@ -1347,6 +1347,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd.extend(["-device", "virtio-balloon"])
     kvm_cmd.extend(["-daemonize"])
+    # logfile for qemu
+    qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
+                                  "%s.log" % instance.name)
+    kvm_cmd.extend(["-D", qemu_logfile])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
