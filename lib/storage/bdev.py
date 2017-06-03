@@ -1027,8 +1027,6 @@ class RADOSBlockDevice(base.BlockDev):
       # if available.
       showmap_cmd = cls.MakeRbdCmd({}, [
         "showmapped",
-        "-p",
-        pool,
         "--format",
         "json"
         ])
@@ -1039,7 +1037,7 @@ class RADOSBlockDevice(base.BlockDev):
                       result.fail_reason, result.output)
         raise RbdShowmappedJsonError
 
-      return cls._ParseRbdShowmappedJson(result.output, volume_name)
+      return cls._ParseRbdShowmappedJson(result.output, pool, volume_name)
     except RbdShowmappedJsonError:
       # For older versions of rbd, we have to parse the plain / text output
       # manually.
@@ -1052,7 +1050,7 @@ class RADOSBlockDevice(base.BlockDev):
       return cls._ParseRbdShowmappedPlain(result.output, volume_name)
 
   @staticmethod
-  def _ParseRbdShowmappedJson(output, volume_name):
+  def _ParseRbdShowmappedJson(output, volume_pool, volume_name):
     """Parse the json output of `rbd showmapped'.
 
     This method parses the json output of `rbd showmapped' and returns the rbd
@@ -1077,8 +1075,13 @@ class RADOSBlockDevice(base.BlockDev):
         name = d["name"]
       except KeyError:
         base.ThrowError("'name' key missing from json object %s", devices)
-
-      if name == volume_name:
+        
+      try:
+        pool = d["pool"]
+      except KeyError:
+        base.ThrowError("'pool' key missing from json object %s", devices)
+        
+      if name == volume_name and pool == volume_pool:
         if rbd_dev is not None:
           base.ThrowError("rbd volume %s is mapped more than once", volume_name)
 
