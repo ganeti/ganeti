@@ -545,6 +545,13 @@ viridian
     viridian (Hyper-V) for this instance. The default is false,
     disabling viridian support.
 
+use\_guest\_agent
+    Valid for the KVM hypervisor.
+
+    A boolean option that specifies if the hypervisor should enable
+    the QEMU Guest Agent protocol for this instance. By default, the
+    Guest Agent is disabled.
+
 use\_localtime
     Valid for the Xen HVM and KVM hypervisors.
 
