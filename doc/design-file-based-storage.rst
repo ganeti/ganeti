@@ -270,11 +270,11 @@ exported/imported. If any other backup-tool (which requires access to
 the mounted file-system) is used then the image file can be temporarily
 mounted. This can be done in different ways:
 
-Mount a raw image file via loopback driver::
+Mount an raw image file via loopback driver::
 
   mount -o loop /srv/ganeti/file-storage/instance1/sda1 /mnt/disk\
 
-Mount a raw image file via blkfront driver (Dom0 kernel needs this
+Mount an raw image file via blkfront driver (Dom0 kernel needs this
 module to do the following operation)::
 
   xm block-attach 0 tap:aio:/srv/ganeti/file-storage/instance1/sda1 /dev/xvda1 w 0\
@@ -327,7 +327,7 @@ Xen Setup
 File creation
 ~~~~~~~~~~~~~
 
-Creation of a raw file is simple. Example of creating a sparse file of 2
+Creation of an raw file is simple. Example of creating a sparse file of 2
 Gigabytes. The option "seek" instructs "dd" to create a sparse file::
 
   dd if=/dev/zero of=vm1disk bs=1k seek=2048k count=1
