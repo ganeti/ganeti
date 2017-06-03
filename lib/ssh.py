@@ -87,6 +87,8 @@ def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,
     suffix = "rsa"
   elif kind == constants.SSHK_ECDSA:
     suffix = "ecdsa"
+  elif kind == constants.SSHK_Ed25519:
+    suffix = "ed25519"
   else:
     raise errors.ProgrammerError("Unknown SSH key kind '%s'" % kind)
 
@@ -1254,6 +1256,7 @@ SSH_KEY_VALID_BITS = {
   constants.SSHK_DSA: KeyBitInfo(1024, lambda b: b == 1024),
   constants.SSHK_RSA: KeyBitInfo(2048, lambda b: b >= 768),
   constants.SSHK_ECDSA: KeyBitInfo(384, lambda b: b in [256, 384, 521]),
+  constants.SSHK_Ed25519: KeyBitInfo(256, lambda b: b == 256),
 }
 
 

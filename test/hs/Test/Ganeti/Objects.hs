@@ -417,6 +417,7 @@ instance Arbitrary SshKeyType where
     [ pure RSA
     , pure DSA
     , pure ECDSA
+    , pure Ed25519
     ]
 
 instance Arbitrary RepairStatus where

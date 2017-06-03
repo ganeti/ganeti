@@ -102,6 +102,10 @@ class TestUpdateSshDaemon(unittest.TestCase):
       constants.SSHK_ECDSA:
         (utils.PathJoin(self.tmpdir, "ecdsa.private"),
          utils.PathJoin(self.tmpdir, "ecdsa.public")),
+      # No Ed25519 Host-key support yet in Debian
+      #constants.SSHK_Ed25519:
+      #  (utils.PathJoin(self.tmpdir, "ed25519.private"),
+      #   utils.PathJoin(self.tmpdir, "ed25519.public")),
       }
 
   def tearDown(self):
@@ -139,12 +143,21 @@ class TestUpdateSshDaemon(unittest.TestCase):
         ],
       })
 
+
   def testDryRunEcdsa(self):
     self._TestDryRun({
       constants.SSHS_SSH_HOST_KEY: [
         (constants.SSHK_ECDSA, "ecdsapriv", "ecdsapub"),
         ],
       })
+
+  # No SSH Host Key support in Debian yet
+  #def testDryRunEd25519(self):
+  #  self._TestDryRun({
+  #    constants.SSHS_SSH_HOST_KEY: [
+  #      (constants.SSHK_Ed25519, "ed2559priv", "ed25519pub"),
+  #      ],
+  #    })
 
   def _RunCmd(self, fail, cmd, interactive=NotImplemented):
     self.assertTrue(interactive)
