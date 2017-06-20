@@ -715,7 +715,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
         if vif_type:
           nic_type_str = ", type=%s" % vif_type
       elif nic_type == constants.HT_NIC_PARAVIRTUAL:
-        nic_type_str = ", type=paravirtualized"
+        nic_type_str = ", type=%s" % constants.HT_HVM_VIF_VIF
       else:
         # parameter 'model' is only valid with type 'ioemu'
         nic_type_str = ", model=%s, type=%s" % \
