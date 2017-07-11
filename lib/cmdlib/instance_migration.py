@@ -751,6 +751,27 @@ class TLMigrateInstance(Tasklet):
 
     self._CloseInstanceDisks(self.target_node_uuid)
 
+    unmap_types = (constants.DT_RBD, constants.DT_EXT)
+    if utils.AnyDiskOfType(disks, unmap_types):
+      # If the instance's disk template is `rbd' or `ext' and there was an
+      # unsuccessful migration, unmap the device from the target node.
+      unmap_disks = [d for d in disks if d.dev_type in unmap_types]
+      disks = ExpandCheckDisks(unmap_disks, unmap_disks)
+      self.feedback_fn("* unmapping instance's disks %s from %s" %
+                       (utils.CommaJoin(d.name for d in unmap_disks),
+                        self.cfg.GetNodeName(self.target_node_uuid)))
+      for disk in disks:
+        result = self.rpc.call_blockdev_shutdown(self.target_node_uuid,
+                                                 (disk, self.instance))
+        msg = result.fail_msg
+        if msg:
+          logging.error("Migration failed and I couldn't unmap the block device"
+                        " %s on target node %s: %s", disk.iv_name,
+                        self.cfg.GetNodeName(self.target_node_uuid), msg)
+          logging.error("You need to unmap the device %s manually on %s",
+                        disk.iv_name,
+                        self.cfg.GetNodeName(self.target_node_uuid))
+
     if utils.AllDiskOfType(disks, constants.DTS_EXT_MIRROR):
       self._OpenInstanceDisks(self.source_node_uuid, True)
       return
