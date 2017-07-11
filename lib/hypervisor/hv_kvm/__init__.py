@@ -1408,11 +1408,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         vnc_bind_address)
         else:
           vnc_bind_address = if_ip4_addresses[0]
-      if netutils.IP4Address.IsValid(vnc_bind_address):
+      if (netutils.IP4Address.IsValid(vnc_bind_address) or
+          netutils.IP6Address.IsValid(vnc_bind_address)):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:
             vnc_arg = ":%d" % (display)
+          elif netutils.IP6Address.IsValid(vnc_bind_address):
+            vnc_arg = "[%s]:%d" % (vnc_bind_address, display)
           else:
             vnc_arg = "%s:%d" % (vnc_bind_address, display)
         else:
@@ -2758,14 +2761,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      % username)
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      bound_to_addr = netutils.IP4Address.IsValid(vnc_bind_address)
+      bound_to_addr = (netutils.IP4Address.IsValid(vnc_bind_address) or
+                       netutils.IP6Address.IsValid(vnc_bind_address))
       is_interface = netutils.IsValidInterface(vnc_bind_address)
       is_path = utils.IsNormAbsPath(vnc_bind_address)
       if not bound_to_addr and not is_interface and not is_path:
         raise errors.HypervisorError("VNC: The %s parameter must be either"
                                      " a valid IP address, an interface name,"
                                      " or an absolute path" %
-                                     constants.HV_KVM_SPICE_BIND)
+                                     constants.HV_VNC_BIND_ADDRESS)
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     if spice_bind:
