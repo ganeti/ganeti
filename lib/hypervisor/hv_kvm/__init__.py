@@ -1900,7 +1900,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # during instance startup anyway, and to avoid problems when soft
     # rebooting the instance.
     cpu_pinning = False
-    if up_hvp.get(constants.HV_CPU_MASK, None):
+    if up_hvp.get(constants.HV_CPU_MASK, None) \
+        and up_hvp[constants.HV_CPU_MASK] != constants.CPU_PINNING_ALL:
       cpu_pinning = True
 
     if security_model == constants.HT_SM_POOL:
