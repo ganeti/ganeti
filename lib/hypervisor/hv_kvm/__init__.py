@@ -538,7 +538,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
 
-  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
+  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+([-\w]+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
     re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
