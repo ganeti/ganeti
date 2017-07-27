@@ -704,5 +704,150 @@ class TestKvmCpuPinning(testutils.GanetiTestCase):
       self.assertEqual(mock_process.set_cpu_affinity.call_args_list[1],
                        mock.call([4]))
 
+class TestPostcopyAfterPrecopy(testutils.GanetiTestCase):
+  def setUp(self):
+    super(TestPostcopyAfterPrecopy, self).setUp()
+    kvm_class = 'ganeti.hypervisor.hv_kvm.KVMHypervisor'
+    self.MockOut('qmp', mock.patch('ganeti.hypervisor.hv_kvm.QmpConnection'))
+    self.MockOut('run_cmd', mock.patch('ganeti.utils.RunCmd'))
+    self.MockOut('ensure_dirs', mock.patch('ganeti.utils.EnsureDirs'))
+    self.MockOut('write_file', mock.patch('ganeti.utils.WriteFile'))
+    self.params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()
+
+  def _TestPostcopyAfterPrecopy(self, runcmd, postcopy_started_goal):
+    hypervisor = hv_kvm.KVMHypervisor()
+    self.iteration = 0
+    self.postcopy_started = False
+
+    def runcmd_mock(cmd, env=None, output=None, cwd="/", reset_env=False,
+           interactive=False, timeout=None, noclose_fds=None,
+           input_fd=None, postfork_fn=None):
+      res = utils.RunResult(0, None, '', '', cmd, None, None)
+      if not self.postcopy_started and cmd.find('migrate_start_postcopy') != -1:
+        self.postcopy_started = True
+        res.stdout = ('migrate_postcopy_start\n'
+                      '(qemu) ')
+      return runcmd(cmd, res)
+
+    with mock.patch('ganeti.utils.RunCmd', runcmd_mock):
+      instance = mock.MagicMock()
+      instance.name = 'example.instance'
+      hypervisor._PostcopyAfterPrecopy(instance)
+      self.assertEqual(self.postcopy_started, postcopy_started_goal)
+
+  def testNormal(self):
+    def runcmd_normal(cmd, res):
+      res = utils.RunResult(0, None, '', '', cmd, None, None)
+      if cmd.find('info migrate') != -1:
+        self.iteration += 1
+        res.stdout = (
+            'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+            '(qemu) info migrate\n'
+            'capabilities: xbzrle: off rdma-pin-all: off auto-converge: on'
+            'zero-blocks: off compress: off events: off x-postcopy-ram: on \n'
+            'Migration status: active\n'
+            'skipped: 0 pages\n'
+            'dirty sync count: %i\n'
+            '(qemu) ' % self.iteration
+          )
+      return res
+
+    self._TestPostcopyAfterPrecopy(runcmd_normal, True)
+
+  def testEmptyResponses(self):
+    def runcmd_empty_responses(cmd, res):
+      res = utils.RunResult(0, None, '', '', cmd, None, None)
+      if cmd.find('info migrate') != -1:
+        self.iteration += 1
+        if self.iteration < 3:
+          res.stdout = (
+              'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+              '(qemu) info migrate\n'
+              '(qemu) '
+            )
+        else:
+          res.stdout = (
+              'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+              '(qemu) info migrate\n'
+              'capabilities: xbzrle: off rdma-pin-all: off auto-converge: on'
+              'zero-blocks: off compress: off events: off x-postcopy-ram: on \n'
+              'Migration status: active\n'
+              'skipped: 0 pages\n'
+              'dirty sync count: %i\n'
+              '(qemu) ' % self.iteration
+            )
+      return res
+    self._TestPostcopyAfterPrecopy(runcmd_empty_responses, True)
+
+  def testMonitorRemoved(self):
+    def runcmd_monitor_removed(cmd, res):
+      res = utils.RunResult(0, None, '', '', cmd, None, None)
+      if cmd.find('info migrate') != -1:
+        self.iteration += 1
+        if self.iteration < 3:
+          res.stdout = (
+              'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+              '(qemu) info migrate\n'
+              'capabilities: xbzrle: off rdma-pin-all: off auto-converge: on'
+              'zero-blocks: off compress: off events: off x-postcopy-ram: on \n'
+              'Migration status: active\n'
+              'skipped: 0 pages\n'
+              'dirty sync count: %i\n'
+              '(qemu) '
+            )
+        else:
+          res.stderr = ('2017/07/26 15:49:52 socat[105703] E connect(3, AF=1 '
+                        '"/var/run/ganeti/kvm-hypervisor/ctrl/example.instanc'
+                        'e.monitor", 85): No such file or directory')
+      return res
+    self._TestPostcopyAfterPrecopy(runcmd_monitor_removed, False)
+
+  def testMigrationFailed(self):
+    def runcmd_migration_failed(cmd, res):
+      res = utils.RunResult(0, None, '', '', cmd, None, None)
+      if cmd.find('info migrate') != -1:
+        self.iteration += 1
+        if self.iteration < 3:
+          res.stdout = (
+              'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+              '(qemu) info migrate\n'
+              'capabilities: xbzrle: off rdma-pin-all: off auto-converge: on'
+              'zero-blocks: off compress: off events: off x-postcopy-ram: on \n'
+              'Migration status: active\n'
+              'skipped: 0 pages\n'
+              'dirty sync count: %i\n'
+              '(qemu) '
+            )
+        else:
+          res.stdout = (
+              'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+              '(qemu) info migrate\n'
+              'capabilities: xbzrle: off rdma-pin-all: off auto-converge: on'
+              'zero-blocks: off compress: off events: off x-postcopy-ram: on \n'
+              'Migration status: failed\n'
+              'skipped: 0 pages\n'
+              'dirty sync count: %i\n'
+              '(qemu) '
+            )
+      return res
+    self._TestPostcopyAfterPrecopy(runcmd_migration_failed, False)
+
+  def testAlreadyInPostcopy(self):
+    def runcmd_already_in_postcopy(cmd, res):
+      res = utils.RunResult(0, None, '', '', cmd, None, None)
+      if cmd.find('info migrate') != -1:
+        res.stdout = (
+            'QEMU 2.5.0 monitor - type \'help\' for more information\n'
+            '(qemu) info migrate\n'
+            'capabilities: xbzrle: off rdma-pin-all: off auto-converge: on'
+            'zero-blocks: off compress: off events: off x-postcopy-ram: on \n'
+            'Migration status: postcopy-active\n'
+            'skipped: 0 pages\n'
+            'dirty sync count: %i\n'
+            '(qemu) '
+          )
+      return res
+    self._TestPostcopyAfterPrecopy(runcmd_already_in_postcopy, False)
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
