@@ -866,10 +866,14 @@ migration\_caps
 
     Enable specific migration capabilities by providing a ":" separated
     list of supported capabilites. QEMU version 1.7.0 defines
-    x-rdma-pin-all, auto-converge, zero-blocks, and xbzrle. Please note
-    that while a combination of xbzrle and auto-converge might speed up
-    the migration process significantly, the first may cause BSOD on
-    Windows8r2 instances running on drbd.
+    x-rdma-pin-all, auto-converge, zero-blocks, and xbzrle. QEMU version
+    2.5 defines x-postcopy-ram and 2.6 renames this to postcopy-ram.
+    If x-postcopty-ram or postcopy-ram are enabled, Ganeti will
+    automatically move a migration to postcopy mode after one iteration
+    of precopying the instance's RAM.
+    Please note that while a combination of xbzrle and auto-converge
+    might speed up the migration process significantly, the first may
+    cause BSOD on Windows8r2 instances running on drbd.
 
 kvm\_path
     Valid for the KVM hypervisor.
