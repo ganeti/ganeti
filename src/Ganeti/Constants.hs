@@ -2023,9 +2023,17 @@ hvMigrationFailedStatuses =
 
 -- | KVM-specific statuses
 --
--- FIXME: this constant seems unnecessary
+hvKvmMigrationPostcopyActive :: String
+hvKvmMigrationPostcopyActive = "postcopy-active"
+
 hvKvmMigrationValidStatuses :: FrozenSet String
-hvKvmMigrationValidStatuses = hvMigrationValidStatuses
+hvKvmMigrationValidStatuses =
+  ConstantUtils.union hvMigrationValidStatuses
+                      (ConstantUtils.mkSet [hvKvmMigrationPostcopyActive])
+
+hvKvmMigrationActiveStatuses :: FrozenSet String
+hvKvmMigrationActiveStatuses = ConstantUtils.mkSet [hvMigrationActive,
+                                                    hvKvmMigrationPostcopyActive]
 
 -- | Node info keys
 hvNodeinfoKeyVersion :: String
