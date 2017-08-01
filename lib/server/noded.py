@@ -710,6 +710,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.MigrateInstance(cluster_name, instance, target, live)
 
   @staticmethod
+  def perspective_instance_start_postcopy(params):
+    """ Moves a migrating instance from precopy to postcopy mode
+
+    """
+    instance, = params
+    instance = objects.Instance.FromDict(instance)
+    return backend.StartPostcopy(instance)
+
+  @staticmethod
   def perspective_instance_finalize_migration_src(params):
     """Finalize the instance migration on the source node.
 
