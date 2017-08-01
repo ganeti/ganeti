@@ -868,7 +868,7 @@ migration\_caps
     list of supported capabilites. QEMU version 1.7.0 defines
     x-rdma-pin-all, auto-converge, zero-blocks, and xbzrle. QEMU version
     2.5 defines x-postcopy-ram and 2.6 renames this to postcopy-ram.
-    If x-postcopty-ram or postcopy-ram are enabled, Ganeti will
+    If x-postcopy-ram or postcopy-ram are enabled, Ganeti will
     automatically move a migration to postcopy mode after one iteration
     of precopying the instance's RAM.
     Please note that while a combination of xbzrle and auto-converge
