@@ -2588,6 +2588,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           if match:
             migration_status.transferred_ram = match.group("transferred")
             migration_status.total_ram = match.group("total")
+          sync_count_match = \
+            self._MIGRATION_PRECOPY_PASSES_RE.search(result.stdout)
+          if sync_count_match:
+            migration_status.dirty_sync_count = sync_count_match.group(1)
 
           return migration_status
 
