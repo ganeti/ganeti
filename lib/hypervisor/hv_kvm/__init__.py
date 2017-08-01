@@ -538,12 +538,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
 
-  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
+  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+([-\w]+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
     re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
                r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
                r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
+  _MIGRATION_PRECOPY_PASSES_RE = \
+    re.compile(r"\s*dirty sync count:\s+(\d+)", re.I | re.M)
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -2485,12 +2487,54 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
     if migration_caps:
-      for c in migration_caps.split(_MIGRATION_CAPS_DELIM):
+      capabilities = migration_caps.split(_MIGRATION_CAPS_DELIM)
+      postcopy_enabled = ('x-postcopy-ram' in capabilities
+                          or 'postcopy-ram' in capabilities)
+      for c in capabilities:
         migrate_command = ("migrate_set_capability %s on" % c)
         self._CallMonitorCommand(instance_name, migrate_command)
+    else:
+      postcopy_enabled = False
 
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
+
+    if postcopy_enabled:
+      self._PostcopyAfterPrecopy(instance)
+
+  def _PostcopyAfterPrecopy(self, instance):
+    """Enable postcopying RAM after one precopy pass.
+
+    Requires that an instance is currently migrating, and that the
+    postcopy-ram (x-postcopy-ram on QEMU version 2.5 and below)
+    migration capability is enabled in the instance's hypervisor
+    parameters.
+
+    @type instance: L{objects.Instance}
+    @param instance: The instance being migrated.
+
+    """
+    precopy_passes = 0
+    while precopy_passes < 2:
+      migration_status = \
+          self._CallMonitorCommand(instance.name, 'info migrate')
+
+      status_match = self._MIGRATION_STATUS_RE.search(migration_status.stdout)
+      if status_match and status_match.group(1) != 'active':
+        logging.debug('Did not attempt postcopy, migration status: %s'
+          % status_match.group(1))
+        break
+      if migration_status.stderr:
+        logging.debug('Error polling for dirty sync count in '
+          'hv_kvm._PostcopyAfterPrecopy(): %s' % migration_status.stderr)
+        break
+
+      passes_match = \
+          self._MIGRATION_PRECOPY_PASSES_RE.search(migration_status.stdout)
+      if passes_match:
+        precopy_passes = int(passes_match.group(1))
+    else:
+      self._CallMonitorCommand(instance.name, 'migrate_start_postcopy')
 
   def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
