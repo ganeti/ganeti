@@ -284,6 +284,7 @@ class TLMigrateInstance(Tasklet):
   # Constants
   _MIGRATION_POLL_INTERVAL = 1      # seconds
   _MIGRATION_FEEDBACK_INTERVAL = 10 # seconds
+  _POSTCOPY_SYNC_COUNT_THRESHOLD = 2 # Precopy passes before enabling postcopy
 
   def __init__(self, lu, instance_uuid, instance_name, cleanup, failover,
                fallback, ignore_consistency, allow_runtime_changes,
@@ -916,6 +917,10 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* starting memory transfer")
     last_feedback = time.time()
+
+    migration_caps = \
+      self.instance.hvparams.get(constants.HV_KVM_MIGRATION_CAPS, None)
+    postcopy_enabled = migration_caps and 'postcopy-ram' in migration_caps
     while True:
       result = self.rpc.call_instance_get_migration_status(
                  self.source_node_uuid, self.instance)
@@ -931,6 +936,13 @@ class TLMigrateInstance(Tasklet):
           msg = "hypervisor returned failure"
         raise errors.OpExecError("Could not migrate instance %s: %s" %
                                  (self.instance.name, msg))
+
+      if (postcopy_enabled
+          and ms.status == constants.HV_MIGRATION_ACTIVE
+          and int(ms.dirty_sync_count) >= self._POSTCOPY_SYNC_COUNT_THRESHOLD):
+        self.feedback_fn("* finishing memory transfer with postcopy")
+        self.rpc.call_instance_start_postcopy(self.source_node_uuid,
+                                              self.instance)
 
       if ms.status not in constants.HV_KVM_MIGRATION_ACTIVE_STATUSES:
         self.feedback_fn("* memory transfer complete")
