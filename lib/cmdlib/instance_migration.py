@@ -949,7 +949,7 @@ class TLMigrateInstance(Tasklet):
           ms.status in constants.HV_KVM_MIGRATION_ACTIVE_STATUSES
       else:
         migration_active = \
-          ms.status in constants.HV_MIGRATION_ACTIVE_STATUSES
+          ms.status == constants.HV_MIGRATION_ACTIVE
       if not migration_active:
         self.feedback_fn("* memory transfer complete")
         break
