@@ -944,7 +944,13 @@ class TLMigrateInstance(Tasklet):
         self.rpc.call_instance_start_postcopy(self.source_node_uuid,
                                               self.instance)
 
-      if ms.status not in constants.HV_KVM_MIGRATION_ACTIVE_STATUSES:
+      if self.instance.hypervisor == 'kvm':
+        migration_active = \
+          ms.status in constants.HV_KVM_MIGRATION_ACTIVE_STATUSES
+      else:
+        migration_active = \
+          ms.status in constants.HV_MIGRATION_ACTIVE_STATUSES
+      if not migration_active:
         self.feedback_fn("* memory transfer complete")
         break
 
