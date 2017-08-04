@@ -1081,13 +1081,14 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
   return result
 
 
-def _VerifySshClutter(node_status_list, my_name):
+def _VerifySshClutter(node_ssh_info, my_name):
   """Verifies that the 'authorized_keys' files are not cluttered up.
 
-  @type node_status_list: list of tuples
-  @param node_status_list: list of nodes of the cluster associated with a
-    couple of flags: (uuid, name, is_master_candidate,
-    is_potential_master_candidate, online)
+  @type node_ssh_setup: tuple of (node_info, ssh_key_type)
+  @param node_ssh_setup: node_info is a list of nodes in the cluster
+                         associated with a couple of flags:
+                         (uuid, name, is_master_candidate,
+                          is_potential_master_candidate, online).
   @type my_name: str
   @param my_name: name of this node
 
@@ -1095,7 +1096,8 @@ def _VerifySshClutter(node_status_list, my_name):
   result = []
   (auth_key_file, _) = \
     ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-  node_names = [name for (_, name, _, _) in node_status_list]
+  node_statuses, _ = node_ssh_info
+  node_names = [name for (_, name, _, _, _) in node_statuses]
   multiple_occurrences = ssh.CheckForMultipleKeys(auth_key_file, node_names)
   if multiple_occurrences:
     msg = "There are hosts which have more than one SSH key stored for the" \
