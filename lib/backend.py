@@ -1084,8 +1084,8 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
 def _VerifySshClutter(node_ssh_info, my_name):
   """Verifies that the 'authorized_keys' files are not cluttered up.
 
-  @type node_ssh_setup: tuple of (node_info, ssh_key_type)
-  @param node_ssh_setup: node_info is a list of nodes in the cluster
+  @type node_ssh_info: tuple of (node_info, ssh_key_type)
+  @param node_ssh_info: node_info is a list of nodes in the cluster
                          associated with a couple of flags:
                          (uuid, name, is_master_candidate,
                           is_potential_master_candidate, online).
