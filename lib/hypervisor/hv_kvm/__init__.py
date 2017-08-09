@@ -538,12 +538,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
 
-  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
+  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+([-\w]+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
     re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
                r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
                r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
+  _MIGRATION_PRECOPY_PASSES_RE = \
+    re.compile(r"\s*dirty sync count:\s+(\d+)", re.I | re.M)
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -1123,6 +1125,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                           " to prevent shared storage corruption on migration",
                           disk_cache)
         cache_val = ",cache=none"
+      elif aio_mode == constants.HT_KVM_AIO_NATIVE and disk_cache != "none":
+        # TODO: make this a hard error, instead of a silent overwrite
+        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                        " to prevent QEMU failures in version 2.6+",
+                        disk_cache)
+        cache_val = ",cache=none"
       elif disk_cache != constants.HT_CACHE_DEFAULT:
         cache_val = ",cache=%s" % disk_cache
       else:
@@ -1276,6 +1284,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd.extend(["-balloon", "virtio"])
     kvm_cmd.extend(["-daemonize"])
+    # logfile for qemu
+    qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
+                                  "%s.log" % instance.name)
+    kvm_cmd.extend(["-D", qemu_logfile])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
@@ -1393,11 +1405,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         vnc_bind_address)
         else:
           vnc_bind_address = if_ip4_addresses[0]
-      if netutils.IP4Address.IsValid(vnc_bind_address):
+      if (netutils.IP4Address.IsValid(vnc_bind_address) or
+          netutils.IP6Address.IsValid(vnc_bind_address)):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:
             vnc_arg = ":%d" % (display)
+          elif netutils.IP6Address.IsValid(vnc_bind_address):
+            vnc_arg = "[%s]:%d" % (vnc_bind_address, display)
           else:
             vnc_arg = "%s:%d" % (vnc_bind_address, display)
         else:
@@ -1887,7 +1902,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # during instance startup anyway, and to avoid problems when soft
     # rebooting the instance.
     cpu_pinning = False
-    if up_hvp.get(constants.HV_CPU_MASK, None):
+    if up_hvp.get(constants.HV_CPU_MASK, None) \
+        and up_hvp[constants.HV_CPU_MASK] != constants.CPU_PINNING_ALL:
       cpu_pinning = True
 
     if security_model == constants.HT_SM_POOL:
@@ -2471,12 +2487,54 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
     if migration_caps:
-      for c in migration_caps.split(_MIGRATION_CAPS_DELIM):
+      capabilities = migration_caps.split(_MIGRATION_CAPS_DELIM)
+      postcopy_enabled = ('x-postcopy-ram' in capabilities
+                          or 'postcopy-ram' in capabilities)
+      for c in capabilities:
         migrate_command = ("migrate_set_capability %s on" % c)
         self._CallMonitorCommand(instance_name, migrate_command)
+    else:
+      postcopy_enabled = False
 
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
+
+    if postcopy_enabled:
+      self._PostcopyAfterPrecopy(instance)
+
+  def _PostcopyAfterPrecopy(self, instance):
+    """Enable postcopying RAM after one precopy pass.
+
+    Requires that an instance is currently migrating, and that the
+    postcopy-ram (x-postcopy-ram on QEMU version 2.5 and below)
+    migration capability is enabled in the instance's hypervisor
+    parameters.
+
+    @type instance: L{objects.Instance}
+    @param instance: The instance being migrated.
+
+    """
+    precopy_passes = 0
+    while precopy_passes < 2:
+      migration_status = \
+          self._CallMonitorCommand(instance.name, 'info migrate')
+
+      status_match = self._MIGRATION_STATUS_RE.search(migration_status.stdout)
+      if status_match and status_match.group(1) != 'active':
+        logging.debug('Did not attempt postcopy, migration status: %s'
+          % status_match.group(1))
+        break
+      if migration_status.stderr:
+        logging.debug('Error polling for dirty sync count in '
+          'hv_kvm._PostcopyAfterPrecopy(): %s' % migration_status.stderr)
+        break
+
+      passes_match = \
+          self._MIGRATION_PRECOPY_PASSES_RE.search(migration_status.stdout)
+      if passes_match:
+        precopy_passes = int(passes_match.group(1))
+    else:
+      self._CallMonitorCommand(instance.name, 'migrate_start_postcopy')
 
   def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
@@ -2730,14 +2788,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      % username)
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      bound_to_addr = netutils.IP4Address.IsValid(vnc_bind_address)
+      bound_to_addr = (netutils.IP4Address.IsValid(vnc_bind_address) or
+                       netutils.IP6Address.IsValid(vnc_bind_address))
       is_interface = netutils.IsValidInterface(vnc_bind_address)
       is_path = utils.IsNormAbsPath(vnc_bind_address)
       if not bound_to_addr and not is_interface and not is_path:
         raise errors.HypervisorError("VNC: The %s parameter must be either"
                                      " a valid IP address, an interface name,"
                                      " or an absolute path" %
-                                     constants.HV_KVM_SPICE_BIND)
+                                     constants.HV_VNC_BIND_ADDRESS)
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     if spice_bind:
