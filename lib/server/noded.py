@@ -711,7 +711,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
   @staticmethod
   def perspective_instance_start_postcopy(params):
-    """ Moves a migrating instance from precopy to postcopy mode
+    """ Switches a migrating instance from precopy to postcopy mode
 
     """
     instance, = params
