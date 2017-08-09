@@ -919,8 +919,11 @@ class TLMigrateInstance(Tasklet):
     last_feedback = time.time()
 
     migration_caps = \
-      self.instance.hvparams.get(constants.HV_KVM_MIGRATION_CAPS, None)
-    postcopy_enabled = migration_caps and 'postcopy-ram' in migration_caps
+      self.instance.hvparams.get(constants.HV_KVM_MIGRATION_CAPS, "")
+    # migration_caps is a ':' delimited string, so checking
+    # if 'postcopy-ram' is a substring also covers using
+    # x-postcopy-ram for QEMU 2.5
+    postcopy_enabled = "postcopy-ram" in migration_caps
     while True:
       result = self.rpc.call_instance_get_migration_status(
                  self.source_node_uuid, self.instance)
