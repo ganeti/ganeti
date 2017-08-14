@@ -918,8 +918,11 @@ class TLMigrateInstance(Tasklet):
     self.feedback_fn("* starting memory transfer")
     last_feedback = time.time()
 
+    cluster_migration_caps = \
+      cluster.hvparams.get("kvm", {}).get(constants.HV_KVM_MIGRATION_CAPS, "")
     migration_caps = \
-      self.instance.hvparams.get(constants.HV_KVM_MIGRATION_CAPS, "")
+      self.instance.hvparams.get(constants.HV_KVM_MIGRATION_CAPS,
+                                 cluster_migration_caps)
     # migration_caps is a ':' delimited string, so checking
     # if 'postcopy-ram' is a substring also covers using
     # x-postcopy-ram for QEMU 2.5
