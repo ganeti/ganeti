@@ -121,9 +121,7 @@ class TestLUInstanceMigrate(CmdlibTestCase):
           objects.MigrationStatus(**kwargs)
       )
 
-  def testPostcopyMigration(self):
-    self.inst.hypervisor = 'kvm'
-    self.inst.hvparams['migration_caps'] = 'postcopy-ram'
+  def _execPostcopyMigration(self):
     self.__status = 'active'
 
     def change_status(*args, **kwargs):
@@ -143,11 +141,38 @@ class TestLUInstanceMigrate(CmdlibTestCase):
     self.rpc.call_instance_get_migration_status.side_effect = \
         migration_statuses()
     self.rpc.call_instance_start_postcopy.side_effect = change_status
+
     op = self.CopyOpCode(self.op)
     self.ExecOpCode(op)
+
+    self._ResetRPC()
+
+  def testPostcopyMigration(self):
+    self.inst.hypervisor = 'kvm'
+    self.inst.hvparams['migration_caps'] = 'postcopy-ram'
+
+    self._execPostcopyMigration()
+
     self.assertTrue(self.__status == 'postcopy-active',
                     'Not in postcopy mode after op executed')
-    self._ResetRPC()
+
+    self.inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                                        admin_state=constants.ADMINST_UP,
+                                        secondary_node=self.snode)
+
+
+  def testPostcopyMigrationWithDefaultHVParams(self):
+    self.inst.hypervisor = 'kvm'
+    self.cluster.hvparams['kvm']['migration_caps'] = 'postcopy-ram'
+
+    self._execPostcopyMigration()
+
+    self.assertTrue(self.__status == 'postcopy-active',
+                    'Not in postcopy mode after op executed')
+
+    self.inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                                        admin_state=constants.ADMINST_UP,
+                                        secondary_node=self.snode)
 
 class TestLUInstanceFailover(CmdlibTestCase):
   def setUp(self):
