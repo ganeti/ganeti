@@ -537,6 +537,15 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
+  def StartPostcopy(self, instance):
+    """Switch a migration from precopy to postcopy mode.
+
+    @type instance: L{objects.Instance}
+    @param instance: The instance being migrated.
+
+    """
+    raise NotImplementedError
+
   def FinalizeMigrationSource(self, instance, success, live):
     """Finalize the instance migration on the source node.
 
