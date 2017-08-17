@@ -274,6 +274,10 @@ _INSTANCE_CALLS = [
     ("target", None, "Target node name"),
     ("live", None, "Whether the migration should be done live or not"),
     ], None, None, "Migrate an instance"),
+  ("instance_start_postcopy", SINGLE, None, constants.RPC_TMO_NORMAL, [
+      ("instance", ED_INST_DICT, "Instance object"),
+  ], None, None, "Switch a migrating instance from precopy to "
+                 "postcopy mode."),
   ("instance_finalize_migration_src", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("instance", ED_INST_DICT, "Instance object"),
     ("success", None, "Whether the migration succeeded or not"),

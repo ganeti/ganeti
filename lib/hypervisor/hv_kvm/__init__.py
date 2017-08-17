@@ -2487,23 +2487,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
     if migration_caps:
-      capabilities = migration_caps.split(_MIGRATION_CAPS_DELIM)
-      postcopy_enabled = ('x-postcopy-ram' in capabilities
-                          or 'postcopy-ram' in capabilities)
-      for c in capabilities:
+      for c in migration_caps.split(_MIGRATION_CAPS_DELIM):
         migrate_command = ("migrate_set_capability %s on" % c)
         self._CallMonitorCommand(instance_name, migrate_command)
-    else:
-      postcopy_enabled = False
 
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
-    if postcopy_enabled:
-      self._PostcopyAfterPrecopy(instance)
-
-  def _PostcopyAfterPrecopy(self, instance):
-    """Enable postcopying RAM after one precopy pass.
+  def StartPostcopy(self, instance):
+    """Switch a migration from precopy to postcopy mode.
 
     Requires that an instance is currently migrating, and that the
     postcopy-ram (x-postcopy-ram on QEMU version 2.5 and below)
@@ -2514,27 +2506,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param instance: The instance being migrated.
 
     """
-    precopy_passes = 0
-    while precopy_passes < 2:
-      migration_status = \
-          self._CallMonitorCommand(instance.name, 'info migrate')
-
-      status_match = self._MIGRATION_STATUS_RE.search(migration_status.stdout)
-      if status_match and status_match.group(1) != 'active':
-        logging.debug('Did not attempt postcopy, migration status: %s'
-          % status_match.group(1))
-        break
-      if migration_status.stderr:
-        logging.debug('Error polling for dirty sync count in '
-          'hv_kvm._PostcopyAfterPrecopy(): %s' % migration_status.stderr)
-        break
-
-      passes_match = \
-          self._MIGRATION_PRECOPY_PASSES_RE.search(migration_status.stdout)
-      if passes_match:
-        precopy_passes = int(passes_match.group(1))
-    else:
-      self._CallMonitorCommand(instance.name, 'migrate_start_postcopy')
+    self._CallMonitorCommand(instance.name, 'migrate_start_postcopy')
 
   def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
@@ -2588,6 +2560,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           if match:
             migration_status.transferred_ram = match.group("transferred")
             migration_status.total_ram = match.group("total")
+          sync_count_match = \
+            self._MIGRATION_PRECOPY_PASSES_RE.search(result.stdout)
+          if sync_count_match:
+            migration_status.dirty_sync_count = sync_count_match.group(1)
 
           return migration_status
 

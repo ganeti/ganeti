@@ -3166,6 +3166,21 @@ def MigrateInstance(cluster_name, instance, target, live):
   except errors.HypervisorError, err:
     _Fail("Failed to migrate instance: %s", err, exc=True)
 
+def StartPostcopy(instance):
+  """ Switch a migrating instance from precopy to postcopy mode.
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance currently being migrated to
+                   move to postcopy mode.
+  @raise RPCFail: If enabling postcopy fails for some reason.
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+
+  try:
+    hyper.StartPostcopy(instance)
+  except Exception, err:  # pylint: disable=W0703
+    _Fail("Failed to enable postcopy mode: %s", err, exc=True)
 
 def FinalizeMigrationSource(instance, success, live):
   """Finalize the instance migration on the source node.
