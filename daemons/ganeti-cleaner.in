@@ -106,7 +106,7 @@ cleanup_master() {
 }
 
 # Define how many days archived jobs should be left alone
-REMOVE_AFTER=21
+REMOVE_AFTER=${REMOVE_AFTER:-21}
 
 # Define how many log files to keep around (usually one per day)
 KEEP_LOGS=50

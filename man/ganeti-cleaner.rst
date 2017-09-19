@@ -22,8 +22,9 @@ certificates and keys from ``@LOCALSTATEDIR@/run/ganeti/crypto``, as
 well as outdated **ganeti-watcher** information.
 
 When called with ``master`` as argument, it will instead automatically
-remove all files older than 21 days from
-``@LOCALSTATEDIR@/lib/ganeti/queue/archive``.
+remove all files older than $REMOVE_AFTER days from
+``@LOCALSTATEDIR@/lib/ganeti/queue/archive``, with $REMOVE_AFTER
+defaulting to 21.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
