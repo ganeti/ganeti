@@ -24,13 +24,13 @@ COMMANDS
 EXPORT
 ~~~~~~
 
-| **export** {-n *node*}
+| **export** {-n *node-name*}
 | [\--shutdown-timeout=*N*] [\--noshutdown] [\--remove-instance]
 | [\--ignore-remove-failures] [\--submit] [\--print-jobid]
 | [\--transport-compression=*compression-mode*]
 | [\--zero-free-space] [\--zeroing-timeout-fixed]
 | [\--zeroing-timeout-per-mib] [\--long-sleep]
-| {*instance*}
+| {*instance-name*}
 
 Exports an instance to the target node. All the instance data and
 its configuration will be exported under the
@@ -98,10 +98,10 @@ IMPORT
 | [\--identify-defaults]
 | [\--ignore-ipolicy]
 | [\--submit] [\--print-jobid]
-| {*instance*}
+| {*instance-name*}
 
 Imports a new instance from an export residing on *source-node* in
-*source-dir*. *instance* must be in DNS and resolve to a IP in the
+*source-dir*. *instance-name* must be in DNS and resolve to a IP in the
 same network as the nodes in the cluster. If the source node and
 directory are not passed, the last backup in the cluster is used,
 as visible with the **list** command.
@@ -292,7 +292,7 @@ Lists available fields for exports.
 REMOVE
 ~~~~~~
 
-**remove** {instance_name}
+**remove** {*instance-name*}
 
 Removes the backup for the given instance name, if any. If the backup
 was for a deleted instance, it is needed to pass the FQDN of the

@@ -46,8 +46,10 @@ import Ganeti.BasicTypes
 import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import qualified Ganeti.Query.Language as Qlang
+import Ganeti.Types (Hypervisor(..))
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -104,7 +106,7 @@ queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRInstance)
      ["name", "disk_usage", "be/memory", "be/vcpus",
-      "status", "pnode", "snodes", "tags", "oper_ram",
+      "status", "pnode", "snodes", "tags",
       "be/auto_balance", "disk_template",
       "be/spindle_use", "disk.sizes", "disk.spindles",
       "forthcoming"] Qlang.EmptyFilter
@@ -147,15 +149,13 @@ parseInstance :: NameAssoc
               -> [(JSValue, JSValue)]
               -> Result (String, Instance.Instance)
 parseInstance ktn [ name, disk, mem, vcpus
-                  , status, pnode, snodes, tags, oram
+                  , status, pnode, snodes, tags
                   , auto_balance, disk_template, su
                   , dsizes, dspindles, forthcoming ] = do
   xname <- annotateResult "Parsing new instance" (L.fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
-  xmem <- case oram of -- FIXME: remove the "guessing"
-            (_, JSRational _ _) -> convert "oper_ram" oram
-            _ -> convert "be/memory" mem
+  xmem <- convert "be/memory" mem
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
   xsnodes <- convert "snodes" snodes::Result [String]
@@ -230,14 +230,15 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
 
 -- | Parses the cluster tags.
-getClusterData :: JSValue -> Result ([String], IPolicy, String)
+getClusterData :: JSValue -> Result ([String], IPolicy, String, Hypervisor)
 getClusterData (JSObject obj) = do
   let errmsg = "Parsing cluster info"
       obj' = fromJSObject obj
   ctags <- tryFromObj errmsg obj' "tags"
   cpol <- tryFromObj errmsg obj' "ipolicy"
   master <- tryFromObj errmsg obj' "master"
-  return (ctags, cpol, master)
+  hypervisor <- tryFromObj errmsg obj' "default_hypervisor"
+  return (ctags, cpol, master, hypervisor)
 
 getClusterData _ = Bad "Cannot parse cluster info, not a JSON record"
 
@@ -288,9 +289,10 @@ parseData (groups, nodes, instances, cinfo) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (ctags, cpol, master) <- cinfo >>= getClusterData
+  (ctags, cpol, master, hypervisor) <- cinfo >>= getClusterData
   node_idx' <- setMaster node_names node_idx master
-  return (ClusterData group_idx node_idx' inst_idx ctags cpol)
+  let node_idx'' = Container.map (`Node.setHypervisor` hypervisor) node_idx'
+  return (ClusterData group_idx node_idx'' inst_idx ctags cpol)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Unix socket to use as source

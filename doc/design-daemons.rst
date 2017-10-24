@@ -2,6 +2,10 @@
 Ganeti daemons refactoring
 ==========================
 
+:Created: 2013-Sep-27
+:Status: Implemented
+:Ganeti-Version: 2.12.0
+
 .. contents:: :depth: 2
 
 This is a design document detailing the plan for refactoring the internal
@@ -138,7 +142,7 @@ proposed, and presented hereafter.
   submitting jobs. Therefore, this daemon will also be the one responsible with
   managing the job queue. When a job needs to be executed, the LuxiD will spawn
   a separate process tasked with the execution of that specific job, thus making
-  it easier to terminate the job itself, if needeed.  When a job requires locks,
+  it easier to terminate the job itself, if needed.  When a job requires locks,
   LuxiD will request them from WConfD.
   In order to keep availability of the cluster in case of failure of the master
   node, LuxiD will replicate the job queue to the other master candidates, by
@@ -258,7 +262,7 @@ leaving the codebase in a consistent and usable state.
    independent process. LuxiD will spawn a new (Python) process for every single
    job. The RPCs will remain unchanged, and the LU code will stay as is as much
    as possible.
-   MasterD will cease to exist as a deamon on its own at this point, but not
+   MasterD will cease to exist as a daemon on its own at this point, but not
    before.
 
 #. Improve job scheduling algorithm.
@@ -480,7 +484,7 @@ protocol will allow the following operations on the set:
   provided for convenience, it's redundant wrt. *list* and *update*. Immediate,
   never fails.
 
-Addidional restrictions due to lock implications:
+Additional restrictions due to lock implications:
   Ganeti supports locks that act as if a lock on a whole group (like all nodes)
   were held. To avoid dead locks caused by the additional blockage of those
   group locks, we impose certain restrictions. Whenever `A` is a group lock and

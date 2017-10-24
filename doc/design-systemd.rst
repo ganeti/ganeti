@@ -2,6 +2,10 @@
 Systemd integration
 ===================
 
+:Created: 2014-Mar-26
+:Status: Implemented
+:Ganeti-Version: 2.12.0
+
 .. contents:: :depth: 4
 
 This design document outlines the implementation of native systemd

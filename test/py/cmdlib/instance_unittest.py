@@ -3031,6 +3031,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          instance_name=inst.name,
                          disks=[[constants.DDM_REMOVE, -1,
                                  {}]])
+    self.rpc.call_instance_info.side_effect = [
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
+    ]
     self.rpc.call_file_storage_dir_remove.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master)
@@ -3045,11 +3049,36 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          instance_name=inst.name,
                          disks=[[constants.DDM_REMOVE, -1,
                                  {}]])
+    self.rpc.call_instance_info.side_effect = [
+      self.RpcResultsBuilder()
+        .CreateSuccessfulNodeResult(self.master)
+    ]
     self.rpc.call_file_storage_dir_remove.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master)
     self.ExecOpCode(op)
     self.assertFalse(self.rpc.call_file_storage_dir_remove.called)
+
+  def testRemoveUsedDiskWithoutHotplug(self):
+    inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(),
+                                          self.cfg.CreateDisk()])
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_REMOVE, -1,
+                                 {}]]) # without hotplug
+    self.rpc.call_instance_info.side_effect = [
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master,
+                                {
+                                  "memory": self.mocked_snode_memory_free,
+                                  "vcpus": self.mocked_running_inst_vcpus,
+                                  "state": self.mocked_running_inst_state,
+                                  "time": self.mocked_running_inst_time
+                                })]
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "can't remove volume from a running instance without using hotplug")
+    self.assertFalse(self.rpc.call_blockdev_shutdown.called)
+    self.assertFalse(self.rpc.call_blockdev_remove.called)
 
   def testModifyDiskWithSize(self):
     op = self.CopyOpCode(self.op,

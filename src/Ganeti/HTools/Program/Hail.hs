@@ -70,6 +70,7 @@ options =
     , oRestrictToNodes
     , oMonD
     , oMonDXen
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.
@@ -78,13 +79,19 @@ arguments = [ArgCompletion OptComplFile 1 (Just 1)]
 
 wrapReadRequest :: Options -> [String] -> IO Request
 wrapReadRequest opts args = do
+  let static_n_mem = optStaticKvmNodeMemory opts
   r1 <- case args of
           []    -> exitErr "This program needs an input file."
           _:_:_ -> exitErr "Only one argument is accepted (the input file)"
-          x:_   -> readRequest x
+          x:_   -> readRequest x static_n_mem
 
   if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
     then do
+      -- TODO: Cleanup this mess. ClusterData is loaded first in IAlloc.readRequest,
+      -- Then the data part is dropped and replaced with ExtLoader.loadExternalData
+      -- that uses IAlloc.loadData to load the same data again. This codepath is executd
+      -- only with manually specified cluster data file or simulation (i.e. not under
+      -- 'normal' operation.)
       cdata <- loadExternalData opts
       let Request rqt _ = r1
       return $ Request rqt cdata

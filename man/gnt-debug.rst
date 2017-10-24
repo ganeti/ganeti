@@ -22,20 +22,20 @@ COMMANDS
 IALLOCATOR
 ~~~~~~~~~~
 
-**iallocator** [\--debug] [\--dir *DIRECTION*] {\--algorithm
-*ALLOCATOR* } [\--mode *MODE*] [\--mem *MEMORY*] [\--disks *DISKS*]
-[\--disk-template *TEMPLATE*] [\--nics *NICS*] [\--os-type *OS*]
-[\--vcpus *VCPUS*] [\--tags *TAGS*] {*instance*}
+**iallocator** [\--debug] [\--dir *direction*] {\--algorithm
+*allocator* } [\--mode *mode*] [\--mem *memory*] [\--disks *diskS*]
+[\--disk-template *template*] [\--nics *nics*] [\--os-type *OS*]
+[\--vcpus *vcpus*] [\--tags *tags*] {*instance-name*}
 
 Executes a test run of the *iallocator* framework.
 
 The command will build input for a given iallocator script (named
 with the ``--algorithm`` option), and either show this input data
-(if *DIRECTION* is ``in``) or run the iallocator script and show its
-output (if *DIRECTION* is ``out``).
+(if *direction* is ``in``) or run the iallocator script and show its
+output (if *direction* is ``out``).
 
-If the *MODE* is ``allocate``, then an instance definition is built
-from the other arguments and sent to the script, otherwise (*MODE* is
+If the *mode* is ``allocate``, then an instance definition is built
+from the other arguments and sent to the script, otherwise (*mode* is
 ``relocate``) an existing instance name must be passed as the first
 argument.
 
@@ -46,7 +46,7 @@ this framework, see the HTML or PDF documentation.
 DELAY
 ~~~~~
 
-**delay** [\--debug] [\--no-master] [\--interruptible] [-n *NODE*...]
+**delay** [\--debug] [\--no-master] [\--interruptible] [-n *node-name*...]
 {*duration*}
 
 Run a test opcode (a sleep) on the master and on selected nodes
@@ -68,8 +68,8 @@ number.
 SUBMIT-JOB
 ~~~~~~~~~~
 
-**submit-job** [\--verbose] [\--timing-stats] [\--job-repeat *N*]
-[\--op-repeat *N*] [\--each] {opcodes_file...}
+**submit-job** [\--verbose] [\--timing-stats] [\--job-repeat *n*]
+[\--op-repeat *n*] [\--each] {opcodes_file...}
 
 This command builds a list of opcodes from files in JSON format and
 submits a job per file to the master daemon. It can be used to test
@@ -109,8 +109,8 @@ Tests secret os parameter transmission.
 LOCKS
 ~~~~~
 
-| **locks** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [\--interval=*SECONDS*]
+| **locks** [\--no-headers] [\--separator=*separator*] [-v]
+| [-o *[+]field,...*] [\--interval=*seconds*]
 
 Shows a list of locks in the master daemon.
 
@@ -159,7 +159,7 @@ printed to the console.
 
 A request to clean up all stale locks is sent to WConfd.
 
-| **wconfd** listlocks *jid*
+| **wconfd** listlocks *job-id*
 
 A request to list the locks owned by the given job id is
 sent to WConfd and the answer is displayed.

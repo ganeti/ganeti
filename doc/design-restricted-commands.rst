@@ -1,5 +1,10 @@
+=====================================
 Design for executing commands via RPC
 =====================================
+
+:Created: 2012-Oct-16
+:Status: Implemented
+:Ganeti-Version: 2.7.0
 
 .. contents:: :depth: 3
 

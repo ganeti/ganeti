@@ -2,6 +2,10 @@
 Performance tests for QA
 ========================
 
+:Created: 2014-Apr-28
+:Status: Implemented
+:Ganeti-Version: 2.10.0
+
 .. contents:: :depth: 4
 
 This design document describes performance tests to be added to QA in
