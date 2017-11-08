@@ -99,12 +99,10 @@ class TestUidPool(testutils.GanetiTestCase):
   def testRequestUnusedUid(self):
     # Check with known used user-ids
     #
-    # Test with user-id "0" and with our own user-id, both
-    # of which are guaranteed to be used user-ids
-    for uid in 0, os.getuid():
-      self.assertRaises(errors.LockError,
-                        uidpool.RequestUnusedUid,
-                        set([uid]))
+    # Test with our own user-id which is guaranteed to be used
+    self.assertRaises(errors.LockError,
+                      uidpool.RequestUnusedUid,
+                      set([os.getuid()]))
 
     # Check with a single, known unused user-id
     #
