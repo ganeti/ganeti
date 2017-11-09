@@ -52,6 +52,7 @@ from ganeti import rapi
 from ganeti import errors
 
 from ganeti.rapi.client import UsesRapiClient
+import ganeti.rapi.client_utils # pylint: disable=W0611
 
 
 SRC_RAPI_PORT_OPT = \

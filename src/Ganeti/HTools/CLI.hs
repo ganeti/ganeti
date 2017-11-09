@@ -116,6 +116,7 @@ module Ganeti.HTools.CLI
   , oShowVer
   , oShowComp
   , oSkipNonRedundant
+  , oStaticKvmNodeMemory
   , oStdSpec
   , oTargetResources
   , oTieredSpec
@@ -216,6 +217,7 @@ data Options = Options
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
   , optSkipNonRedundant :: Bool      -- ^ Skip nodes with non-redundant instance
+  , optStaticKvmNodeMemory :: Int    -- ^ Use static value for node memory on KVM
   , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
   , optTargetResources :: Double     -- ^ Target resources for squeezing
   , optTestCount   :: Maybe Int      -- ^ Optional test count override
@@ -276,6 +278,7 @@ defaultOptions  = Options
   , optNodeSim     = []
   , optNodeTags    = Nothing
   , optSkipNonRedundant = False
+  , optStaticKvmNodeMemory = 4096
   , optOffline     = []
   , optRestrictToNodes = Nothing
   , optOfflineMaintenance = False
@@ -708,7 +711,7 @@ oNodeTags =
    (ReqArg (\ f opts -> Ok opts { optNodeTags = Just $ sepSplit ',' f })
     "TAG,...") "Restrict to nodes with the given tags",
    OptComplString)
-     
+
 oOfflineMaintenance :: OptType
 oOfflineMaintenance =
   (Option "" ["offline-maintenance"]
@@ -810,6 +813,15 @@ oSkipNonRedundant =
    (NoArg (\ opts -> Ok opts { optSkipNonRedundant = True }))
     "Skip nodes that host a non-redundant instance",
     OptComplNone)
+
+oStaticKvmNodeMemory :: OptType
+oStaticKvmNodeMemory =
+  (Option "" ["static-kvm-node-memory"]
+   (reqWithConversion (tryRead "static node memory")
+    (\i opts -> Ok opts { optStaticKvmNodeMemory = i }) "N")
+   "use static node memory [in MB] on KVM instead of value reported by hypervisor.\
+   \ Use 0 to take value reported from hypervisor.",
+   OptComplInteger)
 
 oStdSpec :: OptType
 oStdSpec =

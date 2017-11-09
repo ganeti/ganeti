@@ -1659,6 +1659,9 @@ hvDeviceModel = "device_model"
 hvDiskCache :: String
 hvDiskCache = "disk_cache"
 
+hvDiskDiscard :: String
+hvDiskDiscard = "disk_discard"
+
 hvDiskType :: String
 hvDiskType = "disk_type"
 
@@ -1821,6 +1824,9 @@ hvUsbMouse = "usb_mouse"
 hvUseBootloader :: String
 hvUseBootloader = "use_bootloader"
 
+hvUseGuestAgent :: String
+hvUseGuestAgent = "use_guest_agent"
+
 hvUseLocaltime :: String
 hvUseLocaltime = "use_localtime"
 
@@ -1901,6 +1907,7 @@ hvsParameterTypes = Map.fromList
   , (hvCpuWeight,                       VTypeInt)
   , (hvDeviceModel,                     VTypeString)
   , (hvDiskCache,                       VTypeString)
+  , (hvDiskDiscard,                     VTypeString)
   , (hvDiskType,                        VTypeString)
   , (hvInitrdPath,                      VTypeString)
   , (hvInitScript,                      VTypeString)
@@ -1955,6 +1962,7 @@ hvsParameterTypes = Map.fromList
   , (hvUsbDevices,                      VTypeString)
   , (hvUsbMouse,                        VTypeString)
   , (hvUseBootloader,                   VTypeBool)
+  , (hvUseGuestAgent,                   VTypeBool)
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
@@ -2823,6 +2831,21 @@ htValidCacheTypes =
                        htCacheNone,
                        htCacheWback,
                        htCacheWthrough]
+
+htDiscardDefault :: String
+htDiscardDefault = "default"
+
+htDiscardIgnore :: String
+htDiscardIgnore = "ignore"
+
+htDiscardUnmap :: String
+htDiscardUnmap = "unmap"
+
+htValidDiscardTypes :: FrozenSet String
+htValidDiscardTypes =
+  ConstantUtils.mkSet [htDiscardDefault,
+                       htDiscardIgnore,
+                       htDiscardUnmap]
 
 htKvmAioThreads :: String
 htKvmAioThreads = "threads"
@@ -4111,8 +4134,10 @@ hvcDefaults =
           , (hvMigrationBandwidth,              PyValueEx (32 :: Int))
           , (hvMigrationDowntime,               PyValueEx (30 :: Int))
           , (hvMigrationMode,                   PyValueEx htMigrationLive)
+          , (hvUseGuestAgent,                   PyValueEx False)
           , (hvUseLocaltime,                    PyValueEx False)
           , (hvDiskCache,                       PyValueEx htCacheDefault)
+          , (hvDiskDiscard,                     PyValueEx htDiscardDefault)
           , (hvSecurityModel,                   PyValueEx htSmNone)
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")

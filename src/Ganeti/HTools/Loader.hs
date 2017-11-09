@@ -38,7 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.Loader
   ( mergeData
   , clearDynU
-  , checkData
+  , updateMissing
+  , updateMemStat
   , assignIndices
   , setMaster
   , lookupNode
@@ -80,7 +81,7 @@ import Ganeti.HTools.Types
 import qualified Ganeti.Types as T
 import qualified Ganeti.Objects as O
 import Ganeti.Utils
-import Ganeti.Types (EvacMode)
+import Ganeti.Types (EvacMode, Hypervisor(..))
 import Ganeti.JSON
 
 -- * Types
@@ -180,7 +181,7 @@ setMaster node_names node_idx master = do
 setLocationScore :: Node.List -> Instance.Instance -> Instance.Instance
 setLocationScore nl inst =
   let pnode = Container.find (Instance.pNode inst) nl
-      snode = Container.find (Instance.sNode inst) nl
+      snode = Container.lookup (Instance.sNode inst) nl
   in Moves.setInstanceLocationScore inst pnode snode
 
 -- | For each instance, add its index to its primary and secondary nodes.
@@ -376,29 +377,49 @@ clearDynU cdata@(ClusterData _ _ il _ _) =
   let il2 = Container.map (\ inst -> inst {Instance.util = zeroUtil }) il
   in Ok cdata { cdInstances = il2 }
 
--- | Checks the cluster data for consistency.
-checkData :: Node.List -> Instance.List
-          -> ([String], Node.List)
-checkData nl il =
-    Container.mapAccum
-        (\ msgs node ->
-             let nname = Node.name node
-                 delta_mem = truncate (Node.tMem node)
-                             - Node.nMem node
-                             - Node.fMem node
-                             - nodeImem node il
-                 delta_dsk = truncate (Node.tDsk node)
-                             - Node.fDsk node
-                             - nodeIdsk node il
-                 newn = node `Node.setXmem` delta_mem
-                 umsg1 =
-                   if delta_mem > 512 || delta_dsk > 1024
-                      then printf "node %s is missing %d MB ram \
-                                  \and %d GB disk"
-                                  nname delta_mem (delta_dsk `div` 1024):msgs
-                      else msgs
-             in (umsg1, newn)
-        ) [] nl
+-- | Update cluster data to use static node memory on KVM.
+setStaticKvmNodeMem :: Node.List -- ^ Nodes to update
+                       -> Int -- ^ Static node size
+                       -> Node.List -- ^ Updated nodes
+setStaticKvmNodeMem nl static_node_mem =
+  let updateNM n
+          | Node.hypervisor n == Just Kvm = n { Node.nMem = static_node_mem }
+          | otherwise = n
+  in if static_node_mem > 0
+     then Container.map updateNM nl
+     else nl
+
+-- | Update node memory stat based on instance list.
+updateMemStat :: Node.Node -> Instance.List -> Node.Node
+updateMemStat node il =
+  let node2 = node { Node.iMem = nodeImem node il }
+      node3 = node2 { Node.xMem = Node.missingMem node2 }
+  in node3 { Node.pMem = Node.computePmem (Node.unallocatedMem node3)
+                                          (Node.tMem node3)
+                                          (Node.nMem node3) }
+
+-- | Check the cluster for memory/disk allocation consistency and update stats.
+updateMissing :: Node.List -- ^ All nodes in the cluster
+              -> Instance.List  -- ^ All instances in the cluster
+              -> Int -- ^ Static node memory for KVM
+              -> ([String], Node.List) -- ^ Pair of errors, update node list
+updateMissing nl il static_node_mem =
+    -- This overrides node mem on KVM as loaded from backend. Ganeti 2.17
+    -- handles this using obtainNodeMemory.
+    let nl2 = setStaticKvmNodeMem nl static_node_mem
+        updateSingle msgs node =
+            let nname = Node.name node
+                newn = updateMemStat node il
+                delta_mem = Node.xMem newn
+                delta_dsk = truncate (Node.tDsk node)
+                            - Node.fDsk node
+                            - nodeIdsk node il
+                umsg1 = if delta_mem > 512 || delta_dsk > 1024
+                        then printf "node %s is missing %d MB ram and %d GB disk"
+                             nname delta_mem (delta_dsk `div` 1024):msgs
+                        else msgs
+            in (umsg1, newn)
+    in Container.mapAccum updateSingle [] nl2
 
 -- | Compute the amount of memory used by primary instances on a node.
 nodeImem :: Node.Node -> Instance.List -> Int

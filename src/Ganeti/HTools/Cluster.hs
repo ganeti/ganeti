@@ -237,11 +237,9 @@ updateCStats cs node =
                csFspn = x_fspn, csIspn = x_ispn, csTspn = x_tspn
              }
         = cs
-      inc_amem = Node.fMem node - Node.rMem node
-      inc_amem' = if inc_amem > 0 then inc_amem else 0
+      inc_amem = Node.availMem node
       inc_adsk = Node.availDisk node
-      inc_imem = truncate (Node.tMem node) - Node.nMem node
-                 - Node.xMem node - Node.fMem node
+      inc_imem = Node.iMem node
       inc_icpu = Node.uCpu node
       inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
       inc_ispn = Node.tSpindles node - Node.fSpindles node
@@ -249,13 +247,13 @@ updateCStats cs node =
       inc_acpu = Node.availCpu node
       inc_ncpu = fromIntegral (Node.uCpu node) /
                  iPolicyVcpuRatio (Node.iPolicy node)
-  in cs { csFmem = x_fmem + fromIntegral (Node.fMem node)
+  in cs { csFmem = x_fmem + fromIntegral (Node.unallocatedMem node)
         , csFdsk = x_fdsk + fromIntegral (Node.fDsk node)
         , csFspn = x_fspn + fromIntegral (Node.fSpindles node)
-        , csAmem = x_amem + fromIntegral inc_amem'
+        , csAmem = x_amem + fromIntegral inc_amem
         , csAdsk = x_adsk + fromIntegral inc_adsk
         , csAcpu = x_acpu + fromIntegral inc_acpu
-        , csMmem = max x_mmem (fromIntegral inc_amem')
+        , csMmem = max x_mmem (fromIntegral inc_amem)
         , csMdsk = max x_mdsk (fromIntegral inc_adsk)
         , csMcpu = max x_mcpu (fromIntegral inc_acpu)
         , csImem = x_imem + fromIntegral inc_imem
@@ -804,13 +802,12 @@ iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats =
 -- | Guess a number of machines worth trying to put on the cluster in one step.
 -- The goal is to guess a number close to the actual capacity of the cluster but
 -- preferrably not bigger, unless it is quite small (as we don't want to do
--- big steps smaller than 10).
+-- big steps smaller than 20).
 guessBigstepSize :: Node.List -> Instance.Instance -> Int
 guessBigstepSize nl inst =
   let nodes = Container.elems nl
-      totalUnusedMemory = sum $ map Node.fMem nodes
-      reserved = round . maximum $ map Node.tMem nodes
-      capacity = (totalUnusedMemory - reserved) `div` Instance.mem inst
+      totalAvail = sum $ map Node.availMem nodes
+      capacity = totalAvail `div` Instance.mem inst
       -- however, at every node we might lose almost an instance if it just
       -- doesn't fit by a tiny margin
       guess = capacity - Container.size nl
@@ -1029,7 +1026,7 @@ getMoves (Table _ initial_il _ initial_plc, Table final_nl _ _ final_plc) =
           (_, cmds) = computeMoves inst inst_name mv np ns
       in (affected, idx, mv, cmds)
   in map plctoMoves . reverse . drop (length initial_plc) $ reverse final_plc
-             
+
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
 mergeJobs :: ([JobSet], [Ndx]) -> MoveJob -> ([JobSet], [Ndx])

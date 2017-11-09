@@ -640,7 +640,7 @@ AM_CONDITIONAL([GHC_LE_76], [$GHC --numeric-version | grep -q '^7\.[[0-6]]\.'])
 
 AC_MSG_CHECKING([checking for extra GHC flags])
 GHC_BYVERSION_FLAGS=
-# check for GHC supported flags that vary accross versions
+# check for GHC supported flags that vary across versions
 for flag in -fwarn-incomplete-uni-patterns; do
   if $GHC -e '0' $flag >/dev/null 2>/dev/null; then
    GHC_BYVERSION_FLAGS="$GHC_BYVERSION_FLAGS $flag"

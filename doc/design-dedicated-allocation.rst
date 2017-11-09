@@ -2,6 +2,10 @@
 Allocation for Partitioned Ganeti
 =================================
 
+:Created: 2015-Jan-22
+:Status: Implemented
+:Ganeti-Version: 2.15.0
+
 .. contents:: :depth: 4
 
 
@@ -61,7 +65,7 @@ instance sizes.
 
 If allocating in a node group with ``exclusive_storage`` set
 to true, hail will try to minimise the pair of the lost-allocations
-vector and the remaining disk space on the node afer, ordered
+vector and the remaining disk space on the node after, ordered
 lexicographically.
 
 Example

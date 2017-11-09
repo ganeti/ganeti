@@ -1,5 +1,10 @@
+==================
 Ganeti CPU Pinning
 ==================
+
+:Created: 2011-May-28
+:Status: Implemented
+:Ganeti-Version: 2.6.0
 
 Objective
 ---------

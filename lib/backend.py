@@ -2958,49 +2958,48 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
 
   if not _GetInstanceInfo(instance):
     logging.info("Instance '%s' not running, doing nothing", instance.name)
-    return
+  else:
+    class _TryShutdown(object):
+      def __init__(self):
+        self.tried_once = False
 
-  class _TryShutdown(object):
-    def __init__(self):
-      self.tried_once = False
+      def __call__(self):
+        try:
+          hyper.StopInstance(instance, retry=self.tried_once, timeout=timeout)
+          if store_reason:
+            _StoreInstReasonTrail(instance.name, reason)
+        except errors.HypervisorError, err:
+          # if the instance does no longer exist, consider this success and go to
+          # cleanup, otherwise fail without retrying
+          if _GetInstanceInfo(instance):
+            _Fail("Failed to stop instance '%s': %s", instance.name, err)
+          return
 
-    def __call__(self):
-      try:
-        hyper.StopInstance(instance, retry=self.tried_once, timeout=timeout)
-        if store_reason:
-          _StoreInstReasonTrail(instance.name, reason)
-      except errors.HypervisorError, err:
-        # if the instance does no longer exist, consider this success and go to
-        # cleanup, otherwise fail without retrying
+        # TODO: Cleanup hypervisor implementations to prevent them from failing
+        # silently. We could easily decide if we want to retry or not by using
+        # HypervisorSoftError()/HypervisorHardError()
+        self.tried_once = True
         if _GetInstanceInfo(instance):
-          _Fail("Failed to stop instance '%s': %s", instance.name, err)
-        return
-
-      # TODO: Cleanup hypervisor implementations to prevent them from failing
-      # silently. We could easily decide if we want to retry or not by using
-      # HypervisorSoftError()/HypervisorHardError()
-      self.tried_once = True
-      if _GetInstanceInfo(instance):
-        raise utils.RetryAgain()
-
-  try:
-    utils.Retry(_TryShutdown(), 5, timeout)
-  except utils.RetryTimeout:
-    # the shutdown did not succeed
-    logging.error("Shutdown of '%s' unsuccessful, forcing", instance.name)
+          raise utils.RetryAgain()
 
     try:
-      hyper.StopInstance(instance, force=True)
-    except errors.HypervisorError, err:
-      # only raise an error if the instance still exists, otherwise
-      # the error could simply be "instance ... unknown"!
+      utils.Retry(_TryShutdown(), 5, timeout)
+    except utils.RetryTimeout:
+      # the shutdown did not succeed
+      logging.error("Shutdown of '%s' unsuccessful, forcing", instance.name)
+
+      try:
+        hyper.StopInstance(instance, force=True)
+      except errors.HypervisorError, err:
+        # only raise an error if the instance still exists, otherwise
+        # the error could simply be "instance ... unknown"!
+        if _GetInstanceInfo(instance):
+          _Fail("Failed to force stop instance '%s': %s", instance.name, err)
+
+      time.sleep(1)
+
       if _GetInstanceInfo(instance):
-        _Fail("Failed to force stop instance '%s': %s", instance.name, err)
-
-    time.sleep(1)
-
-    if _GetInstanceInfo(instance):
-      _Fail("Could not shutdown instance '%s' even by destroy", instance.name)
+        _Fail("Could not shutdown instance '%s' even by destroy", instance.name)
 
   try:
     hyper.CleanupInstance(instance.name)
@@ -5242,14 +5241,14 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
       script = inst_os.import_script
 
     elif mode == constants.IEM_EXPORT:
-      disk_path_var = "DISK_%d_PATH" % disk_index
-      if disk_path_var in env:
-        env["EXPORT_DEVICE"] = env[disk_path_var]
-        env["EXPORT_DISK_PATH"] = env[disk_path_var]
+      real_disk = _OpenRealBD(disk)
+      if real_disk.dev_path:
+        env["EXPORT_DEVICE"] = real_disk.dev_path
+        env["EXPORT_DISK_PATH"] = real_disk.dev_path
 
-      disk_uri_var = "DISK_%d_URI" % disk_index
-      if disk_uri_var in env:
-        env["EXPORT_DISK_URI"] = env[disk_uri_var]
+      uri = _CalculateDeviceURI(instance, disk, real_disk)
+      if uri:
+        env["EXPORT_DISK_URI"] = uri
 
       env["EXPORT_INDEX"] = str(disk_index)
       script = inst_os.export_script

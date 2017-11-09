@@ -2,6 +2,9 @@
  Resource model changes
 ========================
 
+:Created: 2011-Oct-12
+:Status: Implemented
+:Ganeti-Version: 2.6.0
 
 Introduction
 ============
@@ -80,22 +83,43 @@ reserved memory (``rmem``)
     lists is the node's ``rmem``; when not using DRBD, this will be
     equal to zero
 
-unaccounted memory (``xmem``)
+missing memory (``xmem``)
     memory that cannot be unaccounted for via the Ganeti model; this is
-    computed at startup as::
+    computed at startup as:
 
         tmem - imem - nmem - fmem
 
-    and is presumed to remain constant irrespective of any instance
-    moves
+    if we define state-of-record free mem as:
+
+        tmem - imem - nmem
+
+    then we can interpret this as the difference between the state-of-record
+    and state-of-world free memory; it presumed to remain constant irrespective
+    of any instance moves
+
+unallocated memory (``umem``)
+    the memory that is guaranteed to be not allocated to existing processes;
+    in case of a static node model this is simply:
+
+       min(state-of-record_free_mem, fmem)
+
+    since the state-of-record changes during instance placement simulations,
+    we can't use that definition directly (see the above note about missing
+    memory presumed being constant); we need to use an equivalent definiton:
+
+       state-of-record_free_mem - max(0, missing_memory)
 
 available memory (``amem``)
-    this is simply ``fmem - rmem``, so unless we use DRBD, this will be
-    equal to ``fmem``
+    this is defined as a zero bounded difference between unallocated and
+    reserved memory:
+
+       max(0, umem - rmem)
+
+    so unless we use DRBD, this will be equal to ``umem``
 
 ``tmem``, ``nmem`` and ``xmem`` are presumed constant during the
-instance moves, whereas the ``fmem``, ``imem``, ``rmem`` and ``amem``
-values are updated according to the executed moves.
+instance moves, whereas the ``fmem``, ``imem``, ``rmem``, ``umem`` and
+``amem`` values are updated according to the executed moves.
 
 CPU
 ~~~
@@ -629,7 +653,7 @@ in these structures:
 +---------------+----------------------------------+--------------+
 |disk_size      |Allowed disk size                 |int           |
 +---------------+----------------------------------+--------------+
-|nic_count      |Alowed NIC count                  |int           |
+|nic_count      |Allowed NIC count                 |int           |
 +---------------+----------------------------------+--------------+
 
 Inheritance
@@ -709,7 +733,7 @@ brackets.
 +========+==============+=========================+=====================+======+
 |plain   |stripes       |How many stripes to use  |Configured at        |int   |
 |        |              |for newly created (plain)|./configure time, not|      |
-|        |              |logical voumes           |overridable at       |      |
+|        |              |logical volumes          |overridable at       |      |
 |        |              |                         |runtime              |      |
 +--------+--------------+-------------------------+---------------------+------+
 |drbd    |data-stripes  |How many stripes to use  |Same as for          |int   |
@@ -829,7 +853,7 @@ For the new memory model, we'll add the following parameters, in a
 dictionary indexed by the hypervisor name (node attribute
 ``hv_state``). The rationale is that, even though multi-hypervisor
 clusters are rare, they make sense sometimes, and thus we need to
-support multipe node states (one per hypervisor).
+support multiple node states (one per hypervisor).
 
 Since usually only one of the multiple hypervisors is the 'main' one
 (and the others used sparringly), capacity computation will still only
@@ -893,7 +917,7 @@ are at node group level); the proposal is to do this via a cluster-level
 
 Beside the per-hypervisor attributes, we also have disk attributes,
 which are queried directly on the node (without hypervisor
-involvment). The are stored in a separate attribute (``disk_state``),
+involvement). The are stored in a separate attribute (``disk_state``),
 which is indexed per storage type and name; currently this will be just
 ``DT_PLAIN`` and the volume name as key.
 

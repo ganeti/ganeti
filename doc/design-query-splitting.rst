@@ -2,6 +2,9 @@
 Splitting the query and job execution paths
 ===========================================
 
+:Created: 2012-May-07
+:Status: Implemented
+:Ganeti-Version: 2.7.0, 2.8.0, 2.9.0
 
 Introduction
 ============

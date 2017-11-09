@@ -1220,6 +1220,7 @@ class ExportInstanceHelper(object):
         else:
           dev_type = constants.DT_PLAIN
         disk_params = constants.DISK_LD_DEFAULTS[dev_type].copy()
+        disk_params.update(disk.params)
         new_dev = objects.Disk(dev_type=dev_type, size=disk.size,
                                logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)

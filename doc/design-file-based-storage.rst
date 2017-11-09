@@ -2,6 +2,10 @@
 File-based Storage
 ==================
 
+:Created: 2014-Jan-27
+:Status: Implemented
+:Ganeti-Version: 2.0.0
+
 This page describes the proposed file-based storage for the 2.0 version
 of Ganeti. The project consists in extending Ganeti in order to support
 a filesystem image as Virtual Block Device (VBD) in Dom0 as the primary
@@ -131,7 +135,7 @@ Disadvantages:
 
 * stable, but not as much tested as loopback driver
 
-3) ubklback driver
+3) ublkback driver
 ^^^^^^^^^^^^^^^^^^
 
 The Xen Roadmap states "Work is well under way to implement a
@@ -365,6 +369,6 @@ the file-based disk-template.
 Other hypervisors
 +++++++++++++++++
 
-Other hypervisors have mostly differnet ways to make storage available
+Other hypervisors have mostly different ways to make storage available
 to their virtual instances/machines. This is beyond the scope of this
 document.

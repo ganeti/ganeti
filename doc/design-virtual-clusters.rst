@@ -2,6 +2,9 @@
 Design for virtual clusters support
 ===================================
 
+:Created: 2011-Oct-14
+:Status: Partial Implementation
+:Ganeti-Version: 2.7.0
 
 Introduction
 ============

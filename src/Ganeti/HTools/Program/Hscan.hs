@@ -56,7 +56,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Backend.Rapi as Rapi
 import qualified Ganeti.HTools.Backend.Luxi as Luxi
 import qualified Ganeti.Path as Path
-import Ganeti.HTools.Loader (checkData, mergeData, ClusterData(..))
+import Ganeti.HTools.Loader (updateMissing, mergeData, ClusterData(..))
 import Ganeti.HTools.Backend.Text (serializeCluster)
 
 import Ganeti.Common
@@ -72,6 +72,7 @@ options = do
     , luxi
     , oVerbose
     , oNoHeaders
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.
@@ -100,10 +101,10 @@ fixSlash :: String -> String
 fixSlash = map (\x -> if x == '/' then '_' else x)
 
 -- | Generates serialized data from loader input.
-processData :: ClockTime -> ClusterData -> Result ClusterData
-processData now input_data = do
+processData :: ClockTime -> ClusterData -> Int -> Result ClusterData
+processData now input_data static_n_mem = do
   cdata@(ClusterData _ nl il _ _) <- mergeData [] [] [] [] now input_data
-  let (_, fix_nl) = checkData nl il
+  let (_, fix_nl) = updateMissing nl il static_n_mem
   return cdata { cdNodes = fix_nl }
 
 -- | Writes cluster data out.
@@ -118,7 +119,8 @@ writeData _ name _ (Bad err) =
 
 writeData nlen name opts (Ok cdata) = do
   now <- getClockTime
-  let fixdata = processData now cdata
+  let static_n_mem = optStaticKvmNodeMemory opts
+      fixdata = processData now cdata static_n_mem
   case fixdata of
     Bad err -> printf "\nError for %s: failed to process data. Details:\n%s\n"
                name err >> return False

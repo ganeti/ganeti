@@ -2,10 +2,14 @@
 N+1 redundancy for shared storage
 =================================
 
+:Created: 2015-Apr-13
+:Status: Partially Implemented
+:Ganeti-Version: 2.15
+
 .. contents:: :depth: 4
 
 This document describes how N+1 redundancy is achieved
-for instanes using shared storage.
+for instances using shared storage.
 
 
 Current state and shortcomings
@@ -44,7 +48,7 @@ for DRBD is to be taken into account for all choices affecting instance
 location, including instance allocation and balancing.
 
 For shared-storage instances, they can move everywhere within the
-node group. So, in practise, this is mainly a question of capacity
+node group. So, in practice, this is mainly a question of capacity
 planing, especially is most instances have the same size. Nevertheless,
 offcuts if instances don't fill a node entirely may not be ignored.
 
@@ -53,7 +57,7 @@ Modifications to existing tools
 -------------------------------
 
 - ``hail`` will compute and rank possible allocations as usual. However,
-  before returing a choice it will filter out allocations that are
+  before returning a choice it will filter out allocations that are
   not N+1 redundant.
 
 - Normal ``gnt-cluster verify`` will not be changed; in particular,
@@ -97,4 +101,3 @@ acceptable; Ganeti generally follows the guideline that current problems are
 more important than future ones. Also, even with that change allocation is
 more careful than the current approach of completely ignoring N+1 redundancy
 for shared storage.
-

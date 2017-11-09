@@ -62,7 +62,7 @@ import Ganeti.Daemon ( OptType, CheckFn, PrepFn, MainFn, oDebug
                      , oNoVoting, oYesDoIt, oPort, oBindAddress, oNoDaemonize)
 import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import qualified Ganeti.HTools.Backend.Luxi as Luxi
-import Ganeti.HTools.Loader (ClusterData(..), mergeData, checkData)
+import Ganeti.HTools.Loader (ClusterData(..), mergeData, updateMissing)
 import Ganeti.Jobs (waitForJobs)
 import Ganeti.Logging.Lifted
 import qualified Ganeti.Luxi as L
@@ -115,7 +115,7 @@ loadClusterData = do
                     return $ Bad msg
                   Right r -> return r
   cdata <- mkResultT . return $ mergeData [] [] [] [] now input_data
-  let (msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
+  let (msgs, nl) = updateMissing (cdNodes cdata) (cdInstances cdata) 0
   unless (null msgs) . logDebug $ "Cluster data inconsistencies: " ++ show msgs
   return $ cdata { cdNodes = nl }
 
