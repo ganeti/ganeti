@@ -551,6 +551,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_SCSI_CONTROLLER_TYPES),
     constants.HV_DISK_DISCARD:
       hv_base.ParamInSet(False, constants.HT_VALID_DISCARD_TYPES),
+    constants.HV_DISK_BPS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
+    constants.HV_DISK_IOPS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_KVM_CDROM_DISK_TYPE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
@@ -1198,6 +1200,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       discard_val = ""
     else:
       discard_val = ",discard=%s" % discard_mode
+    # bps limit
+    bps_limit = up_hvp[constants.HV_DISK_BPS]
+    if bps_limit == constants.HT_BPS_DEFAULT:
+      bps_val = ""
+    else:
+      bps_val = ",throttling.bps-total=%d" % bps_limit
+    # iops limit
+    iops_limit = up_hvp[constants.HV_DISK_IOPS]
+    if iops_limit == constants.HT_iops_DEFAULT:
+      iops_val = ""
+    else:
+      iops_val = ",throttling.iops-total=%d" % iops_limit
+    # io group
+    if bps_val == "" and iops_val == "":
+      iogroup_val = ""
+    else:
+      iogroup_val = ",throttling.group=%s" % instance.uuid
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
@@ -1232,8 +1251,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
-      drive_val = "file=%s,format=raw%s%s%s%s%s" % \
-                  (drive_uri, if_val, boot_val, cache_val, aio_val, discard_val)
+      drive_val = "file=%s,format=raw%s%s%s%s%s%s%s%s" % \
+                  (drive_uri, if_val, boot_val, cache_val, aio_val,
+                   discard_val, bps_val, iops_val, iogroup_val)
 
       # virtio-blk-pci case
       if device_driver is not None:
