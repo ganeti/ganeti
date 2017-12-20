@@ -2244,13 +2244,14 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                                get_public_keys=True)
     node_keys_to_add.append(node_info)
 
-  node_errors = AddNodeSshKeyBulk(
-      node_keys_to_add, potential_master_candidates,
-      pub_key_file=ganeti_pub_keys_file, ssconf_store=ssconf_store,
-      noded_cert_file=noded_cert_file,
-      run_cmd_fn=run_cmd_fn)
-  if node_errors:
-    all_node_errors = all_node_errors + node_errors
+  if node_keys_to_add:
+    node_errors = AddNodeSshKeyBulk(
+        node_keys_to_add, potential_master_candidates,
+        pub_key_file=ganeti_pub_keys_file, ssconf_store=ssconf_store,
+        noded_cert_file=noded_cert_file,
+        run_cmd_fn=run_cmd_fn)
+    if node_errors:
+      all_node_errors = all_node_errors + node_errors
 
   # Renewing the master node's key
 
