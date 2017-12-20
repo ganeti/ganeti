@@ -197,6 +197,24 @@ class CommandBuilder(object):
         "intervall=1",
         ] + common_addr_opts
 
+      # For socat versions >= 1.7.3, we need to also specify
+      # openssl-commonname, otherwise server certificate verification will
+      # fail.
+      socat = utils.RunCmd([SOCAT_PATH, "-V"])
+      # No need to check for errors here. If -V is not there, socat is really
+      # old. Any other failure will be handled when running the actual socat
+      # command.
+      for line in socat.output.splitlines():
+        match = re.match(r"socat version ((\d+\.)*(\d+))", line)
+        if match:
+          try:
+            version = tuple(int(x) for x in m.group(1).split('.'))
+            if version >= (1, 7, 3):
+              addr2 += ["openssl-commonname=%s" % constants.X509_CERT_CN]
+          except TypeError:
+            pass
+          break
+
     else:
       raise errors.GenericError("Invalid mode '%s'" % self._mode)
 
