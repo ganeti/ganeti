@@ -1,5 +1,6 @@
 {-# LANGUAGE TupleSections, TemplateHaskell, CPP, UndecidableInstances,
-    MultiParamTypeClasses, TypeFamilies, GeneralizedNewtypeDeriving #-}
+    MultiParamTypeClasses, TypeFamilies, GeneralizedNewtypeDeriving,
+    ImpredicativeTypes #-}
 {-| Functions of the metadata daemon exported for RPC
 
 -}
