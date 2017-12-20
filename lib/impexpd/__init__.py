@@ -88,8 +88,7 @@ BUFSIZE = 1024 * 1024
 
 # Common options for socat
 SOCAT_TCP_OPTS = ["keepalive", "keepidle=60", "keepintvl=10", "keepcnt=5"]
-SOCAT_OPENSSL_OPTS = ["verify=1", "method=TLS1",
-                      "cipher=%s" % constants.OPENSSL_CIPHERS]
+SOCAT_OPENSSL_OPTS = ["verify=1", "cipher=%s" % constants.OPENSSL_CIPHERS]
 
 if constants.SOCAT_USE_COMPRESS:
   # Disables all compression in by OpenSSL. Only supported in patched versions
