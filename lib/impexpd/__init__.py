@@ -200,7 +200,7 @@ class CommandBuilder(object):
       # For socat versions >= 1.7.3, we need to also specify
       # openssl-commonname, otherwise server certificate verification will
       # fail.
-      socat = utils.RunCmd([SOCAT_PATH, "-V"])
+      socat = utils.RunCmd([constants.SOCAT_PATH, "-V"])
       # No need to check for errors here. If -V is not there, socat is really
       # old. Any other failure will be handled when running the actual socat
       # command.
@@ -208,7 +208,7 @@ class CommandBuilder(object):
         match = re.match(r"socat version ((\d+\.)*(\d+))", line)
         if match:
           try:
-            version = tuple(int(x) for x in m.group(1).split('.'))
+            version = tuple(int(x) for x in match.group(1).split('.'))
             if version >= (1, 7, 3):
               addr2 += ["openssl-commonname=%s" % constants.X509_CERT_CN]
           except TypeError:
