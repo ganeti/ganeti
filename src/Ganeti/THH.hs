@@ -102,7 +102,9 @@ import Language.Haskell.TH.Syntax (lift)
 import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
-import Ganeti.JSON (readJSONWithDesc, fromObj, DictObject(..), ArrayObject(..), maybeFromObj, mkUsedKeys, showJSONtoDict, readJSONfromDict, branchOnField, addField, allUsedKeys)
+import Ganeti.JSON (readJSONWithDesc, fromObj, DictObject(..), ArrayObject(..),
+                    maybeFromObj, mkUsedKeys, showJSONtoDict, readJSONfromDict,
+                    branchOnField, addField, allUsedKeys)
 import Ganeti.PartialParams
 import Ganeti.PyValue
 import Ganeti.THH.PyType

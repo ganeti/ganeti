@@ -34,5 +34,6 @@
     "tags": [],
     "type": "allocate",
     "vcpus": 1
-  }
+  },
+  "enabled_hypervisors": ["xen-pvm"]
 }

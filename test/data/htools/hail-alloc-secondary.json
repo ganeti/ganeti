@@ -294,5 +294,6 @@
   "request": {
     "name": "instance-to-be-converted-to-drbd",
     "type": "allocate-secondary"
-  }
+  },
+"enabled_hypervisors": ["xen-pvm"]
 }

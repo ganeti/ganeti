@@ -135,7 +135,9 @@ loadExternalData opts = do
                                  else return cdata
   exitWhen (optMonDExitMissing opts && not (getAll ok))
       "Not all required data available"
-  let (fix_msgs, nl) = updateMissing (cdNodes cdata') (cdInstances cdata') staticNodeMem
+  let (fix_msgs, nl) = updateMissing (cdNodes cdata')
+                                     (cdInstances cdata')
+                                     staticNodeMem
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
 

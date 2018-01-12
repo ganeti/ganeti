@@ -87,11 +87,11 @@ wrapReadRequest opts args = do
 
   if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
     then do
-      -- TODO: Cleanup this mess. ClusterData is loaded first in IAlloc.readRequest,
-      -- Then the data part is dropped and replaced with ExtLoader.loadExternalData
-      -- that uses IAlloc.loadData to load the same data again. This codepath is executd
-      -- only with manually specified cluster data file or simulation (i.e. not under
-      -- 'normal' operation.)
+      -- TODO: Cleanup this mess. ClusterData is loaded first in
+      -- IAlloc.readRequest, then the data part is dropped and replaced with
+      -- ExtLoader.loadExternalData that uses IAlloc.loadData to load the same
+      -- data again. This codepath is executed only with a manually specified
+      -- cluster data file or simulation (i.e. not under'normal' operation.)
       cdata <- loadExternalData opts
       let Request rqt _ = r1
       return $ Request rqt cdata

@@ -2957,8 +2957,8 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
           if store_reason:
             _StoreInstReasonTrail(instance.name, reason)
         except errors.HypervisorError, err:
-          # if the instance does no longer exist, consider this success and go to
-          # cleanup, otherwise fail without retrying
+          # if the instance does no longer exist, consider this success and go
+          # to cleanup, otherwise fail without retrying
           if _GetInstanceInfo(instance):
             _Fail("Failed to stop instance '%s': %s", instance.name, err)
           return

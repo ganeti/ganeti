@@ -2519,7 +2519,8 @@ commands = {
   "command": (
     RunClusterCommand, [ArgCommand(min=1)],
     [NODE_LIST_OPT, NODEGROUP_OPT, SHOW_MACHINE_OPT, FAILURE_ONLY_OPT],
-    "[-n <node-name>...] <command>", "Runs a command on all (or only some) nodes"),
+    "[-n <node-name>...] <command>",
+    "Runs a command on all (or only some) nodes"),
   "info": (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
     "[--roman]", "Show cluster configuration"),
