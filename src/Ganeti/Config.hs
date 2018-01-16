@@ -186,8 +186,8 @@ getNodeInstances cfg nname =
         sec_insts = [inst |
           (inst, disks) <- inst_disks,
           s_uuid <- mapMaybe (\d ->
-                              (instPrimaryNode inst) >>=
-                              (computeDiskSecondaryNode d)) disks,
+                              instPrimaryNode inst >>=
+                              computeDiskSecondaryNode d) disks,
           s_uuid == nname]
     in (pri_inst, sec_insts)
 
