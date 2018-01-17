@@ -186,7 +186,7 @@ data Options = Options
   , optNoHeaders   :: Bool           -- ^ Do not show a header line
   , optNoSimulation :: Bool          -- ^ Skip the rebalancing dry-run
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
-  , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
+  , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to
   , optOffline     :: [String]       -- ^ Names of offline nodes
   , optRestrictToNodes :: Maybe [String] -- ^ if not Nothing, restrict
                                      -- allocation to those nodes
@@ -204,7 +204,8 @@ data Options = Options
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
   , optSkipNonRedundant :: Bool      -- ^ Skip nodes with non-redundant instance
-  , optStaticKvmNodeMemory :: Int    -- ^ Use static value for node memory on KVM
+  , optStaticKvmNodeMemory :: Int    -- ^ Use static value for node memory
+                                     -- ^ on KVM
   , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
   , optTargetResources :: Double     -- ^ Target resources for squeezing
   , optTestCount   :: Maybe Int      -- ^ Optional test count override
@@ -622,7 +623,7 @@ oMinResources =
   (Option "" ["minimal-resources"]
    (reqWithConversion (tryRead "minimal resources")
     (\d opts -> Ok opts { optMinResources = d}) "FACTOR")
-   "minimal resources to be present on each in multiples of\ 
+   "minimal resources to be present on each in multiples of\
    \ the standard allocation for not onlining standby nodes",
    OptComplFloat)
 
@@ -770,8 +771,8 @@ oStaticKvmNodeMemory =
   (Option "" ["static-kvm-node-memory"]
    (reqWithConversion (tryRead "static node memory")
     (\i opts -> Ok opts { optStaticKvmNodeMemory = i }) "N")
-   "use static node memory [in MB] on KVM instead of value reported by hypervisor.\
-   \ Use 0 to take value reported from hypervisor.",
+   "use static node memory [in MB] on KVM instead of value reported by \
+   \hypervisor. Use 0 to take value reported from hypervisor.",
    OptComplInteger)
 
 oStdSpec :: OptType

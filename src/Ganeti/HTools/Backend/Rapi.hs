@@ -54,7 +54,9 @@ import Ganeti.BasicTypes
 import Ganeti.Types (Hypervisor(..))
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
-import Ganeti.JSON (loadJSArray, JSRecord, tryFromObj, fromJVal, maybeFromObj, fromJResult, tryArrayMaybeFromObj, readEitherString, fromObjWithDefault, asJSObject)
+import Ganeti.JSON (loadJSArray, JSRecord, tryFromObj, fromJVal, maybeFromObj,
+                    fromJResult, tryArrayMaybeFromObj, readEitherString,
+                    fromObjWithDefault, asJSObject)
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -206,7 +208,8 @@ parseGroup a = do
   return (uuid, Group.create name uuid apol [] ipol tags)
 
 -- | Parse cluster data from the info resource.
-parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String, Hypervisor)
+parseCluster :: JSObject JSValue -> Result ([String], IPolicy,
+                                            String, Hypervisor)
 parseCluster obj = do
   let obj' = fromJSObject obj
       extract s = tryFromObj "Parsing cluster data" obj' s
