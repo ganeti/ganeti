@@ -2086,7 +2086,7 @@ during this operation are ignored.
 If the ``--cleanup`` option is passed, the operation changes from
 performing a failover to attempting recovery from a failed previous failover.
 In this mode, Ganeti checks if the instance runs on the correct node (and
-updates its configuration if not) and ensures the instances' disks
+updates its configuration if not) and ensures the instance's disks
 are configured correctly.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
