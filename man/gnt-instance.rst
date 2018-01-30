@@ -2084,7 +2084,7 @@ If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
 
 If the ``--cleanup`` option is passed, the operation changes from
-performin a failover to attempting recovery from a failed previous failover.
+performing a failover to attempting recovery from a failed previous failover.
 In this mode, Ganeti checks if the instance runs on the correct node (and
 updates its configuration if not) and ensures the instances' disks
 are configured correctly.
