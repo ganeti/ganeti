@@ -13,21 +13,21 @@ especially when hotplug gets implemented.
 Current state and shortcomings
 ==============================
 
-Currently, KVM before instance startup, instance migration and NIC hotplug, it
-creates a tap and invokes explicitly the kvm-ifup script with the relevant
-environment (INTERFACE, MAC, IP, MODE, LINK, TAGS, and all the network info if
-any; NETWORK\_SUBNET, NETWORK\_TAGS, etc).
+Currently, before instance startup, instance migration and NIC hotplug,
+KVM creates a TAP interface and invokes explicitly the `kvm-ifup` script
+with the relevant environment (INTERFACE, MAC, IP, MODE, LINK, TAGS, and
+all the network info if any; NETWORK\_SUBNET, NETWORK\_TAGS, etc).
 
 For Xen we have the `vif-ganeti` script (associated with vif-script hypervisor
 parameter). The main difference is that Xen calls it by itself by passing it as
 an extra option in the configuration file.
 
-This ifup script can do several things; bridge a tap to a bridge, add ip rules,
+This `ifup` script can do several things; bridge a tap to a bridge, add IP rules,
 update a external DNS or DHCP server, enable proxy ARP or proxy NDP, issue
 openvswitch commands, etc.  In general we can divide those actions in two
 categories:
 
-1) Commands that change the state of the host
+1) Commands that change the state of the host.
 2) Commands that change the state of external components.
 
 Currently those changes do not get cleaned up or modified upon instance
@@ -35,7 +35,7 @@ shutdown, remove, migrate, or NIC hot-unplug. Thus we have stale entries in
 hosts and most important might have stale/invalid configuration on external
 components like routers that could affect connectivity.
 
-A workaround could be hooks but:
+A workaround could be hooks, but:
 
 1) During migrate hooks the environment is the one held in config data
 and not in runtime files. The NIC configuration might have changed on
@@ -144,10 +144,11 @@ Configuration Changes
    common code will go in `net-common` so that it can be sourced from either
    Xen or KVM specific scripts.
 
-2) An extra file written upon TAP creation named after the NIC's UUID and
-   including the TAP's name. Since this should be the correct file to keep
-   backwards compatibility we create a symbolic link named after the NIC's
-   index and pointing to this new file.
+2) An extra file will be written upon TAP creation, named after the
+   NIC's UUID and including the TAP's name. Since this should be the
+   authoritative file, to keep backwards compatibility we create a
+   symbolic link named after the NIC's index and pointing to this new
+   file.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
