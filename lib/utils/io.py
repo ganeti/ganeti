@@ -602,7 +602,8 @@ def EnsureDirs(dirs):
         raise errors.GenericError("Cannot create needed directory"
                                   " '%s': %s" % (dir_name, err))
     try:
-      os.chmod(dir_name, dir_mode)
+      if stat.S_IMODE(os.stat(dir_name).st_mode) != dir_mode:
+        os.chmod(dir_name, dir_mode)
     except EnvironmentError, err:
       raise errors.GenericError("Cannot change directory permissions on"
                                 " '%s' to 0%o: %s" % (dir_name, dir_mode, err))
