@@ -73,7 +73,7 @@ instance MonadBaseControl IO MetadMonadInt where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
   type StM MetadMonadInt b = StM MetadMonadIntType b
-  liftBaseWith f = MetadMonadInt . liftBaseWith
+  liftBaseWith f = MetadMonadInt $ liftBaseWith
                    $ \r -> f (r . getMetadMonadInt)
   restoreM = MetadMonadInt . restoreM
 #else

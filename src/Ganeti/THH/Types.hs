@@ -68,7 +68,7 @@ typeOfFun :: Name -> Q Type
 typeOfFun name = reify name >>= args
   where
     args :: Info -> Q Type
-    args (VarI _ tp _ _) = return tp
+    args (VarI _ tp _) = return tp
     args _               = fail $ "Not a function: " ++ show name
 
 -- | Splits a function type into the types of its arguments and the result.
