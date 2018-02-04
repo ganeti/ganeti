@@ -54,7 +54,7 @@ library
     , transformers                  >= 0.3.0.0
     , unix                          >= 2.5.1.0
 
-    , attoparsec                    >= 0.10.1.1   && < 0.13.1
+    , attoparsec                    >= 0.10.1.1   && < 0.14
     , base64-bytestring             >= 1.0.0.1    && < 1.1
     , case-insensitive              >= 0.4.0.1    && < 1.3
     , Crypto                        >= 4.2.4      && < 4.3
@@ -62,7 +62,7 @@ library
     , hinotify                      >= 0.3.2      && < 0.4
     , hslogger                      >= 1.1.4      && < 1.3
     , json                          >= 0.5        && < 1.0
-    , lens                          >= 3.10       && < 4.13.2
+    , lens                          >= 3.10       && < 4.17
     , lifted-base                   >= 0.2.0.3    && < 0.3
     , monad-control                 >= 0.3.1.3    && < 1.1
     , network                       >= 2.3.0.13   && < 2.7

@@ -50,6 +50,9 @@ import qualified Ganeti.HTools.Node as Node
 import Ganeti.Utils (printTable)
 import Ganeti.Utils.Statistics
 
+myNotStrict :: Bang
+myNotStrict = Bang NoSourceUnpackedness NoSourceStrictness
+
 -- | Data type describing the metric component. The information provided by
 -- this data type is used to generate statistics data types and functions
 -- dealing with them
@@ -89,7 +92,7 @@ declareStatistics components = do
 getVarStrictTypeQ :: (String, Q Type) -> VarStrictTypeQ
 getVarStrictTypeQ (n, t) = do
   t' <- t
-  return (mkName n, NotStrict, t')
+  return (mkName n, myNotStrict, t')
 
 -- | Function constructs NodeValues data type for metric components given.
 -- The data type is used to store all spread values of one Node.
@@ -98,7 +101,7 @@ nodeValuesDecl components = do
   let names = map (("nv_" ++ ) . name ) components
       types = map fromNodeType components
   strict_types <- mapM getVarStrictTypeQ $ zip names types
-  return [DataD [] (mkName "NodeValues") []
+  return [DataD [] (mkName "NodeValues") [] Nothing
          [RecC (mkName "NodeValues") strict_types] []]
 
 -- | Function constructs ClusterStatistics data type for metric components
@@ -109,7 +112,7 @@ clusterStatisticsDecl components = do
   let names = map (("cs_" ++ ) . name ) components
       types = map statisticsType components
   strict_types <- mapM getVarStrictTypeQ $ zip names types
-  return [DataD [] (mkName "ClusterStatistics") []
+  return [DataD [] (mkName "ClusterStatistics") [] Nothing
          [RecC (mkName "ClusterStatistics") strict_types] []]
 
 -- | Generates (getNodeValues :: Node.Node -> NodeValues) declaration for
