@@ -619,6 +619,11 @@ class TestKvmRuntime(testutils.GanetiTestCase):
 
 
 class TestKvmCpuPinning(testutils.GanetiTestCase):
+
+  def _skip_if_no_psutil(self):
+    if hv_kvm.psutil is None:
+      raise unittest.SkipTest("skipped 'psutil: %s'" % hv_kvm.psutil_err)
+
   def setUp(self):
     super(TestKvmCpuPinning, self).setUp()
     kvm_class = 'ganeti.hypervisor.hv_kvm.KVMHypervisor'
@@ -633,10 +638,7 @@ class TestKvmCpuPinning(testutils.GanetiTestCase):
     self.params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()
 
   def testCpuPinningDefault(self):
-    if hv_kvm.psutil is None:
-      # FIXME: switch to unittest.skip once python 2.6 is deprecated
-      print "skipped 'psutil Python package not found'"
-      return
+    self._skip_if_no_psutil()
     mock_process = mock.MagicMock()
     cpu_mask = self.params['cpu_mask']
     worker_cpu_mask = self.params['worker_cpu_mask']
@@ -650,10 +652,7 @@ class TestKvmCpuPinning(testutils.GanetiTestCase):
                      mock.call(range(0,1237)))
 
   def testCpuPinningPerVcpu(self):
-    if hv_kvm.psutil is None:
-      # FIXME: switch to unittest.skip once python 2.6 is deprecated
-      print "skipped 'psutil Python package not found'"
-      return
+    self._skip_if_no_psutil()
     mock_process = mock.MagicMock()
     mock_process.set_cpu_affinity = mock.MagicMock()
     mock_process.set_cpu_affinity().return_value = True
@@ -679,10 +678,7 @@ class TestKvmCpuPinning(testutils.GanetiTestCase):
                        mock.call([15, 16, 17]))
 
   def testCpuPinningEntireInstance(self):
-    if hv_kvm.psutil is None:
-      # FIXME: switch to unittest.skip once python 2.6 is deprecated
-      print "skipped 'psutil Python package not found'"
-      return
+    self._skip_if_no_psutil()
     mock_process = mock.MagicMock()
     mock_process.set_cpu_affinity = mock.MagicMock()
     mock_process.set_cpu_affinity().return_value = True
