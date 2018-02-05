@@ -161,7 +161,7 @@ handleMetadata
 handleMetadata _ GET  "ganeti" "latest" "meta_data.json" =
   liftIO $ Logging.logInfo "ganeti metadata"
 handleMetadata params GET  "ganeti" "latest" "os/os-install-package" =
-  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+  do remoteAddr <- ByteString.unpack . rqClientAddr <$> getRequest
      instanceParams <- liftIO $ do
        Logging.logInfo $ "OS install package for " ++ show remoteAddr
        readMVar params
@@ -173,13 +173,13 @@ handleMetadata params GET  "ganeti" "latest" "os/os-install-package" =
            Logging.logWarning $ "Could not serve OS install package: " ++ e
          error404
 handleMetadata params GET  "ganeti" "latest" "os/package" =
-  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+  do remoteAddr <- ByteString.unpack . rqClientAddr <$> getRequest
      instanceParams <- liftIO $ do
        Logging.logInfo $ "OS package for " ++ show remoteAddr
        readMVar params
      serveOsPackage remoteAddr instanceParams "os-package"
 handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
-  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+  do remoteAddr <- ByteString.unpack . rqClientAddr <$> getRequest
      instanceParams <- liftIO $ do
        Logging.logInfo $ "OS parameters for " ++ show remoteAddr
        readMVar params
@@ -192,7 +192,7 @@ handleMetadata params GET  "ganeti" "latest" paramPath | isParamPath paramPath =
   case split paramPath of
     -- The validation of the first two entries is done in isParamPath
     [_, _, param] -> do
-      remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+      remoteAddr <- ByteString.unpack . rqClientAddr <$> getRequest
       instanceParams <- liftIO $ do
         Logging.logInfo $ "OS param " ++ param ++ " for " ++ show remoteAddr
         readMVar params
@@ -207,7 +207,7 @@ handleMetadata params GET  "ganeti" "latest" paramPath | isParamPath paramPath =
     _ -> error404
   where isParamPath = (==) ["os", "parameters"] . take 2 . split
 handleMetadata params GET  "ganeti" "latest" script | isScript script =
-  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+  do remoteAddr <- ByteString.unpack . rqClientAddr <$> getRequest
      instanceParams <- liftIO $ do
        Logging.logInfo $ "OS package for " ++ show remoteAddr
        readMVar params

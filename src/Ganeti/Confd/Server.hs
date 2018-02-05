@@ -45,12 +45,14 @@ import Ganeti.Prelude
 
 import Control.Concurrent
 import Control.Monad (forever, liftM)
+import Data.ByteString.Char8 (pack, unpack)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import Network.BSD (getServicePortNumber)
 import qualified Network.Socket as S
+import Network.Socket.ByteString (sendTo, recvFrom)
 import System.Exit
 import System.IO
 import qualified Text.JSON as J
@@ -305,7 +307,7 @@ responder cfgref socket hmac msg peer = do
               logDebug $ "Processing request: " ++ rStripSpace origmsg
               mcfg <- readIORef cfgref
               let response = respondInner mcfg hmac rq
-              _ <- S.sendTo socket response peer
+              _ <- sendTo socket (pack response) peer
               logDebug $ "Response sent: " ++ response
               return ()
     Bad err -> logInfo $ "Failed to parse incoming message: " ++ err
@@ -329,9 +331,9 @@ listener :: S.Socket -> HashKey
          -> (S.Socket -> HashKey -> String -> S.SockAddr -> IO ())
          -> IO ()
 listener s hmac resp = do
-  (msg, _, peer) <- S.recvFrom s 4096
-  if C.confdMagicFourcc `isPrefixOf` msg
-    then forkIO (resp s hmac (drop 4 msg) peer) >> return ()
+  (msg, peer) <- recvFrom s 4096
+  if C.confdMagicFourcc `isPrefixOf` (unpack msg)
+    then forkIO (resp s hmac (drop 4 $ unpack msg) peer) >> return ()
     else logDebug "Invalid magic code!" >> return ()
   return ()
 
@@ -356,7 +358,7 @@ prepMain :: PrepFn (S.Family, S.SockAddr) PrepResult
 prepMain _ (af_family, bindaddr) = do
   s <- S.socket af_family S.Datagram S.defaultProtocol
   S.setSocketOption s S.ReuseAddr 1
-  S.bindSocket s bindaddr
+  S.bind s bindaddr
   cref <- newIORef (Bad "Configuration not yet loaded")
   return (s, cref)
 
