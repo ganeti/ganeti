@@ -43,7 +43,7 @@ import Prelude ()
 import Ganeti.Prelude
 
 import Data.List (stripPrefix, isPrefixOf)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
@@ -115,20 +115,23 @@ mkConsArbitrary (name, types) =
   in foldl (\a _ -> infix_arb a) constr types
 
 -- | Extracts the name and the types from a constructor.
-conInfo :: Con -> (Name, [Type])
-conInfo (NormalC name t)     = (name, map snd t)
-conInfo (RecC    name t)     = (name, map (\(_, _, x) -> x) t)
-conInfo (InfixC t1 name t2)  = (name, [snd t1, snd t2])
-conInfo (ForallC _ _ subcon) = conInfo subcon
+conInfo :: Con -> Maybe (Name, [Type])
+conInfo (NormalC name t)        = Just (name, map snd t)
+conInfo (RecC    name t)        = Just (name, map (\(_, _, x) -> x) t)
+conInfo (InfixC t1 name t2)     = Just (name, [snd t1, snd t2])
+conInfo (ForallC _ _ subcon)    = conInfo subcon
+conInfo (GadtC (name:_) t _)    = Just (name, map snd t)
+conInfo (RecGadtC (name:_) t _) = Just (name, map (\(_, _, x) -> x) t)
+conInfo _                       = Nothing
 
 -- | Builds an arbitrary instance for a regular data type (i.e. not Bounded).
 mkRegularArbitrary :: Name -> [Con] -> Q [Dec]
 mkRegularArbitrary name cons = do
   expr <- case cons of
             [] -> fail "Can't make Arbitrary instance for an empty data type"
-            [x] -> return $ mkConsArbitrary (conInfo x)
+            [x] -> return . mkConsArbitrary . fromJust . conInfo $ x
             xs -> appE (varE 'oneof) $
-                  listE (map (return . mkConsArbitrary . conInfo) xs)
+                  listE (map (return . mkConsArbitrary . fromJust . conInfo) xs)
   return [InstanceD Nothing [] (AppT (ConT ''Arbitrary) (ConT name))
           [ValD (VarP 'arbitrary) (NormalB expr) []]]
 
