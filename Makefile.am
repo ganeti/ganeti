@@ -151,8 +151,9 @@ HS_DIRS = \
 	src/Ganeti/JQueue \
 	src/Ganeti/Locking \
 	src/Ganeti/Logging \
-	src/Ganeti/Monitoring \
+	src/Ganeti/MaintD \
 	src/Ganeti/Metad \
+	src/Ganeti/Monitoring \
 	src/Ganeti/Objects \
 	src/Ganeti/OpCodes \
 	src/Ganeti/Query \

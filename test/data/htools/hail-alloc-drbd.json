@@ -559,5 +559,6 @@
     "disk_template": "drbd",
     "memory": 1024,
     "type": "allocate"
-  }
+  },
+  "enabled_hypervisors": ["xen-pvm"]
 }

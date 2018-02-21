@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 {-| Provides interface to the 'zlib' library.
 
 -}
@@ -53,6 +55,13 @@ compressZlib = compressWith $
 -- | Decompresses a lazy bytestring, throwing decoding errors using
 -- 'throwError'.
 decompressZlib :: (MonadError e m, Error e) => BL.ByteString -> m BL.ByteString
+#if MIN_VERSION_zlib(0, 6, 0)
+decompressZlib = I.foldDecompressStreamWithInput
+                   (liftM . BL.chunk)
+                   return
+                   (throwError . strMsg . (++)"Zlib: " . show)
+                   $ I.decompressST I.zlibFormat I.defaultDecompressParams
+#else
 decompressZlib = I.foldDecompressStream
                      (liftM . BL.chunk)
                      (return mempty)
@@ -60,3 +69,4 @@ decompressZlib = I.foldDecompressStream
                  . I.decompressWithErrors
                      I.zlibFormat
                      I.defaultDecompressParams
+#endif

@@ -160,7 +160,8 @@ class TestGlusterStorage(testutils.GanetiTestCase):
   @testutils.patch_object(gluster.GlusterVolume, "Mount")
   @testutils.patch_object(ssconf.SimpleStore, "GetGlusterStorageDir")
   @testutils.patch_object(gluster.GlusterStorage, "Attach")
-  def testCreate(self, attach_mock, storage_dir_mock, mount_mock, create_file_mock):
+  def testCreate(self, attach_mock, storage_dir_mock,
+                 mount_mock, create_file_mock):
     attach_mock.return_value = True
     storage_dir_mock.return_value = "/testmount"
 

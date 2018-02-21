@@ -228,4 +228,9 @@ latex_documents = [
 #latex_appendices = []
 
 # If false, no module index is generated.
-latex_use_modindex = False
+latex_domain_indices = False
+
+# We override the manpage role and sphinx issues a warning, which is treated as
+# error. Suppress role_add warnings to avoid FTBFS.
+
+suppress_warnings = ["app.add_role"]

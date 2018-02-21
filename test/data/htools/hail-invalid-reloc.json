@@ -11,5 +11,6 @@
     "type": "relocate",
     "name": 0,
     "disk_space_total": "aaa"
-  }
+  },
+  "enabled_hypervisors": ["kvm"]
 }

@@ -281,10 +281,12 @@ prop_CreateSerialise =
                               "Failed to allocate: no allocations" False
        Ok (_, nl', il, _, _) ->
          let
-             -- makeSmallCluster created an empty cluster, that had some instances allocated,
-             -- so we need to simulate that the hyperwisor now reports less fMem, otherwise
-             -- Loader.checkData will detect missing memory after deserialization.
-             nl1 = Container.map (\n -> n { Node.fMem = Node.recordedFreeMem n }) nl'
+             -- makeSmallCluster created an empty cluster, that had some
+             -- instances allocated, so we need to simulate that the hyperwisor
+             -- now reports less fMem, otherwise Loader.checkData will detect
+             -- missing memory after deserialization.
+             nl1 = Container.map (\n -> n
+                                  { Node.fMem = Node.recordedFreeMem n }) nl'
              cdata = Loader.ClusterData defGroupList nl1 il ctags
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
