@@ -991,7 +991,7 @@ def SetNodeParams(opts, args):
   # Comparing explicitly to false to distinguish between a parameter
   # modification that doesn't set the node online (where the value will be None)
   # and modifying the node to bring it online.
-  if opts.offline is False:
+  if opts.offline is False and not opts.force:
     usertext = ("You are setting this node online manually. If the"
                 " configuration has changed, this can cause issues such as"
                 " split brain. To safely bring a node back online, please use"

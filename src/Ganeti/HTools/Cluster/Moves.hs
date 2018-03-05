@@ -60,8 +60,10 @@ instanceNodes nl inst =
 -- | Sets the location score of an instance, given its primary
 -- and secondary node.
 setInstanceLocationScore :: Instance.Instance -- ^ the original instance
-                         -> Node.Node         -- ^ the primary node of the instance
-                         -> Maybe Node.Node   -- ^ the secondary node of the instance
+                         -> Node.Node         -- ^ the primary node of the
+                                              -- ^ instance
+                         -> Maybe Node.Node   -- ^ the secondary node of the
+                                              -- ^ instance
                          -> Instance.Instance -- ^ the instance with the
                                               -- location score updated
 setInstanceLocationScore t _ Nothing = t { Instance.locationScore = 0 }

@@ -2,6 +2,111 @@ News
 ====
 
 
+Version 2.16.0 rc2
+------------------
+
+*(Released Mon, 29 Jan 2018)*
+
+Changes since 2.16.0 rc1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New features:
+- Do not prompt when force-setting a node online
+- Consider state-of-the-record free memory in htools memory model (#35)
+- Add optStaticKvmNodeMemory to HTools and IAllocator (#34)
+- Add discard KVM option to bdev
+- StartInstance restores instance state if running
+- Allow migrate --cleanup to adopt an instance
+- Add ganeti-noded and ganeti-rapi --max-clients options
+- Add gnt-instance rename --force option
+- Allow master failover to ignore offline nodes
+- Adding a confirmation before gnt-node --offline no
+
+Compatibility fixes:
+- kvm: use the current psutil CPU affinity API
+- Provide alternative to decompressWithErrors in zlib 6.0
+- Ceph/RBD rbd showmapped -p is no longer supported
+- kvm: use_guest_agent: QEMU Guest Agent support
+- Fix LogicalVolume code to work with older /sbin/lvs
+
+Performance optimizations:
+- Use fork instead of spawnv in the watcher
+- Make executeRpcCall only compute rpcCallData once
+- Special case WaitForJobChange to reduce heap use
+- Get haskell daemons to only compress files > 4kB
+- Use zlib compression level 3 in Haskell RPC code
+- Make the TH fieldsDictsKeys more efficient
+- Implement localized cache for lvs commands
+- Reduce load in NV_NODENETTEST and NV_MASTERIP
+
+Bugfixes:
+- impexpd: fix certificate verification with new socat versions
+- impexpd: do not set socat SSL method
+- backend: fix key renewal on single-node clusters
+- hv_xen: generate correct type for paravirtualized nic (#57)
+- Force CleanupInstance always on InstanceShutdown (#53)
+- Cleanup blockdevs from target on migration failure (#50)
+- kvm: Add missing 'driver' in 'hvinfo' dict (#46)
+- Add cleanup of stale OS hvp data on cluster modify
+- Htools should use state-of-record instance size
+- Prohibit disk removal w/o hotplug on live instance
+- Fix tuple-unpacking from QueryInstances result
+- Fix index in RemoveDisks warning
+- Fix coexistence of location tags and non-DRBD instances
+- Fix backup export in case of ext disk template
+- Fix instance state detection in _Shutdowninstance
+- Fix for instance reinstall not updating config (issue #1193)
+- Fix optimisation: Correctly extract secondary node
+- Tune getNodeInstances DRBD secondary computation
+- Fix LogicalVolume Attach failure on missing path
+- Set USE_VERSION_FULL=no if --enable-versionfull=no
+- Don't verify disks when all disk templates are ext
+
+Misc changes:
+- Fixed several hlint and pylint styling errors
+- Reduced the verbosity of several debug messages
+- Fixed various typos in man pages and documentation
+- Improved various unit tests
+
+Fixes inherited from 2.15 branch:
+
+- Update hv_kvm to handle output from qemu >= 1.6.0
+- Disable logging CallRPCMethod timings in non-debug configs
+- Give atomicWriteFile temp filenames a more distinct pattern
+- FIX: Refactor DiagnoseOS to use a loop, not an inner fn
+- FIX: Set INSTANCE_NICn_NETWORK_NAME only if net is defined
+- Fix invalid variable error for file-based disks
+- Fix gnt-instance console instance unpausing for xl toolstack
+- KVM: handle gracefully too old/too new psutil versions
+- Fixup compatibility with GHC 7.4/base 4.5
+- mcpu: Raise caught OpPrereqErrors with too few args
+- Make EnsureDirs print chmod mode on errors
+- Use socat method string compatible with <1.73 & >=1.73
+- Reduce heap when parsing & storing ConfigData 10%
+- Cancel RAPI job if the client drops the connection
+- Make JQScheduler queues more strict to avoid leaks
+- Fix ganeti-rapi/noded exit-under-load bug
+- Fix ClusterVerifyConfig() causing high mem usage
+- Use threaded runtime when linking Haskell unit tests
+- Give JQueue test dirs unique prefixes so they can't conflict
+- Update install-quick DRBD requirements to include DRBD 8.4
+- Fix memory/perf bug in gnt-cluster verify
+- Improve luxid QueryInstances performance for large clusters
+- Optimize LXC hypervisor GetAllInstancesInfo
+- Bracket ConfigWriter writeConfigAndUnlock with debug logging
+- Bracket client LockConfig calls with debug logging
+- Get onInotify and onPollTimer to print filepath
+- Prevent InstanceShutdown from waiting on success
+
+Fixes inherited from 2.14 branch:
+
+- Support userspace disk URIs for OS import/export scripts
+- iallocator: only adjust memory usage for up instances
+
+Fixes inherited from 2.13 branch:
+- Bugfix: migrate needs HypervisorClass, not an instance
+
+
 Version 2.16.0 rc1
 ------------------
 

@@ -410,7 +410,8 @@ updateMissing nl il static_node_mem =
                             - Node.fDsk node
                             - nodeIdsk node il
                 umsg1 = if delta_mem > 512 || delta_dsk > 1024
-                        then printf "node %s is missing %d MB ram and %d GB disk"
+                        then printf
+                             "node %s is missing %d MB ram and %d GB disk"
                              nname delta_mem (delta_dsk `div` 1024):msgs
                         else msgs
             in (umsg1, newn)

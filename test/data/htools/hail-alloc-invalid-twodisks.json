@@ -94,5 +94,6 @@
     "vcpus": 1,
     "nics": []
   },
+  "enabled_hypervisors": ["xen-pvm"],
   "version": 2
 }
