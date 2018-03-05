@@ -1995,6 +1995,7 @@ python_tests = \
 	test/py/ganeti.utils.io_unittest-runasroot.py \
 	test/py/ganeti.utils.io_unittest.py \
 	test/py/ganeti.utils.log_unittest.py \
+	test/py/ganeti.utils.livelock_unittest.py \
 	test/py/ganeti.utils.lvm_unittest.py \
 	test/py/ganeti.utils.mlock_unittest.py \
 	test/py/ganeti.utils.nodesetup_unittest.py \
