@@ -54,7 +54,7 @@ from ganeti import pathutils
 
 import testutils
 
-OUTPUT_DIR = "newdir"
+OUTPUT_DIR = tempfile.mkdtemp()
 
 GANETI_DISKS = {
   "disk_count": "1",
