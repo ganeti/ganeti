@@ -916,9 +916,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if cpus == constants.CPU_PINNING_OFF:
       # we checked this at import time
       # pylint: disable=E1101
-      target_process.set_cpu_affinity(range(psutil.cpu_count()))
+      target_process.cpu_affinity(range(psutil.cpu_count()))
     else:
-      target_process.set_cpu_affinity(cpus)
+      target_process.cpu_affinity(cpus)
 
   @classmethod
   def _AssignCpuAffinity(cls, cpu_mask, process_id, thread_dict):

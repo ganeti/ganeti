@@ -88,24 +88,24 @@ Clients using the ``SubmitManyJobs`` interface can use relative job IDs
 
 Example data structures::
 
-  # First job
+  // First job
   {
     "job_id": "6151",
     "ops": [
-      { "OP_ID": "OP_INSTANCE_REPLACE_DISKS", ..., },
-      { "OP_ID": "OP_INSTANCE_FAILOVER", ..., },
+      { "OP_ID": "OP_INSTANCE_REPLACE_DISKS", /*...*/ },
+      { "OP_ID": "OP_INSTANCE_FAILOVER", /*...*/ },
       ],
   }
 
-  # Second job, runs in parallel with first job
+  // Second job, runs in parallel with first job
   {
     "job_id": "7687",
     "ops": [
-      { "OP_ID": "OP_INSTANCE_MIGRATE", ..., },
+      { "OP_ID": "OP_INSTANCE_MIGRATE", /*...*/ }
       ],
   }
 
-  # Third job, depending on success of previous jobs
+  // Third job, depending on success of previous jobs
   {
     "job_id": "9218",
     "ops": [

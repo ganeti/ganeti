@@ -133,16 +133,16 @@ The request is a dictionary with the following entries:
   specific names, the filter must be specified as follows, with the
   inner part repeated for each name::
 
-    ["|", ["=", "name", "node1"], ["=", "name", "node2"], …]
+    ["|", ["=", "name", "node1"], ["=", "name", "node2"], ...]
 
-  Filters consist of S-expressions (``["operator", <operands…>]``) and
+  Filters consist of S-expressions (``["operator", <operands...>]``) and
   extensions will be made in the future to allow for more operators and
   fields. Such extensions might include a Python-style "in" operator,
   but for simplicity only "=" is supported in this implementation.
 
   To reiterate: Filters for this implementation must consist of exactly
-  one OR expression (``["|", …]``) and one or more name equality filters
-  (``["=", "name", "…"]``).
+  one OR expression (``["|", ...]``) and one or more name equality filters
+  (``["=", "name", "..."]``).
 
 Support for synchronous queries, currently available in the interface
 but disabled in the master daemon, will be dropped. Direct calls to

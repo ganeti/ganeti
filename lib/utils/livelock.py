@@ -72,8 +72,16 @@ class LiveLock(object):
     name = "%s_%d" % (name, int(time.time()))
     fname = os.path.join(pathutils.LIVELOCK_DIR, name)
     self.lockfile = open(fname, 'w')
+
+    # with LFS enabled, off_t is 64 bits even on 32-bit platforms
+    try:
+      os.O_LARGEFILE
+      struct_flock = 'hhqqhh'
+    except AttributeError:
+      struct_flock = 'hhllhh'
+
     fcntl.fcntl(self.lockfile, fcntl.F_SETLKW,
-                struct.pack('hhllhh', fcntl.F_WRLCK, 0, 0, 0, 0, 0))
+                struct.pack(struct_flock, fcntl.F_WRLCK, 0, 0, 0, 0, 0))
 
   def GetPath(self):
     return self.lockfile.name

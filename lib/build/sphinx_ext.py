@@ -50,13 +50,7 @@ import sphinx.addnodes
 
 s_compat = sphinx.util.compat
 
-try:
-  # Access to a protected member of a client class
-  # pylint: disable=W0212
-  orig_manpage_role = docutils.parsers.rst.roles._roles["manpage"]
-except (AttributeError, ValueError, KeyError), err:
-  # Normally the "manpage" role is registered by sphinx/roles.py
-  raise Exception("Can't find reST role named 'manpage': %s" % err)
+orig_manpage_role = None
 
 from ganeti import _constants
 from ganeti import constants
@@ -637,6 +631,16 @@ def setup(app):
   """Sphinx extension callback.
 
   """
+  global orig_manpage_role
+
+  try:
+    # Access to a protected member of a client class
+    # pylint: disable=W0212
+    orig_manpage_role = docutils.parsers.rst.roles._roles["manpage"]
+  except (AttributeError, ValueError, KeyError), err:
+    # Normally the "manpage" role is registered by sphinx/roles.py
+    raise Exception("Can't find reST role named 'manpage': %s" % err)
+
   # TODO: Implement Sphinx directive for query fields
   app.add_directive("opcode_params", OpcodeParams)
   app.add_directive("opcode_result", OpcodeResult)
