@@ -398,6 +398,19 @@ class DRBD8Dev(base.BlockDev):
       if result.failed:
         base.ThrowError("drbd%d: can't attach local disk: %s",
                         minor, result.output)
+   
+    # syncer init only for drbd => 8.4 - in 8.4 it must be set after local, not in net
+    info = DRBD8.GetProcInfo()
+    version = info.GetVersion()
+    if version["k_minor"] >= 4:
+      sync_errors = self._SetMinorSyncParams(minor, self.params)
+      # try second time because disk config for drbd resource may be still uninitialized
+      if sync_errors:
+        time.sleep(1)
+        sync_errors = self._SetMinorSyncParams(minor, self.params)
+        if sync_errors:
+          base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
+                          (minor, utils.CommaJoin(sync_errors)))
 
   def _AssembleNet(self, minor, net_info, dual_pri=False, hmac=None,
                    secret=None):
@@ -434,21 +447,27 @@ class DRBD8Dev(base.BlockDev):
     # sync speed only after setting up both sides can race with DRBD
     # connecting, hence we set it here before telling DRBD anything
     # about its peer.
-    sync_errors = self._SetMinorSyncParams(minor, self.params)
-    if sync_errors:
-      base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
-                      (minor, utils.CommaJoin(sync_errors)))
+
+    # syncer init only for drbd <= 8.3 - in 8.4 it must be set after local
+    info = DRBD8.GetProcInfo()
+    version = info.GetVersion()
+    if version["k_minor"] <= 3:
+      sync_errors = self._SetMinorSyncParams(minor, self.params)
+      if sync_errors:
+        base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
+                        (minor, utils.CommaJoin(sync_errors)))
 
     family = self._GetNetFamily(minor, lhost, rhost)
 
-    cmd = self._cmd_gen.GenNetInitCmd(minor, family, lhost, lport,
+    cmds = self._cmd_gen.GenNetInitCmds(minor, family, lhost, lport,
                                       rhost, rport, protocol,
                                       dual_pri, hmac, secret, self.params)
 
-    result = utils.RunCmd(cmd)
-    if result.failed:
-      base.ThrowError("drbd%d: can't setup network: %s - %s",
-                      minor, result.fail_reason, result.output)
+    for cmd in cmds:
+      result = utils.RunCmd(cmd)
+      if result.failed:
+        base.ThrowError("drbd%d: can't setup network: %s - %s",
+                         minor, result.fail_reason, result.output)
 
     def _CheckNetworkConfig():
       info = self._GetShowInfo(minor)
@@ -465,19 +484,21 @@ class DRBD8Dev(base.BlockDev):
       base.ThrowError("drbd%d: timeout while configuring network", minor)
 
     # Once the assembly is over, try to set the synchronization parameters
-    try:
-      # The minor may not have been set yet, requiring us to set it at least
-      # temporarily
-      old_minor = self.minor
-      self._SetFromMinor(minor)
-      sync_errors = self.SetSyncParams(self.params)
-      if sync_errors:
-        base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
-                        (self.minor, utils.CommaJoin(sync_errors)))
-    finally:
-      # Undo the change, regardless of whether it will have to be done again
-      # soon
-      self._SetFromMinor(old_minor)
+    # Only for drbd <= 8.3
+    if version["k_minor"] <= 3:
+      try:
+        # The minor may not have been set yet, requiring us to set it at least
+        # temporarily
+        old_minor = self.minor
+        self._SetFromMinor(minor)
+        sync_errors = self.SetSyncParams(self.params)
+        if sync_errors:
+          base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
+                          (self.minor, utils.CommaJoin(sync_errors)))
+      finally:
+        # Undo the change, regardless of whether it will have to be done again
+        # soon
+        self._SetFromMinor(old_minor)
 
   @staticmethod
   def _GetNetFamily(minor, lhost, rhost):
@@ -574,6 +595,7 @@ class DRBD8Dev(base.BlockDev):
              (result.fail_reason, result.output))
       logging.error(msg)
       return [msg]
+
 
     return []
 
