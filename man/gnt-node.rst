@@ -192,7 +192,7 @@ INFO
 **info** [*node*...]
 
 Show detailed information about the nodes in the cluster. If you
-don't give any arguments, all nodes will be shows, otherwise the
+don't give any arguments, all nodes will be shown, otherwise the
 output will be restricted to the given names.
 
 LIST
