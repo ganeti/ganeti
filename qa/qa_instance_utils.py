@@ -36,6 +36,8 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import pathutils
 
+from ganeti.utils import retry
+
 import qa_config
 import qa_error
 import qa_utils
@@ -202,9 +204,19 @@ def _ReadSsconfInstanceList():
 def CheckSsconfInstanceList(instance):
   """Checks if a certain instance is in the ssconf instance list.
 
+  Because ssconf is updated in an asynchronous manner, this function will retry
+  reading the ssconf instance list until it either contains the desired
+  instance, or a timeout is reached.
+
   @type instance: string
   @param instance: Instance name
 
   """
-  AssertIn(qa_utils.ResolveInstanceName(instance),
-           _ReadSsconfInstanceList())
+
+  instance_name = qa_utils.ResolveInstanceName(instance)
+
+  def _CheckSsconfInstanceList():
+    if instance_name not in _ReadSsconfInstanceList():
+        raise retry.RetryAgain()
+
+  retry.Retry(_CheckSsconfInstanceList, 1, 5)

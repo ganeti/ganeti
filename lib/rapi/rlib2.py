@@ -64,7 +64,9 @@ PUT should be prefered over POST.
 
 # C0103: Invalid name, since the R_* names are not conforming
 
+import errno
 import OpenSSL
+import socket
 
 from ganeti import opcodes
 from ganeti import objects
@@ -221,6 +223,13 @@ def _CheckIfConnectionDropped(sock):
   # The connection was terminated
   except OpenSSL.SSL.SysCallError:
     return True
+  # The usual EAGAIN is raised when the read would block, but only if SSL is
+  # disabled (The SSL case is covered by WantReadError above).
+  except socket.error as err:
+    if getattr(err, 'errno') == errno.EAGAIN:
+      return False
+    else:
+      raise
   return False
 
 

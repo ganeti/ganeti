@@ -1493,7 +1493,7 @@ nodist_sbin_SCRIPTS = \
 	src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
-	cp -f $< $@
+	cp -pf $< $@
 
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = \
@@ -1501,7 +1501,7 @@ all_sbin_scripts = \
 	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
 
 src/ganeti-confd: src/hconfd
-	cp -f $< $@
+	cp -pf $< $@
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
@@ -1995,6 +1995,7 @@ python_tests = \
 	test/py/ganeti.utils.io_unittest-runasroot.py \
 	test/py/ganeti.utils.io_unittest.py \
 	test/py/ganeti.utils.log_unittest.py \
+	test/py/ganeti.utils.livelock_unittest.py \
 	test/py/ganeti.utils.lvm_unittest.py \
 	test/py/ganeti.utils.mlock_unittest.py \
 	test/py/ganeti.utils.nodesetup_unittest.py \

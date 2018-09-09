@@ -767,6 +767,7 @@ class SshRunner(object):
       "-oGlobalKnownHostsFile=%s" % pathutils.SSH_KNOWN_HOSTS_FILE,
       "-oUserKnownHostsFile=/dev/null",
       "-oCheckHostIp=no",
+      "-oConnectTimeout=10",
       ]
 
     if use_cluster_key:
