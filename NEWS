@@ -2,6 +2,32 @@ News
 ====
 
 
+Version 2.16.0
+--------------
+
+*(Released Tue, 18 Sep 2018)*
+
+Changes since 2.16.0 rc2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compatibility fixes:
+
+ - Support python-mock versions later than about 1.1
+
+Bugfixes:
+
+ - RAPI: Check non-SSL exceptions in _CheckIfConnectionDropped
+ - makefile: Preserve mode on copy
+ - Change uidpool test to skip uid 0
+ - Add retry behavior to detect SSConf read race in qa.qa_instance_utils
+ - utils.livelock: use portable struct flock type
+
+Misc changes:
+
+ - Set default ssh connection timeout between nodes to 10s
+ - Add unit tests for utils.livelock
+
+
 Version 2.16.0 rc2
 ------------------
 
