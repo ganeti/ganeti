@@ -110,7 +110,7 @@ data DaemonOptions = DaemonOptions
   , optPort         :: Maybe Word16   -- ^ Override for the network port
   , optDebug        :: Bool           -- ^ Enable debug messages
   , optNoUserChecks :: Bool           -- ^ Ignore user checks
-  , optBindAddress  :: Maybe String   -- ^ Override for the bind address
+  , optBindAddress  :: Maybe String   -- ^ Listen on a custom address
   , optSyslogUsage  :: Maybe SyslogUsage -- ^ Override for Syslog usage
   , optForceNode    :: Bool           -- ^ Ignore node checks
   , optNoVoting     :: Bool           -- ^ skip voting for master
@@ -190,7 +190,8 @@ oBindAddress =
   (Option "b" ["bind"]
    (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
     "ADDR")
-   "Bind address (default depends on cluster configuration)",
+   "Bind address (default is 'any' on either IPv4 or IPv6, depending \
+   \on cluster configuration)",
    OptComplInetAddr)
 
 oSyslogUsage :: OptType
