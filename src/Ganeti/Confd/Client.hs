@@ -131,7 +131,7 @@ queryOneServer semaphore answer crType cQuery hmac (host, port) = do
   addr <- resolveAddr (fromIntegral port) host
   (af_family, sockaddr) <-
     exitIfBad "Unable to resolve the IP address" addr
-  replyMsg <- bracket (S.socket af_family S.Datagram S.defaultProtocol) S.sClose
+  replyMsg <- bracket (S.socket af_family S.Datagram S.defaultProtocol) S.close
                 $ \s -> do
     _ <- S.sendTo s completeMsg sockaddr
     S.recv s C.maxUdpDataSize
