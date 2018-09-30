@@ -340,9 +340,6 @@ instance Arbitrary ClusterOsParams where
 instance Arbitrary ClusterBeParams where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
-instance Arbitrary TagSet where
-  arbitrary = Set.fromList <$> genTags
-
 instance Arbitrary IAllocatorParams where
   arbitrary = return $ GenericContainer Map.empty
 
