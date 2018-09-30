@@ -69,7 +69,6 @@ module Ganeti.WConfd.Monad
   , DistributionTarget(..)
   ) where
 
-import Control.Applicative
 import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, myThreadId)
 import Control.Exception.Lifted (bracket)
@@ -81,7 +80,7 @@ import Control.Monad.State
 import Control.Monad.Trans.Control
 import Data.Functor.Identity
 import Data.IORef.Lifted
-import Data.Monoid (Any(..), Monoid(..))
+import Data.Monoid (Any(..))
 import qualified Data.Set as S
 import Data.Tuple (swap)
 import System.Posix.Process (getProcessID)

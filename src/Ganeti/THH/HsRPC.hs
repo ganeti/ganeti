@@ -43,7 +43,6 @@ module Ganeti.THH.HsRPC
   , mkRpcCalls
   ) where
 
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error

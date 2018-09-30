@@ -70,7 +70,6 @@ module Ganeti.UDSServer
   , listener
   ) where
 
-import Control.Applicative
 import Control.Concurrent.Lifted (fork, yield)
 import Control.Monad.Base
 import Control.Monad.Trans.Control

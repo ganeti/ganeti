@@ -66,13 +66,11 @@ module Ganeti.Query.Filter
   , FilterOp(..)
   ) where
 
-import Control.Applicative
 import Control.Monad (liftM, mzero)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Traversable (traverse)
 import Text.JSON (JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
 import qualified Text.Regex.PCRE as PCRE

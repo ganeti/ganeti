@@ -93,7 +93,6 @@ import Data.Function (on)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
-import Data.Monoid
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Language.Haskell.TH

@@ -45,7 +45,6 @@ module Test.Ganeti.HTools.Instance
   ) where
 
 import Control.Arrow ((&&&))
-import Control.Applicative ((<$>))
 import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
 

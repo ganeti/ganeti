@@ -58,7 +58,6 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
-import Control.Applicative
 import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Text.JSON

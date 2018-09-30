@@ -48,7 +48,6 @@ module Test.Ganeti.HTools.Types
 import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
-import Control.Applicative
 import Control.Monad (replicateM)
 
 import Test.Ganeti.TestHelper

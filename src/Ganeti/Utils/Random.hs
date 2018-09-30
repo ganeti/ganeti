@@ -38,7 +38,6 @@ module Ganeti.Utils.Random
   , delayRandom
   ) where
 
-import Control.Applicative
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.State

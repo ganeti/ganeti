@@ -87,7 +87,6 @@ import Control.Monad.Trans.Control
 import Data.Function
 import Data.List
 import Data.Maybe
-import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)

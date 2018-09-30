@@ -44,7 +44,6 @@ module Test.Ganeti.Query.Language
 import Test.HUnit (Assertion, assertEqual)
 import Test.QuickCheck
 
-import Control.Applicative
 import Control.Arrow (second)
 import Text.JSON
 

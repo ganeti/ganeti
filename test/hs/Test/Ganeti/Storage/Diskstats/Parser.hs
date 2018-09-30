@@ -41,7 +41,6 @@ import Test.HUnit
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
-import Control.Applicative ((<*>), (<$>))
 import qualified Data.Attoparsec.Text as A
 import Data.Text (pack)
 import Text.Printf

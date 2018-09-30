@@ -102,7 +102,6 @@ module Ganeti.HTools.Node
   ) where
 
 import Control.Monad (liftM, liftM2)
-import Control.Applicative ((<$>), (<*>))
 import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph

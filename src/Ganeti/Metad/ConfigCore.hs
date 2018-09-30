@@ -35,7 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Metad.ConfigCore where
 
-import Control.Applicative
 import Control.Concurrent.MVar.Lifted
 import Control.Monad.Base
 import Control.Monad.IO.Class

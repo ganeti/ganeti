@@ -65,7 +65,6 @@ import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception (finally)
 import Control.Monad
 import Control.Monad.Error
-import Data.Functor
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
 import System.Directory (getDirectoryContents)

@@ -39,7 +39,6 @@ module Ganeti.THH.PyType
   , pyOptionalType
   ) where
 
-import Control.Applicative
 import Control.Monad
 import Data.List (intercalate)
 import Language.Haskell.TH

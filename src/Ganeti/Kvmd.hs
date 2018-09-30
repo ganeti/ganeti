@@ -61,7 +61,6 @@ module Ganeti.Kvmd where
 
 import Prelude hiding (rem)
 
-import Control.Applicative ((<$>))
 import Control.Exception (try)
 import Control.Concurrent
 import Control.Monad (unless, when)

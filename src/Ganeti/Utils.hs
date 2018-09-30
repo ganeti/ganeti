@@ -99,7 +99,6 @@ module Ganeti.Utils
   , frequency
   ) where
 
-import Control.Applicative
 import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad

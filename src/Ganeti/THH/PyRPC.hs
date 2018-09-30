@@ -42,7 +42,6 @@ module Ganeti.THH.PyRPC
 
 import Control.Monad
 import Data.Char (toLower, toUpper)
-import Data.Functor
 import Data.Maybe (fromMaybe)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (liftString)

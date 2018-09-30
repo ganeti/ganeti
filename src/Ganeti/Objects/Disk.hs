@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Disk where
 
-import Control.Applicative ((<*>), (<$>))
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.List (isPrefixOf, isInfixOf)
