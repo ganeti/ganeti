@@ -192,12 +192,12 @@ closeClientSocket = hClose
 openServerSocket :: FilePath -> IO S.Socket
 openServerSocket path = do
   sock <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-  S.bindSocket sock (S.SockAddrUnix path)
+  S.bind sock (S.SockAddrUnix path)
   return sock
 
 closeServerSocket :: S.Socket -> FilePath -> IO ()
 closeServerSocket sock path = do
-  S.sClose sock
+  S.close sock
   removeFile path
 
 acceptSocket :: S.Socket -> IO Handle
