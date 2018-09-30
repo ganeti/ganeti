@@ -40,7 +40,6 @@ module Ganeti.Query.Server
   , prepMain
   ) where
 
-import Control.Applicative
 import Control.Concurrent
 import Control.Exception
 import Control.Lens ((.~))

@@ -44,7 +44,7 @@ module Ganeti.Lens
   , atSet
   ) where
 
-import Control.Applicative ((<$>), WrappedMonad(..))
+import Control.Applicative (WrappedMonad(..))
 import Control.Lens
 import Control.Monad
 import Data.Functor.Compose (Compose(..))

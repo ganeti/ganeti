@@ -82,7 +82,7 @@ module Ganeti.JQueue
     , QueuedJob(..)
     ) where
 
-import Control.Applicative (liftA2, (<|>), (<$>))
+import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception
@@ -91,7 +91,6 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
-import Data.Functor ((<$))
 import Data.List
 import Data.Maybe
 import Data.Ord (comparing)

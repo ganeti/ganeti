@@ -52,7 +52,6 @@ module Test.Ganeti.Objects
 import Test.QuickCheck
 import qualified Test.HUnit as HUnit
 
-import Control.Applicative
 import Control.Monad
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8

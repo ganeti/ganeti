@@ -55,7 +55,6 @@ module Ganeti.Ssconf
   ) where
 
 import Control.Arrow ((&&&))
-import Control.Applicative ((<$>))
 import Control.Exception
 import Control.Monad (forM, liftM)
 import qualified Data.Map as M

@@ -50,7 +50,6 @@ import Data.ByteString.Char8 (pack, unpack)
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Maybe (fromMaybe)
 import Data.List (find)
-import Data.Monoid (mempty)
 import qualified Data.Map as Map
 import qualified Data.PSQueue as Queue
 import Network.BSD (getServicePortNumber)

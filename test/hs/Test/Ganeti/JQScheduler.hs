@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.JQScheduler (testJQScheduler) where
 
-import Control.Applicative
 import Control.Lens ((&), (.~), _2)
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (inits)
@@ -45,7 +44,6 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Data.Set (Set, difference)
 import qualified Data.Set as Set
-import Data.Traversable (traverse)
 import Text.JSON (JSValue(..))
 import Test.HUnit
 import Test.QuickCheck

@@ -42,7 +42,6 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic (monadicIO, run, stop)
 
 import Data.List
-import Control.Applicative
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket)
 import qualified Text.JSON as J

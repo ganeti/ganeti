@@ -92,7 +92,6 @@ module Test.Ganeti.TestCommon
   , counterexample
   ) where
 
-import Control.Applicative
 import Control.Exception (catchJust)
 import Control.Monad
 import Data.Attoparsec.Text (Parser, parseOnly)

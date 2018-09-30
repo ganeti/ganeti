@@ -105,14 +105,12 @@ module Ganeti.Objects
   , module Ganeti.Objects.Instance
   ) where
 
-import Control.Applicative
 import Control.Arrow (first)
 import Control.Monad.State
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (foldl', intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
-import Data.Monoid
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
 import Data.Tuple (swap)

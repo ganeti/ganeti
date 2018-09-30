@@ -51,7 +51,6 @@ module Ganeti.Utils.Validate
   , validate'
   ) where
 
-import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Control.Monad.Except

@@ -82,7 +82,7 @@ module Ganeti.HTools.Cluster
   , findSplitInstances
   ) where
 
-import Control.Applicative ((<$>), liftA2)
+import Control.Applicative (liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
 import qualified Data.IntSet as IntSet

@@ -39,7 +39,6 @@ module Test.Ganeti.Utils.MultiMap
   ( testUtils_MultiMap
   ) where
 
-import Control.Applicative
 import qualified Data.Set as S
 import qualified Data.Map as M
 

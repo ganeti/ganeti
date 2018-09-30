@@ -60,7 +60,6 @@ import Control.Monad
 import qualified Data.Foldable as F
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, isJust)
-import Data.Monoid
 import qualified Data.Set as S
 import qualified Text.JSON as J
 

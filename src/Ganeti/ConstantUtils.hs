@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.ConstantUtils where
 
 import Data.Char (ord)
-import Data.Monoid (Monoid(..))
 import Data.Set (Set)
 import qualified Data.Set as Set (difference, fromList, toList, union)
 

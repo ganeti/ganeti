@@ -47,7 +47,6 @@ module Test.Ganeti.Types
   , genReasonTrail
   ) where
 
-import Control.Applicative
 import System.Time (ClockTime(..))
 
 import Test.QuickCheck as QuickCheck hiding (Result)

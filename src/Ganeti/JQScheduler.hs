@@ -48,14 +48,13 @@ module Ganeti.JQScheduler
   , configChangeNeedsRescheduling
   ) where
 
-import Control.Applicative (liftA2, (<$>))
+import Control.Applicative (liftA2)
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Function (on)
-import Data.Functor ((<$))
 import Data.IORef (IORef, atomicModifyIORef, newIORef, readIORef)
 import Data.List
 import Data.Maybe

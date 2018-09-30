@@ -44,14 +44,12 @@ module Test.Ganeti.SlotMap
 
 import Prelude hiding (all)
 
-import Control.Applicative
 import Control.Monad
 import Data.Foldable (all)
 import qualified Data.Map as Map
 import Data.Map (Map, member, keys, keysSet)
 import Data.Set (Set, size, union)
 import qualified Data.Set as Set
-import Data.Traversable (traverse)
 import Test.HUnit
 import Test.QuickCheck
 
