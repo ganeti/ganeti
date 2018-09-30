@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, FlexibleContexts #-}
 
 {-| Provides interface to the 'zlib' library.
 
@@ -41,7 +41,7 @@ module Ganeti.Codec
 
 import Codec.Compression.Zlib
 import qualified Codec.Compression.Zlib.Internal as I
-import Control.Monad.Error
+import Control.Monad.Except
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
 import Data.Monoid (mempty)
@@ -54,18 +54,18 @@ compressZlib = compressWith $
 
 -- | Decompresses a lazy bytestring, throwing decoding errors using
 -- 'throwError'.
-decompressZlib :: (MonadError e m, Error e) => BL.ByteString -> m BL.ByteString
+decompressZlib :: (MonadError String m) => BL.ByteString -> m BL.ByteString
 #if MIN_VERSION_zlib(0, 6, 0)
 decompressZlib = I.foldDecompressStreamWithInput
                    (liftM . BL.chunk)
                    return
-                   (throwError . strMsg . (++)"Zlib: " . show)
+                   (throwError . (++)"Zlib: " . show)
                    $ I.decompressST I.zlibFormat I.defaultDecompressParams
 #else
 decompressZlib = I.foldDecompressStream
                      (liftM . BL.chunk)
                      (return mempty)
-                     (const $ throwError . strMsg . ("Zlib: " ++))
+                     (const $ throwError . ("Zlib: " ++))
                  . I.decompressWithErrors
                      I.zlibFormat
                      I.defaultDecompressParams
