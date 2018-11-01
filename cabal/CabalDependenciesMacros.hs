@@ -6,9 +6,11 @@ import qualified Distribution.Simple.Build.Macros as Macros
 import Distribution.Simple.Configure (maybeGetPersistBuildConfig)
 import Distribution.Simple.LocalBuildInfo (externalPackageDeps)
 import Distribution.PackageDescription (packageDescription)
-import Distribution.PackageDescription.Parse (readPackageDescription)
+import Distribution.PackageDescription.Parsec (readGenericPackageDescription)
 import Distribution.Text (display)
 import Distribution.Verbosity (normal)
+import qualified Distribution.Types.LocalBuildInfo as LocalBuildInfo
+import qualified Distribution.Compat.Graph as Graph
 import System.Environment (getArgs)
 
 
@@ -22,7 +24,7 @@ main = do
       _         -> error "Expected 3 arguments: cabalPath depsPath macrosPath"
 
   -- Read the cabal file.
-  pkgDesc <- packageDescription <$> readPackageDescription normal cabalPath
+  pkgDesc <- packageDescription <$> readGenericPackageDescription normal cabalPath
 
   -- Read the setup-config.
   m'conf <- maybeGetPersistBuildConfig "dist"
@@ -35,4 +37,9 @@ main = do
       writeFile depsPath (unwords $ map ("-package-id " ++) deps)
 
       -- Write package MIN_VERSION_* macros.
-      writeFile macrosPath $ Macros.generate pkgDesc conf
+      let cid = LocalBuildInfo.localUnitId conf
+      let clbi' = Graph.lookup cid $ LocalBuildInfo.componentGraph conf
+      case clbi' of
+        Nothing -> error "Unable to read componentLocalBuildInfo for the library"
+        Just clbi -> do
+          writeFile macrosPath $ Macros.generate pkgDesc conf clbi
