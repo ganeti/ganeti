@@ -46,6 +46,7 @@ import System.INotify
 
 import Ganeti.BasicTypes
 import Ganeti.Objects
+import Ganeti.Compat
 import Ganeti.Confd.Utils
 import Ganeti.Config
 import Ganeti.Logging
@@ -246,7 +247,7 @@ addNotifier :: INotify -> FilePath -> (Result ConfigData -> IO ())
             -> MVar ServerState -> IO Bool
 addNotifier inotify path save_fn mstate =
   Control.Exception.catch
-        (addWatch inotify [CloseWrite] path
+        (addWatch inotify [CloseWrite] (toInotifyPath path)
             (onInotify inotify path save_fn mstate) >> return True)
         (\e -> const (return False) (e::IOError))
 
