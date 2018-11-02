@@ -51,6 +51,7 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Set as Set (toList)
+import Data.Bits (finiteBitSize)
 import Data.IORef
 import Data.List (intersperse)
 import Data.Maybe (fromMaybe)
@@ -70,7 +71,6 @@ import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import Ganeti.Objects
 import Ganeti.Objects.Lens (configFiltersL)
 import qualified Ganeti.Config as Config
-import qualified Ganeti.Compat as Compat
 import Ganeti.ConfigReader
 import Ganeti.BasicTypes
 import Ganeti.JQueue
@@ -192,7 +192,7 @@ handleCall _ _ cdata QueryClusterInfo =
       def_hv = case hypervisors of
                  x:_ -> showJSON x
                  [] -> JSNull
-      bits = show (Compat.finiteBitSize (0::Int)) ++ "bits"
+      bits = show (finiteBitSize (0::Int)) ++ "bits"
       arch_tuple = [bits, arch]
       obj = [ ("software_version", showJSON C.releaseVersion)
             , ("protocol_version", showJSON C.protocolVersion)

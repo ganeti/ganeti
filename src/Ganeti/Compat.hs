@@ -38,28 +38,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.Compat
-  ( finiteBitSize
-  , atomicModifyIORef'
+  ( atomicModifyIORef'
   , filePath'
   , maybeFilePath'
   , toInotifyPath
   ) where
 
-import qualified Data.Bits
 import qualified Data.IORef
 import qualified Data.ByteString.UTF8 as UTF8
 import System.FilePath (FilePath)
 import System.Posix.ByteString.FilePath (RawFilePath)
 import qualified System.INotify
-
-#if __GLASGOW_HASKELL__ < 707
-finiteBitSize :: (Data.Bits.Bits a) => a -> Int
-finiteBitSize = Data.Bits.bitSize
-#else
-finiteBitSize :: (Data.Bits.FiniteBits a) => a -> Int
-finiteBitSize = Data.Bits.finiteBitSize
-#endif
-{-# INLINE finiteBitSize #-}
 
 -- FIXME: remove this when dropping support for GHC 7.4.
 atomicModifyIORef' :: Data.IORef.IORef a -> (a -> (a, b)) -> IO b
