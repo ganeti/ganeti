@@ -64,8 +64,9 @@ checkQueryResults :: ConfigData -> Query -> String
                   -> [[ResultEntry]] -> Property
 checkQueryResults cfg qr descr expected = monadicIO $ do
   result <- run (query cfg False qr) >>= resultProp
-  stop $ counterexample ("Inconsistent results in " ++ descr)
-         (qresData result ==? expected)
+  _ <- stop $ counterexample ("Inconsistent results in " ++ descr)
+              (qresData result ==? expected)
+  return ()
 
 -- | Makes a node name query, given a filter.
 makeNodeQuery :: Filter FilterField -> Query
