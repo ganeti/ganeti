@@ -127,7 +127,7 @@ mkRegularArbitrary name cons = do
             [x] -> return $ mkConsArbitrary (conInfo x)
             xs -> appE (varE 'oneof) $
                   listE (map (return . mkConsArbitrary . conInfo) xs)
-  return [InstanceD [] (AppT (ConT ''Arbitrary) (ConT name))
+  return [InstanceD Nothing [] (AppT (ConT ''Arbitrary) (ConT name))
           [ValD (VarP 'arbitrary) (NormalB expr) []]]
 
 -- | Builds a default Arbitrary instance for a type. This requires
@@ -140,9 +140,9 @@ genArbitrary :: Name -> Q [Dec]
 genArbitrary name = do
   r <- reify name
   case r of
-    TyConI (DataD _ _ _ cons _) ->
+    TyConI (DataD _ _ _ _ cons _) ->
       mkRegularArbitrary name cons
-    TyConI (NewtypeD _ _ _ con _) ->
+    TyConI (NewtypeD _ _ _ _ con _) ->
       mkRegularArbitrary name [con]
     TyConI (TySynD _ _ (ConT tn)) -> genArbitrary tn
     _ -> fail $ "Invalid type in call to genArbitrary for " ++ show name
