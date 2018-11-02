@@ -114,7 +114,8 @@ runOfflineTest :: (Rpc.Rpc a b, Eq b, Show b) => a -> Property
 runOfflineTest call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
+      _ <- stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
+      return ()
 
 prop_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
 prop_noffl_request_allinstinfo = runOfflineTest
