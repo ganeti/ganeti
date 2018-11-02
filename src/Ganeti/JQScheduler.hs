@@ -55,7 +55,7 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Function (on)
-import Data.IORef (IORef, atomicModifyIORef, newIORef, readIORef)
+import Data.IORef (IORef, atomicModifyIORef, atomicModifyIORef', newIORef, readIORef)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map

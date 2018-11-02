@@ -38,29 +38,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.Compat
-  ( atomicModifyIORef'
-  , filePath'
+  ( filePath'
   , maybeFilePath'
   , toInotifyPath
   ) where
 
-import qualified Data.IORef
 import qualified Data.ByteString.UTF8 as UTF8
 import System.FilePath (FilePath)
 import System.Posix.ByteString.FilePath (RawFilePath)
 import qualified System.INotify
-
--- FIXME: remove this when dropping support for GHC 7.4.
-atomicModifyIORef' :: Data.IORef.IORef a -> (a -> (a, b)) -> IO b
-#if MIN_VERSION_base(4,6,0)
-atomicModifyIORef' = Data.IORef.atomicModifyIORef'
-#else
-atomicModifyIORef' ref f = do
-    b <- Data.IORef.atomicModifyIORef ref $ \a ->
-            case f a of
-                v@(a',_) -> a' `seq` v
-    b `seq` return b
-#endif
 
 -- | Wrappers converting ByteString filepaths to Strings and vice versa
 --
