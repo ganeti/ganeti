@@ -42,11 +42,18 @@ module Ganeti.Compat
   , Control.Parallel.Strategies.parMap
   , finiteBitSize
   , atomicModifyIORef'
+  , filePath'
+  , maybeFilePath'
+  , toInotifyPath
   ) where
 
 import qualified Control.Parallel.Strategies
 import qualified Data.Bits
 import qualified Data.IORef
+import qualified Data.ByteString.UTF8 as UTF8
+import System.FilePath (FilePath)
+import System.Posix.ByteString.FilePath (RawFilePath)
+import qualified System.INotify
 
 -- | Wrapper over the function exported from
 -- "Control.Parallel.Strategies".
@@ -80,4 +87,28 @@ atomicModifyIORef' ref f = do
             case f a of
                 v@(a',_) -> a' `seq` v
     b `seq` return b
+#endif
+
+-- | Wrappers converting ByteString filepaths to Strings and vice versa
+--
+-- hinotify 0.3.10 switched to using RawFilePaths instead of FilePaths, the
+-- former being Data.ByteString and the latter String.
+#if MIN_VERSION_hinotify(0,3,10)
+filePath' :: System.INotify.Event -> FilePath
+filePath' = UTF8.toString . System.INotify.filePath
+
+maybeFilePath' :: System.INotify.Event -> Maybe FilePath
+maybeFilePath' ev = UTF8.toString <$> System.INotify.maybeFilePath ev
+
+toInotifyPath :: FilePath -> RawFilePath
+toInotifyPath = UTF8.fromString
+#else
+filePath' :: System.INotify.Event -> FilePath
+filePath' = System.INotify.filePath
+
+maybeFilePath' :: System.INotify.Event -> Maybe FilePath
+maybeFilePath' = System.INotify.maybeFilePath
+
+toInotifyPath :: FilePath -> FilePath
+toInotifyPath = id
 #endif
