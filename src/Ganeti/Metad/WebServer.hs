@@ -39,7 +39,7 @@ import Control.Applicative
 import Control.Concurrent (MVar, readMVar)
 import Control.Monad.Error.Class (MonadError, catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
-import qualified Control.Monad.CatchIO as CatchIO (catch)
+import Control.Exception.Lifted (catch)
 import qualified Data.CaseInsensitive as CI
 import Data.List (intercalate)
 import Data.Map (Map)
@@ -105,7 +105,7 @@ serveOsPackage inst params key =
      maybeResult (JSON.readJSON instParams >>=
                   Config.getPublicOsParams >>=
                   getOsPackage) $ \package ->
-       serveFile package `CatchIO.catch` \err ->
+       serveFile package `catch` \err ->
          throwError $ "Could not serve OS package: " ++ show (err :: IOError)
   where getOsPackage osParams =
           case lookup key (JSON.fromJSObject osParams) of
@@ -130,7 +130,7 @@ serveOsScript inst params script =
           throwError $ "Could not find OS script " ++ show (os </> script)
         serveScript os (d:ds) =
           serveFile (d </> os </> script)
-          `CatchIO.catch`
+          `catch`
           \err -> do let _ = err :: IOError
                      serveScript os ds
 
