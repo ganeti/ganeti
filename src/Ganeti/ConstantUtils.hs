@@ -40,6 +40,7 @@ module Ganeti.ConstantUtils where
 import Data.Char (ord)
 import Data.Set (Set)
 import qualified Data.Set as Set (difference, fromList, toList, union)
+import qualified Data.Semigroup as Sem
 
 import Ganeti.PyValue
 
@@ -62,9 +63,12 @@ instance PyValue PythonNone where
 newtype FrozenSet a = FrozenSet { unFrozenSet :: Set a }
   deriving (Eq, Ord, Show)
 
+instance (Ord a) => Sem.Semigroup (FrozenSet a) where
+  (FrozenSet s) <> (FrozenSet t) = FrozenSet (mappend s t)
+
 instance (Ord a) => Monoid (FrozenSet a) where
   mempty = FrozenSet mempty
-  mappend (FrozenSet s) (FrozenSet t) = FrozenSet (mappend s t)
+  mappend = (Sem.<>)
 
 -- | Converts a Haskell 'Set' into a Python 'frozenset'
 --

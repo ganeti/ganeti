@@ -93,6 +93,7 @@ import Data.Function (on)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Semigroup as Sem
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Language.Haskell.TH
@@ -1467,16 +1468,21 @@ fillParam sname field_pfx fields = do
   let altExp = zipWith (\l r -> AppE (AppE (VarE '(<|>)) (VarE r)) (VarE l))
       mappendExp = appCons name_p $ altExp pbinds pbinds2
       mappendClause = Clause [pConP, pConP2] (NormalB mappendExp) []
+      mappendAlias = Clause [] (NormalB $ VarE '(Sem.<>)) []
   let monoidType = AppT (ConT ''Monoid) (ConT name_p)
+  let semigroupType = AppT (ConT ''Sem.Semigroup) (ConT name_p)
   -- the instances combined
   return [ InstanceD Nothing [] instType
                      [ FunD 'fillParams [fclause]
                      , FunD 'toPartial [tpclause]
                      , FunD 'toFilled [tfclause]
                      ]
+         , InstanceD Nothing [] semigroupType
+                     [ FunD '(Sem.<>) [mappendClause]
+                     ]
          , InstanceD Nothing [] monoidType
                      [ FunD 'mempty [memptyClause]
-                     , FunD 'mappend [mappendClause]
+                     , FunD 'mappend [mappendAlias]
                      ]]
 
 -- * Template code for exceptions

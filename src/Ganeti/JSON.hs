@@ -95,6 +95,7 @@ import qualified Data.Traversable as F
 import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.Semigroup as Sem
 import System.Time (ClockTime(..))
 import Text.Printf (printf)
 
@@ -396,9 +397,12 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
 
 newtype UsedKeys = UsedKeys (Maybe (Set.Set T.Text))
 
+instance Sem.Semigroup UsedKeys where
+  (UsedKeys xs) <> (UsedKeys ys) = UsedKeys $ liftA2 Set.union xs ys
+
 instance Monoid UsedKeys where
   mempty = UsedKeys (Just Set.empty)
-  mappend (UsedKeys xs) (UsedKeys ys) = UsedKeys $ liftA2 Set.union xs ys
+  mappend = (Sem.<>)
 
 mkUsedKeys :: Set.Set T.Text -> UsedKeys
 mkUsedKeys = UsedKeys . Just

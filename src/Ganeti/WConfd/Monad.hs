@@ -81,6 +81,7 @@ import Control.Monad.Trans.Control
 import Data.Functor.Identity
 import Data.IORef.Lifted
 import Data.Monoid (Any(..))
+import qualified Data.Semigroup as Sem
 import qualified Data.Set as S
 import Data.Tuple (swap)
 import System.Posix.Process (getProcessID)
@@ -108,11 +109,14 @@ import Ganeti.WConfd.TempRes
 -- | Data type describing where the configuration has to be distributed to.
 data DistributionTarget = Everywhere | ToGroups (S.Set String) deriving Show
 
+instance Sem.Semigroup DistributionTarget where
+  Everywhere <> _ = Everywhere
+  _ <> Everywhere = Everywhere
+  (ToGroups a) <> (ToGroups b) = ToGroups (a `S.union` b)
+
 instance Monoid DistributionTarget where
   mempty = ToGroups S.empty
-  mappend Everywhere _ = Everywhere
-  mappend _ Everywhere = Everywhere
-  mappend (ToGroups a) (ToGroups b) = ToGroups (a `S.union` b)
+  mappend = (Sem.<>)
 
 -- * Pure data types used in the monad
 

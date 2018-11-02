@@ -59,6 +59,7 @@ import Prelude hiding (lookup, null, elem)
 import Control.Monad
 import qualified Data.Foldable as F
 import qualified Data.Map as M
+import qualified Data.Semigroup as Sem
 import Data.Maybe (fromMaybe, isJust)
 import qualified Data.Set as S
 import qualified Text.JSON as J
@@ -71,9 +72,12 @@ import Ganeti.Lens
 newtype MultiMap k v = MultiMap { getMultiMap :: M.Map k (S.Set v) }
   deriving (Eq, Ord, Show)
 
+instance (Ord v, Ord k) => Sem.Semigroup (MultiMap k v) where
+  (MultiMap x) <> (MultiMap y) = MultiMap $ M.unionWith S.union x y
+
 instance (Ord v, Ord k) => Monoid (MultiMap k v) where
   mempty = MultiMap M.empty
-  mappend (MultiMap x) (MultiMap y) = MultiMap $ M.unionWith S.union x y
+  mappend = (Sem.<>)
 
 instance F.Foldable (MultiMap k) where
   foldMap f = F.foldMap (F.foldMap f) . getMultiMap

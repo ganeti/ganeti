@@ -113,6 +113,7 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
+import qualified Data.Semigroup as Sem
 import Data.Tuple (swap)
 import Data.Word
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString,
@@ -284,12 +285,15 @@ $(buildObject "DataCollectorConfig" "dataCollector" [
   ])
 
 -- | Central default values of the data collector config.
+instance Sem.Semigroup DataCollectorConfig where
+  _ <> a = a
+
 instance Monoid DataCollectorConfig where
   mempty = DataCollectorConfig
     { dataCollectorActive = True
     , dataCollectorInterval = 10^(6::Integer) * fromIntegral C.mondTimeInterval
     }
-  mappend _ a = a
+  mappend = (Sem.<>)
 
 -- * IPolicy definitions
 
