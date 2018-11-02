@@ -85,6 +85,7 @@ module Ganeti.HTools.Cluster
 import Control.Applicative (liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
+import Control.Parallel.Strategies (rseq, parMap)
 import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
@@ -114,7 +115,6 @@ import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import Ganeti.HTools.Types
-import Ganeti.Compat
 import Ganeti.Utils
 import Ganeti.Types (EvacMode(..))
 
@@ -417,12 +417,12 @@ checkMove :: AlgorithmOptions       -- ^ Algorithmic options for balancing
              -> Table               -- ^ The new solution
 checkMove opts nodes_idx ini_tbl victims =
   let Table _ _ _ ini_plc = ini_tbl
-      -- we're using rwhnf from the Control.Parallel.Strategies
+      -- we're using rseq from the Control.Parallel.Strategies
       -- package; we don't need to use rnf as that would force too
       -- much evaluation in single-threaded cases, and in
       -- multi-threaded case the weak head normal form is enough to
       -- spark the evaluation
-      tables = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
+      tables = parMap rseq (checkInstanceMove opts nodes_idx ini_tbl)
                victims
       -- iterate over all instances, computing the best move
       best_tbl = foldl' compareTables ini_tbl tables
@@ -510,7 +510,7 @@ tryAlloc opts nl il inst (Right ok_pairs) =
       n1pred = if algCapacity opts
                  then allocGlobalN1 opts nl il
                  else const True
-      psols = parMap rwhnf (\(p, ss) ->
+      psols = parMap rseq (\(p, ss) ->
                               collectionToSolution FailN1 n1pred $
                               foldl (\cstate ->
                                       concatAllocCollections cstate
