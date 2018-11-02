@@ -109,11 +109,7 @@ import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
 import Data.IORef
-#if MIN_VERSION_base(4,8,0)
-import Data.List hiding (isSubsequenceOf)
-#else
 import Data.List
-#endif
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -815,13 +811,6 @@ ordNub =
         then go s xs
         else x : go (S.insert x s) xs
   in go S.empty
-
--- | `isSubsequenceOf a b`: Checks if a is a subsequence of b.
-isSubsequenceOf :: (Eq a) => [a] -> [a] -> Bool
-isSubsequenceOf []    _                    = True
-isSubsequenceOf _     []                   = False
-isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
-                               | otherwise = isSubsequenceOf a b
 
 {-# ANN frequency "HLint: ignore Use alternative" #-}
 -- | Returns a list of tuples of elements and the number of times they occur
