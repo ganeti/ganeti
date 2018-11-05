@@ -634,6 +634,13 @@ if test -z "$GHC"; then
   AC_MSG_FAILURE([ghc not found, compilation will not possible])
 fi
 
+# Check for hpack
+AC_ARG_VAR(HPACK, [hpack path])
+AC_PATH_PROG(HPACK, [hpack], [])
+if test -z "$HPACK"; then
+  AC_MSG_FAILURE([hpack not found, compilation will not possible])
+fi
+
 # Note: Character classes ([...]) need to be double quoted due to autoconf
 # using m4
 AM_CONDITIONAL([GHC_LE_76], [$GHC --numeric-version | grep -q '^7\.[[0-6]]\.'])

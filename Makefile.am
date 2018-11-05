@@ -1609,7 +1609,6 @@ EXTRA_DIST += \
 	autotools/sphinx-wrapper \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
-	cabal/cabal-from-modules.py \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -1641,7 +1640,6 @@ EXTRA_DIST += \
 	doc/users/groups.in \
 	doc/users/users.in \
 	ganeti.cabal \
-	cabal/ganeti.template.cabal \
 	cabal/CabalDependenciesMacros.hs \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
@@ -3032,26 +3030,8 @@ apps/%.hs.stamp: Makefile
 	touch $@
 
 # Builds the cabal file
-ganeti.cabal: cabal/ganeti.template.cabal Makefile cabal/cabal-from-modules.py $(CABAL_EXECUTABLES_APPS_STAMPS)
-	@echo $(subst /,.,$(patsubst %.hs,%,$(patsubst test/hs/%,%,$(patsubst src/%,%,$(HS_SRCS))))) \
-	  | python $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
-
-	for p in $(CABAL_EXECUTABLES); do \
-	  echo                                   >> $@; \
-	  echo "executable `basename $$p`"       >> $@; \
-	  echo "  hs-source-dirs: apps"          >> $@; \
-	  echo "  main-is: `basename $$p`.hs"    >> $@; \
-	  echo "  default-language: Haskell2010" >> $@; \
-	  echo "  build-depends:"                >> $@; \
-	  echo "      base"                      >> $@; \
-	  echo "    , ganeti"                    >> $@; \
-	  if [ $$p == test/hs/htest ]; then \
-	    echo "    , hslogger"                  >> $@; \
-	    echo "    , test-framework"            >> $@; \
-	  elif [ $$p == src/rpc-test ]; then \
-	    echo "    , json"                      >> $@; \
-	  fi \
-	done
+ganeti.cabal: package.yaml
+	$(HPACK) $<
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
