@@ -1,0 +1,147 @@
+name: ganeti
+version: 2.16
+synopsis: Cluster-based virtualization management software
+description: See http://www.ganeti.org
+homepage: http://www.ganeti.org
+maintainer: ganeti-devel@googlegroups.com
+license: BSD2
+license-file: COPYING
+copyright: 2006-2018 Google Inc.
+category: System
+github: ganeti/ganeti
+extra-source-files:
+  - README
+
+flags:
+  mond:
+    description: enable the ganeti monitoring daemon
+    manual: True
+    default: True
+  metad:
+    description: enable the ganeti metadata daemon
+    manual: True
+    default: True
+  htest:
+    description: enable tests
+    manual: True
+    default: True
+
+dependencies:
+  - base >= 4.9 && < 5
+  - array
+  - attoparsec
+  - base64-bytestring 
+  - bytestring
+  - case-insensitive 
+  - containers
+  - Crypto
+  - curl
+  - deepseq
+  - directory
+  - filepath
+  - hinotify 
+  - hslogger
+  - json
+  - lens
+  - lifted-base
+  - monad-control
+  - mtl
+  - network
+  - old-time
+  - parallel
+  - pretty
+  - process
+  - PSQueue
+  - random
+  - regex-pcre
+  - snap-core >= 1.0
+  - snap-server >= 1.0
+  - template-haskell >= 2.11
+  - temporary
+  - text
+  - transformers
+  - transformers-base
+  - unix
+  - utf8-string
+  - zlib
+
+library:
+  source-dirs: src
+  build-tools:
+    - hsc2hs
+
+tests:
+  htest:
+    main: htest.hs
+    source-dirs:
+      - test/hs
+    dependencies:
+      - ganeti
+      - HUnit >= 1.2
+      - QuickCheck >= 2.8
+      - test-framework
+      - test-framework-hunit
+      - test-framework-quickcheck2
+    when:
+      - condition: "!flag(htest)"
+        buildable: false
+
+_default_exe: &default_exe
+  source-dirs: apps
+  dependencies:
+    - base
+    - ganeti
+
+executables:
+  htools:
+    <<: *default_exe
+    main: htools.hs
+
+  hpc-htools:
+    <<: *default_exe
+    main: hpc-htools.hs
+
+  hpc-mon-collector:
+    <<: *default_exe
+    main: hpc-mon-collector.hs
+
+  ganeti-kvmd:
+    <<: *default_exe
+    main: ganeti-kvmd.hs
+
+  ganeti-wconfd:
+    <<: *default_exe
+    main: ganeti-wconfd.hs
+
+  hconfd:
+    <<: *default_exe
+    main: hconfd.hs
+
+  hluxid:
+    <<: *default_exe
+    main: hluxid.hs
+
+  rpc-test:
+    <<: *default_exe
+    main: rpc-test.hs
+
+  hs2py:
+    <<: *default_exe
+    main: hs2py.hs
+    when:
+      - condition: "!flag(metad)"
+        buildable: False
+
+  ganeti-metad:
+    <<: *default_exe
+    main: ganeti-metad.hs
+    when:
+      - condition: "!flag(metad)"
+        buildable: False
+
+  ganeti-mond:
+    <<: *default_exe
+    main: ganeti-mond.hs
+    when:
+      - condition: "!flag(mond)"
+        buildable: False
