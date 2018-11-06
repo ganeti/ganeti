@@ -1154,11 +1154,9 @@ HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
 	src/AutoConf.hs \
 	src/Ganeti/Hs2Py/ListConstants.hs \
-	src/Ganeti/Curl/Internal.hs \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = \
-	$(patsubst %,%.in,$(filter-out src/Ganeti/Curl/Internal.hs,$(HS_BUILT_SRCS))) \
-	src/Ganeti/Curl/Internal.hsc \
+	$(patsubst %,%.in,$(HS_BUILT_SRCS)) \
 	lib/_constants.py.in \
 	lib/opcodes.py.in_after \
 	lib/opcodes.py.in_before
@@ -1375,7 +1373,7 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) 
 #        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
 	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
 
-@include_makefile_ghc@
+# @ include_makefile_ghc @
 
 # Contains the package-id flags for the current build: "-package-id" followed
 # by the name and hash of the package, one for each dependency.
@@ -1461,12 +1459,9 @@ $(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
 	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
 		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
 else
-$(HS_SRC_PROGS): %: %.o | stamp-directories
-	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
+$(HS_SRC_PROGS):
+	./setup.lhs build
 endif
-	@rm -f $(notdir $@).tix
 	@touch "$@"
 
 $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
@@ -2326,9 +2321,6 @@ src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 	m4 -DPY_CONSTANT_NAMES="$$NAMES" \
 		$(abs_top_srcdir)/src/Ganeti/Hs2Py/ListConstants.hs.in > $@
 
-src/Ganeti/Curl/Internal.hs: src/Ganeti/Curl/Internal.hsc | stamp-directories
-	hsc2hs -o $@ $<
-
 test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	$(built_base_sources)
 	set -e; \
@@ -3030,8 +3022,17 @@ apps/%.hs.stamp: Makefile
 	touch $@
 
 # Builds the cabal file
-ganeti.cabal: package.yaml
+ganeti.cabal: package.yaml $(HS_BUILT_SRCS) $(CABAL_EXECUTABLES_APPS_STAMPS)
 	$(HPACK) $<
+
+dist/setup-config: ganeti.cabal
+	$(CURDIR)/setup.lhs configure --user \
+	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
+	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
+	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
+
+$(HS_ALL_PROGS): dist/setup-config
+	$(CURDIR)/setup.lhs build
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
