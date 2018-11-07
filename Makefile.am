@@ -268,7 +268,6 @@ BUILDTIME_DIR_AUTOCREATE = \
 
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
-	apps \
 	dist \
 	doc/html \
 	doc/man-html
@@ -306,7 +305,6 @@ CLEANFILES = \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
-	$(CABAL_EXECUTABLES_APPS_STAMPS) \
 	empty-cabal-config \
 	ganeti.cabal \
 	$(HASKELL_PACKAGE_IDS_FILE) \
@@ -364,7 +362,6 @@ GENERATED_FILES = \
 
 clean-local:
 	rm -rf tools/shebang
-	rm -rf apps
 	rm -rf dist
 
 HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
@@ -2887,19 +2884,8 @@ gitignore-check:
 .PHONY: man
 man: $(man_MANS) $(manhtml)
 
-CABAL_EXECUTABLES = $(HS_DEFAULT_PROGS)
-CABAL_EXECUTABLES_HS = $(patsubst %,%.hs,$(CABAL_EXECUTABLES))
-CABAL_EXECUTABLES_APPS_STAMPS = $(patsubst src/%,apps/%.hs.stamp,$(patsubst test/hs/%,apps/%.hs.stamp,$(CABAL_EXECUTABLES)))
-
-# Executable symlinks
-apps/%.hs.stamp: Makefile
-	mkdir -p apps
-	rm -f $(basename $@)
-	ln -s ../$(filter %/$(basename $(notdir $@)),$(CABAL_EXECUTABLES_HS)) $(basename $@)
-	touch $@
-
 # Builds the cabal file
-ganeti.cabal: package.yaml $(HS_BUILT_SRCS) $(CABAL_EXECUTABLES_APPS_STAMPS)
+ganeti.cabal: package.yaml $(HS_BUILT_SRCS)
 	$(HPACK) $<
 
 dist/setup-config: ganeti.cabal
