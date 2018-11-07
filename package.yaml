@@ -99,11 +99,11 @@ executables:
 
   hpc-htools:
     <<: *default_exe
-    main: hpc-htools.hs
+    main: htools.hs
 
   hpc-mon-collector:
     <<: *default_exe
-    main: hpc-mon-collector.hs
+    main: mon-collector.hs
 
   ganeti-kvmd:
     <<: *default_exe
