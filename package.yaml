@@ -97,11 +97,7 @@ executables:
     <<: *default_exe
     main: htools.hs
 
-  hpc-htools:
-    <<: *default_exe
-    main: htools.hs
-
-  hpc-mon-collector:
+  mon-collector:
     <<: *default_exe
     main: mon-collector.hs
 
