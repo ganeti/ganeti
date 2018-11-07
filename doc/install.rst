@@ -675,7 +675,7 @@ installed.
 .. admonition:: KVM
 
    In order for debootstrap instances to be able to shutdown cleanly
-   they must install have basic ACPI support inside the instance. Which
+   they must have basic ACPI support installed inside the instance. Which
    packages are needed depend on the exact flavor of Debian or Ubuntu
    which you're installing, but the example defaults file has a
    commented out configuration line that works for Debian Lenny and
