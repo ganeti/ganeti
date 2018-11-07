@@ -311,8 +311,6 @@ CLEANFILES = \
 	ganeti.cabal \
 	$(HASKELL_PACKAGE_IDS_FILE) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
-	Makefile.ghc \
-	Makefile.ghc.bak \
 	$(PYTHON_BOOTSTRAP) \
 	$(gnt_python_sbin_SCRIPTS) \
 	epydoc.conf \
@@ -1352,129 +1350,8 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
-if WANT_HSTESTS
-HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
-endif
-Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) \
-              | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		-itest/hs \
-		$(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
-# Since ghc -M does not generate dependency line for object files, dependencies
-# from a target executable seed object (e.g. src/hluxid.o) to objects which
-# finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
-# missing in Makefile.ghc.
-# see: https://www.haskell.org/ghc/docs/7.6.2/html/users_guide/separate-compilation.html#makefile-dependencies
-# Following substitutions will add dependencies between object files which
-# corresponds to the interface file already there as a dependency for each
-# object listed in Makefile.ghc.
-# e.g. src/hluxid.o : src/Ganeti/Daemon.hi
-#        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
-	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
-
-# @ include_makefile_ghc @
-
-# Contains the package-id flags for the current build: "-package-id" followed
-# by the name and hash of the package, one for each dependency.
-# Obtained from the setup-config using the Cabal API
-# (CabalDependenciesMacros.hs) after `cabal configure`.
-# This file is created along with HASKELL_PACKAGE_VERSIONS_FILE; if you want
-# to depend on it in a rule, depend on HASKELL_PACKAGE_VERSIONS_FILE instead.
-HASKELL_PACKAGE_IDS_FILE = ganeti.depsflags
-
-# Defines the MIN_VERSION_* macros for all Haskell packages used in this
-# compilation.
-# The versions are determined using `cabal configure`, which takes them from
-# the ghc-pkg database.
-# At the moment, we don't support cabal sandboxes, so we use cabal configure
-# with the --user flag.
-# Note: `cabal configure` and CabalDependenciesMacros.hs perform no
-# downloading (only `cabal install` can do that).
-HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
-
-$(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
-                                  cabal/CabalDependenciesMacros.hs
-	touch empty-cabal-config
-	$(CABAL) --config-file=empty-cabal-config configure --user \
-	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
-	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
-	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
-	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
-	  ganeti.cabal \
-	  $(HASKELL_PACKAGE_IDS_FILE) \
-	  $(HASKELL_PACKAGE_VERSIONS_FILE)
-
-# Like the %.o rule, but allows access to the test/hs directory.
-# This uses HFLAGS instead of HTEST_FLAGS because it's only for generating
-# object files (.o for GHC <= 7.6, .o/.so for newer GHCs) that are loaded
-# in GHCI when evaluating TH. The actual test-with-coverage .hpc_o files
-# are created in the `%.$(HTEST_SUFFIX)_o` rule.
-test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
-	@echo '[GHC|test]: $@ <- test/hs/$^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.o=%.hs) | \
-		sed '/^Loading package /d'
-
-%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
-	@echo '[GHC]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
-		sed '/^Loading package /d'
-
-# For TH+profiling we need to compile twice: Once without profiling,
-# and then once with profiling. See
-# http://www.haskell.org/ghc/docs/7.0.4/html/users_guide/template-haskell.html#id636646
-if HPROFILE
-%.$(HPROF_SUFFIX)_o: %.o
-	@echo '[GHC|prof]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) \
-	  $(HPROFFLAGS) \
-		$(HEXTRA_COMBINED) \
-		$(@:%.$(HPROF_SUFFIX)_o=%.hs) | \
-		sed '/^Loading package /d'
-endif
-
-# We depend on the non-test .o file here because we need the corresponding .so
-# file for GHC > 7.6 ghci dynamic loading for TH, and creating the .o file
-# will create the .so file since we use -dynamic-too (using the `test/hs/%.o`
-# rule).
-%.$(HTEST_SUFFIX)_o: %.o
-	@echo '[GHC|test]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
-		sed '/^Loading package /d'
-
-%.hi: %.o ;
-%.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
-%.$(HPROF_SUFFIX)_hi: %.$(HPROF_SUFFIX)_o ;
-
-if HPROFILE
-$(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
-	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
-else
-$(HS_SRC_PROGS):
+$(HS_SRC_PROGS): dist/setup-config
 	./setup.lhs build
-endif
-	@touch "$@"
-
-$(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
-	                   | stamp-directories $(built_python_sources)
-	@if [ "$(HS_NODEV)" ]; then \
-	  echo "Error: cannot run unittests without the development" \
-	       " libraries (see devnotes.rst)" 1>&2; \
-	  exit 1; \
-	fi
-	@echo '[GHC-link|test]: $@'
-	$(GHC) $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) --make $(@:%=%.hs)
-	@rm -f $(notdir $@).tix
 	@touch "$@"
 
 dist_sbin_SCRIPTS = \
@@ -3030,9 +2907,6 @@ dist/setup-config: ganeti.cabal
 	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
-
-$(HS_ALL_PROGS): dist/setup-config
-	$(CURDIR)/setup.lhs build
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
