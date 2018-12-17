@@ -143,8 +143,8 @@ def PingByTcp(target, port, timeout=10, live_port_needed=False, source=None):
   if source is not None:
     try:
       sock.bind((source, 0))
-    except socket.error, (errcode):
-      if errcode == errno.EADDRNOTAVAIL:
+    except socket.error as err:
+      if err.errno == errno.EADDRNOTAVAIL:
         success = False
 
   sock.settimeout(timeout)
@@ -155,8 +155,8 @@ def PingByTcp(target, port, timeout=10, live_port_needed=False, source=None):
     success = True
   except socket.timeout:
     success = False
-  except socket.error, (errcode):
-    success = (not live_port_needed) and (errcode == errno.ECONNREFUSED)
+  except socket.error as err:
+    success = (not live_port_needed) and (err.errno == errno.ECONNREFUSED)
 
   return success
 
