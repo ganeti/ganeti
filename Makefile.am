@@ -31,6 +31,9 @@ EXTRA_DIST=
 # Enable colors in shelltest
 SHELLTESTARGS = "-c"
 
+# Use C.UTF-8 for tests/checks when available, fall back to en_US.UTF-8 else
+UTF8_LOCALE := $(shell locale -a | grep -m 1 -xF "C.UTF-8" || echo "en_US.UTF-8")
+
 ACLOCAL_AMFLAGS = -I autotools
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
@@ -2250,7 +2253,7 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
 	trap 'echo auto-removing $@; rm $@' EXIT; \
 	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@; \
-	if test -n "$(MAN_HAS_WARNINGS)"; then LC_ALL=en_US.UTF-8 $(CHECK_MAN_WARNINGS) $@; fi; \
+	if test -n "$(MAN_HAS_WARNINGS)"; then LC_ALL=$(UTF8_LOCALE) $(CHECK_MAN_WARNINGS) $@; fi; \
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
@@ -2903,7 +2906,7 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	  $(HSCOLOUR) -print-css > $$i/hscolour.css; \
 	done
 	set -e ; \
-	export LC_ALL=en_US.UTF-8; \
+	export LC_ALL=$(UTF8_LOCALE); \
 	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
 	OPTGHC="$$OPTGHC --optghc=-optP-include --optghc=-optP$(HASKELL_PACKAGE_VERSIONS_FILE)"; \
 	for file in $(HS_LIBTESTBUILT_SRCS); do \
