@@ -780,7 +780,7 @@ class TLMigrateInstance(Tasklet):
       self._GoStandalone()
       self._GoReconnect(False)
       self._WaitUntilSync()
-    except errors.OpExecError, err:
+    except errors.OpExecError as err:
       self.lu.LogWarning("Migration failed and I can't reconnect the drives,"
                          " please try to recover the instance manually;"
                          " error '%s'" % str(err))

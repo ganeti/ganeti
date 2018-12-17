@@ -67,7 +67,7 @@ def VerifyType(owner, attr, value, template, callback):
   """
   try:
     utils.ForceDictType(value, template)
-  except errors.GenericError, err:
+  except errors.GenericError as err:
     return callback("%s has invalid %s: %s" % (owner, attr, err))
 
 
@@ -84,7 +84,7 @@ def VerifyNic(owner, params, callback):
   """
   try:
     objects.NIC.CheckParameterSyntax(params)
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     callback("%s has invalid nicparams: %s" % (owner, err))
 
 
@@ -103,7 +103,7 @@ def VerifyIpolicy(owner, ipolicy, iscluster, callback):
   """
   try:
     objects.InstancePolicy.CheckParameterSyntax(ipolicy, iscluster)
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     callback("%s has invalid instance policy: %s" % (owner, err))
   for key, value in ipolicy.items():
     if key == constants.ISPECS_MINMAX:

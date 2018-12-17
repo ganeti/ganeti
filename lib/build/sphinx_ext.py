@@ -285,7 +285,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
 
   try:
     result = eval(code, EVAL_NS) # pylint: disable=W0123
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     msg = inliner.reporter.error("Failed to evaluate %r: %s" % (code, err),
                                  line=lineno)
     return ([inliner.problematic(rawtext, rawtext, msg)], [msg])
@@ -318,7 +318,7 @@ class PythonAssert(Directive):
 
     try:
       result = eval(code, EVAL_NS) # pylint: disable=W0123
-    except Exception, err:
+    except Exception as err:
       raise self.error("Failed to evaluate %r: %s" % (code, err))
 
     if not result:
@@ -426,7 +426,7 @@ def _ManPageRole(typ, rawtext, text, lineno, inliner, # pylint: disable=W0102
   try:
     result = xref(typ, rawtext, text, lineno, inliner,
                   options=options, content=content)
-  except ReSTError, err:
+  except ReSTError as err:
     msg = inliner.reporter.error(str(err), line=lineno)
     return ([inliner.problematic(rawtext, rawtext, msg)], [msg])
 
@@ -636,7 +636,7 @@ def setup(app):
     # Access to a protected member of a client class
     # pylint: disable=W0212
     orig_manpage_role = docutils.parsers.rst.roles._roles["manpage"]
-  except (AttributeError, ValueError, KeyError), err:
+  except (AttributeError, ValueError, KeyError) as err:
     # Normally the "manpage" role is registered by sphinx/roles.py
     raise Exception("Can't find reST role named 'manpage': %s" % err)
 

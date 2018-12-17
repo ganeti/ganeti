@@ -62,7 +62,7 @@ class NodeMaintenance(object):
     """
     try:
       return ssconf.SimpleStore().GetMaintainNodeHealth()
-    except errors.ConfigurationError, err:
+    except errors.ConfigurationError as err:
       logging.error("Configuration error, not activating node maintenance: %s",
                     err)
       return False

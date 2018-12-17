@@ -96,7 +96,7 @@ def LogDirUseable(logdir):
                                          random.random())
   try:
     os.mkdir(logdir)
-  except OSError, err:
+  except OSError as err:
     if err.errno != errno.EEXIST:
       raise
   try:
@@ -170,7 +170,7 @@ def GetHosts(hostsfile):
   """
   try:
     datafile = open(hostsfile, "r")
-  except IOError, msg:
+  except IOError as msg:
     print "Failed to open hosts file %s: %s" % (hostsfile, msg)
     sys.exit(2)
 
@@ -184,7 +184,7 @@ def WriteLog(message, logfile):
   """Writes message, terminated by newline, to logfile."""
   try:
     logfile = open(logfile, "a+")
-  except IOError, msg:
+  except IOError as msg:
     print "failed to open log file %s: %s" % (logfile, msg)
     print "log message was: %s" % message
     sys.exit(1)  # no being able to log is critical
@@ -192,7 +192,7 @@ def WriteLog(message, logfile):
     timestamp = GetTimeStamp()
     logfile.writelines("%s %s\n" % (timestamp, message))
     logfile.close()
-  except IOError, msg:
+  except IOError as msg:
     print "failed to write to logfile %s: %s" % (logfile, msg)
     print "log message was: %s" % message
     sys.exit(1)  # no being able to log is critical
@@ -291,7 +291,7 @@ def UploadFiles(connection, executable, filelist, logfile):
       else:
         sftp.chmod(remote_file, 0400)
     sftp.close()
-  except IOError, err:
+  except IOError as err:
     WriteLog("ERROR: FAILURE_UPLOAD: %s" % err, logfile)
     return False
 
@@ -308,7 +308,7 @@ def CleanupRemoteDir(connection, upload_dir, filelist, logfile):
       sftp.remove(fullpath)
     sftp.rmdir(upload_dir)
     sftp.close()
-  except IOError, err:
+  except IOError as err:
     WriteLog("ERROR: FAILURE_CLEANUP: %s" % err, logfile)
     return False
 
@@ -329,7 +329,7 @@ def RunRemoteCommand(connection, command, logfile):
   try:
     if session.exec_command("%s 2>&1" % command) is False:
       result = False
-  except paramiko.SSHException, message:
+  except paramiko.SSHException as message:
     result = False
 
   if not result:
@@ -341,10 +341,10 @@ def RunRemoteCommand(connection, command, logfile):
   while select.select([session], [], []):
     try:
       data = session.recv(1024)
-    except socket.timeout, err:
+    except socket.timeout as err:
       data = None
       WriteLog("FAILED: socket.timeout %s" % err, logfile)
-    except socket.error, err:
+    except socket.error as err:
       data = None
       WriteLog("FAILED: socket.error %s" % err, logfile)
     if not data:
@@ -420,7 +420,7 @@ def HostWorker(logdir, username, password, use_agent, hostname,
     print "  %s: received KeyboardInterrupt, aborting" % hostname
     WriteLog("ERROR: ABORT_KEYBOARD_INTERRUPT", logfile)
     result = 1
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     result = 1
     trace = traceback.format_exc()
     msg = "ERROR: UNHANDLED_EXECPTION_ERROR: %s\nTrace: %s" % (err, trace)
@@ -521,7 +521,7 @@ def _GetPassword(use_agent, password, username):
       fh = file(password)
       pwvalue = fh.readline().strip()
       fh.close()
-    except IOError, e:
+    except IOError as e:
       print "error: can not read in from password file %s: %s" % (password, e)
       sys.exit(1)
     password = pwvalue

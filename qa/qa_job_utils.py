@@ -322,7 +322,7 @@ class PausedWatcher(object):
   def __exit__(self, _ex_type, ex_value, _ex_traceback):
     try:
       AssertCommand(["gnt-cluster", "watcher", "continue"])
-    except qa_error.Error, err:
+    except qa_error.Error as err:
       # If an exception happens during 'continue', re-raise it only if there
       # is no exception from the inner block:
       if ex_value is None:

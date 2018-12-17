@@ -116,7 +116,7 @@ def Main():
         utils.RemoveFile(filename)
 
     logging.info("Node successfully cleaned")
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.debug("Caught unhandled exception", exc_info=True)
 
     (retcode, message) = cli.FormatError(err)

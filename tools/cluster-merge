@@ -759,7 +759,7 @@ class Merger(object):
         logging.info("Not starting instances again")
       logging.info("Post cluster verification")
       self._VerifyCluster()
-    except errors.GenericError, e:
+    except errors.GenericError as e:
       logging.exception(e)
 
       if rbsteps:
@@ -816,7 +816,7 @@ def main():
     try:
       cluster_merger.Setup()
       cluster_merger.Merge()
-    except errors.GenericError, e:
+    except errors.GenericError as e:
       logging.exception(e)
       return constants.EXIT_FAILURE
   finally:

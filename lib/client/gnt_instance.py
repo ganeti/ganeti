@@ -281,7 +281,7 @@ def BatchCreate(opts, args):
 
   try:
     instance_data = simplejson.loads(utils.ReadFile(json_filename))
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
@@ -547,7 +547,7 @@ def RecreateDisks(opts, args):
         try:
           ddict[constants.IDISK_SIZE] = \
             utils.ParseUnit(ddict[constants.IDISK_SIZE])
-        except ValueError, err:
+        except ValueError as err:
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
                                      (didx, err), errors.ECODE_INVAL)
 
@@ -555,7 +555,7 @@ def RecreateDisks(opts, args):
         try:
           ddict[constants.IDISK_SPINDLES] = \
               int(ddict[constants.IDISK_SPINDLES])
-        except ValueError, err:
+        except ValueError as err:
           raise errors.OpPrereqError("Invalid spindles for disk %d: %s" %
                                      (didx, err), errors.ECODE_INVAL)
 
@@ -598,7 +598,7 @@ def GrowDisk(opts, args):
   disk = args[1]
   try:
     disk = int(disk)
-  except (TypeError, ValueError), err:
+  except (TypeError, ValueError) as err:
     raise errors.OpPrereqError("Invalid disk index: %s" % str(err),
                                errors.ECODE_INVAL)
   try:
@@ -692,7 +692,7 @@ def ReplaceDisks(opts, args):
   else:
     try:
       disks = [int(i) for i in opts.disks.split(",")]
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err),
                                  errors.ECODE_INVAL)
   cnt = [opts.on_primary, opts.on_secondary, opts.auto,

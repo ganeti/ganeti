@@ -58,7 +58,7 @@ def _CreateBlankFile(path, mode):
   """
   try:
     utils.WriteFile(path, data="", mode=mode)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     raise HypervisorError("Failed to create file %s: %s" % (path, err))
 
 
@@ -224,7 +224,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     try:
       utils.WriteFile(stash_file, data=serialized,
                       mode=constants.SECURE_FILE_MODE)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise HypervisorError("Failed to save instance stash file %s : %s" %
                             (stash_file, err))
 
@@ -236,7 +236,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     stash_file = self._InstanceStashFilePath(instance_name)
     try:
       return serializer.Load(utils.ReadFile(stash_file))
-    except (EnvironmentError, ValueError), err:
+    except (EnvironmentError, ValueError) as err:
       raise HypervisorError("Failed to load instance stash file %s : %s" %
                             (stash_file, err))
 
@@ -254,7 +254,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     if not os.path.isdir(subsys_dir):
       try:
         os.makedirs(subsys_dir)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         raise HypervisorError("Failed to create directory %s: %s" %
                               (subsys_dir, err))
 
@@ -280,7 +280,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       if self._STASH_KEY_ALLOCATED_LOOP_DEV in stash:
         loop_dev_path = stash[self._STASH_KEY_ALLOCATED_LOOP_DEV]
         utils.ReleaseBdevPartitionMapping(loop_dev_path)
-    except errors.CommandError, err:
+    except errors.CommandError as err:
       raise HypervisorError("Failed to cleanup partition mapping : %s" % err)
 
     utils.RemoveFile(self._InstanceStashFilePath(instance_name))
@@ -326,7 +326,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     try:
       cgroup_list = utils.ReadFile(cls._PROC_SELF_CGROUP_FILE)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise HypervisorError("Failed to read %s : %s" %
                             (cls._PROC_SELF_CGROUP_FILE, err))
 
@@ -440,7 +440,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     try:
       cpumask = cls._GetCgroupInstanceValue(instance_name, "cpuset.cpus")
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Getting CPU list for instance"
                                    " %s failed: %s" % (instance_name, err))
 
@@ -453,7 +453,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     try:
       cputime_ns = cls._GetCgroupInstanceValue(instance_name, "cpuacct.usage")
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise HypervisorError("Failed to get the cpu usage of %s: %s" %
                             (instance_name, err))
 
@@ -468,7 +468,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       mem_limit = cls._GetCgroupInstanceValue(instance_name,
                                               "memory.limit_in_bytes")
       return int(mem_limit)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise HypervisorError("Can't get instance memory limit of %s: %s" %
                             (instance_name, err))
 
@@ -671,7 +671,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     try:
       subsys_table = utils.ReadFile(cls._PROC_CGROUPS_FILE)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise HypervisorError("Failed to read cgroup info from %s: %s"
                             % (cls._PROC_CGROUPS_FILE, err))
     return [x.split(None, 1)[0] for x in subsys_table.split("\n")
@@ -708,7 +708,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     try:
       ret = utils.CreateBdevPartitionMapping(storage_path)
-    except errors.CommandError, err:
+    except errors.CommandError as err:
       raise HypervisorError("Failed to create partition mapping for %s"
                             ": %s" % (storage_path, err))
 
@@ -800,7 +800,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     root_dir = self._InstanceDir(instance.name)
     try:
       utils.EnsureDirs([(root_dir, self._DIR_MODE)])
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       raise HypervisorError("Creating instance directory failed: %s", str(err))
 
     log_file = self._InstanceLogFilePath(instance)
@@ -828,7 +828,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       exc_info = sys.exc_info()
       try:
         self._CleanupInstance(instance.name, stash)
-      except HypervisorError, err:
+      except HypervisorError as err:
         logging.warn("Cleanup for instance %s incomplete: %s",
                      instance.name, err)
       raise exc_info[0], exc_info[1], exc_info[2]
@@ -910,7 +910,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     for i, cgparam in enumerate(cgparams):
       try:
         self._SetCgroupInstanceValue(instance.name, cgparam, str(mem_in_bytes))
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         if shrinking and err.errno == errno.EBUSY:
           logging.warn("Unable to reclaim memory or swap usage from instance"
                        " %s", instance.name)
@@ -919,7 +919,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
           try:
             self._SetCgroupInstanceValue(instance.name, restore_param,
                                          str(current_mem_usage))
-          except EnvironmentError, restore_err:
+          except EnvironmentError as restore_err:
             logging.warn("Can't restore the cgroup parameter %s of %s: %s",
                          restore_param, instance.name, restore_err)
 
@@ -969,7 +969,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     try:
       return LXCVersion(result.stdout.strip())
-    except ValueError, err:
+    except ValueError as err:
       raise HypervisorError("Can't parse LXC version from %s: %s" %
                             (from_cmd, err))
 
@@ -998,7 +998,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
         else:
           try:
             version = cls._GetLXCVersionFromCmd(cmd)
-          except HypervisorError, err:
+          except HypervisorError as err:
             msgs.append(str(err))
             continue
 
@@ -1030,7 +1030,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     try:
       self._EnsureCgroupMounts(hvparams)
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       msgs.append(str(err))
 
     msgs.extend(self._VerifyLXCCommands())

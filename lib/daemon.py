@@ -802,7 +802,7 @@ def GenericMain(daemon_name, optionparser,
 
   try:
     utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
-  except errors.PidFileLockError, err:
+  except errors.PidFileLockError as err:
     print >> sys.stderr, "Error while locking PID file:\n%s" % err
     sys.exit(constants.EXIT_FAILURE)
 
@@ -813,7 +813,7 @@ def GenericMain(daemon_name, optionparser,
         prep_results = prepare_fn(options, args)
       else:
         prep_results = None
-    except Exception, err:
+    except Exception as err:
       utils.WriteErrorToFD(wpipe, _BeautifyError(err))
       raise
 

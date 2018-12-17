@@ -135,7 +135,7 @@ def ForceDictType(target, key_types, allowed_values=None):
     elif ktype == constants.VTYPE_SIZE:
       try:
         target[key] = ParseUnit(target[key])
-      except errors.UnitParseError, err:
+      except errors.UnitParseError as err:
         msg = "'%s' (value %s) is not a valid size. error: %s" % \
               (key, target[key], err)
         raise errors.TypeEnforcementError(msg)
@@ -236,7 +236,7 @@ def ListVolumeGroups():
     try:
       name, size = line.split()
       size = int(float(size))
-    except (IndexError, ValueError), err:
+    except (IndexError, ValueError) as err:
       logging.error("Invalid output from vgs (%s): %s", err, line)
       continue
 
@@ -303,12 +303,12 @@ def ParseCpuMask(cpu_mask):
                               " (only one hyphen allowed): %s" % range_def)
     try:
       lower = int(boundaries[0])
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       raise errors.ParseError("Invalid CPU ID value for lower boundary of"
                               " CPU ID range: %s" % str(err))
     try:
       higher = int(boundaries[-1])
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       raise errors.ParseError("Invalid CPU ID value for higher boundary of"
                               " CPU ID range: %s" % str(err))
     if lower > higher:
@@ -422,7 +422,7 @@ def SingleWaitForFdCondition(fdobj, event, timeout):
     # could wait forever. This should check a global "quit" flag or something
     # every so often.
     io_events = poller.poll(timeout)
-  except select.error, err:
+  except select.error as err:
     if err[0] != errno.EINTR:
       raise
     io_events = []

@@ -49,7 +49,7 @@ def LockFile(fd):
   """
   try:
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-  except IOError, err:
+  except IOError as err:
     if err.errno == errno.EAGAIN:
       raise errors.LockError("File already locked")
     raise
@@ -132,7 +132,7 @@ class FileLock(object):
   def _Lock(fd, flag, timeout):
     try:
       fcntl.flock(fd, flag)
-    except IOError, err:
+    except IOError as err:
       if timeout is not None and err.errno == errno.EAGAIN:
         raise retry.RetryAgain()
 

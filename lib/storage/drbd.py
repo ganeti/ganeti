@@ -73,7 +73,7 @@ class DRBD8(object):
     """
     try:
       helper = utils.ReadFile(filename).splitlines()[0]
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno == errno.ENOENT:
         base.ThrowError("The file %s cannot be opened, check if the module"
                         " is loaded (%s)", filename, str(err))
@@ -885,7 +885,7 @@ class DRBD8Dev(base.BlockDev):
         # reconnect to our correct one
         try:
           self._ShutdownNet(minor)
-        except errors.BlockDeviceError, err:
+        except errors.BlockDeviceError as err:
           base.ThrowError("drbd%d: device has correct local storage, wrong"
                           " remote peer and is unable to disconnect in order"
                           " to attach to the correct peer: %s", minor, str(err))

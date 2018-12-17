@@ -62,7 +62,7 @@ def Mlockall(_ctypes=ctypes):
 
   try:
     libc = _ctypes.cdll.LoadLibrary("libc.so.6")
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     logging.error("Failure trying to load libc: %s", err)
     libc = None
   if libc is None:

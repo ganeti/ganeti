@@ -460,7 +460,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _prepare_fn=NotImplemented,
                                _runcmd_fn=NotImplemented,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       assert str(err) == _GenericRestrictedCmdError("test22717"), \
              "Did not fail with generic error message"
       result = True
@@ -496,7 +496,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _path=NotImplemented, _runcmd_fn=NotImplemented,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertEqual(str(err), _GenericRestrictedCmdError("test23122"))
     else:
       self.fail("Didn't fail")
@@ -521,7 +521,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _path=NotImplemented, _runcmd_fn=NotImplemented,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertEqual(str(err), _GenericRestrictedCmdError("test29327"))
     else:
       self.fail("Didn't fail")
@@ -572,7 +572,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _path=self.tmpdir, _runcmd_fn=runcmd_fn,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertTrue(str(err).startswith("Restricted command 'test3079'"
                                           " failed:"))
       self.assertTrue("stderr406328567" in str(err),
@@ -627,7 +627,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _prepare_fn=NotImplemented,
                                _runcmd_fn=NotImplemented,
                                _enabled=False)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertEqual(str(err),
                        "Restricted commands disabled at configure time")
     else:
@@ -653,7 +653,7 @@ class TestSetWatcherPause(unittest.TestCase):
 
       try:
         backend.SetWatcherPause(i, _filename=self.filename)
-      except backend.RPCFail, err:
+      except backend.RPCFail as err:
         self.assertEqual(str(err), "Duration must be numeric")
       else:
         self.fail("Did not raise exception")

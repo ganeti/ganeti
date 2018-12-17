@@ -1652,7 +1652,7 @@ class LURepairNodeStorage(NoHooksLU):
                                    (instance.name,
                                     self.cfg.GetNodeName(node_uuid)),
                                    errors.ECODE_STATE)
-    except errors.OpPrereqError, err:
+    except errors.OpPrereqError as err:
       if self.op.ignore_consistency:
         self.LogWarning(str(err.args[0]))
       else:

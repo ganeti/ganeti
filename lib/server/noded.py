@@ -88,7 +88,7 @@ def _PrepareQueueLock():
   try:
     queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
     return None
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     return err
 
 
@@ -187,12 +187,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     try:
       result = (True, method(serializer.LoadJson(req.request_body)))
 
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       # our custom failure exception; str(err) works fine if the
       # exception was constructed with a single argument, and in
       # this case, err.message == err.args[0] == str(err)
       result = (False, str(err))
-    except errors.QuitGanetiException, err:
+    except errors.QuitGanetiException as err:
       # Tell parent to quit
       logging.info("Shutting down the node daemon, arguments: %s",
                    str(err.args))
@@ -200,7 +200,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
       # And return the error's arguments, which must be already in
       # correct tuple format
       result = err.args
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       logging.exception("Error in RPC call")
       result = (False, "Error while executing backend function: %s" % str(err))
 

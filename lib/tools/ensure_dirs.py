@@ -269,7 +269,7 @@ def Main():
     if opts.full_run:
       RecursiveEnsure(pathutils.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
                       getent.daemons_gid, 0750, constants.JOB_QUEUE_FILES_PERMS)
-  except errors.GenericError, err:
+  except errors.GenericError as err:
     logging.error("An error occurred while setting permissions: %s", err)
     return constants.EXIT_FAILURE
 

@@ -112,7 +112,7 @@ def RunTest(fn, *args, **kwargs):
     retval = fn(*args, **kwargs)
     print _FormatHeader("PASSED %s" % (desc, ), color=colors.GREEN)
     return retval
-  except Exception, e:
+  except Exception as e:
     print _FormatHeader("FAILED %s: %s" % (desc, e), color=colors.RED)
     raise
   finally:
@@ -167,7 +167,7 @@ def RunTestBlock(fn, *args, **kwargs):
 
   try:
     return fn(*args, **kwargs)
-  except Exception, e:
+  except Exception as e:
     print _FormatHeader("BLOCK FAILED %s: %s" % (desc, e),
                         color=[colors.RED, colors.BOLD])
     raise
@@ -800,7 +800,7 @@ def IsExclusiveStorageInstanceTestEnabled():
     for node in nodes:
       try:
         pvnum = int(qa_utils.GetCommandOutput(node.primary, vgscmd))
-      except Exception, e:
+      except Exception as e:
         msg = ("Cannot get the number of PVs on %s, needed by '%s': %s" %
                (node.primary, test_name, e))
         raise qa_error.Error(msg)

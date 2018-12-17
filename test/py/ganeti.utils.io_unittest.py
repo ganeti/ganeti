@@ -828,7 +828,7 @@ class TestPidFileFunctions(unittest.TestCase):
     # Try writing to locked file
     try:
       utils.WritePidFile(pid_file)
-    except errors.PidFileLockError, err:
+    except errors.PidFileLockError as err:
       errmsg = str(err)
       self.assertTrue(errmsg.endswith(" %s" % new_pid),
                       msg=("Error message ('%s') didn't contain correct"

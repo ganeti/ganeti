@@ -545,7 +545,7 @@ class Processor(object):
 
       try:
         result = self._ExecLU(lu)
-      except errors.OpPrereqError, err:
+      except errors.OpPrereqError as err:
         if len(err.args) < 2 or err.args[1] != errors.ECODE_TEMP_NORES:
           raise
 
@@ -558,7 +558,7 @@ class Processor(object):
           logging.debug("LU does not know how to retry.")
           raise err
         raise LockAcquireTimeout()
-      except AssertionError, err:
+      except AssertionError as err:
         # this is a bit ugly, as we don't know from which phase
         # (prereq, exec) this comes; but it's better than an exception
         # with no information

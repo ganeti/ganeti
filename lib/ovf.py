@@ -195,7 +195,7 @@ def LinkFile(old_path, prefix=None, suffix=None, directory=None):
     try:
       os.link(old_path, new_path)
       break
-    except OSError, err:
+    except OSError as err:
       if err.errno == errno.EEXIST:
         new_path = utils.PathJoin(directory,
                                   "%s_%s%s" % (prefix, counter, suffix))
@@ -238,7 +238,7 @@ class OVFReader(object):
     self.tree = ET.ElementTree()
     try:
       self.tree.parse(input_path)
-    except (ParseError, xml.parsers.expat.ExpatError), err:
+    except (ParseError, xml.parsers.expat.ExpatError) as err:
       raise errors.OpPrereqError("Error while reading %s file: %s" %
                                  (OVF_EXT, err), errors.ECODE_ENVIRON)
 
@@ -1127,7 +1127,7 @@ class OVFImporter(Converter):
       file_normname = os.path.normpath(file_name)
       try:
         utils.PathJoin(temp_dir, file_normname)
-      except ValueError, err:
+      except ValueError as err:
         raise errors.OpPrereqError("File %s inside %s package is not safe" %
                                    (file_name, OVA_EXT), errors.ECODE_ENVIRON)
       if file_name.endswith(OVF_EXT):
@@ -1148,7 +1148,7 @@ class OVFImporter(Converter):
           ova_content.extract(member, path=self.temp_dir)
       else:
         extract(self.temp_dir)
-    except tarfile.TarError, err:
+    except tarfile.TarError as err:
       raise errors.OpPrereqError("Error while extracting %s archive: %s" %
                                  (OVA_EXT, err), errors.ECODE_ENVIRON)
     logging.info("OVA package extracted to %s directory", self.temp_dir)
@@ -1173,7 +1173,7 @@ class OVFImporter(Converter):
     self.output_dir = utils.PathJoin(self.output_dir, self.results_name)
     try:
       utils.Makedirs(self.output_dir)
-    except OSError, err:
+    except OSError as err:
       raise errors.OpPrereqError("Failed to create directory %s: %s" %
                                  (self.output_dir, err), errors.ECODE_ENVIRON)
 
@@ -1485,7 +1485,7 @@ class OVFImporter(Converter):
 
     try:
       utils.WriteFile(output_file_name, data=output_contents)
-    except errors.ProgrammerError, err:
+    except errors.ProgrammerError as err:
       raise errors.OpPrereqError("Saving the config file failed: %s" % err,
                                  errors.ECODE_ENVIRON)
 
@@ -1565,7 +1565,7 @@ class OVFExporter(Converter):
     logging.info("Reading configuration from %s file", input_path)
     try:
       self.config_parser.read(input_path)
-    except ConfigParser.MissingSectionHeaderError, err:
+    except ConfigParser.MissingSectionHeaderError as err:
       raise errors.OpPrereqError("Error when trying to read %s: %s" %
                                  (input_path, err), errors.ECODE_ENVIRON)
     if self.options.ova_package:
@@ -1759,7 +1759,7 @@ class OVFExporter(Converter):
     """
     try:
       utils.Makedirs(self.output_dir)
-    except OSError, err:
+    except OSError as err:
       raise errors.OpPrereqError("Failed to create directory %s: %s" %
                                  (self.output_dir, err), errors.ECODE_ENVIRON)
 
@@ -1794,7 +1794,7 @@ class OVFExporter(Converter):
     data = "\n".join(lines)
     try:
       utils.WriteFile(path, data=data)
-    except errors.ProgrammerError, err:
+    except errors.ProgrammerError as err:
       raise errors.OpPrereqError("Saving the manifest file failed: %s" % err,
                                  errors.ECODE_ENVIRON)
 
@@ -1853,7 +1853,7 @@ class OVFExporter(Converter):
       packed_path = utils.PathJoin(self.packed_dir, ova_file)
       try:
         utils.Makedirs(self.packed_dir)
-      except OSError, err:
+      except OSError as err:
         raise errors.OpPrereqError("Failed to create directory %s: %s" %
                                    (self.packed_dir, err),
                                    errors.ECODE_ENVIRON)

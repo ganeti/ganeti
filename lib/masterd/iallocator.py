@@ -867,7 +867,7 @@ class IAllocator(object):
     """
     try:
       rdict = serializer.Load(self.out_text)
-    except Exception, err:
+    except Exception as err:
       raise errors.OpExecError("Can't parse iallocator results: %s" % str(err))
 
     if not isinstance(rdict, dict):

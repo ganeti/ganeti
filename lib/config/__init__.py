@@ -810,7 +810,7 @@ class ConfigWriter(object):
     if not self._offline:
       try:
         self._wconfd.VerifyConfig()
-      except errors.ConfigVerifyError, err:
+      except errors.ConfigVerifyError as err:
         try:
           for msg in err.args[1]:
             result.append(msg)
@@ -2617,7 +2617,7 @@ class ConfigWriter(object):
         data = objects.ConfigData.FromDict(data_dict)
       except errors.ConfigVersionMismatch:
         raise
-      except Exception, err:
+      except Exception as err:
         raise errors.ConfigurationError(err)
 
       self._cfg_id = utils.GetFileID(path=self._cfg_file)
@@ -2669,7 +2669,7 @@ class ConfigWriter(object):
         if dict_data is not None:
           self._SetConfigData(objects.ConfigData.FromDict(dict_data))
           self._UpgradeConfig()
-      except Exception, err:
+      except Exception as err:
         raise errors.ConfigurationError(err)
 
   def _CloseConfig(self, save):
@@ -2683,7 +2683,7 @@ class ConfigWriter(object):
         logging.debug("Writing configuration and unlocking it")
         self._WriteConfig(releaselock=True)
         logging.debug("Configuration write, unlock finished")
-      except Exception, err:
+      except Exception as err:
         logging.critical("Can't write the configuration: %s", str(err))
         raise
     elif not self._offline and \

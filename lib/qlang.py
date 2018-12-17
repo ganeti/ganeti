@@ -131,7 +131,7 @@ def _ConvertRegexpValue(_, loc, toks):
   # Test if valid
   try:
     re.compile(re_cond)
-  except re.error, err:
+  except re.error as err:
     raise pyp.ParseFatalException("Invalid regular expression (%s)" % err, loc)
 
   return [re_cond]
@@ -248,7 +248,7 @@ def ParseFilter(text, parser=None):
 
   try:
     return parser.parseString(text)[0]
-  except pyp.ParseBaseException, err:
+  except pyp.ParseBaseException as err:
     raise errors.QueryFilterParseError("Failed to parse query filter"
                                        " '%s': %s" % (text, err), err)
 
@@ -278,7 +278,7 @@ def _MakeFilterPart(namefield, text, isnumeric=False):
   if isnumeric:
     try:
       number = int(text)
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       raise errors.OpPrereqError("Invalid job ID passed: %s" % str(err),
                                  errors.ECODE_INVAL)
     return [OP_EQUAL, namefield, number]

@@ -117,7 +117,7 @@ class SimpleStore(object):
     filename = self.KeyToFilename(key)
     try:
       return ReadSsconfFile(filename)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno == errno.ENOENT and default is not None:
         return default
       raise errors.ConfigurationError("Can't read ssconf file %s: %s" %
@@ -423,7 +423,7 @@ class SimpleStore(object):
     try:
       return int(self._ReadFile(constants.SS_PRIMARY_IP_FAMILY,
                                 default=netutils.IP4Address.family))
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       raise errors.ConfigurationError("Error while trying to parse primary IP"
                                       " family: %s" % err)
 
@@ -475,10 +475,10 @@ def CheckMaster(debug, ss=None):
   """
   try:
     master_name, myself = GetMasterAndMyself(ss)
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     print "Cluster configuration incomplete: '%s'" % str(err)
     sys.exit(constants.EXIT_NODESETUP_ERROR)
-  except errors.ResolverError, err:
+  except errors.ResolverError as err:
     sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])
     sys.exit(constants.EXIT_NODESETUP_ERROR)
 
@@ -499,7 +499,7 @@ def VerifyClusterName(name, _cfg_location=None):
 
   try:
     local_name = sstore.GetClusterName()
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     logging.debug("Can't get local cluster name: %s", err)
   else:
     if name != local_name:

@@ -498,7 +498,7 @@ def TestEmptyCluster():
   for method in ["GET", "PUT", "POST", "DELETE"]:
     try:
       _DoTests([("/99/resource/not/here/99", None, method, None)])
-    except rapi.client.GanetiApiError, err:
+    except rapi.client.GanetiApiError as err:
       AssertEqual(err.code, 404)
     else:
       raise qa_error.Error("Non-existent resource didn't return HTTP 404")
@@ -507,7 +507,7 @@ def TestEmptyCluster():
   for method in ["PUT", "POST", "DELETE"]:
     try:
       _DoTests([("/version", None, method, None)])
-    except rapi.client.GanetiApiError, err:
+    except rapi.client.GanetiApiError as err:
       AssertEqual(err.code, 501)
     else:
       raise qa_error.Error("Non-implemented method didn't fail")
@@ -589,7 +589,7 @@ def TestRapiQuery():
       _DoTests([
         ("/2/query/%s" % what, None, "GET", None),
         ])
-    except rapi.client.GanetiApiError, err:
+    except rapi.client.GanetiApiError as err:
       AssertEqual(err.code, 400)
     else:
       raise qa_error.Error("Request missing 'fields' parameter didn't fail")
@@ -1159,7 +1159,7 @@ def TestRapiStoppedInstanceConsole(instance):
   """Test getting stopped instance's console information via RAPI"""
   try:
     _rapi_client.GetInstanceConsole(instance.name)
-  except rapi.client.GanetiApiError, err:
+  except rapi.client.GanetiApiError as err:
     AssertEqual(err.code, 503)
   else:
     raise qa_error.Error("Getting console for stopped instance didn't"

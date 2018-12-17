@@ -155,7 +155,7 @@ class LUTestDelay(NoHooksLU):
       sock.settimeout(self.op.duration)
       start = time.time()
       (conn, _) = sock.accept()
-    except socket.timeout, _:
+    except socket.timeout:
       # If we timed out, all is well
       return False
     finally:
@@ -173,7 +173,7 @@ class LUTestDelay(NoHooksLU):
       # Instance of '_socketobject' has no ... member
       conn.settimeout(time_to_go)
       conn.recv(1)
-    except socket.timeout, _:
+    except socket.timeout:
       # A second timeout can occur if no data is sent
       return False
     finally:
@@ -260,7 +260,7 @@ class LUTestJqueue(NoHooksLU):
     try:
       sock.settimeout(cls._CLIENT_CONNECT_TIMEOUT)
       (conn, _) = sock.accept()
-    except socket.error, err:
+    except socket.error as err:
       raise errcls("Client didn't connect in time (%s)" % err)
     finally:
       socket_wrapper.Destroy()
@@ -272,7 +272,7 @@ class LUTestJqueue(NoHooksLU):
         # Instance of '_socketobject' has no ... member
         conn.settimeout(cls._CLIENT_CONFIRM_TIMEOUT)
         conn.recv(1)
-      except socket.error, err:
+      except socket.error as err:
         raise errcls("Client failed to confirm notification (%s)" % err)
     finally:
       conn.close()

@@ -370,7 +370,7 @@ class JobHandler(FeedbackAccumulator):
         Log("Idempotent %s succeeded after %d retries",
             msg, MAX_RETRIES - retry_count)
       return val
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       if retry_count == 0:
         Log("Non-idempotent %s failed, aborting", msg)
         raise
@@ -461,7 +461,7 @@ class JobHandler(FeedbackAccumulator):
       jex.QueueJob(name, *ops)
     try:
       results = jex.GetResults()
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       Log("Jobs failed: %s", err)
       raise BurninFailure()
 
@@ -472,7 +472,7 @@ class JobHandler(FeedbackAccumulator):
         if post_process:
           try:
             post_process()
-          except Exception, err: # pylint: disable=W0703
+          except Exception as err: # pylint: disable=W0703
             Log("Post process call for job %s failed: %s", name, err)
             fail = True
         val.append(result)
@@ -584,7 +584,7 @@ class Burner(JobHandler):
     try:
       qcl = GetClient()
       result = qcl.QueryNodes(names, ["name", "offline", "drained"], False)
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       err_code, msg = cli.FormatError(err)
       Err(msg, exit_code=err_code)
     finally:
@@ -1255,7 +1255,7 @@ class Burner(JobHandler):
       if not self.opts.keep_instances:
         try:
           self.BurnRemove()
-        except Exception, err:  # pylint: disable=W0703
+        except Exception as err:  # pylint: disable=W0703
           if has_err: # already detected errors, so errors in removal
                       # are quite expected
             Log("Note: error detected during instance remove: %s", err)

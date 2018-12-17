@@ -77,7 +77,7 @@ class LUGroupAdd(LogicalUnit):
       full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
       try:
         objects.InstancePolicy.CheckParameterSyntax(full_ipolicy, False)
-      except errors.ConfigurationError, err:
+      except errors.ConfigurationError as err:
         raise errors.OpPrereqError("Invalid instance policy: %s" % err,
                                    errors.ECODE_INVAL)
       CheckIpolicyVsDiskTemplates(full_ipolicy,
@@ -121,7 +121,7 @@ class LUGroupAdd(LogicalUnit):
       self.new_diskparams = self.op.diskparams
       try:
         utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
-      except errors.OpPrereqError, err:
+      except errors.OpPrereqError as err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)
     else:
@@ -456,7 +456,7 @@ class LUGroupSetParams(LogicalUnit):
         utils.VerifyDictOptions(self.new_diskparams, constants.DISK_DT_DEFAULTS)
         CheckDiskAccessModeConsistency(self.new_diskparams, self.cfg,
                                        group=self.group)
-      except errors.OpPrereqError, err:
+      except errors.OpPrereqError as err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)
 

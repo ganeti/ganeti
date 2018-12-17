@@ -186,7 +186,7 @@ def RunPostHook(lu, node_name):
   hm = lu.proc.BuildHooksManager(lu)
   try:
     hm.RunPhase(constants.HOOKS_PHASE_POST, node_names=[node_name])
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     lu.LogWarning("Errors occurred running hooks on %s: %s",
                   node_name, err)
 
@@ -799,7 +799,7 @@ def GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
         # FIXME: we assume all such values are float
         try:
           ipolicy[key] = float(value)
-        except (TypeError, ValueError), err:
+        except (TypeError, ValueError) as err:
           raise errors.OpPrereqError("Invalid value for attribute"
                                      " '%s': '%s', error: %s" %
                                      (key, value, err), errors.ECODE_INVAL)
@@ -821,7 +821,7 @@ def GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
         ipolicy[key] = list(value)
   try:
     objects.InstancePolicy.CheckParameterSyntax(ipolicy, not group_policy)
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     raise errors.OpPrereqError("Invalid instance policy: %s" % err,
                                errors.ECODE_INVAL)
   return ipolicy

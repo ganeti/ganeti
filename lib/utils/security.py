@@ -114,7 +114,7 @@ def VerifyCertificate(filename):
   try:
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            io.ReadFile(filename))
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     return (constants.CV_ERROR,
             "Failed to load X509 certificate %s: %s" % (filename, err))
 
@@ -154,7 +154,7 @@ def IsCertificateSelfSigned(cert_filename):
   try:
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            io.ReadFile(cert_filename))
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     return (constants.CV_ERROR,
             "Failed to load X509 certificate %s: %s" % (cert_filename, err))
 

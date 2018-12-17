@@ -366,7 +366,7 @@ def _PrepareRegex(pattern):
   """
   try:
     return re.compile(pattern)
-  except re.error, err:
+  except re.error as err:
     raise errors.ParameterError("Invalid regex pattern (%s)" % err)
 
 

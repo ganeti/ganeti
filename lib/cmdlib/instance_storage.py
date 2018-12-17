@@ -154,10 +154,10 @@ def _CreateBlockDevInner(lu, node_uuid, instance, device, force_create,
     created_devices = [(node_uuid, device)]
     return created_devices
 
-  except errors.DeviceCreationError, e:
+  except errors.DeviceCreationError as e:
     e.created_devices.extend(created_devices)
     raise e
-  except errors.OpExecError, e:
+  except errors.OpExecError as e:
     raise errors.DeviceCreationError(str(e), created_devices)
 
 
@@ -294,7 +294,7 @@ def CreateDisks(lu, instance, disk_template=None,
         _CreateBlockDev(lu, node_uuid, instance, device, f_create, info,
                         f_create)
         disks_created.append((node_uuid, device))
-      except errors.DeviceCreationError, e:
+      except errors.DeviceCreationError as e:
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
         disks_created.extend(e.created_devices)
@@ -2615,7 +2615,7 @@ class TLReplaceDisks(Tasklet):
           _CreateBlockDevInner(self.lu, node_uuid, self.instance, new_lv, True,
                                GetInstanceInfoText(self.instance), False,
                                excl_stor)
-        except errors.DeviceCreationError, e:
+        except errors.DeviceCreationError as e:
           raise errors.OpExecError("Can't create block device: %s" % e.message)
 
     return iv_names
@@ -2884,7 +2884,7 @@ class TLReplaceDisks(Tasklet):
           _CreateBlockDevInner(self.lu, self.new_node_uuid, self.instance,
                                new_lv, True, GetInstanceInfoText(self.instance),
                                False, excl_stor)
-        except errors.DeviceCreationError, e:
+        except errors.DeviceCreationError as e:
           raise errors.OpExecError("Can't create block device: %s" % e.message)
 
     # Step 4: dbrd minors and drbd setups changes

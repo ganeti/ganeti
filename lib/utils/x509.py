@@ -437,7 +437,7 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
   """
   try:
     noded_pem = utils_io.ReadFile(_noded_cert_file)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno != errno.ENOENT:
       raise
 
@@ -447,14 +447,14 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
   try:
     noded_cert = \
       OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
-  except Exception, err:
+  except Exception as err:
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load certificate: %s" % err)
 
   try:
     noded_key = \
       OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
-  except Exception, err:
+  except Exception as err:
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load private key: %s" % err)
 

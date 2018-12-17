@@ -62,7 +62,7 @@ def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
   req = struct.pack("I", 0)
   try:
     buf = _ioctl(fd, TUNGETFEATURES, req)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     logging.warning("ioctl(TUNGETFEATURES) failed: %s", err)
     return None
   else:
@@ -172,7 +172,7 @@ def OpenTap(name="", features=None):
 
     try:
       res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to allocate a new TAP device: %s" %
                                    err)
 

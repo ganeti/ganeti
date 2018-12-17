@@ -422,7 +422,7 @@ class BlockDev(object):
                   result.fail_reason, result.output)
     try:
       sz = int(result.output.strip())
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       ThrowError("Failed to parse blockdev output: %s", str(err))
     return sz
 
@@ -493,6 +493,6 @@ def IgnoreError(fn, *args, **kwargs):
   try:
     fn(*args, **kwargs)
     return True
-  except errors.BlockDeviceError, err:
+  except errors.BlockDeviceError as err:
     logging.warning("Caught BlockDeviceError but ignoring: %s", str(err))
     return False

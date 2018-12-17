@@ -347,7 +347,7 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
 
     try:
       utils.CheckNodeCertificate(cert, _noded_cert_file=node_cert)
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       self.assertEqual(str(err),
                        "Given cluster certificate does not match local key")
     else:
@@ -406,7 +406,7 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
 
     try:
       utils.CheckNodeCertificate(cert1, _noded_cert_file=tmpfile)
-    except errors.X509CertError, err:
+    except errors.X509CertError as err:
       self.assertEqual(err.args,
                        (tmpfile, "Certificate does not match with private key"))
     else:

@@ -155,7 +155,7 @@ def _ParseInstanceList(lines, include_node):
       data[3] = int(data[3])
       data[4] = _XenToHypervisorInstanceState(data[4])
       data[5] = float(data[5])
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       raise errors.HypervisorError("Can't parse instance list,"
                                    " line: %s, error: %s" % (line, err))
     except _InstanceCrashed:
@@ -667,7 +667,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     try:
       utils.WriteFile(cfg_file, data=data.getvalue())
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Cannot write Xen instance configuration"
                                    " file %s: %s" % (cfg_file, err))
 
@@ -786,7 +786,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     cfg_file = self._ConfigFileName(instance_name)
     try:
       utils.WriteFile(cfg_file, data=data)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Cannot write Xen instance configuration"
                                    " file %s: %s" % (cfg_file, err))
 
@@ -798,7 +798,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     try:
       file_content = utils.ReadFile(filename)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to load Xen config file: %s" % err)
 
     return file_content
@@ -810,7 +810,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(self._ConfigFileName(instance_name))
     try:
       shutil.rmtree(self._InstanceNICDir(instance_name))
-    except OSError, err:
+    except OSError as err:
       if err.errno != errno.ENOENT:
         raise
 
@@ -1707,7 +1707,7 @@ class XenHvmHypervisor(XenHypervisor):
     vnc_pwd_file = hvp[constants.HV_VNC_PASSWORD_FILE]
     try:
       password = utils.ReadFile(vnc_pwd_file)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to open VNC password file %s: %s" %
                                    (vnc_pwd_file, err))
 

@@ -110,7 +110,7 @@ def ReadFile(file_name, default=NoDefault):
   logging.debug("Reading %s", file_name)
   try:
     fh = open(file_name, "r")
-  except IOError, err:
+  except IOError as err:
     if default is not NoDefault and err.errno == errno.ENOENT:
       return default
     raise

@@ -84,7 +84,7 @@ class TestCancelJob(unittest.TestCase):
     try:
       gnt_job.CancelJobs(opts, ["a"], cl=NotImplemented,
                          _stdout_fn=NotImplemented, _ask_fn=NotImplemented)
-    except errors.OpPrereqError, err:
+    except errors.OpPrereqError as err:
       self.assertEqual(err.args[1], errors.ECODE_INVAL)
     else:
       self.fail("Did not raise exception")

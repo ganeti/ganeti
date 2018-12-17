@@ -312,7 +312,7 @@ def _InitFileStorageDir(file_storage_dir):
   if not os.path.exists(file_storage_dir):
     try:
       os.makedirs(file_storage_dir, 0750)
-    except OSError, err:
+    except OSError as err:
       raise errors.OpPrereqError("Cannot create file storage directory"
                                  " '%s': %s" % (file_storage_dir, err),
                                  errors.ECODE_ENVIRON)
@@ -470,7 +470,7 @@ def _InitCheckDrbdHelper(drbd_helper, drbd_enabled):
   if drbd_helper is not None:
     try:
       curr_helper = drbd.DRBD8.GetUsermodeHelper()
-    except errors.BlockDeviceError, err:
+    except errors.BlockDeviceError as err:
       raise errors.OpPrereqError("Error while checking drbd helper"
                                  " (disable drbd with --enabled-disk-templates"
                                  " if you are not using drbd): %s" % str(err),
@@ -693,7 +693,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
   try:
     utils.VerifyDictOptions(diskparams, constants.DISK_DT_DEFAULTS)
-  except errors.OpPrereqError, err:
+  except errors.OpPrereqError as err:
     raise errors.OpPrereqError("While verify diskparam options: %s" % err,
                                errors.ECODE_INVAL)
 
@@ -734,7 +734,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   # check if we have all the users we need
   try:
     runtime.GetEnts()
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     raise errors.OpPrereqError("Required system user/group missing: %s" %
                                err, errors.ECODE_ENVIRON)
 
@@ -1068,7 +1068,7 @@ def MasterFailover(no_voting=False):
                  " %s, please disable manually: %s" % (old_master, msg))
       logging.error("%s", warning)
       warnings.append(warning)
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError as err:
     logging.error("Error while trying to set the new master: %s",
                   str(err))
     return 1, warnings

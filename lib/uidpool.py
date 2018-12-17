@@ -77,13 +77,13 @@ def ParseUidPool(value, separator=None):
           % boundaries, errors.ECODE_INVAL)
     try:
       lower = int(boundaries[0])
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       raise errors.OpPrereqError("Invalid user-id value for lower boundary of"
                                  " user-id range: %s"
                                  % str(err), errors.ECODE_INVAL)
     try:
       higher = int(boundaries[n_elements - 1])
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       raise errors.OpPrereqError("Invalid user-id value for higher boundary of"
                                  " user-id range: %s"
                                  % str(err), errors.ECODE_INVAL)
@@ -257,7 +257,7 @@ def RequestUnusedUid(all_uids):
         <start a process with the UID>
         # Once the process is started, we can release the file lock
         uid.Unlock()
-      except ..., err:
+      except ... as err:
         # Return the UID to the pool
         uidpool.ReleaseUid(uid)
 
@@ -279,7 +279,7 @@ def RequestUnusedUid(all_uids):
   # Create the lock dir if it's not yet present
   try:
     utils.EnsureDirs([(pathutils.UIDPOOL_LOCKDIR, 0755)])
-  except errors.GenericError, err:
+  except errors.GenericError as err:
     raise errors.LockError("Failed to create user-id pool lock dir: %s" % err)
 
   # Get list of currently used uids from the filesystem
@@ -288,11 +288,11 @@ def RequestUnusedUid(all_uids):
     for taken_uid in os.listdir(pathutils.UIDPOOL_LOCKDIR):
       try:
         taken_uid = int(taken_uid)
-      except ValueError, err:
+      except ValueError as err:
         # Skip directory entries that can't be converted into an integer
         continue
       taken_uids.add(taken_uid)
-  except OSError, err:
+  except OSError as err:
     raise errors.LockError("Failed to get list of used user-ids: %s" % err)
 
   # Filter out spurious entries from the directory listing
@@ -317,7 +317,7 @@ def RequestUnusedUid(all_uids):
       # (or can't) lock it later is what matters.
       uid_path = utils.PathJoin(pathutils.UIDPOOL_LOCKDIR, str(uid))
       lock = utils.FileLock.Open(uid_path)
-    except OSError, err:
+    except OSError as err:
       raise errors.LockError("Failed to create lockfile for user-id %s: %s"
                              % (uid, err))
     try:
@@ -330,12 +330,12 @@ def RequestUnusedUid(all_uids):
         lock.Unlock()
         continue
       return LockedUid(uid, lock)
-    except IOError, err:
+    except IOError as err:
       if err.errno == errno.EAGAIN:
         # The file is already locked, let's skip it and try another unused uid
         logging.debug("Lockfile for user-id is already locked %s: %s", uid, err)
         continue
-    except errors.LockError, err:
+    except errors.LockError as err:
       # There was an unexpected error while trying to lock the file
       logging.error("Failed to lock the lockfile for user-id %s: %s", uid, err)
       raise
@@ -360,7 +360,7 @@ def ReleaseUid(uid):
   try:
     uid_path = utils.PathJoin(pathutils.UIDPOOL_LOCKDIR, uid_filename)
     os.remove(uid_path)
-  except OSError, err:
+  except OSError as err:
     raise errors.LockError("Failed to remove user-id lockfile"
                            " for user-id %s: %s" % (uid_filename, err))
 

@@ -98,7 +98,7 @@ class RapiMock(object):
       if not hasattr(self._last_handler, method.upper()):
         raise http.HttpNotImplemented(message="Method not implemented")
 
-    except http.HttpException, ex:
+    except http.HttpException as ex:
       code = ex.code
       response = ex.message
     else:
@@ -439,7 +439,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.rapi.AddResponse(None, code=404)
     try:
       self.client.GetJobStatus(15140)
-    except client.GanetiApiError, err:
+    except client.GanetiApiError as err:
       self.assertEqual(err.code, 404)
     else:
       self.fail("Didn't raise exception")

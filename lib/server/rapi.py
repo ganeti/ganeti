@@ -206,7 +206,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
       result = ctx.handler_fn()
     except rpcerr.TimeoutError:
       raise http.HttpGatewayTimeout()
-    except rpcerr.ProtocolError, err:
+    except rpcerr.ProtocolError as err:
       raise http.HttpBadGateway(str(err))
 
     req.resp_headers[http.HTTP_CONTENT_TYPE] = http.HTTP_APP_JSON
@@ -241,7 +241,7 @@ class RapiUsers(object):
     try:
       try:
         contents = utils.ReadFile(filename)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         self._users = None
         if err.errno == errno.ENOENT:
           logging.warning("No users file at %s", filename)
@@ -251,7 +251,7 @@ class RapiUsers(object):
 
       users = http.auth.ParsePasswordFile(contents)
 
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       # We don't care about the type of exception
       logging.error("Error while parsing %s: %s", filename, err)
       return False

@@ -76,12 +76,12 @@ def _VerifyCertificateStrong(cert_pem, error_fn,
   try:
     cert = \
       OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except Exception, err:
+  except Exception as err:
     raise error_fn("(stdin) Unable to load certificate: %s" % err)
 
   try:
     key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except OpenSSL.crypto.Error, err:
+  except OpenSSL.crypto.Error as err:
     raise error_fn("(stdin) Unable to load private key: %s" % err)
 
   # Check certificate with given key; this detects cases where the key given on
@@ -120,7 +120,7 @@ def _VerifyCertificateSoft(cert_pem, error_fn,
   """
   try:
     OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except OpenSSL.crypto.Error, err:
+  except OpenSSL.crypto.Error as err:
     pass
   else:
     raise error_fn("No private key may be given")
@@ -128,7 +128,7 @@ def _VerifyCertificateSoft(cert_pem, error_fn,
   try:
     cert = \
       OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except Exception, err:
+  except Exception as err:
     raise errors.X509CertError("(stdin)",
                                "Unable to load certificate: %s" % err)
 

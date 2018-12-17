@@ -128,7 +128,7 @@ class _SingleNotifyPipeConditionWaiter(object):
 
       try:
         result = poller.poll(remaining_time)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         if err.errno != errno.EINTR:
           raise
         result = None

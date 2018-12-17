@@ -168,7 +168,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
       f, args, kwargs = self._cleanups.pop(-1)
       try:
         f(*args, **kwargs)
-      except BaseException, e:
+      except BaseException as e:
         sys.stderr.write('Error in cleanup: %s\n' % e)
 
   def _GetTestModule(self):
@@ -268,12 +268,12 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     """
     try:
       self.ExecOpCode(opcode)
-    except expected_exception, e:
+    except expected_exception as e:
       if expected_regex is not None:
         assert re.search(expected_regex, str(e)) is not None, \
                 "Caught exception '%s' did not match '%s'" % \
                   (str(e), expected_regex)
-    except Exception, e:
+    except Exception as e:
       tb = traceback.format_exc()
       raise AssertionError("%s\n(See original exception above)\n"
                            "Expected exception '%s' was not raised,"

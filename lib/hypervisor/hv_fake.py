@@ -94,7 +94,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         return (instance_name, inst_id, memory, vcpus, stat, times)
       finally:
         fh.close()
-    except IOError, err:
+    except IOError as err:
       raise errors.HypervisorError("Failed to list instance %s: %s" %
                                    (instance_name, err))
 
@@ -124,7 +124,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         finally:
           fh.close()
         data.append((file_name, inst_id, memory, vcpus, stat, times))
-      except IOError, err:
+      except IOError as err:
         raise errors.HypervisorError("Failed to list instances: %s" % err)
     return data
 
@@ -179,7 +179,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, "already running"))
     try:
       self._MarkUp(instance, self._InstanceStartupMemory(instance))
-    except IOError, err:
+    except IOError as err:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, err))
 
@@ -222,7 +222,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, "not running"))
     try:
       self._MarkUp(instance, mem)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to balloon memory for %s: %s" %
                                    (instance.name, utils.ErrnoOrStr(err)))
 

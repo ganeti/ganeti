@@ -236,7 +236,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
       timeout_action = _TIMEOUT_NONE
       status = _RunCmdFile(cmd, cmd_env, shell, output, cwd, noclose_fds)
       out = err = ""
-  except OSError, err:
+  except OSError as err:
     if err.errno == errno.ENOENT:
       raise errors.OpExecError("Can't execute '%s': not found (%s)" %
                                (strcmd, err))
@@ -291,7 +291,7 @@ def SetupDaemonFDs(output_file, output_fd):
     try:
       output_fd = os.open(output_file,
                           os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0600)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise Exception("Opening output file failed: %s" % err)
   else:
     output_fd = os.open(os.devnull, os.O_WRONLY)
@@ -394,7 +394,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
 
   try:
     return int(pidtext)
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError) as err:
     raise errors.OpExecError("Error while trying to parse PID %r: %s" %
                              (pidtext, err))
 
@@ -726,7 +726,7 @@ def RunParts(dir_name, env=None, reset_env=False):
 
   try:
     dir_contents = utils_io.ListVisibleFiles(dir_name)
-  except OSError, err:
+  except OSError as err:
     logging.warning("RunParts: skipping %s (cannot list: %s)", dir_name, err)
     return rr
 
@@ -738,7 +738,7 @@ def RunParts(dir_name, env=None, reset_env=False):
     else:
       try:
         result = RunCmd([fname], env=env, reset_env=reset_env)
-      except Exception, err: # pylint: disable=W0703
+      except Exception as err: # pylint: disable=W0703
         rr.append((relname, constants.RUNPARTS_ERR, str(err)))
       else:
         rr.append((relname, constants.RUNPARTS_RUN, result))
@@ -790,7 +790,7 @@ def IsProcessAlive(pid):
     try:
       os.stat(name)
       return True
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno in (errno.ENOENT, errno.ENOTDIR):
         return False
       elif err.errno == errno.EINVAL:
@@ -806,7 +806,7 @@ def IsProcessAlive(pid):
   try:
     return utils_retry.Retry(_TryStat, (0.01, 1.5, 0.1), 0.5,
                              args=[_GetProcStatusPath(pid)])
-  except utils_retry.RetryTimeout, err:
+  except utils_retry.RetryTimeout as err:
     err.RaiseInner()
 
 
@@ -893,7 +893,7 @@ def IsProcessHandlingSignal(pid, signum, status_path=None):
 
   try:
     proc_status = utils_io.ReadFile(status_path)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     # In at least one case, reading /proc/$pid/status failed with ESRCH.
     if err.errno in (errno.ENOENT, errno.ENOTDIR, errno.EINVAL, errno.ESRCH):
       return False

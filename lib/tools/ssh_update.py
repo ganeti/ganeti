@@ -225,7 +225,7 @@ def Main():
     GenerateRootSshKeys(data, opts.dry_run)
 
     logging.info("Setup finished successfully")
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.debug("Caught unhandled exception", exc_info=True)
 
     (retcode, message) = cli.FormatError(err)

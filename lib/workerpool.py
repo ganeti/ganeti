@@ -205,7 +205,7 @@ class BaseWorker(threading.Thread, object):
           finally:
             self.SetTaskName(None)
           logging.debug("Done with task %r, priority %s", args, priority)
-        except DeferTask, err:
+        except DeferTask as err:
           defer = err
 
           if defer.priority is None:

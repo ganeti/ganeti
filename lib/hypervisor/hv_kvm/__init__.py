@@ -732,7 +732,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     cmdline_file = utils.PathJoin("/proc", str(pid), "cmdline")
     try:
       cmdline = utils.ReadFile(cmdline_file)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Can't open cmdline file for pid %s: %s" %
                                    (pid, err))
 
@@ -912,13 +912,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       uidpool.ReleaseUid(uid)
     try:
       shutil.rmtree(cls._InstanceNICDir(instance_name))
-    except OSError, err:
+    except OSError as err:
       if err.errno != errno.ENOENT:
         raise
     try:
       chroot_dir = cls._InstanceChrootDir(instance_name)
       utils.RemoveDir(chroot_dir)
-    except OSError, err:
+    except OSError as err:
       if err.errno == errno.ENOTEMPTY:
         # The chroot directory is expected to be empty, but it isn't.
         new_chroot_dir = tempfile.mkdtemp(dir=cls._CHROOT_QUARANTINE_DIR,
@@ -1683,7 +1683,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     try:
       utils.WriteFile(self._InstanceKVMRuntime(instance_name),
                       data=data)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to save KVM runtime file: %s" % err)
 
   def _ReadKVMRuntime(self, instance_name):
@@ -1692,7 +1692,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     try:
       file_content = utils.ReadFile(self._InstanceKVMRuntime(instance_name))
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
     return file_content
 
@@ -1943,7 +1943,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if vnc_pwd_file:
       try:
         vnc_pwd = utils.ReadOneLineFile(vnc_pwd_file, strict=True)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         raise errors.HypervisorError("Failed to open VNC password file %s: %s"
                                      % (vnc_pwd_file, err))
 
@@ -2026,7 +2026,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       spice_pwd = ""
       try:
         spice_pwd = utils.ReadOneLineFile(spice_password_file, strict=True)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         raise errors.HypervisorError("Failed to open SPICE password file %s: %s"
                                      % (spice_password_file, err))
 
@@ -2510,13 +2510,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         continue
       try:
         tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         logging.warning("Failed to find host interface for %s NIC #%d: %s",
                         instance.name, nic_seq, str(err))
         continue
       try:
         self._ConfigureNIC(instance, nic_seq, nic, tap)
-      except errors.HypervisorError, err:
+      except errors.HypervisorError as err:
         logging.warning(str(err))
 
   def FinalizeMigrationDst(self, instance, info, success):

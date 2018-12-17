@@ -1224,7 +1224,7 @@ def GenericMain(commands, override=None, aliases=None,
     ToStdout("%s (ganeti %s) %s", binary, constants.VCS_VERSION,
              constants.RELEASE_VERSION)
     return constants.EXIT_SUCCESS
-  except _ShowUsage, err:
+  except _ShowUsage as err:
     for line in _FormatUsage(binary, commands):
       ToStdout(line)
 
@@ -1232,7 +1232,7 @@ def GenericMain(commands, override=None, aliases=None,
       return constants.EXIT_FAILURE
     else:
       return constants.EXIT_SUCCESS
-  except errors.ParameterError, err:
+  except errors.ParameterError as err:
     result, err_msg = FormatError(err)
     ToStderr(err_msg)
     return 1
@@ -1252,7 +1252,7 @@ def GenericMain(commands, override=None, aliases=None,
   try:
     result = func(options, args)
   except (errors.GenericError, rpcerr.ProtocolError,
-          errors.JobSubmittedException), err:
+          errors.JobSubmittedException) as err:
     result, err_msg = FormatError(err)
     logging.exception("Error during command processing")
     ToStderr(err_msg)
@@ -1261,7 +1261,7 @@ def GenericMain(commands, override=None, aliases=None,
     ToStderr("Aborted. Note that if the operation created any jobs, they"
              " might have been submitted and"
              " will continue to run in the background.")
-  except IOError, err:
+  except IOError as err:
     if err.errno == errno.EPIPE:
       # our terminal went away, we'll exit
       sys.exit(constants.EXIT_FAILURE)
@@ -1277,7 +1277,7 @@ def ParseNicOption(optvalue):
   """
   try:
     nic_max = max(int(nidx[0]) + 1 for nidx in optvalue)
-  except (TypeError, ValueError), err:
+  except (TypeError, ValueError) as err:
     raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err),
                                errors.ECODE_INVAL)
 
@@ -1369,7 +1369,7 @@ def GenericInstanceCreate(mode, opts, args):
     if opts.disks:
       try:
         disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
-      except ValueError, err:
+      except ValueError as err:
         raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err),
                                    errors.ECODE_INVAL)
       disks = [{}] * disk_max
@@ -1387,7 +1387,7 @@ def GenericInstanceCreate(mode, opts, args):
         try:
           ddict[constants.IDISK_SIZE] = \
             utils.ParseUnit(ddict[constants.IDISK_SIZE])
-        except ValueError, err:
+        except ValueError as err:
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
                                      (didx, err), errors.ECODE_INVAL)
       elif constants.IDISK_ADOPT in ddict:
@@ -1598,7 +1598,7 @@ class _RunWhileDaemonsStoppedHelper(object):
         # All daemons are shut down now
         try:
           return fn(self, *args)
-        except Exception, err:
+        except Exception as err:
           _, errmsg = FormatError(err)
           logging.exception("Caught exception")
           self.feedback_fn(errmsg)
@@ -2379,7 +2379,7 @@ def _ToStream(stream, txt, *args):
       stream.write(txt)
     stream.write("\n")
     stream.flush()
-  except IOError, err:
+  except IOError as err:
     if err.errno == errno.EPIPE:
       # our terminal went away, we'll exit
       sys.exit(constants.EXIT_FAILURE)
@@ -2529,12 +2529,12 @@ class JobExecutor(object):
       try:
         job_result = PollJob(jid, cl=self.cl, feedback_fn=self.feedback_fn)
         success = True
-      except errors.JobLost, err:
+      except errors.JobLost as err:
         _, job_result = FormatError(err)
         ToStderr("Job %s%s has been archived, cannot check its result",
                  jid, self._IfName(name, " for %s"))
         success = False
-      except (errors.GenericError, rpcerr.ProtocolError), err:
+      except (errors.GenericError, rpcerr.ProtocolError) as err:
         _, job_result = FormatError(err)
         success = False
         # the error message will always be shown, verbose or not
@@ -2758,7 +2758,7 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
       ispecs_mem_size = _MaybeParseUnit(ispecs_mem_size)
     if ispecs_disk_size:
       ispecs_disk_size = _MaybeParseUnit(ispecs_disk_size)
-  except (TypeError, ValueError, errors.UnitParseError), err:
+  except (TypeError, ValueError, errors.UnitParseError) as err:
     raise errors.OpPrereqError("Invalid disk (%s) or memory (%s) size"
                                " in policy: %s" %
                                (ispecs_disk_size, ispecs_mem_size, err),
@@ -2815,7 +2815,7 @@ def _ParseSpecUnit(spec, keyname):
     if k in ret:
       try:
         ret[k] = utils.ParseUnit(ret[k])
-      except (TypeError, ValueError, errors.UnitParseError), err:
+      except (TypeError, ValueError, errors.UnitParseError) as err:
         raise errors.OpPrereqError(("Invalid parameter %s (%s) in %s instance"
                                     " specs: %s" % (k, ret[k], keyname, err)),
                                    errors.ECODE_INVAL)

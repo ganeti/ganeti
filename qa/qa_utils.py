@@ -47,7 +47,7 @@ import yaml
 
 try:
   import functools
-except ImportError, err:
+except ImportError as err:
   raise ImportError("Python 2.5 or higher is required: %s" % err)
 
 from ganeti import utils

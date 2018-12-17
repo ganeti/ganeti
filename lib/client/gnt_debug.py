@@ -147,7 +147,7 @@ def TestAllocator(opts, args):
       constants.IDISK_SIZE: utils.ParseUnit(val),
       constants.IDISK_MODE: constants.DISK_RDWR,
       } for val in opts.disks.split(",")]
-  except errors.UnitParseError, err:
+  except errors.UnitParseError as err:
     ToStderr("Invalid disks parameter '%s': %s", opts.disks, err)
     return 1
 
@@ -204,7 +204,7 @@ def _TestJobDependency(opts):
   try:
     cl = cli.GetClient()
     SubmitOpCode(opcodes.OpTestDelay(duration=0, depends=[(-1, None)]), cl=cl)
-  except errors.GenericError, err:
+  except errors.GenericError as err:
     if opts.debug:
       ToStdout("Ignoring error for 'wrong dependencies' test: %s", err)
   else:
@@ -309,7 +309,7 @@ def _TestJobSubmission(opts):
     try:
       cl = cli.GetClient()
       cl.SubmitJob(ops)
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       if opts.debug:
         ToStdout("Ignoring error for 'wrong priority' test: %s", err)
     else:
@@ -326,7 +326,7 @@ def _TestJobSubmission(opts):
     try:
       cl = cli.GetClient()
       cl.SubmitManyJobs(jobs)
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       if opts.debug:
         ToStdout("Ignoring error for 'wrong priority' test: %s", err)
     else:
@@ -527,7 +527,7 @@ def TestJobqueue(opts, _):
 
     try:
       results = cli.PollJob(job_id, cl=cl, reporter=reporter)
-    except errors.OpExecError, err:
+    except errors.OpExecError as err:
       if not fail:
         raise
       ToStdout("Ignoring error for 'job fail' test: %s", err)

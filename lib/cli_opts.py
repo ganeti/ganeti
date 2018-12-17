@@ -290,7 +290,7 @@ def check_unit(option, opt, value): # pylint: disable=W0613
   """
   try:
     return utils.ParseUnit(value)
-  except errors.UnitParseError, err:
+  except errors.UnitParseError as err:
     raise OptionValueError("option %s: %s" % (opt, err))
 
 

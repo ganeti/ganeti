@@ -951,7 +951,7 @@ class _JobProcessor(object):
       assert op.status == constants.OP_STATUS_CANCELING
       return (constants.OP_STATUS_CANCELING, None)
 
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       logging.exception("%s: Caught exception in %s",
                         opctx.log_prefix, opctx.summary)
       return (constants.OP_STATUS_ERROR, _EncodeOpError(err))
@@ -1192,7 +1192,7 @@ class _JobDependencyManager(object):
     # Get status of dependency job
     try:
       status = self._getstatus_fn(dep_job_id)
-    except errors.JobLost, err:
+    except errors.JobLost as err:
       return (self.ERROR, "Dependency error: %s" % err)
 
     assert status in constants.JOB_STATUS_ALL
@@ -1499,7 +1499,7 @@ class JobQueue(object):
       logging.debug("Loading job from %s", filepath)
       try:
         raw_data = utils.ReadFile(filepath)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         if err.errno != errno.ENOENT:
           raise
       else:
@@ -1515,7 +1515,7 @@ class JobQueue(object):
     try:
       data = serializer.LoadJson(raw_data)
       job = _QueuedJob.Restore(self, data, writable, archived)
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       raise errors.JobFileCorrupted(err)
 
     return job

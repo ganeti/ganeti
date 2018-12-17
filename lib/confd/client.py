@@ -271,7 +271,7 @@ class ConfdClient(object):
     try:
       try:
         answer, salt = self._UnpackReply(payload)
-      except (errors.SignatureError, errors.ConfdMagicError), err:
+      except (errors.SignatureError, errors.ConfdMagicError) as err:
         if self._logger:
           self._logger.debug("Discarding broken package: %s" % err)
         return

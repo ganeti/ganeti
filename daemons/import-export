@@ -432,7 +432,7 @@ def ParseOptions():
   if options.host is not None and not netutils.IPAddress.IsValid(options.host):
     try:
       options.host = netutils.Hostname.GetNormalizedName(options.host)
-    except errors.OpPrereqError, err:
+    except errors.OpPrereqError as err:
       parser.error("Invalid hostname '%s': %s" % (options.host, err))
 
   if options.port is not None:
@@ -442,7 +442,7 @@ def ParseOptions():
       options.exp_size != constants.IE_CUSTOM_SIZE):
     try:
       options.exp_size = int(options.exp_size)
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError) as err:
       # Won't return
       parser.error("Invalid value for --expected-size: %s (%s)" %
                    (options.exp_size, err))
@@ -556,7 +556,7 @@ class ChildProcess(subprocess.Popen):
     # explanation, see preexec function for child.
     try:
       os.setpgid(self.pid, self.pid)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       # If the child process was faster we receive EPERM or EACCES
       if err.errno not in (errno.EPERM, errno.EACCES):
         raise
@@ -672,7 +672,7 @@ def main():
         errmsg = "Exited with status %s" % (child.returncode, )
 
       status_file.SetExitStatus(child.returncode, errmsg)
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       logging.exception("Unhandled error occurred")
       status_file.SetExitStatus(constants.EXIT_FAILURE,
                                 "Unhandled error occurred: %s" % (err, ))

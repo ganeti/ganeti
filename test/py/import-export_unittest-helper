@@ -59,7 +59,7 @@ def Log(msg, *args):
 def _GetImportExportData(filename):
   try:
     data = utils.ReadFile(filename)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     Log("%s = %s", filename, err)
     if err.errno != errno.ENOENT:
       raise

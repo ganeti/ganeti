@@ -119,9 +119,9 @@ class Transport(object):
     sock.settimeout(timeout)
     try:
       sock.connect(address)
-    except socket.timeout, err:
+    except socket.timeout as err:
       raise errors.TimeoutError("Connect timed out: %s" % str(err))
-    except socket.error, err:
+    except socket.error as err:
       error_code = err.args[0]
       if error_code in (errno.ENOENT, errno.ECONNREFUSED):
         if not allow_non_master:
@@ -162,7 +162,7 @@ class Transport(object):
     try:
       # TODO: sendall is not guaranteed to send everything
       self.socket.sendall(msg + constants.LUXI_EOM)
-    except socket.timeout, err:
+    except socket.timeout as err:
       raise errors.TimeoutError("Sending timeout: %s" % str(err))
 
   def Recv(self):
@@ -182,9 +182,9 @@ class Transport(object):
       while True:
         try:
           data = self.socket.recv(4096)
-        except socket.timeout, err:
+        except socket.timeout as err:
           raise errors.TimeoutError("Receive timeout: %s" % str(err))
-        except socket.error, err:
+        except socket.error as err:
           if err.args and err.args[0] == errno.EAGAIN:
             continue
           raise
@@ -232,7 +232,7 @@ class Transport(object):
         logging.error("Network error: %s, retring (retry attempt number %d)",
                       ex, try_no + 1)
         time.sleep(wait_on_error * try_no)
-      except Exception, ex:
+      except Exception as ex:
         on_error(ex)
         raise
     assert False # we should never get here

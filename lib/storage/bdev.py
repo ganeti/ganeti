@@ -281,7 +281,7 @@ class LogicalVolume(base.BlockDev):
     try:
       info = cls._GetVolumeInfo("pvs", ["pv_name", "vg_name", "pv_free",
                                         "pv_attr", "pv_size", lvfield])
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       logging.error("Can't get PV information: %s", err)
       return None
 
@@ -377,7 +377,7 @@ class LogicalVolume(base.BlockDev):
     try:
       info = cls._GetVolumeInfo("vgs", ["vg_name", "vg_free", "vg_attr",
                                         "vg_size"])
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       logging.error("Can't get VG information: %s", err)
       return None
 
@@ -467,17 +467,17 @@ class LogicalVolume(base.BlockDev):
     try:
       major = int(major)
       minor = int(minor)
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       base.ThrowError("lvs major/minor cannot be parsed: %s", str(err))
 
     try:
       pe_size = int(float(pe_size))
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       base.ThrowError("Can't parse vg extent size: %s", err)
 
     try:
       stripes = int(stripes)
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       base.ThrowError("Can't parse the number of stripes: %s", err)
 
     pv_names = []
@@ -808,7 +808,7 @@ class PersistentBlockDevice(base.BlockDev):
     self.attached = False
     try:
       st = os.stat(self.dev_path)
-    except OSError, err:
+    except OSError as err:
       logging.error("Error stat()'ing %s: %s", self.dev_path, str(err))
       return False
 
@@ -954,7 +954,7 @@ class RADOSBlockDevice(base.BlockDev):
 
     try:
       st = os.stat(self.dev_path)
-    except OSError, err:
+    except OSError as err:
       logging.error("Error stat()'ing %s: %s", self.dev_path, str(err))
       return False
 
@@ -1061,7 +1061,7 @@ class RADOSBlockDevice(base.BlockDev):
     """
     try:
       devices = serializer.LoadJson(output)
-    except ValueError, err:
+    except ValueError as err:
       base.ThrowError("Unable to parse JSON data: %s" % err)
 
     # since ceph mimic the json output changed from dict to list

@@ -476,7 +476,7 @@ class ChildIOProcessor(object):
     logging.debug("Sending signal %s to PID %s", DD_INFO_SIGNAL, self._dd_pid)
     try:
       os.kill(self._dd_pid, DD_INFO_SIGNAL)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno != errno.ESRCH:
         raise
 
@@ -536,7 +536,7 @@ class ChildIOProcessor(object):
       if line:
         try:
           exp_size = utils.BytesToMebibyte(int(line))
-        except (ValueError, TypeError), err:
+        except (ValueError, TypeError) as err:
           logging.error("Failed to convert predicted size %r to number: %s",
                         line, err)
           exp_size = None

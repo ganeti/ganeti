@@ -177,7 +177,7 @@ class TestQaConfigLoad(unittest.TestCase):
 
     try:
       qa_config._QaConfig.Load(filename)
-    except qa_error.Error, err:
+    except qa_error.Error as err:
       self.assertTrue(str(err).startswith(expected))
     else:
       self.fail("Exception was not raised")

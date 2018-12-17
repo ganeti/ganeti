@@ -279,7 +279,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         hv_class = hypervisor.GetHypervisorClass(hv_name)
         utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
         hv_class.CheckParameterSyntax(hv_params)
-      except errors.GenericError, err:
+      except errors.GenericError as err:
         self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg % str(err))
 
   def ExpandNames(self):

@@ -511,7 +511,7 @@ def GetMountInfo():
       continue
     try:
       dev = os.stat(mountpoint).st_dev
-    except OSError, err:
+    except OSError as err:
       # this should be a fairly rare error, since we are blacklisting
       # network filesystems; with this in mind, we'll ignore it,
       # since the rereadpt check catches in-use filesystems,
@@ -630,7 +630,7 @@ def CheckSysfsHolders(name):
   """
   try:
     contents = os.listdir("%s/holders/" % SysfsName(name))
-  except OSError, err:
+  except OSError as err:
     if err.errno == errno.ENOENT:
       contents = []
     else:
@@ -936,25 +936,25 @@ def main():
   """
   try:
     BootStrap()
-  except PrereqError, err:
+  except PrereqError as err:
     print >> sys.stderr, "The prerequisites for running this tool are not met."
     print >> sys.stderr, ("Please make sure you followed all the steps in"
                           " the build document.")
     print >> sys.stderr, "Description: %s" % str(err)
     sys.exit(1)
-  except SysconfigError, err:
+  except SysconfigError as err:
     print >> sys.stderr, ("This system's configuration seems wrong, at"
                           " least is not what I expect.")
     print >> sys.stderr, ("Please check that the installation didn't fail"
                           " at some step.")
     print >> sys.stderr, "Description: %s" % str(err)
     sys.exit(1)
-  except ParameterError, err:
+  except ParameterError as err:
     print >> sys.stderr, ("Some parameters you gave to the program or the"
                           " invocation is wrong. ")
     print >> sys.stderr, "Description: %s" % str(err)
     Usage()
-  except OperationalError, err:
+  except OperationalError as err:
     print >> sys.stderr, ("A serious error has happened while modifying"
                           " the system's configuration.")
     print >> sys.stderr, ("Please review the error message below and make"
@@ -963,15 +963,15 @@ def main():
                           " has been partially altered.")
     print >> sys.stderr, str(err)
     sys.exit(1)
-  except ProgrammingError, err:
+  except ProgrammingError as err:
     print >> sys.stderr, ("Internal application error. Please report this"
                           " to the Ganeti developer list.")
     print >> sys.stderr, "Error description: %s" % str(err)
     sys.exit(1)
-  except Error, err:
+  except Error as err:
     print >> sys.stderr, "Unhandled application error: %s" % err
     sys.exit(1)
-  except (IOError, OSError), err:
+  except (IOError, OSError) as err:
     print >> sys.stderr, "I/O error detected, please report."
     print >> sys.stderr, "Description: %s" % str(err)
     sys.exit(1)

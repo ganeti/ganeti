@@ -362,7 +362,7 @@ def RemoveFile(filename):
   """
   try:
     os.unlink(filename)
-  except OSError, err:
+  except OSError as err:
     if err.errno not in (errno.ENOENT, errno.EISDIR):
       raise
 
@@ -380,7 +380,7 @@ def RemoveDir(dirname):
   """
   try:
     os.rmdir(dirname)
-  except OSError, err:
+  except OSError as err:
     if err.errno != errno.ENOENT:
       raise
 
@@ -408,7 +408,7 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750, dir_uid=None,
   """
   try:
     return os.rename(old, new)
-  except OSError, err:
+  except OSError as err:
     # In at least one use case of this function, the job queue, directory
     # creation is very rare. Checking for the directory before renaming is not
     # as efficient.
@@ -459,7 +459,7 @@ def EnforcePermission(path, mode, uid=None, gid=None, must_exist=True,
         logging.debug("Changing owner of %s from UID %s/GID %s to"
                       " UID %s/GID %s", path, fuid, fgid, uid, gid)
         _chown_fn(path, uid, gid)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno == errno.ENOENT:
       if must_exist:
         raise errors.GenericError("Path %s should exist, but does not" % path)
@@ -485,7 +485,7 @@ def MakeDirWithPerm(path, mode, uid, gid, _lstat_fn=os.lstat,
   try:
     # We don't want to follow symlinks
     st = _lstat_fn(path)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno != errno.ENOENT:
       raise errors.GenericError("stat(2) on %s failed: %s" % (path, err))
     _mkdir_fn(path)
@@ -506,7 +506,7 @@ def Makedirs(path, mode=0750):
   """
   try:
     os.makedirs(path, mode)
-  except OSError, err:
+  except OSError as err:
     # Ignore EEXIST. This is only handled in os.makedirs as included in
     # Python 2.5 and above.
     if err.errno != errno.EEXIST or not os.path.exists(path):
@@ -597,13 +597,13 @@ def EnsureDirs(dirs):
   for dir_name, dir_mode in dirs:
     try:
       os.mkdir(dir_name, dir_mode)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno != errno.EEXIST:
         raise errors.GenericError("Cannot create needed directory"
                                   " '%s': %s" % (dir_name, err))
     try:
       os.chmod(dir_name, dir_mode)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.GenericError("Cannot change directory permissions on"
                                 " '%s' to 0%o: %s" % (dir_name, dir_mode, err))
     if not os.path.isdir(dir_name):
@@ -805,7 +805,7 @@ def ReadPidFile(pidfile):
   """
   try:
     raw_data = ReadOneLineFile(pidfile)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno != errno.ENOENT:
       logging.exception("Can't read pid file")
     return 0
@@ -842,7 +842,7 @@ def ReadLockedPidFile(path):
   """
   try:
     fd = os.open(path, os.O_RDONLY)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno == errno.ENOENT:
       # PID file doesn't exist
       return None
@@ -926,7 +926,7 @@ def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
 
   try:
     value = ReadFile(filename)
-  except IOError, err:
+  except IOError as err:
     if err.errno != errno.ENOENT:
       raise
     value = None

@@ -165,7 +165,7 @@ class ConfigShell(cmd.Cmd):
       self.cfg = config.ConfigWriter(cfg_file=arg, offline=True)
       self.parents = [self.cfg._config_data] # pylint: disable=W0212
       self.path = []
-    except errors.ConfigurationError, err:
+    except errors.ConfigurationError as err:
       print "Error: %s" % str(err)
     return False
 

@@ -156,7 +156,7 @@ class ExtStorageDevice(base.BlockDev):
     # Verify that dev_path exists and is a block device
     try:
       st = os.stat(self.dev_path)
-    except OSError, err:
+    except OSError as err:
       logging.error("Error stat()'ing %s: %s", self.dev_path, str(err))
       return False
 
@@ -412,7 +412,7 @@ def _CheckExtStorageFile(base_dir, filename, required):
   file_path = utils.PathJoin(base_dir, filename)
   try:
     st = os.stat(file_path)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if not required:
       logging.info("Optional file '%s' under path '%s' is missing",
                    filename, base_dir)
@@ -477,7 +477,7 @@ def ExtStorageFromDisk(name, base_dir=None):
       # script or None, depending on the corresponding checks. See the
       # function's docstrings for more on these checks.
       es_files[filename] = _CheckExtStorageFile(es_dir, filename, required)
-    except errors.BlockDeviceError, err:
+    except errors.BlockDeviceError as err:
       return False, str(err)
 
   parameters = []
@@ -485,7 +485,7 @@ def ExtStorageFromDisk(name, base_dir=None):
     parameters_file = es_files[constants.ES_PARAMETERS_FILE]
     try:
       parameters = utils.ReadFile(parameters_file).splitlines()
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       return False, ("Error while reading the EXT parameters file at %s: %s" %
                      (parameters_file, utils.ErrnoOrStr(err)))
     parameters = [v.split(None, 1) for v in parameters]

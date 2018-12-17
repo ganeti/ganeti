@@ -96,7 +96,7 @@ class TestResetTempfileModule(unittest.TestCase):
             # descriptors
             (_, path) = tempfile.mkstemp(dir=self.tmpdir,
                                          prefix="test.", suffix="")
-          except EnvironmentError, err:
+          except EnvironmentError as err:
             if err.errno == errno.EEXIST:
               # Couldnt' create temporary file (e.g. because we run out of
               # retries)

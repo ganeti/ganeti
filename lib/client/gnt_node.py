@@ -160,7 +160,7 @@ def _TryReadFile(path):
   """
   try:
     return utils.ReadFile(path)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno == errno.ENOENT:
       return None
     else:

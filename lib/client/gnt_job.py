@@ -96,7 +96,7 @@ def _ParseJobIds(args):
   """
   try:
     return [int(a) for a in args]
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError) as err:
     raise errors.OpPrereqError("Invalid job ID passed: %s" % err,
                                errors.ECODE_INVAL)
 
@@ -436,7 +436,7 @@ def WatchJob(opts, args):
   retcode = 0
   try:
     cli.PollJob(job_id)
-  except errors.GenericError, err:
+  except errors.GenericError as err:
     (retcode, job_result) = cli.FormatError(err)
     ToStderr("Job %s failed: %s", job_id, job_result)
 
@@ -458,7 +458,7 @@ def WaitJob(opts, args):
   retcode = 0
   try:
     cli.PollJob(job_id, feedback_fn=lambda _: None)
-  except errors.GenericError, err:
+  except errors.GenericError as err:
     (retcode, job_result) = cli.FormatError(err)
     ToStderr("Job %s failed: %s", job_id, job_result)
 

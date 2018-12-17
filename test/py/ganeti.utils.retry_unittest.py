@@ -124,7 +124,7 @@ class TestRetry(testutils.GanetiTestCase):
     try:
       utils.Retry(self._RaiseRetryAgainWithArg, 0.01, 0.02, args=[[retry_arg]],
                   wait_fn = self._wait_fn, _time_fn = self._time_fn)
-    except utils.RetryTimeout, err:
+    except utils.RetryTimeout as err:
       self.failUnlessEqual(err.args, (retry_arg, ))
     else:
       self.fail("Expected timeout didn't happen")
@@ -135,7 +135,7 @@ class TestRetry(testutils.GanetiTestCase):
     try:
       utils.Retry(self._RetryAndSucceed, 1, 18, args=[2],
                   wait_fn = self._wait_fn, _time_fn = self._time_fn)
-    except utils.RetryTimeout, err:
+    except utils.RetryTimeout as err:
       self.failUnlessEqual(err.args, ())
     else:
       self.fail("Expected timeout didn't happen")
@@ -155,11 +155,11 @@ class TestRetry(testutils.GanetiTestCase):
         utils.Retry(self._RaiseRetryAgainWithArg, 0.01, 0.02,
                     args=[[errors.GenericError(retry_arg, retry_arg)]],
                     wait_fn = self._wait_fn, _time_fn = self._time_fn)
-      except utils.RetryTimeout, err:
+      except utils.RetryTimeout as err:
         err.RaiseInner()
       else:
         self.fail("Expected timeout didn't happen")
-    except errors.GenericError, err:
+    except errors.GenericError as err:
       self.failUnlessEqual(err.args, (retry_arg, retry_arg))
     else:
       self.fail("Expected GenericError didn't happen")
@@ -171,11 +171,11 @@ class TestRetry(testutils.GanetiTestCase):
         utils.Retry(self._RaiseRetryAgainWithArg, 0.01, 0.02,
                     args=[[retry_arg, retry_arg]],
                     wait_fn = self._wait_fn, _time_fn = self._time_fn)
-      except utils.RetryTimeout, err:
+      except utils.RetryTimeout as err:
         err.RaiseInner()
       else:
         self.fail("Expected timeout didn't happen")
-    except utils.RetryTimeout, err:
+    except utils.RetryTimeout as err:
       self.failUnlessEqual(err.args, (retry_arg, retry_arg))
     else:
       self.fail("Expected RetryTimeout didn't happen")

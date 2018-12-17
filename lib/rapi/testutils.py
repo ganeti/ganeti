@@ -85,7 +85,7 @@ def _HideInternalErrors(fn):
   def wrapper(*args, **kwargs):
     try:
       return fn(*args, **kwargs)
-    except (errors.GenericError, rapi.client.GanetiApiError), err:
+    except (errors.GenericError, rapi.client.GanetiApiError) as err:
       raise VerificationError("Unhandled Ganeti error: %s" % err)
 
   return wrapper
@@ -106,12 +106,12 @@ def VerifyOpInput(op_id, data):
 
   try:
     op = op_cls(**data)
-  except TypeError, err:
+  except TypeError as err:
     raise VerificationError("Unable to create opcode instance: %s" % err)
 
   try:
     op.Validate(False)
-  except errors.OpPrereqError, err:
+  except errors.OpPrereqError as err:
     raise VerificationError("Parameter validation for opcode '%s' failed: %s" %
                             (op_id, err))
 

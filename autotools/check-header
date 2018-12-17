@@ -139,7 +139,7 @@ def Main():
 
     try:
       _CheckHeader(compat.partial(lines.pop, 0))
-    except HeaderError, err:
+    except HeaderError as err:
       report = str(err)
       print "%s: %s" % (filename, report)
       fail = True

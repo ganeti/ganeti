@@ -1661,7 +1661,7 @@ class TestWipeDisks(unittest.TestCase):
 
     try:
       instance_create.WipeDisks(lu, inst)
-    except errors.OpExecError, err:
+    except errors.OpExecError as err:
       self.assertTrue(str(err), "Could not wipe disk 0 at offset 0 ")
     else:
       self.fail("Did not raise exception")

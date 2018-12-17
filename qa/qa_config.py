@@ -431,7 +431,7 @@ class _QaConfig(object):
     if check:
       try:
         os.stat(check)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         raise qa_error.Error("Can't find instance check script '%s': %s" %
                              (check, err))
 

@@ -62,7 +62,7 @@ class TestReadSsconfFile(unittest.TestCase):
 
     try:
       ssconf.ReadSsconfFile(testfile)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       self.assertEqual(err.errno, errno.ENOENT)
     else:
       self.fail("Exception was not raised")
@@ -138,7 +138,7 @@ class TestSimpleStore(unittest.TestCase):
     self.assertFalse(os.path.exists(filename))
     try:
       self.sstore._ReadFile(constants.SS_CLUSTER_NAME)
-    except errors.ConfigurationError, err:
+    except errors.ConfigurationError as err:
       self.assertTrue(str(err).startswith("Can't read ssconf file"))
     else:
       self.fail("Exception was not raised")
@@ -223,7 +223,7 @@ class TestSimpleStore(unittest.TestCase):
     for dry_run in [False, True]:
       try:
         self.sstore.WriteFiles(values, dry_run=dry_run)
-      except errors.ConfigurationError, err:
+      except errors.ConfigurationError as err:
         self.assertTrue(str(err).startswith("Value 'instance_list' has"))
       else:
         self.fail("Exception was not raised")

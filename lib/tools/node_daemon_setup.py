@@ -157,7 +157,7 @@ def Main():
                          " failed: %s" % (result.cmd, result.fail_reason))
 
     logging.info("Node daemon successfully configured")
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.debug("Caught unhandled exception", exc_info=True)
 
     (retcode, message) = cli.FormatError(err)

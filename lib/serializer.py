@@ -214,7 +214,7 @@ def LoadAndVerifyJson(raw, verify_fn):
   """
   try:
     data = LoadJson(raw)
-  except Exception, err:
+  except Exception as err:
     raise errors.ParseError("Can't parse input data: %s" % err)
 
   if not verify_fn(data):

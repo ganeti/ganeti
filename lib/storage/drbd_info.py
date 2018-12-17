@@ -280,7 +280,7 @@ class DRBD8Info(object):
   def CreateFromFile(filename=constants.DRBD_STATUS_FILE):
     try:
       lines = utils.ReadFile(filename).splitlines()
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno == errno.ENOENT:
         base.ThrowError("The file %s cannot be opened, check if the module"
                         " is loaded (%s)", filename, str(err))
@@ -360,7 +360,7 @@ class BaseShowInfo(object):
     try:
       # run pyparse
       results = (cls._GetShowParser()).parseString(show_data)
-    except pyp.ParseException, err:
+    except pyp.ParseException as err:
       base.ThrowError("Can't parse drbdsetup show output: %s", str(err))
 
     return cls._TransformParseResult(results)

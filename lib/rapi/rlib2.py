@@ -1395,7 +1395,7 @@ class R_2_instances_name_replace_disks(baserlib.OpcodeResource):
           # Backwards compatibility for strings of the format "1, 2, 3"
           try:
             data["disks"] = [int(part) for part in raw_disks.split(",")]
-          except (TypeError, ValueError), err:
+          except (TypeError, ValueError) as err:
             raise http.HttpBadRequest("Invalid disk index passed: %s" % err)
 
     return (data, static)

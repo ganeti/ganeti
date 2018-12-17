@@ -76,7 +76,7 @@ def HelperVM(lu, instance, vm_image, startup_timeout, vm_timeout,
 
   try:
     disk_size = DetermineImageSize(lu, vm_image, instance.primary_node)
-  except errors.OpExecError, err:
+  except errors.OpExecError as err:
     raise errors.OpExecError("Could not create temporary disk: %s", err)
 
   with TemporaryDisk(lu,

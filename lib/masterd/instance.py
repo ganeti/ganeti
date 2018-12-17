@@ -730,7 +730,7 @@ class ImportExportLoop(object):
       try:
         # Start daemon if necessary
         daemon_name = diskie.CheckDaemon()
-      except _ImportExportError, err:
+      except _ImportExportError as err:
         logging.exception("%s failed", diskie.MODE_TEXT)
         diskie.Finalize(error=str(err))
         continue
@@ -809,7 +809,7 @@ class ImportExportLoop(object):
             delay = min(1.0, delay)
             continue
 
-        except _ImportExportError, err:
+        except _ImportExportError as err:
           logging.exception("%s failed", diskie.MODE_TEXT)
           diskie.Finalize(error=str(err))
 
@@ -1634,7 +1634,7 @@ def CheckRemoteExportHandshake(cds, handshake):
   """
   try:
     (version, hmac_digest, hmac_salt) = handshake
-  except (TypeError, ValueError), err:
+  except (TypeError, ValueError) as err:
     return "Invalid data: %s" % err
 
   if not utils.VerifySha1Hmac(cds, _GetImportExportHandshakeMessage(version),
@@ -1678,7 +1678,7 @@ def CheckRemoteExportDiskInfo(cds, disk_index, disk_info):
   """
   try:
     (host, port, magic, hmac_digest, hmac_salt) = disk_info
-  except (TypeError, ValueError), err:
+  except (TypeError, ValueError) as err:
     raise errors.GenericError("Invalid data: %s" % err)
 
   if not (host and port and magic):

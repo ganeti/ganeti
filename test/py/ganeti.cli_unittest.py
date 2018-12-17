@@ -946,7 +946,7 @@ class TestParseArgs(unittest.TestCase):
     for argv in [[], ["gnt-unittest"]]:
       try:
         cli._ParseArgs("gnt-unittest", argv, {}, {}, set())
-      except cli._ShowUsage, err:
+      except cli._ShowUsage as err:
         self.assertTrue(err.exit_error)
       else:
         self.fail("Did not raise exception")
@@ -964,7 +964,7 @@ class TestParseArgs(unittest.TestCase):
     for argv in [["test", "--help"], ["test", "--help", "somethingelse"]]:
       try:
         cli._ParseArgs("test", argv, {}, {}, set())
-      except cli._ShowUsage, err:
+      except cli._ShowUsage as err:
         self.assertFalse(err.exit_error)
       else:
         self.fail("Did not raise exception")
@@ -973,7 +973,7 @@ class TestParseArgs(unittest.TestCase):
     for argv in [["test", "list"], ["test", "somethingelse", "--help"]]:
       try:
         cli._ParseArgs("test", argv, {}, {}, set())
-      except cli._ShowUsage, err:
+      except cli._ShowUsage as err:
         self.assertTrue(err.exit_error)
       else:
         self.fail("Did not raise exception")

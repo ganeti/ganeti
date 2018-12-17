@@ -295,7 +295,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
           if wrong_pw:
             try:
               ra.PreHandleRequest(req)
-            except http.HttpUnauthorized, err:
+            except http.HttpUnauthorized as err:
               www_auth = err.headers[http.HTTP_WWW_AUTHENTICATE]
               self.assert_(www_auth.startswith(http.auth.HTTP_BASIC_AUTH))
             else:
