@@ -33,6 +33,8 @@
 import os
 import sys
 import stat
+import errno
+import socket
 import tempfile
 import unittest
 import logging
@@ -103,6 +105,24 @@ def _SetupLogging(verbose):
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(handler)
+
+
+def RequiresIPv6():
+  """Decorator for tests requiring IPv6 support
+
+  Decorated tests will be skipped if no IPv6 networking
+  support is available on the host system.
+
+  """
+  try:
+    # Try to bind a DGRAM socket on IPv6 localhost
+    sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    sock.bind(('::1', 0))
+    sock.close()
+  except socket.error as err:
+    if err.errno in (errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT):
+      return unittest.skip("IPv6 not available")
+  return lambda thing: thing
 
 
 class GanetiTestProgram(unittest.TestProgram):
