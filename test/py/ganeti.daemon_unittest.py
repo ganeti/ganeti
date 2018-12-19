@@ -275,6 +275,7 @@ class TestAsyncIP4UDPSocket(testutils.GanetiTestCase, _BaseAsyncUDPSocketTest):
     _BaseAsyncUDPSocketTest.tearDown(self)
 
 
+@testutils.RequiresIPv6()
 class TestAsyncIP6UDPSocket(testutils.GanetiTestCase, _BaseAsyncUDPSocketTest):
   """Test IP6 daemon.AsyncUDPSocket"""
 

@@ -145,6 +145,7 @@ class TestCommandBuilder(unittest.TestCase):
 
                 self.assert_("verify=1" in ssl_addr)
 
+  @testutils.RequiresIPv6()
   def testIPv6(self):
     for mode in [constants.IEM_IMPORT, constants.IEM_EXPORT]:
       opts = CmdBuilderConfig(host="localhost", port=6789,
