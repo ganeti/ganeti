@@ -113,6 +113,8 @@ PROG_ALL = compat.UniqueFrozenset([
 
 
 class CommandBuilder(object):
+  _SOCAT_VERSION = (0,)
+
   def __init__(self, mode, opts, socat_stderr_fd, dd_stderr_fd, dd_pid_fd):
     """Initializes this class.
 
@@ -141,6 +143,29 @@ class CommandBuilder(object):
 
     """
     return ["bash", "-o", "errexit", "-o", "pipefail", "-c", cmd]
+
+  @classmethod
+  def _GetSocatVersion(cls):
+    """Returns the socat version, as a tuple of ints.
+
+    The version is memoized in a class variable for future use.
+    """
+    if cls._SOCAT_VERSION > (0,):
+      return cls._SOCAT_VERSION
+
+    socat = utils.RunCmd([constants.SOCAT_PATH, "-V"])
+    # No need to check for errors here. If -V is not there, socat is really
+    # old. Any other failure will be handled when running the actual socat
+    # command.
+    for line in socat.output.splitlines():
+      match = re.match(r"socat version ((\d+\.)*(\d+))", line)
+      if match:
+        try:
+          cls._SOCAT_VERSION = tuple(int(x) for x in match.group(1).split('.'))
+        except TypeError:
+          pass
+        break
+    return cls._SOCAT_VERSION
 
   def _GetSocatCommand(self):
     """Returns the socat command.
@@ -200,20 +225,8 @@ class CommandBuilder(object):
       # For socat versions >= 1.7.3, we need to also specify
       # openssl-commonname, otherwise server certificate verification will
       # fail.
-      socat = utils.RunCmd([constants.SOCAT_PATH, "-V"])
-      # No need to check for errors here. If -V is not there, socat is really
-      # old. Any other failure will be handled when running the actual socat
-      # command.
-      for line in socat.output.splitlines():
-        match = re.match(r"socat version ((\d+\.)*(\d+))", line)
-        if match:
-          try:
-            version = tuple(int(x) for x in match.group(1).split('.'))
-            if version >= (1, 7, 3):
-              addr2 += ["openssl-commonname=%s" % constants.X509_CERT_CN]
-          except TypeError:
-            pass
-          break
+      if self._GetSocatVersion() >= (1, 7, 3):
+        addr2 += ["openssl-commonname=%s" % constants.X509_CERT_CN]
 
     else:
       raise errors.GenericError("Invalid mode '%s'" % self._mode)
