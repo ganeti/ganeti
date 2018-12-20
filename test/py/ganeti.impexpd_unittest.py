@@ -142,6 +142,12 @@ class TestCommandBuilder(unittest.TestCase):
                 elif mode == constants.IEM_EXPORT:
                   ssl_addr = socat_cmd[-1].split(",")
                   self.assert_(("OPENSSL:%s:%s" % (host, port)) in ssl_addr)
+                  if impexpd.CommandBuilder._GetSocatVersion() >= (1, 7, 3):
+                    self.assert_("openssl-commonname=%s" %
+                                 constants.X509_CERT_CN in ssl_addr)
+                  else:
+                    self.assert_("openssl-commonname=%s" %
+                                 constants.X509_CERT_CN not in ssl_addr)
 
                 self.assert_("verify=1" in ssl_addr)
 
