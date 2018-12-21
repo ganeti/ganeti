@@ -4,7 +4,7 @@ services:
   - docker
 
 install:
-  - docker build -t ganeti --file Dockerfile.stretch .
+  - docker build -t ganeti --build-arg uid=$(id -u) --file Dockerfile.stretch .
 
 script:
   - docker run -v $(pwd):/build ganeti sh -c "./autogen.sh && ./configure --enable-haskell-tests && make"

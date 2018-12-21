@@ -3,10 +3,12 @@ FROM debian:stretch
 LABEL maintainer="apoikos@debian.org"
 
 WORKDIR /build
+ARG uid
 
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get install --yes --no-install-recommends \
+  adduser \
   build-essential \
   automake \
   pandoc \
@@ -59,4 +61,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
   socat \
   iproute2
 
+RUN adduser --uid $uid --disabled-password --disabled-login --home /build --no-create-home --gecos 'Test Runner' gntest
+
 RUN apt-get clean
+
+USER gntest
