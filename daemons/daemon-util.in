@@ -262,7 +262,7 @@ check() {
     fi
   elif type -p start-stop-daemon >/dev/null; then
     start-stop-daemon --stop --signal 0 --quiet \
-      --pidfile $pidfile
+      --pidfile $pidfile --name "$name"
   else
     _ignore_error status \
       -p $pidfile \
@@ -337,7 +337,7 @@ stop() {
     systemctl stop "${name}.service"
   elif type -p start-stop-daemon >/dev/null; then
     start-stop-daemon --stop --quiet --oknodo --retry 30 \
-      --pidfile $pidfile
+      --pidfile $pidfile --name "$name"
   else
     _ignore_error killproc -p $pidfile $name
   fi
@@ -423,7 +423,7 @@ rotate_logs() {
 
   if type -p start-stop-daemon >/dev/null; then
     start-stop-daemon --stop --signal HUP --quiet \
-      --oknodo --pidfile $pidfile
+      --oknodo --pidfile $pidfile --name "$name"
   else
     _ignore_error killproc \
       -p $pidfile \
