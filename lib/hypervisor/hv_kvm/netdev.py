@@ -189,6 +189,9 @@ def OpenTap(name="", features=None):
 
     tapfds.append(tapfd)
 
+    if ( _ == 0 and name == "" ):
+      name = struct.unpack("16sh", res)[0].strip("\x00")
+
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip("\x00")
 
