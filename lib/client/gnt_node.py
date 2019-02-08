@@ -58,7 +58,7 @@ from ganeti.confd import client as confd_client
 _LIST_DEF_FIELDS = [
   "name", "dtotal", "dfree",
   "mtotal", "mnode", "mfree",
-  "pinst_cnt", "sinst_cnt",
+  "hpfree", "pinst_cnt", "sinst_cnt",
   ]
 
 

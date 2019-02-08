@@ -546,6 +546,7 @@ $(buildObject "HvInfo" "hvInfo"
   [ optionalField $ simpleField C.hvNodeinfoKeyVersion [t| [Int] |]
   , simpleField "memory_total" [t| Int |]
   , simpleField "memory_free" [t| Int |]
+  , simpleField "hugepages_free" [t| Int |]
   , simpleField "memory_dom0" [t| Int |]
   , optionalField $ simpleField "memory_hv" [t| Int |]
   , simpleField "cpu_total" [t| Int |]

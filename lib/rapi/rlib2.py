@@ -95,7 +95,7 @@ I_FIELDS = ["name", "admin_state", "os",
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "dtotal", "dfree", "sptotal", "spfree",
-            "mtotal", "mnode", "mfree",
+            "mtotal", "mnode", "mfree", "hpfree",
             "pinst_cnt", "sinst_cnt",
             "ctotal", "cnos", "cnodes", "csockets",
             "pip", "sip", "role",

@@ -1184,6 +1184,8 @@ _NODE_LIVE_FIELDS = {
               "Total spindles in volume group (exclusive storage only)"),
   "mfree": ("MFree", QFT_UNIT, "memory_free",
             "Memory available for instance allocations"),
+  "hpfree": ("HPFree", QFT_UNIT, "hugepages_free",
+            "Unreserved hugepage capacity available for instance allocations"),
   "mnode": ("MNode", QFT_UNIT, "memory_dom0",
             "Amount of memory used by node (dom0 for Xen)"),
   "mtotal": ("MTotal", QFT_UNIT, "memory_total",

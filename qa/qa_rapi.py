@@ -298,7 +298,7 @@ INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
                    "oper_state", "oper_ram", "oper_vcpus", "status", "tags")
 
 NODE_FIELDS = ("name", "dtotal", "dfree", "sptotal", "spfree",
-               "mtotal", "mnode", "mfree",
+               "mtotal", "mnode", "mfree", "hpfree",
                "pinst_cnt", "sinst_cnt", "tags")
 
 GROUP_FIELDS = compat.UniqueFrozenset([

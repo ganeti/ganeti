@@ -695,6 +695,8 @@ class BaseHypervisor(object):
 
     result = {}
     sum_free = 0
+    sum_hugepages_free = 0
+    hugepages_size = 0
     try:
       for line in data:
         splitfields = line.split(":", 1)
@@ -706,12 +708,19 @@ class BaseHypervisor(object):
             result["memory_total"] = int(val.split()[0]) / 1024
           elif key in ("MemFree", "Buffers", "Cached"):
             sum_free += int(val.split()[0]) / 1024
+          elif key == "HugePages_Free":
+            sum_hugepages_free += int(val.split()[0])
+          elif key == "HugePages_Rsvd":
+            sum_hugepages_free -= int(val.split()[0])
+          elif key == "Hugepagesize":
+            hugepages_size = int(val.split()[0]) / 1024
           elif key == "Active":
             result["memory_dom0"] = int(val.split()[0]) / 1024
     except (ValueError, TypeError), err:
       raise errors.HypervisorError("Failed to compute memory usage: %s" %
                                    (err,))
     result["memory_free"] = sum_free
+    result["hugepages_free"] = sum_hugepages_free * hugepages_size
 
     cpu_total = 0
     try:

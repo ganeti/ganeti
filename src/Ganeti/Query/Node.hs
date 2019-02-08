@@ -82,6 +82,8 @@ nodeLiveFieldsDefs =
      "Total spindles in volume group (exclusive storage only)")
   , ("mfree", "MFree", QFTUnit, "memory_free",
      "Memory available for instance allocations")
+  , ("hpfree", "HPFree", QFTUnit, "hugepages_free",
+     "Unreserved hugepage capacity available for instance allocations")
   , ("mnode", "MNode", QFTUnit, "memory_dom0",
      "Amount of memory used by node (dom0 for Xen)")
   , ("mtotal", "MTotal", QFTUnit, "memory_total",
@@ -141,6 +143,8 @@ nodeLiveFieldExtract "sptotal" res =
       (rpcResNodeInfoStorageInfo res) StorageLvmPv)
 nodeLiveFieldExtract "mfree" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
+nodeLiveFieldExtract "hpfree" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoHugepagesFree
 nodeLiveFieldExtract "mnode" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryDom0
 nodeLiveFieldExtract "mtotal" res =
@@ -277,7 +281,7 @@ storageFields = ["dtotal", "dfree", "spfree", "sptotal"]
 
 -- | Hypervisor-related query fields
 hypervisorFields :: [String]
-hypervisorFields = ["mnode", "mfree", "mtotal",
+hypervisorFields = ["mnode", "mfree", "hpfree", "mtotal",
                     "cnodes", "csockets", "cnos", "ctotal"]
 
 -- | Check if it is required to include domain-specific entities (for example

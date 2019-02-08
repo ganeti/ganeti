@@ -703,6 +703,7 @@ def _GetHvInfo(name, hvparams, get_hv_fn=hypervisor.GetHypervisor):
     - vg_free is the free size of the volume group in MiB
     - memory_dom0 is the memory allocated for domain0 in MiB
     - memory_free is the currently available (free) ram in MiB
+    - hugepages_free is the currently available (unreserved) hugepages capacity in MiB
     - memory_total is the total number of ram in MiB
     - hv_version: the hypervisor version, if available
 
