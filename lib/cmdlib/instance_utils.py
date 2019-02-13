@@ -580,9 +580,9 @@ def CheckNodeFreeMemory(lu, node_uuid, reason, requested, hvname, hvparams):
                                errors.ECODE_ENVIRON)
   if hvparams.get("mem_path", None):
     if requested > free_hugepages_mem:
-      raise errors.OpPrereqError("Not enough memory on node %s for %s:"
+      raise errors.OpPrereqError("Not enough hugepages capacity on node %s for %s:"
                             " needed %s MiB, available %s MiB" %
-                            (node_name, reason, requested, free_mem),
+                            (node_name, reason, requested, free_hugepages_mem),
                             errors.ECODE_NORES)
     else:
       free_mem = free_hugepages_mem

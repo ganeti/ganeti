@@ -1117,11 +1117,12 @@ class LUInstanceSetParams(LogicalUnit):
 
       delta = self.op.runtime_mem - current_memory
       if delta > 0:
+        hvfull = objects.FillDict(cluster_hvparams, self.instance.hvparams)
         CheckNodeFreeMemory(
             self, self.instance.primary_node,
             "ballooning memory for instance %s" % self.instance.name, delta,
             self.instance.hypervisor,
-            self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+            hvfull)
 
   def CheckPrereq(self):
     """Check prerequisites.

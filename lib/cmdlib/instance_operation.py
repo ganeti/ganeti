@@ -129,6 +129,8 @@ class LUInstanceStartup(LogicalUnit):
       hv_type.CheckParameterSyntax(filled_hvp)
       CheckHVParams(self, self.cfg.GetInstanceNodes(self.instance.uuid),
                     self.instance.hypervisor, filled_hvp)
+    else:
+      filled_hvp = cluster.FillHV(self.instance)
 
     CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
 
@@ -164,11 +166,12 @@ class LUInstanceStartup(LogicalUnit):
                                remote_info.payload):
           self.requires_cleanup = True
       else: # not running already
+        hvfull = objects.FillDict(cluster.hvparams.get(self.instance.hypervisor, {}), filled_hvp)
         CheckNodeFreeMemory(
             self, self.instance.primary_node,
             "starting instance %s" % self.instance.name,
             bep[constants.BE_MINMEM], self.instance.hypervisor,
-            self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+            hvfull)
 
   def Exec(self, feedback_fn):
     """Start the instance.
