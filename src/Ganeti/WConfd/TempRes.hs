@@ -73,11 +73,9 @@ module Ganeti.WConfd.TempRes
   , reserved
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Lens.At
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 import qualified Data.ByteString as BS

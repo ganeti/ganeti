@@ -164,16 +164,18 @@ class LUInstanceSetParams(LogicalUnit):
         utils.ForceDictType(params, (key_types if op != constants.DDM_ATTACH
                                      else key_types_attach))
 
+      if op not in (constants.DDM_ADD, constants.DDM_ATTACH,
+                    constants.DDM_MODIFY, constants.DDM_REMOVE,
+                    constants.DDM_DETACH):
+        raise errors.ProgrammerError("Unhandled operation '%s'" % op)
+
       if op in (constants.DDM_REMOVE, constants.DDM_DETACH):
         if params:
           raise errors.OpPrereqError("No settings should be passed when"
                                      " removing or detaching a %s" % kind,
                                      errors.ECODE_INVAL)
-      elif op in (constants.DDM_ADD, constants.DDM_ATTACH,
-                  constants.DDM_MODIFY):
-        item_fn(op, params)
-      else:
-        raise errors.ProgrammerError("Unhandled operation '%s'" % op)
+
+      item_fn(op, params)
 
   def _VerifyDiskModification(self, op, params, excl_stor, group_access_types):
     """Verifies a disk modification.
@@ -265,6 +267,11 @@ class LUInstanceSetParams(LogicalUnit):
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
 
+    if op == constants.DDM_REMOVE and not self.op.hotplug:
+      CheckInstanceState(self, self.instance, INSTANCE_NOT_RUNNING,
+                         msg="can't remove volume from a running instance"
+                             " without using hotplug")
+
   @staticmethod
   def _VerifyNicModification(op, params):
     """Verifies a network interface modification.
@@ -337,8 +344,6 @@ class LUInstanceSetParams(LogicalUnit):
             self.op.hvparams or self.op.beparams or self.op.os_name or
             self.op.osparams or self.op.offline is not None or
             self.op.runtime_mem or self.op.pnode or self.op.osparams_private or
-            self.op.clear_osparams or self.op.clear_osparams_private or
-            self.op.remove_osparams or self.op.remove_osparams_private or
             self.op.instance_communication is not None):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
@@ -993,53 +998,14 @@ class LUInstanceSetParams(LogicalUnit):
                    if self.op.os_name and not self.op.force
                    else self.instance.os)
 
-    if compat.any(
-        [self.op.osparams, self.op.osparams_private,
-         self.op.clear_osparams, self.op.clear_osparams_private,
-         self.op.remove_osparams, self.op.remove_osparams_private]):
+    if self.op.osparams or self.op.osparams_private:
       public_parms = self.op.osparams or {}
       private_parms = self.op.osparams_private or {}
-      remove_osparams = self.op.remove_osparams or []
-      remove_osparams_private = self.op.remove_osparams_private or []
-      self.os_inst_removed = []
-      self.os_inst_private_removed = []
       dupe_keys = utils.GetRepeatedKeys(public_parms, private_parms)
 
       if dupe_keys:
         raise errors.OpPrereqError("OS parameters repeated multiple times: %s" %
                                    utils.CommaJoin(dupe_keys))
-
-      if self.op.clear_osparams:
-        self.os_inst_removed = self.instance.osparams
-        self.instance.osparams = {}
-
-      if self.op.clear_osparams_private:
-        self.os_inst_private_removed = self.instance.osparams_private
-        self.instance.osparams_private = {}
-
-      for osp in remove_osparams:
-        if osp in public_parms:
-          raise errors.OpPrereqError("Requested both removal and addition of"
-                                     " parameter %s" % osp)
-
-        if osp in self.instance.osparams:
-          self.os_inst_removed.append(osp)
-          del self.instance.osparams[osp]
-        else:
-          self.LogWarning("Trying to remove OS parameter %s but parameter"
-                          " does not exist" % osp)
-
-      for osp in remove_osparams_private:
-        if osp in private_parms:
-          raise errors.OpPrereqError("Requested both removal and addition of"
-                                     " private parameter %s" % osp)
-
-        if osp in self.instance.osparams_private:
-          self.os_inst_private_removed.append(osp)
-          del self.instance.osparams_private[osp]
-        else:
-          self.LogWarning("Trying to remove private OS parameter %s but"
-                          " parameter does not exist" % osp)
 
       self.os_inst = GetUpdatedParams(self.instance.osparams,
                                       public_parms)
@@ -1996,16 +1962,6 @@ class LUInstanceSetParams(LogicalUnit):
       self.instance.os = self.op.os_name
 
     # osparams changes
-    if self.op.clear_osparams or self.op.remove_osparams:
-      self.instance.osparams = self.os_inst
-      for osp in self.os_inst_removed:
-        result.append(("os/%s" % osp, "<removed>"))
-
-    if self.op.clear_osparams_private or self.op.remove_osparams_private:
-      self.instance.osparams_private = self.os_inst_private
-      for osp in self.os_inst_private_removed:
-        result.append(("os_private/%s" % osp, "<removed>"))
-
     if self.op.osparams:
       self.instance.osparams = self.os_inst
       for key, val in self.op.osparams.iteritems():

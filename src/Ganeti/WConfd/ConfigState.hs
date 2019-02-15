@@ -43,9 +43,7 @@ module Ganeti.WConfd.ConfigState
   , needsFullDist
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Data.Function (on)
 import System.Time (ClockTime(..))
 
@@ -72,7 +70,7 @@ bumpSerial :: (SerialNoObjectL a, TimeStampObjectL a) => ClockTime -> a -> a
 bumpSerial now = set mTimeL now . over serialL succ
 
 -- | Given two versions of the configuration, determine if its distribution
--- needs to be fully commited before returning the corresponding call to
+-- needs to be fully committed before returning the corresponding call to
 -- WConfD.
 needsFullDist :: ConfigState -> ConfigState -> Bool
 needsFullDist = on (/=) (watched . csConfigData)

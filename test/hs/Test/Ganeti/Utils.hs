@@ -37,19 +37,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Utils (testUtils) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
+import Control.Applicative ((<$>), (<*>))
 import Data.Char (isSpace)
 import qualified Data.Either as Either
-#if MIN_VERSION_base(4,8,0)
-import Data.List hiding (isSubsequenceOf)
-#else
 import Data.List
-#endif
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
 import System.Time
@@ -299,12 +293,7 @@ prop_timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
 prop_timediffAdd a b c =
   let fwd = Ganeti.Utils.diffClockTimes a b
       back = Ganeti.Utils.diffClockTimes b a
-      c' = addToClockTime fwd (addToClockTime back c)
-      TOD cs cp = c
-      TOD cs' cp' = c'
-  in  counterexample "Dates match exactly" (c' ==? c) .||.
-      counterexample "Dates match except daylight savings time"
-                       (cs' - cs ==? 3600 .&&. cp' ==? cp)
+  in addToClockTime fwd (addToClockTime back c) ==? c
 
 -- | Test normal operation for 'chompPrefix'.
 --

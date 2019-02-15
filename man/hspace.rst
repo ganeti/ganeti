@@ -16,8 +16,7 @@ SYNOPSIS
 
 Backend options:
 
-{ **-m** *cluster* | **-L[** *path* **] --state-of-record** |
-**-t** *data-file* |
+{ **-m** *cluster* | **-L[** *path* **]** | **-t** *data-file* |
 **\--simulate** *spec* | **-I** *path* }
 
 
@@ -299,11 +298,6 @@ The options that can be passed to the program are as follows:
   Backend specification: collect data directly from the master daemon,
   which is to be contacted via LUXI (an internal Ganeti protocol). The
   option is described in the man page **htools**\(1).
-
-\--state-of-record
-  When collecting from the LUXI backend, prefer state-of-record data
-  over live data. In this way, hspace will see precisely the same data
-  that will also be presented to the instance allocator.
 
 \--simulate *description*
   Backend specification: similar to the **-t** option, this allows

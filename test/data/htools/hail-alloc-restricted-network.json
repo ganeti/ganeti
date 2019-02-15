@@ -62,37 +62,6 @@
         "node1_1"
       ],
       "os": "debian-image"
-    },
-    "instance2": {
-      "disks": [
-        {
-          "mode": "rw",
-          "size": 1024
-        }
-      ],
-      "disk_space_total": 1024,
-      "hypervisor": "xen-pvm",
-      "tags": [],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "aa:00:00:eb:0b:a5",
-          "link": "xen-br0",
-          "mode": "bridged",
-          "bridge": "xen-br0"
-        }
-      ],
-      "vcpus": 1,
-      "spindle_use": 1,
-      "admin_state": "down",
-      "admin_state_source": "admin",
-      "disk_template": "drbd",
-      "memory": 128,
-      "nodes": [
-        "node1_1",
-        "node1_2"
-      ],
-      "os": "debian-image"
     }
   },
   "ipolicy": {
@@ -292,5 +261,6 @@
     "type": "allocate",
     "vcpus": 1
   },
+  "enabled_hypervisors": ["xen-pvm"],
   "version": 2
 }

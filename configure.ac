@@ -1,8 +1,8 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [2])
-m4_define([gnt_version_minor], [18])
+m4_define([gnt_version_minor], [16])
 m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~alpha1])
+m4_define([gnt_version_suffix], [])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -95,7 +95,7 @@ AM_CONDITIONAL([HCOVERAGE], [test "$HCOVERAGE" = yes])
 # --enable-haskell-tests
 AC_ARG_ENABLE([haskell-tests],
   [AS_HELP_STRING([--enable-haskell-tests],
-                  m4_normalize([enable additional Haskell development test code
+                  m4_normalize([enable additinal Haskell development test code
                   (default: disabled)]))],
   [[if test "$enableval" != yes; then
       HTEST=no
@@ -640,7 +640,7 @@ AM_CONDITIONAL([GHC_LE_76], [$GHC --numeric-version | grep -q '^7\.[[0-6]]\.'])
 
 AC_MSG_CHECKING([checking for extra GHC flags])
 GHC_BYVERSION_FLAGS=
-# check for GHC supported flags that vary accross versions
+# check for GHC supported flags that vary across versions
 for flag in -fwarn-incomplete-uni-patterns; do
   if $GHC -e '0' $flag >/dev/null 2>/dev/null; then
    GHC_BYVERSION_FLAGS="$GHC_BYVERSION_FLAGS $flag"
@@ -761,8 +761,6 @@ AC_GHC_PKG_CHECK([test-framework-0.6*], [], [
 AC_GHC_PKG_CHECK([test-framework-hunit], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([temporary], [], [HS_NODEV=1])
-AC_PATH_PROG(SHELLTEST, [shelltest], [])
-if test -z "$SHELLTEST"; then HS_NODEV=1; fi
 if test -n "$HS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))
@@ -800,7 +798,7 @@ if test -z "$HLINT"; then
   AC_MSG_WARN([hlint not found, checking code will not be possible])
 fi
 
-AM_CONDITIONAL([WANT_HSTESTS], [test "x$HS_NODEV" = x && test x$HTEST = xyes ])
+AM_CONDITIONAL([WANT_HSTESTS], [test "x$HS_NODEV" = x])
 AM_CONDITIONAL([WANT_HSAPIDOC], [test "$HS_APIDOC" = yes])
 AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])
 

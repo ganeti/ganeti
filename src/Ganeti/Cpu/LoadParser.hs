@@ -36,10 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Cpu.LoadParser (cpustatParser) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative ((<|>))
+import Control.Applicative ((<*>), (<*), (*>), (<$>), (<|>))
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)
@@ -53,16 +50,16 @@ import Ganeti.Cpu.Types
 oneCPUstatParser :: Parser CPUstat
 oneCPUstatParser =
   let nameP = stringP
-      userP = integerP
-      niceP = integerP
-      systemP = integerP
-      idleP = integerP
-      iowaitP = integerP
-      irqP = integerP
-      softirqP = integerP
-      stealP = integerP
-      guestP = integerP
-      guest_niceP = integerP
+      userP = numberP
+      niceP = numberP
+      systemP = numberP
+      idleP = numberP
+      iowaitP = numberP
+      irqP = numberP
+      softirqP = numberP
+      stealP = numberP
+      guestP = numberP
+      guest_niceP = numberP
   in
     CPUstat <$> nameP <*> userP <*> niceP <*> systemP <*> idleP <*> iowaitP
             <*> irqP <*> softirqP <*> stealP <*> guestP <*> guest_niceP

@@ -28,15 +28,12 @@ Algorithm options:
 **[ -g *delta* ]** **[ \--min-gain-limit *threshold* ]**
 **[ -O *name...* ]**
 **[ \--no-disk-moves ]**
-**[ \--avoid-disk-moves *factor* ]**
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
-**[ \--idle-default ]**
 **[ \--ignore-dynu ]**
 **[ \--ignore-soft-errors ]**
 **[ \--mond *yes|no* ]**
 **[ \--mond-xen ]**
-**[ \--mond-kvm-rss ]**
 **[ \--exit-on-missing-mond-data ]**
 **[ \--evac-mode ]**
 **[ \--restricted-migration ]**
@@ -366,12 +363,6 @@ The options that can be passed to the program are as follows:
   a much quicker balancing, but of course the improvements are
   limited. It is up to the user to decide when to use one or another.
 
-\--avoid-disk-moves=*factor*
-  This parameter prevents hbal from not profitable enough disk moves.
-  During each balancing step it will admit disk move only if the gain
-  in the cluster metrics is *factor* times higher than the gain
-  achievable without disk moves.
-
 \--no-instance-moves
   This parameter prevents hbal from using instance moves
   (i.e. "gnt-instance migrate/failover") operations. This will only use
@@ -423,13 +414,6 @@ The options that can be passed to the program are as follows:
   metrics and thus the influence of the dynamic utilisation will be
   practically insignificant.
 
-\--idle-default
-  If given, all dynamic utilisation information not provided explicitly
-  by the ``-U`` option or by the MonDs, if ``--mond`` is given, will be
-  assumed to be 0. Note that without this option the default assumption
-  about utilization will apply for the unspecified resources, which is 1.0,
-  i.e., full load, for every instance.
-
 \--ignore-dynu
   If given, all dynamic utilisation information will be ignored by
   assuming it to be 0. This option will take precedence over any data
@@ -463,14 +447,6 @@ The options that can be passed to the program are as follows:
 \--mond-xen
   If given, also query Xen-specific collectors from MonD, provided
   that monitoring daemons are queried at all.
-
-\--mond-kvm-rss
-  If given, also query the residual set size for kvm instances, provided
-  that monitoring daemons are queried at all.
-
-\--mem-weight=*factor*
-  Scale the weight of the dynamic memory utilization in the cluster metrics
-  by the given factor.
 
 \--exit-on-missing-mond-data
   If given, abort if the data obtainable from querying MonDs is incomplete.

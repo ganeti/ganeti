@@ -54,7 +54,7 @@ clusterMasterNodeName :: ConfigData -> ErrorResult String
 clusterMasterNodeName cfg =
   let cluster = configCluster cfg
       masterNodeUuid = clusterMasterNode cluster
-  in liftM nodeName $ getNodeByUuid cfg masterNodeUuid
+  in liftM nodeName $ getNode cfg masterNodeUuid
 
 isWatcherPaused :: IO (Maybe Integer)
 isWatcherPaused = do

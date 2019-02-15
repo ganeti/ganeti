@@ -37,9 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Parsers where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative ((*>))
 import qualified Data.Attoparsec.Text as A
 import Data.Attoparsec.Text (Parser)
 import Data.Text (unpack)
@@ -55,10 +53,6 @@ skipSpaces = A.skipWhile A.isHorizontalSpace
 -- | A parser recognizing a number preceeded by spaces.
 numberP :: Parser Int
 numberP = skipSpaces *> A.decimal
-
--- | A parser recognizing a number preceeded by spaces.
-integerP :: Parser Integer
-integerP = skipSpaces *> A.decimal
 
 -- | A parser recognizing a word preceded by spaces, and closed by a space.
 stringP :: Parser String

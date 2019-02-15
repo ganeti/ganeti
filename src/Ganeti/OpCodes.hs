@@ -58,9 +58,7 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Text.JSON
@@ -191,14 +189,12 @@ $(genOpCode "OpCode"
      [t| JobIdListOnly |],
      OpDoc.opClusterVerifyDisks,
      [ pOptGroupName
-     , pIsStrict
      ],
      [])
   , ("OpGroupVerifyDisks",
      [t| (Map String String, [String], Map String [[String]]) |],
      OpDoc.opGroupVerifyDisks,
      [ pGroupName
-     , pIsStrict
      ],
      "group_name")
   , ("OpClusterRepairDiskSizes",
@@ -256,7 +252,6 @@ $(genOpCode "OpCode"
      , pUseExternalMipScript
      , pEnabledDiskTemplates
      , pModifyEtcHosts
-     , pModifySshSetup
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir
@@ -267,11 +262,6 @@ $(genOpCode "OpCode"
      , pEnabledUserShutdown
      , pEnabledDataCollectors
      , pDataCollectorInterval
-     , pDiagnoseDataCollectorFilename
-     , pMaintdRoundDelay
-     , pMaintdEnableBalancing
-     , pMaintdBalancingThreshold
-     , pEnabledPredictiveQueue
      ],
      [])
   , ("OpClusterRedistConf",
@@ -340,21 +330,11 @@ $(genOpCode "OpCode"
      , pRestrictedCommand
      ],
      [])
-  , ("OpRepairCommand",
-     [t| String |],
-     OpDoc.opRepairCommand,
-     [ pNodeName
-     , pRepairCommand
-     , pInput
-     ],
-     [])
   , ("OpNodeRemove",
      [t| () |],
       OpDoc.opNodeRemove,
      [ pNodeName
      , pNodeUuid
-     , pVerbose
-     , pDebug
      ],
      "node_name")
   , ("OpNodeAdd",
@@ -371,8 +351,6 @@ $(genOpCode "OpCode"
      , pVmCapable
      , pNdParams
      , pNodeSetup
-     , pVerbose
-     , pDebug
      ],
      "node_name")
   , ("OpNodeQueryvols",
@@ -430,8 +408,6 @@ $(genOpCode "OpCode"
      , pSecondaryIp
      , pNdParams
      , pPowered
-     , pVerbose
-     , pDebug
      ],
      "node_name")
   , ("OpNodePowercycle",
@@ -536,10 +512,6 @@ $(genOpCode "OpCode"
      , pTempOsParams
      , pTempOsParamsPrivate
      , pTempOsParamsSecret
-     , pTempOsParamsClear
-     , pTempOsParamsPrivateClear
-     , pTempOsParamsRemove
-     , pTempOsParamsPrivateRemove
      ],
      "instance_name")
   , ("OpInstanceRemove",
@@ -726,10 +698,6 @@ $(genOpCode "OpCode"
      , pOsNameChange
      , pInstOsParams
      , pInstOsParamsPrivate
-     , pInstOsParamsClear
-     , pInstOsParamsPrivateClear
-     , pInstOsParamsRemove
-     , pInstOsParamsPrivateRemove
      , pWaitForSync
      , withDoc "Whether to mark the instance as offline" pOffline
      , pIpConflictsCheck

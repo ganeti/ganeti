@@ -338,9 +338,7 @@ instBelowISpec = instCompareISpec GT
 
 -- | Checks if an instance is bigger than a given spec.
 instAboveISpec :: Instance -> T.ISpec -> Bool -> T.OpResult ()
-instAboveISpec inst spec exclstore =
-  genericResult (const $ Bad T.FailTooSmall) Ok
-  $ instCompareISpec LT inst spec exclstore
+instAboveISpec = instCompareISpec LT
 
 -- | Checks if an instance matches a min/max specs pair
 instMatchesMinMaxSpecs :: Instance -> T.MinMaxISpecs -> Bool -> T.OpResult ()

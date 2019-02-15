@@ -37,10 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Locking.Locks (testLocking_Locks) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative (liftA2)
+import Control.Applicative ((<$>), (<*>), liftA2)
 import Control.Monad (liftM)
 import System.Posix.Types (CPid)
 

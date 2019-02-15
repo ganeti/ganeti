@@ -88,7 +88,7 @@ mkSSConfHvparams cluster = map (id &&& hvparams) [minBound..maxBound]
 mkSSConf :: ConfigData -> SSConf
 mkSSConf cdata = SSConf . M.fromList $
     [ (SSClusterName, return $ clusterClusterName cluster)
-    , (SSClusterTags, toList . fromTagSet $ tagsOf cluster)
+    , (SSClusterTags, toList $ tagsOf cluster)
     , (SSFileStorageDir, return $ clusterFileStorageDir cluster)
     , (SSSharedFileStorageDir, return $ clusterSharedFileStorageDir cluster)
     , (SSGlusterStorageDir, return $ clusterGlusterStorageDir cluster)
@@ -101,7 +101,7 @@ mkSSConf cdata = SSConf . M.fromList $
     , (SSMasterNetmask, return . show $ clusterMasterNetmask cluster)
     , (SSMasterNode, return
                      . genericResult (const "NO MASTER") nodeName
-                     . getNodeByUuid cdata $ clusterMasterNode cluster)
+                     . getNode cdata $ clusterMasterNode cluster)
     , (SSNodeList, mapLines nodeName nodes)
     , (SSNodePrimaryIps, mapLines (spcPair . (nodeName &&& nodePrimaryIp))
                                   nodes )

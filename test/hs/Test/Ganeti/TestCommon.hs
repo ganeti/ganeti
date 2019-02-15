@@ -41,7 +41,6 @@ module Test.Ganeti.TestCommon
   , maxCpu
   , maxSpindles
   , maxVcpuRatio
-  , maxMemoryRatio
   , maxSpindleRatio
   , maxNodes
   , maxOpCodes
@@ -54,9 +53,6 @@ module Test.Ganeti.TestCommon
   , runPython
   , checkPythonResult
   , DNSChar(..)
-#if !MIN_VERSION_QuickCheck(2,7,0)
-  , generate
-#endif
   , genPrintableAsciiChar
   , genPrintableAsciiString
   , genPrintableAsciiStringNE
@@ -96,11 +92,9 @@ module Test.Ganeti.TestCommon
   , counterexample
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Exception (catchJust)
-import Control.Monad (guard, liftM, foldM)
+import Control.Monad
 import Data.Attoparsec.Text (Parser, parseOnly)
 import Data.List
 import qualified Data.Map as M
@@ -116,9 +110,7 @@ import System.Process (readProcessWithExitCode)
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
 #if !MIN_VERSION_QuickCheck(2,7,0)
-import qualified System.Random as R
 import qualified Test.QuickCheck as QC
-import Test.QuickCheck.Gen ( Gen(..) )
 #endif
 import Test.QuickCheck.Monadic
 import qualified Text.JSON as J
@@ -129,13 +121,11 @@ import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Types
 import Ganeti.Utils.Monad (unfoldrM)
 
-#if !MIN_VERSION_QuickCheck(2,8,2)
 -- * Arbitrary orphan instances
 
 instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (M.Map k a) where
   arbitrary = M.fromList <$> arbitrary
   shrink m = M.fromList <$> shrink (M.toList m)
-#endif
 
 
 -- * Constants
@@ -163,10 +153,6 @@ maxVcpuRatio = 1024.0
 -- | Max spindle ratio (random value).
 maxSpindleRatio :: Double
 maxSpindleRatio = 1024.0
-
--- | Max memory ratio (random value).
-maxMemoryRatio :: Double
-maxMemoryRatio = 1024.0
 
 -- | Max nodes, used just to limit arbitrary instances for smaller
 -- opcode definitions (e.g. list of nodes in OpTestDelay).
@@ -271,7 +257,7 @@ genName :: Gen String
 genName = do
   n <- choose (1, 16)
   dn <- vector n
-  return $ map dnsGetChar dn
+  return (map dnsGetChar dn)
 
 -- | Generates an entire FQDN.
 genFQDN :: Gen String
@@ -603,11 +589,4 @@ listOfUniqueBy gen keyFun forbidden = do
 #if !MIN_VERSION_QuickCheck(2,7,0)
 counterexample :: Testable prop => String -> prop -> Property
 counterexample = QC.printTestCase
-
--- | Run a generator. The size passed to the generator is always 30;
--- Implementation adapted from Test.QuickCheck 2.7
-generate :: Gen a -> IO a
-generate (MkGen g) =
-  do r <- R.newStdGen
-     return (g r 30)
 #endif

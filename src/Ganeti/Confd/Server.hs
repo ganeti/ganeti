@@ -40,9 +40,7 @@ module Ganeti.Confd.Server
   , prepMain
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative((<$>))
 import Control.Concurrent
 import Control.Monad (forever, liftM)
 import Data.IORef
@@ -132,7 +130,7 @@ getNodePipByInstanceIp cfg linkipmap link instip =
 
 -- | Returns a node name for a given UUID
 uuidToNodeName :: ConfigData -> String -> Result String
-uuidToNodeName cfg uuid = gntErrorToResult $ nodeName <$> getNodeByUuid cfg uuid
+uuidToNodeName cfg uuid = gntErrorToResult $ nodeName <$> getNode cfg uuid
 
 -- | Encodes a list of minors into a JSON representation, converting UUIDs to
 -- names in the process
@@ -154,7 +152,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqClusterMaster }) =
     EmptyQuery -> liftM ((ReplyStatusOk,,serial) . J.showJSON) master_name
     PlainQuery _ -> return queryArgumentError
     DictQuery reqq -> do
-      mnode <- gntErrorToResult $ getNodeByUuid cfg master_uuid
+      mnode <- gntErrorToResult $ getNode cfg master_uuid
       mname <- master_name
       let fvals = map (\field -> case field of
                                    ReqFieldName -> mname
@@ -177,7 +175,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeRoleByName }) = do
           clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =
-  -- note: we use foldlWithKey because that's present accross more
+  -- note: we use foldlWithKey because that's present across more
   -- versions of the library
   return (ReplyStatusOk, J.showJSON $
           M.foldlWithKey (\accu _ n -> nodePrimaryIp n:accu) []
@@ -185,7 +183,7 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =
           clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqMcPipList }) =
-  -- note: we use foldlWithKey because that's present accross more
+  -- note: we use foldlWithKey because that's present across more
   -- versions of the library
   return (ReplyStatusOk, J.showJSON $
           M.foldlWithKey (\accu _ n -> if nodeMasterCandidate n
@@ -255,7 +253,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
     case getInstance cfg inst_name of
       Ok i -> return i
       Bad e -> fail $ "Instance not found in the configuration: " ++ show e
-  case getInstDisks cfg inst of
+  case getInstDisks cfg . uuidOf $ inst of
     Ok disks -> return (ReplyStatusOk, J.showJSON disks, instSerial inst)
     Bad e -> fail $ "Could not retrieve disks: " ++ show e
 

@@ -45,8 +45,8 @@ DAEMONS_LIST="noded confd wconfd rapi luxid kvmd"
 STOPDAEMONS_LIST="kvmd luxid rapi wconfd confd noded"
 
 if grep -q '^ENABLE_MOND = True' lib/_constants.py; then
-  DAEMONS_LIST="$DAEMONS_LIST mond maintd"
-  STOPDAEMONS_LIST="maintd mond $STOPDAEMONS_LIST"
+  DAEMONS_LIST="$DAEMONS_LIST mond"
+  STOPDAEMONS_LIST="mond $STOPDAEMONS_LIST"
 fi
 
 STOPDAEMONS_LIST="metad $STOPDAEMONS_LIST"

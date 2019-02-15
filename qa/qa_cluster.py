@@ -1450,6 +1450,14 @@ def TestUpgrade():
     nodes = qa_config.AcquireManyNodes(n)
     live_instances.append(cf(nodes))
 
+  # 2.16 only - prior to performing a downgrade, we have to make sure that the
+  # SSH keys used are such that the lower version can still use them,
+  # regardless of cluster defaults.
+  if constants.VERSION_MINOR != 16:
+    raise qa_error.Error("Please remove the key type downgrade code in 2.17")
+  AssertCommand(["gnt-cluster", "renew-crypto", "--no-ssh-key-check", "-f",
+                 "--new-ssh-keys", "--ssh-key-type=dsa"])
+
   AssertRedirectedCommand(["gnt-cluster", "upgrade", "--to", other_version])
   AssertRedirectedCommand(["gnt-cluster", "verify"])
 

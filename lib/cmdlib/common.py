@@ -179,19 +179,16 @@ def GetWantedInstances(lu, short_inst_names):
   return (inst_uuids, [lu.cfg.GetInstanceName(uuid) for uuid in inst_uuids])
 
 
-def RunPostHook(lu, node_uuid):
+def RunPostHook(lu, node_name):
   """Runs the post-hook for an opcode on a single node.
 
   """
   hm = lu.proc.BuildHooksManager(lu)
   try:
-    # Execute usual post hooks, then global post hooks.
-    hm.RunPhase(constants.HOOKS_PHASE_POST, node_uuids=[node_uuid])
-    hm.RunPhase(constants.HOOKS_PHASE_POST, [node_uuid], is_global=True,
-                post_status=constants.POST_HOOKS_STATUS_SUCCESS)
+    hm.RunPhase(constants.HOOKS_PHASE_POST, node_names=[node_name])
   except Exception, err: # pylint: disable=W0703
     lu.LogWarning("Errors occurred running hooks on %s: %s",
-                  node_uuid, err)
+                  node_name, err)
 
 
 def RedistributeAncillaryFiles(lu):
@@ -486,9 +483,7 @@ def AddMasterCandidateSshKey(
     potential_master_candidates,
     True, # add node's key to all node's 'authorized_keys'
     True, # all nodes are potential master candidates
-    False, # do not update the node's public keys
-    lu.op.debug,
-    lu.op.verbose)
+    False) # do not update the node's public keys
   ssh_result[master_node].Raise(
     "Could not update the SSH setup of node '%s' after promotion"
     " (UUID: %s)." % (node.name, node.uuid))
@@ -1541,7 +1536,7 @@ def DetermineImageSize(lu, image, node_uuid):
   return math.ceil(byte_size / 1024. / 1024.)
 
 
-def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None, silent_stop=False):
+def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
   """Ensure KVM daemon is running on nodes with KVM instances.
 
   If user shutdown is enabled in the cluster:
@@ -1564,9 +1559,6 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None, silent_stop=False):
   @param nodes: if supplied, it overrides the node uuids to start/stop;
                 this is used mainly for optimization
 
-  @type silent_stop: bool
-  @param silent_stop: if we should suppress warnings in case KVM daemon is
-                      already stopped
   """
   cluster = lu.cfg.GetClusterInfo()
 
@@ -1601,10 +1593,9 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None, silent_stop=False):
   # Stop KVM where necessary
   if stop_nodes:
     results = lu.rpc.call_node_ensure_daemon(stop_nodes, constants.KVMD, False)
-    if not silent_stop:
-      for node_uuid in stop_nodes:
-        results[node_uuid].Warn("Failed to stop KVM daemon in node '%s'" %
-                                lu.cfg.GetNodeName(node_uuid), feedback_fn)
+    for node_uuid in stop_nodes:
+      results[node_uuid].Warn("Failed to stop KVM daemon on node '%s'" %
+                              lu.cfg.GetNodeName(node_uuid), feedback_fn)
 
 
 def WarnAboutFailedSshUpdates(result, master_uuid, feedback_fn):

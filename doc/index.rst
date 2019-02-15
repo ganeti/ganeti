@@ -82,7 +82,6 @@ and draft versions (which are either incomplete or not implemented).
    design-2.14.rst
    design-2.15.rst
    design-2.16.rst
-   design-2.17.rst
 
 Draft designs
 -------------
@@ -100,8 +99,10 @@ Draft designs
    design-allocation-efficiency.rst
    design-autorepair.rst
    design-bulk-create.rst
+   design-ceph-ganeti-support.rst
    design-chained-jobs.rst
    design-cmdlib-unittests.rst
+   design-configlock.rst
    design-cpu-speed.rst
    design-cpu-pinning.rst
    design-dedicated-allocation.rst
@@ -111,6 +112,7 @@ Draft designs
    design-disks.rst
    design-file-based-storage.rst
    design-file-based-disks-ownership.rst
+   design-glusterfs-ganeti-support.rst
    design-hroller.rst
    design-hsqueeze.rst
    design-hotplug.rst
@@ -118,15 +120,13 @@ Draft designs
    design-kvmd.rst
    design-location.rst
    design-linuxha.rst
+   design-location.rst
    design-lu-generated-jobs.rst
-   design-memory-over-commitment.rst
-   design-migration-speed-hbal.rst
    design-monitoring-agent.rst
    design-move-instance-improvements.rst
    design-multi-reloc.rst
    design-multi-version-tests.rst
    design-network.rst
-   design-n-m-redundancy.rst
    design-node-add.rst
    design-node-security.rst
    design-oob.rst
@@ -138,12 +138,11 @@ Draft designs
    design-partitioned
    design-performance-tests.rst
    design-plain-redundancy.rst
-   design-predictive-queue.rst
    design-query2.rst
    design-query-splitting.rst
-   design-rapi-pam.rst
    design-reason-trail.rst
-   design-repaird.rst
+   design-reservations.rst
+   design-resource-model.rst
    design-restricted-commands.rst
    design-shared-storage.rst
    design-shared-storage-redundancy.rst

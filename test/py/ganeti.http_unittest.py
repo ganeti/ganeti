@@ -42,7 +42,6 @@ from cStringIO import StringIO
 
 from ganeti import http
 from ganeti import compat
-from ganeti.rapi.auth import users_file
 
 import ganeti.http.server
 import ganeti.http.client
@@ -123,12 +122,12 @@ class TestMisc(unittest.TestCase):
 
 
 class _FakeRequestAuth(http.auth.HttpServerRequestAuthentication):
-  def __init__(self, realm, authreq, authenticator):
+  def __init__(self, realm, authreq, authenticate_fn):
     http.auth.HttpServerRequestAuthentication.__init__(self)
 
     self.realm = realm
     self.authreq = authreq
-    self.authenticator = authenticator
+    self.authenticate_fn = authenticate_fn
 
   def AuthenticationRequired(self, req):
     return self.authreq
@@ -136,11 +135,9 @@ class _FakeRequestAuth(http.auth.HttpServerRequestAuthentication):
   def GetAuthRealm(self, req):
     return self.realm
 
-  def Authenticate(self, req):
-    handler_access = []
-    if self.authenticator:
-      return self.authenticator.ValidateRequest(
-          req, handler_access, self.GetAuthRealm(req))
+  def Authenticate(self, *args):
+    if self.authenticate_fn:
+      return self.authenticate_fn(*args)
     raise NotImplementedError()
 
 
@@ -158,7 +155,7 @@ class TestAuth(unittest.TestCase):
   def _testVerifyBasicAuthPassword(self, realm, user, password, expected):
     ra = _FakeRequestAuth(realm, False, None)
 
-    return ra.VerifyBasicAuthPassword(user, password, expected, realm)
+    return ra.VerifyBasicAuthPassword(None, user, password, expected)
 
   def testVerifyBasicAuthPassword(self):
     tvbap = self._testVerifyBasicAuthPassword
@@ -207,17 +204,9 @@ class _SimpleAuthenticator:
     self.password = password
     self.called = False
 
-  def ValidateRequest(self, req, handler_access, realm):
+  def __call__(self, req, user, password):
     self.called = True
-
-    username, password = http.auth.HttpServerRequestAuthentication \
-                           .ExtractUserPassword(req)
-    if username is None or password is None:
-      return False
-
-    return (self.user == username and
-            http.auth.HttpServerRequestAuthentication.VerifyBasicAuthPassword(
-                username, password, self.password, realm))
+    return self.user == user and self.password == password
 
 
 class TestHttpServerRequestAuthentication(unittest.TestCase):
@@ -228,30 +217,26 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
   def testNoRealm(self):
     headers = { http.HTTP_AUTHORIZATION: "", }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
-    ac = _SimpleAuthenticator("foo", "bar")
-    ra = _FakeRequestAuth(None, False, ac)
+    ra = _FakeRequestAuth(None, False, None)
     self.assertRaises(AssertionError, ra.PreHandleRequest, req)
 
   def testNoScheme(self):
     headers = { http.HTTP_AUTHORIZATION: "", }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
-    ac = _SimpleAuthenticator("foo", "bar")
-    ra = _FakeRequestAuth("area1", False, ac)
+    ra = _FakeRequestAuth("area1", False, None)
     self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
 
   def testUnknownScheme(self):
     headers = { http.HTTP_AUTHORIZATION: "NewStyleAuth abc", }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
-    ac = _SimpleAuthenticator("foo", "bar")
-    ra = _FakeRequestAuth("area1", False, ac)
+    ra = _FakeRequestAuth("area1", False, None)
     self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
 
   def testInvalidBase64(self):
     headers = { http.HTTP_AUTHORIZATION: "Basic x_=_", }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
-    ac = _SimpleAuthenticator("foo", "bar")
-    ra = _FakeRequestAuth("area1", False, ac)
-    self.assertRaises(http.HttpBadRequest, ra.PreHandleRequest, req)
+    ra = _FakeRequestAuth("area1", False, None)
+    self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
 
   def testAuthForPublicResource(self):
     headers = {
@@ -283,12 +268,11 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
       http.HttpBadRequest: ["Basic"],
       }
 
-    ac = _SimpleAuthenticator("foo", "bar")
     for exc, headers in checks.items():
       for i in headers:
         headers = { http.HTTP_AUTHORIZATION: i, }
         req = http.server._HttpServerRequest("GET", "/", headers, None, None)
-        ra = _FakeRequestAuth("area1", False, ac)
+        ra = _FakeRequestAuth("area1", False, None)
         self.assertRaises(exc, ra.PreHandleRequest, req)
 
   def testBasicAuth(self):
@@ -323,7 +307,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
 
 class TestReadPasswordFile(unittest.TestCase):
   def testSimple(self):
-    users = users_file.ParsePasswordFile("user1 password")
+    users = http.auth.ParsePasswordFile("user1 password")
     self.assertEqual(len(users), 1)
     self.assertEqual(users["user1"].password, "password")
     self.assertEqual(len(users["user1"].options), 0)
@@ -338,7 +322,7 @@ class TestReadPasswordFile(unittest.TestCase):
     buf.write("   \t# Another comment\n")
     buf.write("invalidline\n")
 
-    users = users_file.ParsePasswordFile(buf.getvalue())
+    users = http.auth.ParsePasswordFile(buf.getvalue())
     self.assertEqual(len(users), 2)
     self.assertEqual(users["user1"].password, "password")
     self.assertEqual(len(users["user1"].options), 0)

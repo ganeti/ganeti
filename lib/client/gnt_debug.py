@@ -738,7 +738,7 @@ commands = {
                 action="store_true",
                 help="Don't take locks while performing the delay"),
      DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "[opts...] <duration>", "Executes a TestDelay OpCode"),
+    "[<opts>...] <duration>", "Executes a TestDelay OpCode"),
   "submit-job": (
     GenericOpCodes, [ArgFile(min=1)],
     [VERBOSE_OPT,
@@ -752,7 +752,7 @@ commands = {
                 help="Submit each job separately"),
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
-    "<op_list_file...>", "Submits jobs built from json files"
+    "<op-list-file>...", "Submits jobs built from json files"
     " containing a list of serialized opcodes"),
   "iallocator": (
     TestAllocator, [ArgUnknown(min=1)],
@@ -791,7 +791,7 @@ commands = {
                 default=2, type="int"),
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
-    "{opts...} <instance>", "Executes a TestAllocator OpCode"),
+    "{<opts>...} <instance-name>", "Executes a TestAllocator OpCode"),
   "test-jobqueue": (
     TestJobqueue, ARGS_NONE, [PRIORITY_OPT],
     "", "Test a few aspects of the job queue"),

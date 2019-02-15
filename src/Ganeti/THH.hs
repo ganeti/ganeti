@@ -1,4 +1,4 @@
-{-# LANGUAGE ParallelListComp, TemplateHaskell, RankNTypes #-}
+{-# LANGUAGE ParallelListComp, TemplateHaskell #-}
 
 {-| TemplateHaskell helper for Ganeti Haskell code.
 
@@ -77,14 +77,11 @@ module Ganeti.THH ( declareSADT
                   , ssconfConstructorName
                   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Control.Arrow ((&&&), second)
 import Control.Applicative
 import Control.Lens.Type (Lens, Lens')
 import Control.Lens (lens, set, element)
-import Control.Monad (liftM, replicateM, when, unless)
+import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
 import Control.Monad.Writer (tell)
 import qualified Control.Monad.Trans as MT
@@ -93,9 +90,10 @@ import Data.Attoparsec.Text ()
   -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
 import Data.Function (on)
-import Data.List (intercalate, groupBy, stripPrefix, sort, nub)
+import Data.List
 import Data.Maybe
 import qualified Data.Map as M
+import Data.Monoid
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Language.Haskell.TH
@@ -104,7 +102,9 @@ import Language.Haskell.TH.Syntax (lift)
 import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
-import Ganeti.JSON (readJSONWithDesc, fromObj, DictObject(..), ArrayObject(..), maybeFromObj, mkUsedKeys, showJSONtoDict, readJSONfromDict, branchOnField, addField, allUsedKeys)
+import Ganeti.JSON (readJSONWithDesc, fromObj, DictObject(..), ArrayObject(..),
+                    maybeFromObj, mkUsedKeys, showJSONtoDict, readJSONfromDict,
+                    branchOnField, addField, allUsedKeys)
 import Ganeti.PartialParams
 import Ganeti.PyValue
 import Ganeti.THH.PyType
@@ -488,7 +488,7 @@ genToRaw traw fname tname constructors = do
 genFromRaw :: Name -> Name -> Name -> [(String, Either String Name)] -> Q [Dec]
 genFromRaw traw fname tname constructors = do
   -- signature of form (Monad m) => String -> m $name
-  sigt <- [t| forall m. (Monad m) => $(conT traw) -> m $(conT tname) |]
+  sigt <- [t| (Monad m) => $(conT traw) -> m $(conT tname) |]
   -- clauses for a guarded pattern
   let varp = mkName "s"
       varpe = varE varp
@@ -1064,7 +1064,7 @@ buildLens (fnm, fdnm) (rnm, rdnm) nm pfx ar (field, i) = do
 -- be a JSON object, dispatching on the "forthcoming" key.
 buildObjectWithForthcoming ::
   String -- ^ Name of the newly defined type
-  -> String -- ^ base prefix for field names; for the real and fortcoming
+  -> String -- ^ base prefix for field names; for the real and forthcoming
             -- variant, with base prefix will be prefixed with "real"
             -- and forthcoming, respectively.
   -> [Field] -- ^ List of fields in the real version
@@ -1203,13 +1203,8 @@ genDictObject :: (Name -> Field -> Q Exp)  -- ^ a saving function
               -> Q [Dec]
 genDictObject save_fn load_fn sname fields = do
   let name = mkName sname
-      -- newName fails in ghc 7.10 when used on keywords
-      newName' "data" = newName "data_ghcBug10599"
-      newName' "instance" = newName "instance_ghcBug10599"
-      newName' "type" = newName "type_ghcBug10599"
-      newName' s = newName s
   -- toDict
-  fnames <- mapM (newName' . fieldVariable) fields
+  fnames <- mapM (newName . fieldVariable) fields
   let pat = conP name (map varP fnames)
       tdexp = [| concat $(listE $ zipWith save_fn fnames fields) |]
   tdclause <- clause [pat] (normalB tdexp) []

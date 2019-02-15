@@ -55,22 +55,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-{-# LANGUAGE FlexibleContexts #-}
-
 module Ganeti.Query.Exec
   ( isForkSupported
   , forkJobProcess
-  , forkPostHooksProcess
   ) where
-
-import Prelude ()
-import Ganeti.Prelude
 
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception (finally)
 import Control.Monad
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error
+import Data.Functor
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
 import System.Directory (getDirectoryContents)
@@ -108,7 +103,7 @@ connectConfig = ConnectConfig { recvTmo    = 30
                               }
 
 -- Returns the list of all open file descriptors of the current process.
-listOpenFds :: (FromString e) => ResultT e IO [Fd]
+listOpenFds :: (Error e) => ResultT e IO [Fd]
 listOpenFds = liftM filterReadable
                 $ liftIO (getDirectoryContents "/proc/self/fd") `orElse`
                   liftIO (getDirectoryContents "/dev/fd") `orElse`
@@ -123,6 +118,7 @@ listOpenFds = liftM filterReadable
     filterReadable :: (Read a) => [String] -> [a]
     filterReadable = mapMaybe (fmap fst . listToMaybe . reads)
 
+
 -- | Catches a potential `IOError` and sets its description via
 -- `annotateIOError`. This makes exceptions more informative when they
 -- are thrown from an unnamed `Handle`.
@@ -130,19 +126,10 @@ rethrowAnnotateIOError :: String -> IO a -> IO a
 rethrowAnnotateIOError desc =
   modifyIOError (\e -> annotateIOError e desc Nothing Nothing)
 
-
--- | Code that is executed in a @fork@-ed process. Performs communication with
--- the parent process by calling commFn and then runs pyExecIO python
--- executable.
-runProcess :: JobId -- ^ a job to process
-           -> Client -- ^ UDS transport
-           -> IO FilePath -- ^ path to the python executable
-           -> ((String -> IO ()) -> JobId -> Client -> IO Fd)
-              -- ^ pre-execution function communicating with the parent. The
-              -- function returns the file descriptor which should
-              -- remain open
-           -> IO ()
-runProcess jid s pyExecIO commFn = withErrorLogAt CRITICAL (show jid) $
+-- Code that is executed in a @fork@-ed process and that the replaces iteself
+-- with the actual job process
+runJobProcess :: JobId -> Client -> IO ()
+runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
   do
     -- Close the standard error to prevent anything being written there
     -- (for example by exceptions when closing unneeded FDs).
@@ -155,7 +142,20 @@ runProcess jid s pyExecIO commFn = withErrorLogAt CRITICAL (show jid) $
     let logLater _ = return ()
 
     logLater $ "Forking a new process for job " ++ show (fromJobId jid)
-    preserve_fd <- commFn logLater jid s
+
+    -- Create a livelock file for the job
+    (TOD ts _) <- getClockTime
+    lockfile <- P.livelockFile $ printf "job_%06d_%d" (fromJobId jid) ts
+
+    -- Lock the livelock file
+    logLater $ "Locking livelock file " ++ show lockfile
+    fd <- lockFile lockfile >>= annotateResult "Can't lock the livelock file"
+    logLater "Sending the lockfile name to the master process"
+    sendMsg s lockfile
+
+    logLater "Waiting for the master process to confirm the lock"
+    _ <- recvMsg s
+
     -- close the client
     logLater "Closing the client"
     (clFdR, clFdW) <- clientToFd s
@@ -169,20 +169,21 @@ runProcess jid s pyExecIO commFn = withErrorLogAt CRITICAL (show jid) $
     closeFd clFdR
     closeFd clFdW
 
-    fds <- (filter (> 2) . filter (/= preserve_fd)) <$> toErrorBase listOpenFds
+    fds <- (filter (> 2) . filter (/= fd)) <$> toErrorBase listOpenFds
     logLater $ "Closing every superfluous file descriptor: " ++ show fds
     mapM_ (tryIOError . closeFd) fds
 
-    -- The master process will send the job id and the livelock file name
-    -- using the same protocol. We pass the job id as the first argument
-    -- to the process. While the process never uses it, it's very convenient
-    -- when listing job processes.
+    -- the master process will send the job id and the livelock file name
+    -- using the same protocol to the job process
+    -- we pass the job id as the first argument to the process;
+    -- while the process never uses it, it's very convenient when listing
+    -- job processes
     use_debug <- isDebugMode
     env <- (M.insert "GNT_DEBUG" (if use_debug then "1" else "0")
             . M.insert "PYTHONPATH" AC.versionedsharedir
             . M.fromList)
            `liftM` getEnvironment
-    execPy <- pyExecIO
+    execPy <- P.jqueueExecutorPy
     logLater $ "Executing " ++ AC.pythonPath ++ " " ++ execPy
                ++ " with PYTHONPATH=" ++ AC.versionedsharedir
     () <- executeFile AC.pythonPath True [execPy, show (fromJobId jid)]
@@ -221,48 +222,26 @@ forkWithPipe conf childAction = do
            $ closeClient child
   return (pid, master)
 
--- | Kill the process with the id provided.
-killProcessOnError :: (FromString e, Show e)
-                   => ProcessID -- ^ job process pid
-                   -> Client -- ^ UDS client connected to the master node
-                   -> (String -> ResultT e (WriterLogT IO) ())
-                      -- ^ log function
-                   -> ResultT e (WriterLogT IO) ()
-killProcessOnError pid master logFn = do
-  logFn "Closing the pipe to the client"
-  withErrorLogAt WARNING "Closing the communication pipe failed"
-                 (liftIO (closeClient master)) `orElse` return ()
-  killIfAlive [sigTERM, sigABRT, sigKILL]
-  where killIfAlive [] = return ()
-        killIfAlive (sig : sigs) = do
-          logFn "Getting the status of the process"
-          status <- tryError . liftIO $ getProcessStatus False True pid
-          case status of
-            Left e -> logFn $ "Job process already gone: " ++ show e
-            Right (Just s) -> logFn $ "Child process status: " ++ show s
-            Right Nothing -> do
-              logFn $ "Child process running, killing by " ++ show sig
-              liftIO $ signalProcess sig pid
-              unless (null sigs) $ do
-                threadDelay 100000 -- wait for 0.1s and check again
-                killIfAlive sigs
+-- | Forks the job process and starts processing of the given job.
+-- Returns the livelock of the job and its process ID.
+forkJobProcess :: (Error e, Show e)
+               => QueuedJob -- ^ a job to process
+               -> FilePath  -- ^ the daemons own livelock file
+               -> (FilePath -> ResultT e IO ())
+                  -- ^ a callback function to update the livelock file
+                  -- and process id in the job file
+               -> ResultT e IO (FilePath, ProcessID)
+forkJobProcess job luxiLivelock update = do
+  let jidStr = show . fromJobId . qjId $ job
 
--- | Data type used only to define the return type of forkProcessCatchErrors.
-data ForkProcessRet = ForkJob (FilePath, ProcessID) |
-                      ForkPostHooks ProcessID
+  -- Retrieve secret parameters if present
+  let secretParams = encodeStrict . filterSecretParameters . qjOps $ job
 
--- | Forks current process and runs runFn in the child and commFn in the
--- parent. Due to a bug in GHC forking process, we want to retry if the forked
--- process fails to start. If it fails later on, the failure is handled by
--- 'ResultT' and no retry is performed.
-forkProcessCatchErrors :: (Show e, FromString e)
-                       => (Client -> IO ())
-                       -> (ProcessID -> String -> ResultT e (WriterLogT IO) ())
-                       -> (ProcessID -> Client
-                           -> ResultT e (WriterLogT IO) ForkProcessRet)
-                       -> ResultT e IO ForkProcessRet
-forkProcessCatchErrors runFn logFn commFn = do
-  -- Due to a bug in GHC forking process, we want to retry
+  logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
+             ++ " for job " ++ jidStr
+  update luxiLivelock
+
+  -- Due to a bug in GHC forking process, we want to retry,
   -- if the forked process fails to start.
   -- If it fails later on, the failure is handled by 'ResultT'
   -- and no retry is performed.
@@ -272,49 +251,45 @@ forkProcessCatchErrors runFn logFn commFn = do
     let maxWaitUS = 2^(tryNo - 1) * C.luxidRetryForkStepUS
     when (tryNo >= 2) . liftIO $ delayRandom (0, maxWaitUS)
 
-    (pid, master) <- liftIO $ forkWithPipe connectConfig runFn
+    (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess
+                                                          . qjId $ job)
 
-    logFn pid "Forked a new process"
-    flip catchError (\e -> killProcessOnError pid master (logFn pid)
-                           >> throwError e) $ commFn pid master
+    let jobLogPrefix = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
+        logDebugJob = logDebug . (jobLogPrefix ++)
 
--- | Forks the job process and starts processing of the given job.
--- Returns the livelock of the job and its process ID.
-forkJobProcess :: (FromString e, Show e)
-               => QueuedJob -- ^ a job to process
-               -> FilePath  -- ^ the daemons own livelock file
-               -> (FilePath -> ResultT e IO ())
-                  -- ^ a callback function to update the livelock file
-                  -- and process id in the job file
-               -> ResultT e IO (FilePath, ProcessID)
-forkJobProcess job luxiLivelock update = do
+    logDebugJob "Forked a new process"
 
-  logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
-             ++ " for job " ++ jidStr
-  update luxiLivelock
+    let killIfAlive [] = return ()
+        killIfAlive (sig : sigs) = do
+          logDebugJob "Getting the status of the process"
+          status <- tryError . liftIO $ getProcessStatus False True pid
+          case status of
+            Left e -> logDebugJob $ "Job process already gone: " ++ show e
+            Right (Just s) -> logDebugJob $ "Child process status: " ++ show s
+            Right Nothing -> do
+                logDebugJob $ "Child process running, killing by " ++ show sig
+                liftIO $ signalProcess sig pid
+                unless (null sigs) $ do
+                  threadDelay 100000 -- wait for 0.1s and check again
+                  killIfAlive sigs
 
-  ForkJob ret <- forkProcessCatchErrors (childMain . qjId $ job) logDebugJob
-                                        parentMain
-  return ret
-  where
-    -- Retrieve secret parameters if present
-    secretParams = encodeStrict . filterSecretParameters . qjOps $ job
-    jidStr = show . fromJobId . qjId $ job
-    jobLogPrefix pid = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
-    logDebugJob pid = logDebug . (jobLogPrefix pid ++)
+    let onError = do
+          logDebugJob "Closing the pipe to the client"
+          withErrorLogAt WARNING "Closing the communication pipe failed"
+              (liftIO (closeClient master)) `orElse` return ()
+          killIfAlive [sigTERM, sigABRT, sigKILL]
 
-    -- | Code performing communication with the child process. First, receive
-    -- the livelock, then send necessary parameters to the python child.
-    parentMain pid master = do
+    flip catchError (\e -> onError >> throwError e)
+      $ do
       let annotatedIO msg k = do
-            logDebugJob pid msg
-            liftIO $ rethrowAnnotateIOError (jobLogPrefix pid ++ msg) k
+            logDebugJob msg
+            liftIO $ rethrowAnnotateIOError (jobLogPrefix ++ msg) k
       let recv msg = annotatedIO msg (recvMsg master)
           send msg x = annotatedIO msg (sendMsg master x)
 
       lockfile <- recv "Getting the lockfile of the client"
 
-      logDebugJob pid ("Setting the lockfile to the final " ++ lockfile)
+      logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
       send "Confirming the client it can start" ""
 
@@ -322,62 +297,13 @@ forkJobProcess job luxiLivelock update = do
 
       _ <- recv "Waiting for the job to ask for the job id"
       send "Writing job id to the client" jidStr
+
       _ <- recv "Waiting for the job to ask for the lock file name"
       send "Writing the lock file name to the client" lockfile
+
       _ <- recv "Waiting for the job to ask for secret parameters"
       send "Writing secret parameters to the client" secretParams
-      liftIO $ closeClient master
-      return $ ForkJob (lockfile, pid)
-
-    -- | Code performing communication with the parent process. During
-    -- communication the livelock is created, locked and sent back
-    -- to the parent.
-    childMain jid s = runProcess jid s P.jqueueExecutorPy commFn
-      where
-        commFn logFn jid' s' = do
-          -- Create a livelock file for the job
-          (TOD ts _) <- getClockTime
-          lockfile <- P.livelockFile $ printf "job_%06d_%d" (fromJobId jid') ts
-          -- Lock the livelock file
-          _ <- logFn $ "Locking livelock file " ++ show lockfile
-          fd <- lockFile lockfile >>= annotateResult "Can't lock the livelock"
-          _ <- logFn "Sending the lockfile name to the master process"
-          sendMsg s' lockfile
-          _ <- logFn "Waiting for the master process to confirm the lock"
-          _ <- recvMsg s'
-          return fd
-
--- | Forks the process and starts the processing of post hooks for the opcode
--- whose execution was unfinished due to job process disappearing.
-forkPostHooksProcess :: (FromString e, Show e)
-                     => JobId
-                     -> ResultT e IO ProcessID
-forkPostHooksProcess jid = do
-  ForkPostHooks ret <- forkProcessCatchErrors (childMain jid) logDebugJob
-                                              parentMain
-  return ret
-  where
-    jidStr = show $ fromJobId jid
-    jobLogPrefix pid = "[start:post_hooks:job-" ++ jidStr ++ ",pid="
-                       ++ show pid ++ "] "
-    logDebugJob pid = logDebug . (jobLogPrefix pid ++)
-
-    -- | Code performing communication with the child process. First, receive
-    -- livelock, then send necessary parameters to the python child.
-    parentMain pid master = do
-      let annotatedIO msg k = do
-            logDebugJob pid msg
-            liftIO $ rethrowAnnotateIOError (jobLogPrefix pid ++ msg) k
-      let recv msg = annotatedIO msg (recvMsg master)
-          send msg x = annotatedIO msg (sendMsg master x)
-      -- We communicate with the Python process
-      _ <- recv "Waiting for the post hooks executor to ask for the job id"
-      send "Writing job id to the client" jidStr
 
       liftIO $ closeClient master
-      return $ ForkPostHooks pid
 
-    -- | Code performing communication with the parent process. Python part
-    -- will only read job file so, we don't need livelock here.
-    childMain jid' s = runProcess jid' s P.postHooksExecutorPy commFn
-      where commFn _ _ _ = return (0 :: Fd)
+      return (lockfile, pid)

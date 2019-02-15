@@ -304,7 +304,6 @@ class Processor(object):
     self.cfg = context.GetConfig(ec_id)
     self.rpc = context.GetRpc(self.cfg)
     self.hmclass = hooksmaster.HooksMaster
-    self._hm = None
     self._enable_locks = enable_locks
     self.wconfd = wconfd # Indirection to allow testing
     self._wconfdcontext = context.GetWConfdContext(ec_id)
@@ -483,19 +482,8 @@ class Processor(object):
     lu.cfg.OutDate()
     lu.CheckPrereq()
 
-    self._hm = self.BuildHooksManager(lu)
-    try:
-      # Run hooks twice: first for the global hooks, then for the usual hooks.
-      self._hm.RunPhase(constants.HOOKS_PHASE_PRE, is_global=True)
-      h_results = self._hm.RunPhase(constants.HOOKS_PHASE_PRE)
-    except Exception, err:  # pylint: disable=W0703
-      # This gives the LU a chance of cleaning up in case of an hooks failure.
-      # The type of exception is deliberately broad to be able to react to
-      # any kind of failure.
-      lu.HooksAbortCallBack(constants.HOOKS_PHASE_PRE, self.Log, err)
-      # We re-raise the exception to not alter the behavior of LU handling
-      # otherwise.
-      raise err
+    hm = self.BuildHooksManager(lu)
+    h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self.Log, None)
 
@@ -515,20 +503,19 @@ class Processor(object):
     lusExecuting[0] += 1
     try:
       result = _ProcessResult(submit_mj_fn, lu.op, lu.Exec(self.Log))
-      h_results = self._hm.RunPhase(constants.HOOKS_PHASE_POST)
+      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
                                 self.Log, result)
     finally:
       # FIXME: This needs locks if not lu_class.REQ_BGL
       lusExecuting[0] -= 1
       if write_count != self.cfg.write_count:
-        self._hm.RunConfigUpdate()
+        hm.RunConfigUpdate()
 
     return result
 
   def BuildHooksManager(self, lu):
-    return self.hmclass.BuildFromLu(lu.rpc.call_hooks_runner, lu,
-                                    self.GetECId())
+    return self.hmclass.BuildFromLu(lu.rpc.call_hooks_runner, lu)
 
   def _LockAndExecLU(self, lu, level, calc_timeout, pending=None):
     """Execute a Logical Unit, with the needed locks.
@@ -669,17 +656,33 @@ class Processor(object):
         raise errors.OpResultError("Opcode result does not match %s: %s" %
                                    (resultcheck_fn, utils.Truncate(result, 80)))
 
-  def _PrepareLockListsAndExecLU(self, op, lu_class, calc_timeout):
+  def ExecOpCode(self, op, cbs, timeout=None):
     """Execute an opcode.
 
+    @type op: an OpCode instance
     @param op: the opcode to be executed
-    @param lu_class: the LU class implementing the current opcode
-    @param calc_timeout: The function calculating the time remaining
-        to acquire all locks, None for no timeout
+    @type cbs: L{OpExecCbBase}
+    @param cbs: Runtime callbacks
+    @type timeout: float or None
+    @param timeout: Maximum time to acquire all locks, None for no timeout
     @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
         amount of time
 
     """
+    if not isinstance(op, opcodes.OpCode):
+      raise errors.ProgrammerError("Non-opcode instance passed"
+                                   " to ExecOpcode (%s)" % type(op))
+
+    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
+    if lu_class is None:
+      raise errors.OpCodeUnknown("Unknown opcode")
+
+    if timeout is None:
+      calc_timeout = lambda: None
+    else:
+      calc_timeout = utils.RunningTimeout(timeout, False).Remaining
+
+    self._cbs = cbs
     try:
       if self._enable_locks:
         # Acquire the Big Ganeti Lock exclusively if this LU requires it,
@@ -709,55 +712,8 @@ class Processor(object):
         self._wconfdcontext, locking.LEVEL_NAMES[locking.LEVEL_CLUSTER])
       self._cbs = None
 
-    return result
-
-  def ExecOpCode(self, op, cbs, timeout=None):
-    """Execute an opcode.
-
-    @type op: an OpCode instance
-    @param op: the opcode to be executed
-    @type cbs: L{OpExecCbBase}
-    @param cbs: Runtime callbacks
-    @type timeout: float or None
-    @param timeout: Maximum time to acquire all locks, None for no timeout
-    @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
-        amount of time
-
-    """
-    if not isinstance(op, opcodes.OpCode):
-      raise errors.ProgrammerError("Non-opcode instance passed"
-                                   " to ExecOpcode (%s)" % type(op))
-
-    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
-    if lu_class is None:
-      raise errors.OpCodeUnknown("Unknown opcode")
-
-    if timeout is None:
-      calc_timeout = lambda: None
-    else:
-      calc_timeout = utils.RunningTimeout(timeout, False).Remaining
-
-    self._cbs = cbs
-    try:
-      result = self._PrepareLockListsAndExecLU(op, lu_class, calc_timeout)
-
-      # The post hooks below are always executed with a SUCCESS status because
-      # all the possible errors during pre hooks and LU execution cause
-      # exception and therefore the statement below will be skipped.
-      if self._hm is not None:
-        self._hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True,
-                          post_status=constants.POST_HOOKS_STATUS_SUCCESS)
-    except:
-      # execute global post hooks with the failed status on any exception
-      hooksmaster.ExecGlobalPostHooks(op.OP_ID, self.cfg.GetMasterNodeName(),
-                                      self.rpc.call_hooks_runner,
-                                      logging.warning,
-                                      self.cfg.GetClusterName(),
-                                      self.cfg.GetMasterNode(), self.GetECId(),
-                                      constants.POST_HOOKS_STATUS_ERROR)
-      raise
-
     self._CheckLUResult(op, result)
+
     return result
 
   def Log(self, *args):

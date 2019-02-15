@@ -45,12 +45,10 @@ module Test.Ganeti.HTools.Types
   , nullIPolicy
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
+import Control.Applicative
 import Control.Monad (replicateM)
 
 import Test.Ganeti.TestHelper
@@ -148,13 +146,11 @@ instance Arbitrary Types.IPolicy where
     dts  <- genUniquesList num_tmpl arbitrary
     vcpu_ratio <- choose (1.0, maxVcpuRatio)
     spindle_ratio <- choose (1.0, maxSpindleRatio)
-    memory_ratio <- choose (1.0, maxMemoryRatio)
     return Types.IPolicy { Types.iPolicyMinMaxISpecs = iminmax
                          , Types.iPolicyStdSpec = istd
                          , Types.iPolicyDiskTemplates = dts
                          , Types.iPolicyVcpuRatio = vcpu_ratio
                          , Types.iPolicySpindleRatio = spindle_ratio
-                         , Types.iPolicyMemoryRatio = memory_ratio
                          }
 
 -- * Test cases

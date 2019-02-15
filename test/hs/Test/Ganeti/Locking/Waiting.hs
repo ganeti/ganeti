@@ -37,10 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Locking.Waiting (testLocking_Waiting) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative (liftA2)
+import Control.Applicative ((<$>), (<*>), liftA2)
 import Control.Monad (liftM)
 import qualified Data.Map as M
 import qualified Data.Set as S

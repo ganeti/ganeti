@@ -64,7 +64,9 @@ PUT should be prefered over POST.
 
 # C0103: Invalid name, since the R_* names are not conforming
 
+import errno
 import OpenSSL
+import socket
 
 from ganeti import opcodes
 from ganeti import objects
@@ -85,7 +87,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "nic.links", "nic.networks", "nic.networks.names", "nic.bridges",
             "network_port",
             "disk.sizes", "disk.spindles", "disk_usage", "disk.uuids",
-            "disk.names", "disk.storage_ids", "disk.providers",
+            "disk.names",
             "beparams", "hvparams",
             "oper_state", "oper_ram", "oper_vcpus", "status",
             "custom_hvparams", "custom_beparams", "custom_nicparams",
@@ -93,7 +95,7 @@ I_FIELDS = ["name", "admin_state", "os",
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "dtotal", "dfree", "sptotal", "spfree",
-            "mtotal", "mnode", "mfree", "hv_state",
+            "mtotal", "mnode", "mfree",
             "pinst_cnt", "sinst_cnt",
             "ctotal", "cnos", "cnodes", "csockets",
             "pip", "sip", "role",
@@ -121,7 +123,7 @@ G_FIELDS = [
   "diskparams",
   "custom_diskparams",
   "ndparams",
-  "custom_ndparams"
+  "custom_ndparams",
   ] + _COMMON_FIELDS
 
 FILTER_RULE_FIELDS = [
@@ -221,6 +223,13 @@ def _CheckIfConnectionDropped(sock):
   # The connection was terminated
   except OpenSSL.SSL.SysCallError:
     return True
+  # The usual EAGAIN is raised when the read would block, but only if SSL is
+  # disabled (The SSL case is covered by WantReadError above).
+  except socket.error as err:
+    if getattr(err, 'errno') == errno.EAGAIN:
+      return False
+    else:
+      raise
   return False
 
 
@@ -399,8 +408,6 @@ class R_2_filters(baserlib.ResourceBase):
     priority, predicates, action, reason = \
       checkFilterParameters(self.request_body)
 
-    reason.append(self.GetAuthReason())
-
     # ReplaceFilter(None, ...) inserts a new filter.
     return self.GetClient().ReplaceFilter(None, priority, predicates, action,
                                           reason)
@@ -445,8 +452,6 @@ class R_2_filters_uuid(baserlib.ResourceBase):
 
     priority, predicates, action, reason = \
       checkFilterParameters(self.request_body)
-
-    reason.append(self.GetAuthReason())
 
     return self.GetClient().ReplaceFilter(uuid, priority, predicates, action,
                                           reason)
@@ -1302,25 +1307,11 @@ def _ParseInstanceReinstallRequest(name, data):
   start = baserlib.CheckParameter(data, "start", exptype=bool,
                                   default=True)
   osparams = baserlib.CheckParameter(data, "osparams", default=None)
-  clear_osparams = baserlib.CheckParameter(data, "clear_osparams",
-                                           default=False)
-  clear_osparams_private = baserlib.CheckParameter(data,
-                                                   "clear_osparams_private",
-                                                   default=False)
-  remove_osparams = baserlib.CheckParameter(data, "remove_osparams",
-                                            default=None)
-  remove_osparams_priv = baserlib.CheckParameter(data,
-                                                 "remove_osparams_private",
-                                                 default=None)
 
   ops = [
     opcodes.OpInstanceShutdown(instance_name=name),
     opcodes.OpInstanceReinstall(instance_name=name, os_type=ostype,
-                                osparams=osparams,
-                                clear_osparams=clear_osparams,
-                                clear_osparams_private=clear_osparams_private,
-                                remove_osparams=remove_osparams,
-                                remove_osparams_private=remove_osparams_priv),
+                                osparams=osparams),
     ]
 
   if start:
@@ -1593,8 +1584,9 @@ class R_2_instances_name_console(baserlib.ResourceBase):
     instance_name = self.items[0]
     client = self.GetClient()
 
-    ((console, oper_state), ) = \
-        client.QueryInstances([instance_name], ["console", "oper_state"], False)
+    (console, oper_state) = \
+      client.QueryInstances([instance_name], ["console", "oper_state"],
+                            False)[0]
 
     if not oper_state:
       raise http.HttpServiceUnavailable("Instance console unavailable")

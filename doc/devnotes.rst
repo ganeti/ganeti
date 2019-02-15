@@ -25,7 +25,7 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `pep8 <https://github.com/jcrocholl/pep8/>`_
 - `PyYAML <http://pyyaml.org/>`_
 
-For older development (Ganeti < 2.4) ``docbook`` was used instead of
+For older developement (Ganeti < 2.4) ``docbook`` was used instead of
 ``pandoc``.
 
 Note that for pylint, at the current moment the following versions
@@ -187,8 +187,7 @@ Makefile targets for running individual Python and Haskell tests.
 For Python tests::
 
   $ export PYTHONPATH=$PWD
-  $ python ./test/py/ganeti.%mytest% # to run a complete test file
-  $ python ./test/py/ganeti.%mytest% Class.testMethod # to run one method
+  $ python ./test/py/ganeti.%mytest%
 
 For Haskell tests::
 

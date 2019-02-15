@@ -51,19 +51,15 @@ module Ganeti.Utils.Validate
   , validate'
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Arrow
 import Control.Monad
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error
 import Control.Monad.Writer
 import qualified Data.Foldable as F
 import Data.Functor.Identity
 import Data.List (intercalate)
 import Data.Sequence
-
-import Ganeti.BasicTypes (FromString(..))
 
 -- | Monad for running validation checks.
 newtype ValidationMonadT m a =
@@ -104,19 +100,19 @@ execValidate = runIdentity . execValidateT
 
 -- | A helper function for throwing an exception if a list of errors
 -- is non-empty.
-throwIfErrors :: (MonadError e m, FromString e) => (a, [String]) -> m a
+throwIfErrors :: (MonadError e m, Error e) => (a, [String]) -> m a
 throwIfErrors (x, []) = return x
-throwIfErrors (_, es) = throwError (mkFromString $ "Validation errors: "
-                                                   ++ intercalate "; " es)
+throwIfErrors (_, es) = throwError (strMsg $ "Validation errors: "
+                                             ++ intercalate "; " es)
 
 -- | Runs a validation action and if there are errors, combine them
 -- into an exception.
-evalValidate :: (MonadError e m, FromString e) => ValidationMonad a -> m a
+evalValidate :: (MonadError e m, Error e) => ValidationMonad a -> m a
 evalValidate = throwIfErrors . runValidate
 
 -- | Runs a validation action and if there are errors, combine them
 -- into an exception.
-evalValidateT :: (MonadError e m, FromString e) => ValidationMonadT m a -> m a
+evalValidateT :: (MonadError e m, Error e) => ValidationMonadT m a -> m a
 evalValidateT k = runValidateT k >>= throwIfErrors
 
 -- | A typeclass for objects that can be validated.

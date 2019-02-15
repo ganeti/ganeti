@@ -61,7 +61,6 @@ from ganeti import ssconf
 from ganeti import ssh
 from ganeti import uidpool
 from ganeti import utils
-from ganeti import wconfd
 from ganeti.client import base
 
 
@@ -96,10 +95,6 @@ RESUME_OPT = cli_option("--resume", default=False, action="store_true",
 DATA_COLLECTOR_INTERVAL_OPT = cli_option(
     "--data-collector-interval", default={}, type="keyval",
     help="Set collection intervals in seconds of data collectors.")
-
-STRICT_OPT = cli_option("--no-strict", default=False,
-                        dest="no_strict", action="store_true",
-                        help="Do not run group verify in strict mode")
 
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
@@ -252,7 +247,6 @@ def InitCluster(opts, args):
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
-    ipolicy_memory_ratio=opts.ipolicy_memory_ratio,
     fill_all=True)
 
   if opts.candidate_pool_size is None:
@@ -309,11 +303,6 @@ def InitCluster(opts, args):
 
   enabled_user_shutdown = bool(opts.enabled_user_shutdown)
 
-  if opts.enabled_predictive_queue  is not None:
-    enabled_predictive_queue = bool(opts.enabled_predictive_queue)
-  else:
-    enabled_predictive_queue = True # Predictive queue is enabled by default.
-
   if opts.ssh_key_type:
     ssh_key_type = opts.ssh_key_type
   else:
@@ -358,7 +347,6 @@ def InitCluster(opts, args):
                         enabled_user_shutdown=enabled_user_shutdown,
                         ssh_key_type=ssh_key_type,
                         ssh_key_bits=ssh_key_bits,
-                        enabled_predictive_queue=enabled_predictive_queue,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -641,7 +629,6 @@ def ShowClusterConfig(opts, args):
       ("modify ssh setup", result["modify_ssh_setup"]),
       ("ssh_key_type", result["ssh_key_type"]),
       ("ssh_key_bits", result["ssh_key_bits"]),
-      ("enabled predictive queue", result["enabled_predictive_queue"])
       ]),
 
     ("Default node parameters",
@@ -810,8 +797,7 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup,
-                                    is_strict=not opts.no_strict)
+  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -1207,7 +1193,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   if new_rapi_cert or new_spice_cert or new_confd_hmac_key or new_cds:
     RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
 
-  # If only node certficates are recreated, call _RenewClientCerts only.
+  # If only node certificates are recreated, call _RenewClientCerts only.
   if new_node_cert and not new_cluster_cert:
     RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
                            _RenewClientCerts, verbose=verbose, debug=debug)
@@ -1225,9 +1211,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
         node_certificates=new_node_cert or new_cluster_cert,
         renew_ssh_keys=new_ssh_keys,
         ssh_key_type=ssh_key_type,
-        ssh_key_bits=ssh_key_bits,
-        verbose=verbose,
-        debug=debug)
+        ssh_key_bits=ssh_key_bits)
     SubmitOpCode(renew_op, cl=cl)
 
   ToStdout("All requested certificates and keys have been replaced."
@@ -1284,10 +1268,10 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
 
   # get the key files of all non-master nodes
   for node in nonmaster_nodes:
-    pub_key = ssh.ReadRemoteSshPubKey(pub_key_filename, node, cluster_name,
-                                      ssh_port_map[node],
-                                      options.ssh_key_check,
-                                      options.ssh_key_check)
+    pub_key = ssh.ReadRemoteSshPubKeys(pub_key_filename, node, cluster_name,
+                                       ssh_port_map[node],
+                                       options.ssh_key_check,
+                                       options.ssh_key_check)
     ssh.AddPublicKey(node_uuid_map[node], pub_key, key_file=pub_key_file)
 
 
@@ -1407,9 +1391,7 @@ def SetClusterParams(opts, args):
           opts.ipolicy_disk_templates is not None or
           opts.ipolicy_vcpu_ratio is not None or
           opts.ipolicy_spindle_ratio is not None or
-          opts.ipolicy_memory_ratio is not None or
           opts.modify_etc_hosts is not None or
-          opts.modify_ssh_setup is not None or
           opts.file_storage_dir is not None or
           opts.install_image is not None or
           opts.instance_communication_network is not None or
@@ -1418,13 +1400,8 @@ def SetClusterParams(opts, args):
           opts.compression_tools is not None or
           opts.shared_file_storage_dir is not None or
           opts.enabled_user_shutdown is not None or
-          opts.maint_round_delay is not None or
-          opts.maint_balance is not None or
-          opts.maint_balance_threshold is not None or
           opts.data_collector_interval or
-          opts.diagnose_data_collector_filename is not None or
-          opts.enabled_data_collectors or
-          opts.enabled_predictive_queue is not None):
+          opts.enabled_data_collectors):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1467,7 +1444,6 @@ def SetClusterParams(opts, args):
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
-    ipolicy_memory_ratio=opts.ipolicy_memory_ratio,
     )
 
   mnh = opts.maintain_node_health
@@ -1547,7 +1523,6 @@ def SetClusterParams(opts, args):
     max_tracked_jobs=opts.max_tracked_jobs,
     maintain_node_health=mnh,
     modify_etc_hosts=opts.modify_etc_hosts,
-    modify_ssh_setup=opts.modify_ssh_setup,
     uid_pool=uid_pool,
     add_uids=add_uids,
     remove_uids=remove_uids,
@@ -1570,13 +1545,8 @@ def SetClusterParams(opts, args):
     shared_file_storage_dir=opts.shared_file_storage_dir,
     compression_tools=compression_tools,
     enabled_user_shutdown=opts.enabled_user_shutdown,
-    maint_round_delay=opts.maint_round_delay,
-    maint_balance=opts.maint_balance,
-    maint_balance_threshold=opts.maint_balance_threshold,
     enabled_data_collectors=enabled_data_collectors,
     data_collector_interval=data_collector_interval,
-    diagnose_data_collector_filename=opts.diagnose_data_collector_filename,
-    enabled_predictive_queue=opts.enabled_predictive_queue
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -1969,21 +1939,6 @@ def Epo(opts, args, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
     return _on_fn(opts, all_nodes, node_list, inst_map)
   else:
     return _off_fn(opts, node_list, inst_map)
-
-
-def RemoveRepair(opts, args):
-  """Uncoditionally remove a repair event
-
-  @param opts: the command line options selected by the user (ignored)
-  @type args: list
-  @param args: one element, the uuid of the event to remove
-  @rtype: int
-  @return: the desired exit code
-
-  """
-  uuid = args[0]
-  wconfd.Client().RmMaintdIncident(uuid)
-  return 0
 
 
 def _GetCreateCommand(info):
@@ -2515,17 +2470,16 @@ commands = {
      IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, INSTALL_IMAGE_OPT,
      ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT,
      ENABLED_USER_SHUTDOWN_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT,
-     ENABLED_PREDICTIVE_QUEUE_OPT,
      ]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
-    "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
+    "[<opts>...] <cluster-name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
     "", "Destroy cluster"),
   "rename": (
     RenameCluster, [ArgHost(min=1, max=1)],
     [FORCE_OPT, DRY_RUN_OPT],
-    "<new_name>",
+    "<new-name>",
     "Renames the cluster"),
   "redist-conf": (
     RedistributeConfig, ARGS_NONE, SUBMIT_OPTS +
@@ -2535,14 +2489,15 @@ commands = {
   "verify": (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
-     PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT, VERIFY_CLUTTER_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT,
+     VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
-    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT, STRICT_OPT],
+    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
-    "[instance...]", "Updates mismatches in recorded disk sizes"),
+    "[<instance-name>...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
     MasterFailover, ARGS_NONE,
     [NOVOTING_OPT, FORCE_FAILOVER, IGNORE_OFFLINE_NODES_FAILOVER],
@@ -2559,11 +2514,13 @@ commands = {
   "copyfile": (
     ClusterCopyFile, [ArgFile(min=1, max=1)],
     [NODE_LIST_OPT, USE_REPL_NET_OPT, NODEGROUP_OPT],
-    "[-n node...] <filename>", "Copies a file to all (or only some) nodes"),
+    "[-n <node-name>...] <filename>",
+    "Copies a file to all (or only some) nodes"),
   "command": (
     RunClusterCommand, [ArgCommand(min=1)],
     [NODE_LIST_OPT, NODEGROUP_OPT, SHOW_MACHINE_OPT, FAILURE_ONLY_OPT],
-    "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
+    "[-n <node-name>...] <command>",
+    "Runs a command on all (or only some) nodes"),
   "info": (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
     "[--roman]", "Show cluster configuration"),
@@ -2571,10 +2528,10 @@ commands = {
     ListTags, ARGS_NONE, [], "", "List the tags of the cluster"),
   "add-tags": (
     AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "tag...", "Add tags to the cluster"),
+    "<tag>...", "Add tags to the cluster"),
   "remove-tags": (
     RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "tag...", "Remove tags from the cluster"),
+    "<tag>...", "Remove tags from the cluster"),
   "search-tags": (
     SearchTags, [ArgUnknown(min=1, max=1)], [PRIORITY_OPT], "",
     "Searches the tags on all objects on"
@@ -2601,15 +2558,12 @@ commands = {
      PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
      DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT,
-      MODIFY_SSH_SETUP_OPT, ENABLED_USER_SHUTDOWN_OPT,
-      ENABLED_PREDICTIVE_QUEUE_OPT] +
+      ENABLED_USER_SHUTDOWN_OPT] +
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
-     [ENABLED_DATA_COLLECTORS_OPT, DATA_COLLECTOR_INTERVAL_OPT,
-      DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT,
-      MAINT_INTERVAL_OPT, MAINT_BALANCE_OPT, MAINT_BALANCE_THRESHOLD_OPT],
-    "[opts...]",
+     [ENABLED_DATA_COLLECTORS_OPT, DATA_COLLECTOR_INTERVAL_OPT],
+    "[<opts>...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
     RenewCrypto, ARGS_NONE,
@@ -2619,13 +2573,13 @@ commands = {
      NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
      NEW_NODE_CERT_OPT, NEW_SSH_KEY_OPT, NOSSH_KEYCHECK_OPT,
      VERBOSE_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT],
-    "[opts...]",
+    "[<opts>...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (
     Epo, [ArgUnknown()],
     [FORCE_OPT, ON_OPT, GROUPS_OPT, ALL_OPT, OOB_TIMEOUT_OPT,
      SHUTDOWN_TIMEOUT_OPT, POWER_DELAY_OPT],
-    "[opts...] [args]",
+    "[<opts>...] [args]",
     "Performs an emergency power-off on given args"),
   "activate-master-ip": (
     ActivateMasterIp, ARGS_NONE, [], "", "Activates the master IP"),
@@ -2638,9 +2592,6 @@ commands = {
   "upgrade": (
     UpgradeGanetiCommand, ARGS_NONE, [TO_OPT, RESUME_OPT], "",
     "Upgrade (or downgrade) to a new Ganeti version"),
-  "remove-repair": (
-    RemoveRepair, [ArgUnknown()], [], "<uuid>",
-    "Remove a repair event from the list of pending events"),
   }
 
 

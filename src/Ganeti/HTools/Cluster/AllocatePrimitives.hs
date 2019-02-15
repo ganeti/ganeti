@@ -39,14 +39,14 @@ module Ganeti.HTools.Cluster.AllocatePrimitives
 
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..))
 import Ganeti.HTools.Cluster.AllocationSolution (AllocElement)
-import Ganeti.HTools.Cluster.Metrics ( ClusterStatistics, compCV
-                                     , compCVfromStats
+import Ganeti.HTools.Cluster.Metrics ( compCV, compCVfromStats
                                      , updateClusterStatisticsTwice)
 import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
+import Ganeti.Utils.Statistics
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: AlgorithmOptions
@@ -65,7 +65,7 @@ allocateOnSingle opts nl inst new_pdx =
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: AlgorithmOptions
-               -> ClusterStatistics
+               -> [Statistics]
                -> Node.List -> Instance.Instance -> Ndx -> Ndx
                -> OpResult AllocElement
 allocateOnPair opts stats nl inst new_pdx new_sdx =
@@ -75,7 +75,8 @@ allocateOnPair opts stats nl inst new_pdx new_sdx =
   in do
     Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
       (Node.exclStorage tgt_p)
-    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p tgt_s)
+    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p
+                                                              (Just tgt_s))
                    new_pdx new_sdx
     new_p <- Node.addPriEx force tgt_p new_inst
     new_s <- Node.addSec tgt_s new_inst new_pdx

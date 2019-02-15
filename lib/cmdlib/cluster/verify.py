@@ -258,10 +258,8 @@ class LUClusterVerifyDisks(NoHooksLU):
       return ResultWithJobs([])
     else:
       # Submit one instance of L{opcodes.OpGroupVerifyDisks} per node group
-      return ResultWithJobs(
-          [[opcodes.OpGroupVerifyDisks(group_name=group,
-                                       is_strict=self.op.is_strict)]
-           for group in group_names])
+      return ResultWithJobs([[opcodes.OpGroupVerifyDisks(group_name=group)]
+                             for group in group_names])
 
 
 class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
@@ -389,8 +387,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @ivar sbp: dictionary of {primary-node: list of instances} for all
         instances for which this node is secondary (config)
     @ivar mfree: free memory, as reported by hypervisor (runtime)
-    @ivar mtotal: total memory, as reported by hypervisor (runtime)
-    @ivar mdom0: domain0 memory, as reported by hypervisor (runtime)
     @ivar dfree: free disk, as reported by the node (runtime)
     @ivar offline: the offline status (config)
     @type rpc_fail: boolean
@@ -422,8 +418,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self.sinst = []
       self.sbp = {}
       self.mfree = 0
-      self.mtotal = 0
-      self.mdom0 = 0
       self.dfree = 0
       self.offline = offline
       self.vm_capable = vm_capable
@@ -997,10 +991,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     cluster_info = self.cfg.GetClusterInfo()
-    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster_info,
-                                                            self.group_info)
-    memory_ratio = ipolicy[constants.IPOLICY_MEMORY_RATIO]
-
     for node_uuid, n_img in node_image.items():
       # This code checks that every node which is now listed as
       # secondary has enough memory to host all instances it is
@@ -1010,9 +1000,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # WARNING: we currently take into account down instances as well
       # as up ones, considering that even if they're down someone
       # might want to start them even in the event of a node failure.
-      node_cfg = self.all_node_info[node_uuid]
       if n_img.offline or \
-         node_cfg.group != self.group_uuid:
+         self.all_node_info[node_uuid].group != self.group_uuid:
         # we're skipping nodes marked offline and nodes in other groups from
         # the N+1 warning, since most likely we don't have good memory
         # information from them; we already list instances living on such
@@ -1025,13 +1014,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           bep = cluster_info.FillBE(all_insts[inst_uuid])
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MINMEM]
-        mnode = n_img.mdom0
-        (hv, hv_state) = self.cfg.GetFilledHvStateParams(node_cfg).items()[0]
-        if hv != constants.HT_XEN_PVM and hv != constants.HT_XEN_HVM:
-          mnode = hv_state["mem_node"]
-        # minimum allowed free memory (it's negative due to over-commitment)
-        mem_treshold = (n_img.mtotal - mnode) * (memory_ratio - 1)
-        test = n_img.mfree - needed_mem < mem_treshold
+        test = n_img.mfree < needed_mem
         self._ErrorIf(test, constants.CV_ENODEN1,
                       self.cfg.GetNodeName(node_uuid),
                       "not enough memory to accomodate instance failovers"
@@ -1624,16 +1607,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     # try to read free memory (from the hypervisor)
     hv_info = nresult.get(constants.NV_HVINFO, None)
-    test = not isinstance(hv_info, dict) or "memory_free" not in hv_info \
-                                         or "memory_total" not in hv_info \
-                                         or "memory_dom0" not in hv_info
+    test = not isinstance(hv_info, dict) or "memory_free" not in hv_info
     self._ErrorIf(test, constants.CV_ENODEHV, ninfo.name,
                   "rpc call to node failed (hvinfo)")
     if not test:
       try:
         nimg.mfree = int(hv_info["memory_free"])
-        nimg.mtotal = int(hv_info["memory_total"])
-        nimg.mdom0 = int(hv_info["memory_dom0"])
       except (ValueError, TypeError):
         self._ErrorIf(True, constants.CV_ENODERPC, ninfo.name,
                       "node returned invalid nodeinfo, check hypervisor")

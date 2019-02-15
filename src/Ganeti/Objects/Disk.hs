@@ -36,9 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Disk where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative ((<*>), (<$>))
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.List (isPrefixOf, isInfixOf)
@@ -151,25 +149,6 @@ lidDiskType (LIDExt {}) = DTExt
 -- | Builds the extra disk_type field for a given logical id.
 lidEncodeType :: DiskLogicalId -> [(String, JSValue)]
 lidEncodeType v = [(devType, showJSON . lidDiskType $ v)]
-
--- | Returns the storage path or the unique name for a given logical id if
--- present
-getStorageId :: DiskLogicalId -> Maybe String
-getStorageId dlid =
-  case dlid of
-    LIDPlain lv -> Just $ lvGroup lv ++ "/" ++ lvVolume lv
-    LIDDrbd8 {} -> Nothing
-    LIDFile _ path -> Just path
-    LIDSharedFile _ path -> Just path
-    LIDGluster _ path -> Just path
-    LIDBlockDev _ path -> Just path
-    LIDRados _ path -> Just path
-    LIDExt _ uniqueName -> Just uniqueName
-
--- | Returns the provider for ExtStorage and Nothing otherwise
-getExtProvider :: DiskLogicalId -> Maybe String
-getExtProvider (LIDExt provider _) = Just provider
-getExtProvider _ = Nothing
 
 -- | Custom encoder for DiskLogicalId (logical id only).
 encodeDLId :: DiskLogicalId -> JSValue

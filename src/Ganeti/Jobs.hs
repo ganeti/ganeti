@@ -38,24 +38,19 @@ module Ganeti.Jobs
   , execWithCancel
   , execJobsWait
   , execJobsWaitOk
-  , execJobsWaitOkJid
   , waitForJobs
-  , forceFailover
   ) where
 
+import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
-import Control.Monad (void, forM)
-import Data.Functor.Identity (runIdentity)
 import Data.List
 import Data.Tuple
 import Data.IORef
 import System.Exit
 import System.Posix.Process
 import System.Posix.Signals
-import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
-import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import Ganeti.OpCodes
@@ -152,36 +147,26 @@ execJobsWait opcodes callback client = do
       callback jids'
       waitForJobs jids' client
 
--- | Wait for one job until it is finished, using the WaitForJobChange
--- luxi command. Return the JobId and the and the final job status.
-waitForJob :: L.Client -> L.JobId -> ResultT String IO (L.JobId, JobStatus)
-waitForJob c jid = waitForJob' J.JSNull 0 where
-  waitForJob' prevJob prevLog = do
-    rval <- mkResultT' $ L.callMethod (L.WaitForJobChange jid ["status"]
-                                       prevJob (J.showJSON prevLog)
-                                       C.luxiWfjcTimeout) c
-    let parsed = J.readJSON rval
-                 :: (J.Result ( [JobStatus]
-                              , [ (Int, J.JSValue, J.JSValue, J.JSValue)]))
-    (status, logs) <- case parsed of
-      J.Ok ([s], ls) -> return (s, ls)
-      J.Ok (s, _) -> fail $ "Expected precisely one job status, got " ++ show s
-      J.Error x -> fail $ show x
-    let pLog =  maximum $ prevLog : map (\(cnt, _, _, _) -> cnt) logs
-    if status > JOB_STATUS_RUNNING
-      then return (jid, status)
-      else waitForJob' (J.showJSON [status]) pLog
-
-
 -- | Polls a set of jobs at an increasing interval until all are finished one
 -- way or another.
 waitForJobs :: [L.JobId] -> L.Client -> IO (Result [(L.JobId, JobStatus)])
-waitForJobs jids = runResultT . forM jids . waitForJob
+waitForJobs jids client = waitForJobs' 500000 15000000
+  where
+    waitForJobs' delay maxdelay = do
+      -- TODO: this should use WaitForJobChange once it's available in Haskell
+      -- land, instead of a fixed schedule of sleeping intervals.
+      threadDelay delay
+      sts <- L.queryJobsStatus client jids
+      case sts of
+        Bad e -> return . Bad $ "Checking job status: " ++ formatError e
+        Ok sts' -> if any (<= JOB_STATUS_RUNNING) sts' then
+                     waitForJobs' (min (delay * 2) maxdelay) maxdelay
+                   else
+                     return . Ok $ zip jids sts'
 
--- | Execute jobs and return @Ok@ only if all of them succeeded; in
--- this case, also return the list of Job IDs.
-execJobsWaitOkJid :: [[MetaOpCode]] -> L.Client -> IO (Result [JobId])
-execJobsWaitOkJid opcodes client = do
+-- | Execute jobs and return @Ok@ only if all of them succeeded.
+execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
+execJobsWaitOk opcodes client = do
   let nullog = const (return () :: IO ())
       failed = filter ((/=) JOB_STATUS_SUCCESS . snd)
       fmtfail (i, s) = show (fromJobId i) ++ "=>" ++ jobStatusToRaw s
@@ -189,28 +174,7 @@ execJobsWaitOkJid opcodes client = do
   case sts of
     Bad e -> return $ Bad e
     Ok sts' -> return (if null $ failed sts' then
-                         Ok $ map fst sts'
+                         Ok ()
                        else
                          Bad ("The following jobs failed: " ++
                               (intercalate ", " . map fmtfail $ failed sts')))
-
--- | Execute jobs and return @Ok@ only if all of them succeeded.
-execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
-execJobsWaitOk opcodes =
-  fmap void . execJobsWaitOkJid opcodes
-
--- | Channge Migrations to Failovers
-forceFailover :: OpCode -> OpCode
-forceFailover op@(OpInstanceMigrate {}) =
-  let timeout = runIdentity $ mkNonNegative C.defaultShutdownTimeout
-  in OpInstanceFailover { opInstanceName = opInstanceName op
-                        , opInstanceUuid = opInstanceUuid op
-                        , opShutdownTimeout = timeout
-                        , opIgnoreConsistency = True
-                        , opTargetNode = opTargetNode op
-                        , opTargetNodeUuid = opTargetNodeUuid op
-                        , opIgnoreIpolicy = opIgnoreIpolicy op
-                        , opMigrationCleanup = opMigrationCleanup op
-                        , opIallocator = opIallocator op
-                        }
-forceFailover op = op

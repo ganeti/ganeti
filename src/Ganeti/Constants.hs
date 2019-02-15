@@ -367,9 +367,6 @@ metad = Runtime.daemonName GanetiMetad
 mond :: String
 mond = Runtime.daemonName GanetiMond
 
-maintd :: String
-maintd = Runtime.daemonName GanetiMaintd
-
 noded :: String
 noded = Runtime.daemonName GanetiNoded
 
@@ -401,9 +398,6 @@ defaultConfdPort = 1814
 defaultMondPort :: Int
 defaultMondPort = 1815
 
-defaultMaintdPort :: Int
-defaultMaintdPort = 1816
-
 defaultMetadPort :: Int
 defaultMetadPort = 80
 
@@ -419,7 +413,6 @@ daemonsPorts =
   [ (confd, (Udp, defaultConfdPort))
   , (metad, (Tcp, defaultMetadPort))
   , (mond, (Tcp, defaultMondPort))
-  , (maintd, (Tcp, defaultMaintdPort))
   , (noded, (Tcp, defaultNodedPort))
   , (rapi, (Tcp, defaultRapiPort))
   , (ssh, (Tcp, 22))
@@ -723,26 +716,6 @@ hooksPhasePre = "pre"
 
 hooksVersion :: Int
 hooksVersion = 2
-
--- * Global hooks related constants
-
-globalHooksDir :: String
-globalHooksDir = "global"
-
-globalHooksMaster :: String
-globalHooksMaster = "master"
-
-globalHooksNotMaster :: String
-globalHooksNotMaster = "not_master"
-
-postHooksStatusSuccess :: String
-postHooksStatusSuccess = "success"
-
-postHooksStatusError :: String
-postHooksStatusError = "error"
-
-postHooksStatusDisappeared :: String
-postHooksStatusDisappeared = "disappeared"
 
 -- * Hooks subject type (what object type does the LU deal with)
 
@@ -1661,9 +1634,6 @@ hvCpuCores = "cpu_cores"
 hvCpuMask :: String
 hvCpuMask = "cpu_mask"
 
-hvWorkerCpuMask :: String
-hvWorkerCpuMask = "worker_cpu_mask"
-
 hvCpuSockets :: String
 hvCpuSockets = "cpu_sockets"
 
@@ -1681,6 +1651,9 @@ hvDeviceModel = "device_model"
 
 hvDiskCache :: String
 hvDiskCache = "disk_cache"
+
+hvDiskDiscard :: String
+hvDiskDiscard = "disk_discard"
 
 hvDiskType :: String
 hvDiskType = "disk_type"
@@ -1844,6 +1817,9 @@ hvUsbMouse = "usb_mouse"
 hvUseBootloader :: String
 hvUseBootloader = "use_bootloader"
 
+hvUseGuestAgent :: String
+hvUseGuestAgent = "use_guest_agent"
+
 hvUseLocaltime :: String
 hvUseLocaltime = "use_localtime"
 
@@ -1918,13 +1894,13 @@ hvsParameterTypes = Map.fromList
   , (hvCpuCap,                          VTypeInt)
   , (hvCpuCores,                        VTypeInt)
   , (hvCpuMask,                         VTypeString)
-  , (hvWorkerCpuMask,                   VTypeString)
   , (hvCpuSockets,                      VTypeInt)
   , (hvCpuThreads,                      VTypeInt)
   , (hvCpuType,                         VTypeString)
   , (hvCpuWeight,                       VTypeInt)
   , (hvDeviceModel,                     VTypeString)
   , (hvDiskCache,                       VTypeString)
+  , (hvDiskDiscard,                     VTypeString)
   , (hvDiskType,                        VTypeString)
   , (hvInitrdPath,                      VTypeString)
   , (hvInitScript,                      VTypeString)
@@ -1979,6 +1955,7 @@ hvsParameterTypes = Map.fromList
   , (hvUsbDevices,                      VTypeString)
   , (hvUsbMouse,                        VTypeString)
   , (hvUseBootloader,                   VTypeBool)
+  , (hvUseGuestAgent,                   VTypeBool)
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
@@ -2023,17 +2000,9 @@ hvMigrationFailedStatuses =
 
 -- | KVM-specific statuses
 --
-hvKvmMigrationPostcopyActive :: String
-hvKvmMigrationPostcopyActive = "postcopy-active"
-
+-- FIXME: this constant seems unnecessary
 hvKvmMigrationValidStatuses :: FrozenSet String
-hvKvmMigrationValidStatuses =
-  ConstantUtils.union hvMigrationValidStatuses
-                      (ConstantUtils.mkSet [hvKvmMigrationPostcopyActive])
-
-hvKvmMigrationActiveStatuses :: FrozenSet String
-hvKvmMigrationActiveStatuses = ConstantUtils.mkSet [hvMigrationActive,
-                                                    hvKvmMigrationPostcopyActive]
+hvKvmMigrationValidStatuses = hvMigrationValidStatuses
 
 -- | Node info keys
 hvNodeinfoKeyVersion :: String
@@ -2067,12 +2036,11 @@ hvstsParameters =
 hvstDefaults :: Map String Int
 hvstDefaults =
   Map.fromList
-  [ (hvstCpuNode    , ConstantUtils.hvstDefaultCpuNode    )
-  , (hvstCpuTotal   , ConstantUtils.hvstDefaultCpuTotal   )
-  , (hvstMemoryHv   , ConstantUtils.hvstDefaultMemoryHv   )
-  , (hvstMemoryTotal, ConstantUtils.hvstDefaultMemoryTotal)
-  , (hvstMemoryNode , ConstantUtils.hvstDefaultMemoryNode )
-  ]
+  [(hvstCpuNode, 1),
+   (hvstCpuTotal, 1),
+   (hvstMemoryHv, 0),
+   (hvstMemoryTotal, 0),
+   (hvstMemoryNode, 0)]
 
 hvstsParameterTypes :: Map String VType
 hvstsParameterTypes =
@@ -2227,17 +2195,13 @@ ipolicyVcpuRatio = ConstantUtils.ipolicyVcpuRatio
 ipolicySpindleRatio :: String
 ipolicySpindleRatio = ConstantUtils.ipolicySpindleRatio
 
-ipolicyMemoryRatio :: String
-ipolicyMemoryRatio = ConstantUtils.ipolicyMemoryRatio
-
 ispecsMinmaxKeys :: FrozenSet String
 ispecsMinmaxKeys = ConstantUtils.mkSet [ispecsMax, ispecsMin]
 
 ipolicyParameters :: FrozenSet String
 ipolicyParameters =
   ConstantUtils.mkSet [ConstantUtils.ipolicyVcpuRatio,
-                       ConstantUtils.ipolicySpindleRatio,
-                       ConstantUtils.ipolicyMemoryRatio]
+                       ConstantUtils.ipolicySpindleRatio]
 
 ipolicyAllKeys :: FrozenSet String
 ipolicyAllKeys =
@@ -2338,9 +2302,6 @@ ldpPlanAhead = "c-plan-ahead"
 ldpPool :: String
 ldpPool = "pool"
 
-ldpUserId :: String
-ldpUserId = "user-id"
-
 ldpProtocol :: String
 ldpProtocol = "protocol"
 
@@ -2368,8 +2329,7 @@ diskLdTypes =
    (ldpDelayTarget, VTypeInt),
    (ldpMaxRate, VTypeInt),
    (ldpMinRate, VTypeInt),
-   (ldpPool, VTypeString),
-   (ldpUserId, VTypeString)]
+   (ldpPool, VTypeString)]
 
 diskLdParameters :: FrozenSet String
 diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
@@ -2430,9 +2390,6 @@ lvStripes = "stripes"
 rbdAccess :: String
 rbdAccess = "access"
 
-rbdUserId :: String
-rbdUserId = "user-id"
-
 rbdPool :: String
 rbdPool = "pool"
 
@@ -2455,7 +2412,6 @@ diskDtTypes =
                 (drbdMinRate, VTypeInt),
                 (lvStripes, VTypeInt),
                 (rbdAccess, VTypeString),
-                (rbdUserId, VTypeString),
                 (rbdPool, VTypeString),
                 (glusterHost, VTypeString),
                 (glusterVolume, VTypeString),
@@ -2863,6 +2819,21 @@ htValidCacheTypes =
                        htCacheNone,
                        htCacheWback,
                        htCacheWthrough]
+
+htDiscardDefault :: String
+htDiscardDefault = "default"
+
+htDiscardIgnore :: String
+htDiscardIgnore = "ignore"
+
+htDiscardUnmap :: String
+htDiscardUnmap = "unmap"
+
+htValidDiscardTypes :: FrozenSet String
+htValidDiscardTypes =
+  ConstantUtils.mkSet [htDiscardDefault,
+                       htDiscardIgnore,
+                       htDiscardUnmap]
 
 htKvmAioThreads :: String
 htKvmAioThreads = "threads"
@@ -4151,8 +4122,10 @@ hvcDefaults =
           , (hvMigrationBandwidth,              PyValueEx (32 :: Int))
           , (hvMigrationDowntime,               PyValueEx (30 :: Int))
           , (hvMigrationMode,                   PyValueEx htMigrationLive)
+          , (hvUseGuestAgent,                   PyValueEx False)
           , (hvUseLocaltime,                    PyValueEx False)
           , (hvDiskCache,                       PyValueEx htCacheDefault)
+          , (hvDiskDiscard,                     PyValueEx htDiscardDefault)
           , (hvSecurityModel,                   PyValueEx htSmNone)
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
@@ -4163,7 +4136,6 @@ hvcDefaults =
           , (hvMemPath,                         PyValueEx "")
           , (hvRebootBehavior,                  PyValueEx instanceRebootAllowed)
           , (hvCpuMask,                         PyValueEx cpuPinningAll)
-          , (hvWorkerCpuMask,                   PyValueEx cpuPinningAll)
           , (hvCpuType,                         PyValueEx "")
           , (hvCpuCores,                        PyValueEx (0 :: Int))
           , (hvCpuThreads,                      PyValueEx (0 :: Int))
@@ -4256,9 +4228,6 @@ defaultPlanAhead = 20
 defaultRbdPool :: String
 defaultRbdPool = "rbd"
 
-defaultRbdUserId :: String
-defaultRbdUserId = ""
-
 diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
 diskLdDefaults =
   Map.fromList
@@ -4285,13 +4254,11 @@ diskLdDefaults =
   , (DTPlain, Map.fromList [(ldpStripes, PyValueEx lvmStripecount)])
   , (DTRbd, Map.fromList
             [ (ldpPool, PyValueEx defaultRbdPool)
-            , (ldpUserId, PyValueEx defaultRbdUserId)
             , (ldpAccess, PyValueEx diskKernelspace)
             ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
                 [ (rbdAccess, PyValueEx diskKernelspace)
-                , (rbdUserId, PyValueEx defaultRbdUserId)
                 , (glusterHost, PyValueEx glusterHostDefault)
                 , (glusterVolume, PyValueEx glusterVolumeDefault)
                 , (glusterPort, PyValueEx glusterPortDefault)
@@ -4322,19 +4289,16 @@ diskDtDefaults =
                    ])
   , (DTExt,        Map.fromList
                    [ (rbdAccess, PyValueEx diskKernelspace)
-                   , (rbdUserId, PyValueEx defaultRbdUserId)
                    ])
   , (DTFile,       Map.empty)
   , (DTPlain,      Map.fromList [(lvStripes, PyValueEx lvmStripecount)])
   , (DTRbd,        Map.fromList
                    [ (rbdPool, PyValueEx defaultRbdPool)
                    , (rbdAccess, PyValueEx diskKernelspace)
-                   , (rbdUserId, PyValueEx defaultRbdUserId)
                    ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
                 [ (rbdAccess, PyValueEx diskKernelspace)
-                , (rbdUserId, PyValueEx defaultRbdUserId)
                 , (glusterHost, PyValueEx glusterHostDefault)
                 , (glusterVolume, PyValueEx glusterVolumeDefault)
                 , (glusterPort, PyValueEx glusterPortDefault)
@@ -4384,9 +4348,8 @@ ipolicyDefaults =
                                      , (ispecSpindleUse, 1)
                                      ] :: Map String Int))
   , (ipolicyDts,          PyValueEx (ConstantUtils.toList diskTemplates))
-  , (ipolicyVcpuRatio,    PyValueEx ConstantUtils.ipolicyDefaultsVcpuRatio)
-  , (ipolicySpindleRatio, PyValueEx ConstantUtils.ipolicyDefaultsSpindleRatio)
-  , (ipolicyMemoryRatio,  PyValueEx ConstantUtils.ipolicyDefaultsMemoryRatio)
+  , (ipolicyVcpuRatio,    PyValueEx (4.0 :: Double))
+  , (ipolicySpindleRatio, PyValueEx (32.0 :: Double))
   ]
 
 masterPoolSizeDefault :: Int
@@ -4878,9 +4841,6 @@ ndsNodeDaemonCertificate = "node_daemon_certificate"
 ndsSsconf :: String
 ndsSsconf = "ssconf"
 
-ndsHmac :: String
-ndsHmac = "hmac_key"
-
 ndsStartNodeDaemon :: String
 ndsStartNodeDaemon = "start_node_daemon"
 
@@ -4921,9 +4881,6 @@ _opcodeReasonSrcMasterd = _opcodeReasonSrcDaemon ++ ":masterd"
 opcodeReasonSrcNoded :: String
 opcodeReasonSrcNoded = _opcodeReasonSrcDaemon ++ ":noded"
 
-opcodeReasonSrcMaintd :: String
-opcodeReasonSrcMaintd = _opcodeReasonSrcDaemon ++ ":maintd"
-
 opcodeReasonSrcOpcode :: String
 opcodeReasonSrcOpcode = "gnt:opcode"
 
@@ -4948,10 +4905,6 @@ opcodeReasonSources =
                        opcodeReasonSrcWatcher,
                        opcodeReasonSrcRlib2,
                        opcodeReasonSrcUser]
-
--- | A reason content prefix for RAPI auth user
-opcodeReasonAuthUser :: String
-opcodeReasonAuthUser = "RAPI-Auth:"
 
 -- | Path generating random UUID
 randomUuidFile :: String
@@ -5050,12 +5003,6 @@ mondLatestApiVersion = 1
 mondDefaultCategory :: String
 mondDefaultCategory = "default"
 
--- * Maintenance daemon
-
--- | Default wait in seconds time between maintenance rounds.
-maintdDefaultRoundDelay :: Int
-maintdDefaultRoundDelay = 300
-
 -- * Disk access modes
 
 diskUserspace :: String
@@ -5115,9 +5062,6 @@ diskRemoveRetryInterval  = 3
 
 uuidRegex :: String
 uuidRegex = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
-
-dummyUuid :: String
-dummyUuid = "deadbeef-dead-beed-dead-beefdeadbeef"
 
 -- * Luxi constants
 
@@ -5547,16 +5491,8 @@ dataCollectorDrbd       = "drbd"
 dataCollectorLv         :: String
 dataCollectorLv         = "lv"
 
--- | Collector for the resident set size of kvm processes, i.e.,
--- the number of pages the kvm process has in RAM.
-dataCollectorKvmRSS     :: String
-dataCollectorKvmRSS     = "kvm-inst-rss"
-
 dataCollectorInstStatus :: String
 dataCollectorInstStatus = "inst-status-xen"
-
-dataCollectorDiagnose :: String
-dataCollectorDiagnose = "diagnose"
 
 dataCollectorParameterInterval :: String
 dataCollectorParameterInterval = "interval"
@@ -5569,8 +5505,6 @@ dataCollectorNames =
                       , dataCollectorLv
                       , dataCollectorInstStatus
                       , dataCollectorXenCpuLoad
-                      , dataCollectorKvmRSS
-                      , dataCollectorDiagnose
                       ]
 
 dataCollectorStateActive :: String
@@ -5582,31 +5516,10 @@ dataCollectorsEnabledName = "enabled_data_collectors"
 dataCollectorsIntervalName :: String
 dataCollectorsIntervalName = "data_collector_interval"
 
-dataCollectorDiagnoseDirectory :: String
-dataCollectorDiagnoseDirectory = sysconfdir ++ "/ganeti/node-diagnose-commands"
-
 -- * HTools tag prefixes
 
 exTagsPrefix :: String
 exTagsPrefix = Tags.exTagsPrefix
-
--- * MaintD tag prefixes
-
-maintdPrefix :: String
-maintdPrefix = "maintd:"
-
-maintdSuccessTagPrefix :: String
-maintdSuccessTagPrefix = maintdPrefix ++ "repairready:"
-
-maintdFailureTagPrefix :: String
-maintdFailureTagPrefix = maintdPrefix ++ "repairfailed:"
-
--- * RAPI PAM auth related constants
-
--- | The name of ganeti rapi specific http header containing additional user
--- credentials
-httpRapiPamCredential :: String
-httpRapiPamCredential = "Ganeti-RAPI-Credential"
 
 -- | The polling frequency to wait for a job status change
 cliWfjcFrequency :: Int
@@ -5615,41 +5528,3 @@ cliWfjcFrequency = 20
 -- | Default 'WaitForJobChange' timeout in seconds
 defaultWfjcTimeout :: Int
 defaultWfjcTimeout = 60
-
--- | Base value for static lock declaration weight.
-staticLockBaseWeight :: Double
-staticLockBaseWeight = 1.0
-
--- | Weight assigned to two locks that do not conflict with each other.
-staticLockNoWeight :: Double
-staticLockNoWeight = 0
-
--- | Weight assigned to two locks that do not conflict but whose introduction
--- in the system raises the chance of contention.
-staticLockDegradeWeight :: Double
-staticLockDegradeWeight = 0.3
-
--- | Weight assigned to two locks that do not conflict but whose introduction
--- in the system significantly raises the chance of contention.
-staticLockHeavyDegradeWeight :: Double
-staticLockHeavyDegradeWeight = 0.5
-
--- | Weight assigned to two locks that might conflict but there is not enough
--- available data to know with certainty.
-staticLockMaybeBlockWeight :: Double
-staticLockMaybeBlockWeight = 1.5
-
--- | Weight assigned to two locks that will surely conflict.
-staticLockSureBlockWeight :: Double
-staticLockSureBlockWeight = 3
-
--- | How many seconds make up a "tick" in the job queue starvation prevention
--- system.
-jobQueueTickInSeconds :: Double
-jobQueueTickInSeconds = 30
-
--- | Job queue starvation prevention coefficient. This means how many "ticks"
--- of time need to pass before a job has 100% certainty to be in front of the
--- queue.
-jobQueueStarvationCoeff :: Double
-jobQueueStarvationCoeff = 30

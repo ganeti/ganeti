@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {-| The Ganeti WConfd client functions.
 
@@ -38,22 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.Client where
 
-import Control.Concurrent (threadDelay)
 import Control.Exception.Lifted (bracket)
-import Control.Monad (unless)
-import Control.Monad.Base
-import Control.Monad.Error.Class (MonadError)
-import Control.Monad.Trans.Control (MonadBaseControl)
 
-import Ganeti.BasicTypes (runResultT, GenericResult(..))
+import Ganeti.THH.HsRPC
 import Ganeti.Constants
-import Ganeti.Errors (GanetiException)
 import Ganeti.JSON (unMaybeForJSON)
 import Ganeti.Locking.Locks (ClientId)
 import Ganeti.Objects (ConfigData)
-import qualified Ganeti.Path as Path
-import Ganeti.THH.HsRPC
-import Ganeti.UDSServer (ConnectConfig(..), Client, connectClient, closeClient)
+import Ganeti.UDSServer (ConnectConfig(..), Client, connectClient)
 import Ganeti.WConfd.Core (exportedFunctions)
 
 -- * Generated client functions
@@ -72,15 +64,6 @@ wconfdConnectConfig = ConnectConfig { recvTmo    = wconfdDefRwto
 -- configuration and timeout.
 getWConfdClient :: FilePath -> IO Client
 getWConfdClient = connectClient wconfdConnectConfig wconfdDefCtmo
-
--- | Run an Rpc with a fresh client.
-runNewWConfdClient :: ( MonadBase IO m, MonadBaseControl IO m
-                      ,  MonadError GanetiException m )
-                   => RpcClientMonad a -> m a
-runNewWConfdClient request =
-  bracket (liftBase (Path.defaultWConfdSocket >>= getWConfdClient))
-          (liftBase . closeClient)
-    $ runRpcClient request
 
 -- * Helper functions for getting a remote lock
 
@@ -103,14 +86,3 @@ withLockedConfig :: ClientId
 withLockedConfig c shared =
   -- Unlock config even if something throws.
   bracket (waitLockConfig c shared) (const $ unlockConfig c)
-
-
--- * Other functions
-
--- | Try an RPC until no errors occur and the result is true.
-runModifyRpc :: RpcClientMonad Bool -> IO ()
-runModifyRpc action = do
-  res <- runResultT $ runNewWConfdClient action
-  unless (res == Ok True) $ do
-    threadDelay 100000 -- sleep 0.1 seconds
-    runModifyRpc action

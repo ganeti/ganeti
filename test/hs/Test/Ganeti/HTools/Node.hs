@@ -106,8 +106,9 @@ genNode min_multiplier max_multiplier = do
   let n = Node.create name (fromIntegral mem_t) mem_n mem_f
           (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) cpu_n offl spindles
           0 0 False
-      n' = Node.setPolicy nullIPolicy n
-  return $ Node.buildPeers n' Container.empty
+      n1 = Node.setPolicy nullIPolicy n
+      n2 = Loader.updateMemStat n1 Container.empty
+  return $ Node.buildPeers n2 Container.empty
 
 -- | Helper function to generate a sane node.
 genOnlineNode :: Gen Node.Node
@@ -128,15 +129,13 @@ genEmptyOnlineNode =
       let node' = node { Node.offline = False
                        , Node.fMem = fmem
                        , Node.fMemForth = fmem
-                       , Node.pMem = Node.computePmem fmem (Node.tMem node)
-                                                      (Node.nMem node)
-                       , Node.pMemForth = Node.computePmem fmem
-                                                           (Node.tMem node)
-                                                           (Node.nMem node)
+                       , Node.pMem = fromIntegral fmem / Node.tMem node
+                       , Node.pMemForth = fromIntegral fmem / Node.tMem node
                        , Node.rMem = 0
                        , Node.rMemForth = 0
                        , Node.pRem = 0
                        , Node.pRemForth = 0
+                       , Node.xMem = 0
                        }
       return node') `suchThat` (\ n -> not (Node.failN1 n) &&
                                        Node.availDisk n > 0 &&
@@ -206,11 +205,6 @@ prop_setOffline :: Node.Node -> Bool -> Property
 prop_setOffline node status =
   Node.offline newnode ==? status
     where newnode = Node.setOffline node status
-
-prop_setXmem :: Node.Node -> Int -> Property
-prop_setXmem node xm =
-  Node.xMem newnode ==? xm
-    where newnode = Node.setXmem node xm
 
 prop_setMcpu :: Node.Node -> Double -> Property
 prop_setMcpu node mc =
@@ -416,7 +410,7 @@ prop_addSec_idempotent =
       inst'' = inst' { Instance.diskTemplate = Types.DTDrbd8 }
   in case Node.addSec node inst'' pdx of
        Ok node' -> Node.removeSec node' inst'' ==? node
-       Bad r -> failTest $ "Can't add instance" ++ show r
+       _ -> failTest "Can't add instance"
 
 -- | Check that no graph is created on an empty node list.
 case_emptyNodeList :: Assertion
@@ -472,7 +466,6 @@ testSuite "HTools/Node"
             [ 'prop_setAlias
             , 'prop_setOffline
             , 'prop_setMcpu
-            , 'prop_setXmem
             , 'prop_addPriFM
             , 'prop_addPriFD
             , 'prop_addPriFS

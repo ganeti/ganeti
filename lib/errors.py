@@ -469,12 +469,6 @@ class SshUpdateError(GenericError):
   """
 
 
-class PamRapiAuthError(GenericError):
-  """Error in PAM remote API authenticator initialization.
-
-  """
-
-
 class JobSubmittedException(Exception):
   """Job was submitted, client should exit.
 
@@ -482,6 +476,7 @@ class JobSubmittedException(Exception):
   submitted. The handler should print this ID.
 
   This is not an error, just a structured way to exit from clients.
+
   """
 
 

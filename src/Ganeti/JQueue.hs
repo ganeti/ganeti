@@ -75,7 +75,6 @@ module Ganeti.JQueue
     , notifyJob
     , queueDirPermissions
     , archiveJobs
-    , toMetaOpCode
     -- re-export
     , Timestamp
     , InputOpCode(..)
@@ -83,30 +82,21 @@ module Ganeti.JQueue
     , QueuedJob(..)
     ) where
 
-import Prelude ()
-import Ganeti.Prelude hiding (id, log)
-
-import Control.Applicative (liftA2, (<|>))
+import Control.Applicative (liftA2, (<|>), (<$>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception
 import Control.Lens (over)
-import Control.Monad ( filterM
-                     , liftM
-                     , foldM
-                     , void
-                     , mfilter
-                     , when
-                     , mzero
-                     , unless
-                     , msum)
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
-import Data.List (stripPrefix, sortBy, isPrefixOf)
+import Data.Functor ((<$))
+import Data.List
 import Data.Maybe
 import Data.Ord (comparing)
 -- workaround what seems to be a bug in ghc 7.4's TH shadowing code
+import Prelude hiding (id, log)
 import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
@@ -493,7 +483,7 @@ replicateManyJobs rootdir mastercandidates =
   mapM_ (replicateJob rootdir mastercandidates)
 
 -- | Writes a job to a file and replicates it to master candidates.
-writeAndReplicateJob :: (FromString e)
+writeAndReplicateJob :: (Error e)
                      => ConfigData -> FilePath -> QueuedJob
                      -> ResultT e IO [(Node, ERpcError ())]
 writeAndReplicateJob cfg rootdir job = do
@@ -573,10 +563,9 @@ isQueuedJobDead ownlivelock =
   . mfilter (/= ownlivelock)
   . qjLivelock
 
--- | Waits for a job ordered to cancel to react, and returns whether it was
--- canceled, and a user-intended description of the reason.
-waitForJobCancelation :: JobId -> Int -> ResultG (Bool, String)
-waitForJobCancelation jid tmout = do
+-- | Waits for a job to finalize its execution.
+waitForJob :: JobId -> Int -> ResultG (Bool, String)
+waitForJob jid tmout = do
   qDir <- liftIO queueDir
   let jobfile = liveJobFile qDir jid
       load = liftM fst <$> loadJobFromDisk qDir False jid
@@ -584,13 +573,10 @@ waitForJobCancelation jid tmout = do
   jobR <- liftIO $ watchFileBy jobfile tmout finalizedR load
   case calcJobStatus <$> jobR of
     Ok s | s == JOB_STATUS_CANCELED ->
-             return (True, "Job successfully canceled")
+             return (True, "Job successfully cancelled")
          | finalizedR jobR ->
             return (False, "Job exited before it could have been canceled,\
                            \ status " ++ show s)
-         | s == JOB_STATUS_CANCELING ->
-             return (False, "Job cancelation was not completed before the\
-                            \ timeout, but the job may yet be canceled")
          | otherwise ->
              return (False, "Job could not be canceled, status "
                             ++ show s)
@@ -624,7 +610,7 @@ cancelJob kill luxiLivelock jid = runResultT $ do
           if calcJobStatus job > JOB_STATUS_WAITING
             then return (False, "Job no longer waiting, can't cancel\
                                 \ (informed it anyway)")
-            else lift $ waitForJobCancelation jid C.luxiCancelJobTimeout
+            else lift $ waitForJob jid C.luxiCancelJobTimeout
           else return (True, "SIGKILL send to the process")
       _ -> do
         logDebug $ jName ++ " in its startup phase, retrying"

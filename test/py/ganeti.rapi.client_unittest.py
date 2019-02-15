@@ -781,20 +781,17 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def testMigrateInstance(self):
     for mode in constants.HT_MIGRATION_MODES:
       for cleanup in [False, True]:
-        for allow_failover in [False, True]:
-          self.rapi.AddResponse("31910")
-          job_id = self.client.MigrateInstance("inst289", mode=mode,
-                                               cleanup=cleanup,
-                                               allow_failover=allow_failover)
-          self.assertEqual(job_id, 31910)
-          self.assertHandler(rlib2.R_2_instances_name_migrate)
-          self.assertItems(["inst289"])
+        self.rapi.AddResponse("31910")
+        job_id = self.client.MigrateInstance("inst289", mode=mode,
+                                             cleanup=cleanup)
+        self.assertEqual(job_id, 31910)
+        self.assertHandler(rlib2.R_2_instances_name_migrate)
+        self.assertItems(["inst289"])
 
-          data = serializer.LoadJson(self.rapi.GetLastRequestData())
-          self.assertEqual(len(data), 3)
-          self.assertEqual(data["mode"], mode)
-          self.assertEqual(data["cleanup"], cleanup)
-          self.assertEqual(data["allow_failover"], allow_failover)
+        data = serializer.LoadJson(self.rapi.GetLastRequestData())
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data["mode"], mode)
+        self.assertEqual(data["cleanup"], cleanup)
 
   def testFailoverInstanceDefaults(self):
     self.rapi.AddResponse("7639")

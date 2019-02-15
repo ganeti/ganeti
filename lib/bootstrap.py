@@ -354,14 +354,8 @@ def _PrepareFileBasedStorage(
             constants.ST_FILE, constants.ST_SHARED_FILE, constants.ST_GLUSTER
          ))
 
-  file_storage_enabled = file_disk_template in enabled_disk_templates
-
   if file_storage_dir is None:
-    if file_storage_enabled:
-      file_storage_dir = default_dir
-    else:
-      file_storage_dir = ""
-
+    file_storage_dir = default_dir
   if not acceptance_fn:
     acceptance_fn = \
         lambda path: filestorage.CheckFileStoragePathAcceptance(
@@ -370,6 +364,7 @@ def _PrepareFileBasedStorage(
   _storage_path_acceptance_fn(logging.warning, file_storage_dir,
                               enabled_disk_templates)
 
+  file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_enabled:
     try:
       acceptance_fn(file_storage_dir)
@@ -501,7 +496,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 use_external_mip_script=False, hv_state=None, disk_state=None,
                 enabled_disk_templates=None, install_image=None,
                 zeroing_image=None, compression_tools=None,
-                enabled_user_shutdown=False, enabled_predictive_queue=True):
+                enabled_user_shutdown=False):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -805,7 +800,6 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     enabled_user_shutdown=enabled_user_shutdown,
     ssh_key_type=ssh_key_type,
     ssh_key_bits=ssh_key_bits,
-    enabled_predictive_queue=enabled_predictive_queue,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
@@ -873,7 +867,6 @@ def InitConfig(version, cluster_config, master_node_config,
     default_nodegroup.uuid: default_nodegroup,
     }
   now = time.time()
-  maintenance = objects.Maintenance(serial_no=1, ctime=now, mtime=now)
   config_data = objects.ConfigData(version=version,
                                    cluster=cluster_config,
                                    nodegroups=nodegroups,
@@ -882,7 +875,6 @@ def InitConfig(version, cluster_config, master_node_config,
                                    networks={},
                                    disks={},
                                    filters={},
-                                   maintenance=maintenance,
                                    serial_no=1,
                                    ctime=now, mtime=now)
   utils.WriteFile(cfg_file,
@@ -942,8 +934,6 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
     constants.NDS_CLUSTER_NAME: cluster_name,
     constants.NDS_NODE_DAEMON_CERTIFICATE:
       utils.ReadFile(pathutils.NODED_CERT_FILE),
-    constants.NDS_HMAC:
-      utils.ReadFile(pathutils.CONFD_HMAC_KEY),
     constants.NDS_SSCONF: ssconf.SimpleStore().ReadAll(),
     constants.NDS_START_NODE_DAEMON: True,
     constants.NDS_NODE_NAME: node,

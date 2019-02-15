@@ -2,47 +2,135 @@ News
 ====
 
 
-Version 2.18.0 alpha1
----------------------
+Version 2.16.0
+--------------
 
-*(unreleased)*
+*(Released Tue, 18 Sep 2018)*
 
-
-Version 2.17.0 beta1
---------------------
-
-*(Released Mon, 22 Feb 2016)*
-
-Incompatible/important changes
+Changes since 2.16.0 rc2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- The IAllocator protocol has been extended by a new ``hv_state`` parameter.
-  This new parameter is used to estimate the amount of memory utilized by
-  the node. It replaces ``reserved_mem`` on hypervisors other than ``xen-pvm``
-  and ``xen-hvm`` because ``reserved_mem`` was reported incorrectly on them.
-  If this ``hv_state`` parameter is not presented in an iallocator input, the
-  old ``reserved_mem`` will be used.
-- Tools now log into a separate log file ``tools.log``. Also, each log
-  message of tools is now properly labelled with the name of the tool
-  that submitted the message.
-- The options ``--debug`` and ``--verbose`` of ``gnt-cluster
-  renew-crypto`` and ``gnt-node {add,remove,modify}`` now (also) control the
-  log level of the SSH calls to all nodes.
+Compatibility fixes:
 
-New features
-~~~~~~~~~~~~
+ - Support python-mock versions later than about 1.1
 
-- There is a new daemon, the :doc:`Ganeti Maintenance Daemon <design-repaird>`,
-  that coordinates all maintenance operations on a cluster, i.e. rebalancing,
-  activate disks, ERROR_down handling and node repairs actions.
-- ``htools`` support memory over-commitment now. Look at
-  :doc:`Memory Over Commitment <design-memory-over-commitment>` for the
-  details.
-- ``hbal`` has a new option ``--avoid-disk-moves *factor*`` that allows disk
-  moves only if the gain in the cluster metrics is ``*factor*`` times higher
-  than with no disk moves.
-- ``hcheck`` reports the level of redundancy for each node group as a new ouput
-  parameter, see :doc:`N+M Redundancy <design-n-m-redundancy>`.
+Bugfixes:
+
+ - RAPI: Check non-SSL exceptions in _CheckIfConnectionDropped
+ - makefile: Preserve mode on copy
+ - Change uidpool test to skip uid 0
+ - Add retry behavior to detect SSConf read race in qa.qa_instance_utils
+ - utils.livelock: use portable struct flock type
+
+Misc changes:
+
+ - Set default ssh connection timeout between nodes to 10s
+ - Add unit tests for utils.livelock
+
+
+Version 2.16.0 rc2
+------------------
+
+*(Released Mon, 29 Jan 2018)*
+
+Changes since 2.16.0 rc1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New features:
+- Do not prompt when force-setting a node online
+- Consider state-of-the-record free memory in htools memory model (#35)
+- Add optStaticKvmNodeMemory to HTools and IAllocator (#34)
+- Add discard KVM option to bdev
+- StartInstance restores instance state if running
+- Allow migrate --cleanup to adopt an instance
+- Add ganeti-noded and ganeti-rapi --max-clients options
+- Add gnt-instance rename --force option
+- Allow master failover to ignore offline nodes
+- Adding a confirmation before gnt-node --offline no
+
+Compatibility fixes:
+- kvm: use the current psutil CPU affinity API
+- Provide alternative to decompressWithErrors in zlib 6.0
+- Ceph/RBD rbd showmapped -p is no longer supported
+- kvm: use_guest_agent: QEMU Guest Agent support
+- Fix LogicalVolume code to work with older /sbin/lvs
+
+Performance optimizations:
+- Use fork instead of spawnv in the watcher
+- Make executeRpcCall only compute rpcCallData once
+- Special case WaitForJobChange to reduce heap use
+- Get haskell daemons to only compress files > 4kB
+- Use zlib compression level 3 in Haskell RPC code
+- Make the TH fieldsDictsKeys more efficient
+- Implement localized cache for lvs commands
+- Reduce load in NV_NODENETTEST and NV_MASTERIP
+
+Bugfixes:
+- impexpd: fix certificate verification with new socat versions
+- impexpd: do not set socat SSL method
+- backend: fix key renewal on single-node clusters
+- hv_xen: generate correct type for paravirtualized nic (#57)
+- Force CleanupInstance always on InstanceShutdown (#53)
+- Cleanup blockdevs from target on migration failure (#50)
+- kvm: Add missing 'driver' in 'hvinfo' dict (#46)
+- Add cleanup of stale OS hvp data on cluster modify
+- Htools should use state-of-record instance size
+- Prohibit disk removal w/o hotplug on live instance
+- Fix tuple-unpacking from QueryInstances result
+- Fix index in RemoveDisks warning
+- Fix coexistence of location tags and non-DRBD instances
+- Fix backup export in case of ext disk template
+- Fix instance state detection in _Shutdowninstance
+- Fix for instance reinstall not updating config (issue #1193)
+- Fix optimisation: Correctly extract secondary node
+- Tune getNodeInstances DRBD secondary computation
+- Fix LogicalVolume Attach failure on missing path
+- Set USE_VERSION_FULL=no if --enable-versionfull=no
+- Don't verify disks when all disk templates are ext
+
+Misc changes:
+- Fixed several hlint and pylint styling errors
+- Reduced the verbosity of several debug messages
+- Fixed various typos in man pages and documentation
+- Improved various unit tests
+
+Fixes inherited from 2.15 branch:
+
+- Update hv_kvm to handle output from qemu >= 1.6.0
+- Disable logging CallRPCMethod timings in non-debug configs
+- Give atomicWriteFile temp filenames a more distinct pattern
+- FIX: Refactor DiagnoseOS to use a loop, not an inner fn
+- FIX: Set INSTANCE_NICn_NETWORK_NAME only if net is defined
+- Fix invalid variable error for file-based disks
+- Fix gnt-instance console instance unpausing for xl toolstack
+- KVM: handle gracefully too old/too new psutil versions
+- Fixup compatibility with GHC 7.4/base 4.5
+- mcpu: Raise caught OpPrereqErrors with too few args
+- Make EnsureDirs print chmod mode on errors
+- Use socat method string compatible with <1.73 & >=1.73
+- Reduce heap when parsing & storing ConfigData 10%
+- Cancel RAPI job if the client drops the connection
+- Make JQScheduler queues more strict to avoid leaks
+- Fix ganeti-rapi/noded exit-under-load bug
+- Fix ClusterVerifyConfig() causing high mem usage
+- Use threaded runtime when linking Haskell unit tests
+- Give JQueue test dirs unique prefixes so they can't conflict
+- Update install-quick DRBD requirements to include DRBD 8.4
+- Fix memory/perf bug in gnt-cluster verify
+- Improve luxid QueryInstances performance for large clusters
+- Optimize LXC hypervisor GetAllInstancesInfo
+- Bracket ConfigWriter writeConfigAndUnlock with debug logging
+- Bracket client LockConfig calls with debug logging
+- Get onInotify and onPollTimer to print filepath
+- Prevent InstanceShutdown from waiting on success
+
+Fixes inherited from 2.14 branch:
+
+- Support userspace disk URIs for OS import/export scripts
+- iallocator: only adjust memory usage for up instances
+
+Fixes inherited from 2.13 branch:
+- Bugfix: migrate needs HypervisorClass, not an instance
 
 
 Version 2.16.0 rc1
@@ -1802,7 +1890,7 @@ Version 2.10.6
 
 *(Released Mon, 30 Jun 2014)*
 
-- Make Ganeti tolerant towards differnt openssl library
+- Make Ganeti tolerant towards different openssl library
   version on different nodes (issue 853).
 - Allow hspace to make useful predictions in multi-group
   clusters with one group overfull (isse 861).
@@ -1943,7 +2031,7 @@ New features
   specified if the destination cluster has a default iallocator.
 - Users can now change the soundhw and cpuid settings for XEN hypervisors.
 - Hail and hbal now have the (optional) capability of accessing average CPU
-  load information through the monitoring deamon, and to use it to dynamically
+  load information through the monitoring daemon, and to use it to dynamically
   adapt the allocation of instances.
 - Hotplug support. Introduce new option '--hotplug' to ``gnt-instance modify``
   so that disk and NIC modifications take effect without the need of actual
@@ -2305,7 +2393,7 @@ Incompatible/important changes
   '--file-storage-dir' and '--shared-file-storage-dir'.
 - Cluster verification now includes stricter checks regarding the
   default file and shared file storage directories. It now checks that
-  the directories are explicitely allowed in the 'file-storage-paths' file and
+  the directories are explicitly allowed in the 'file-storage-paths' file and
   that the directories exist on all nodes.
 - The list of allowed disk templates in the instance policy and the list
   of cluster-wide enabled disk templates is now checked for consistency
@@ -4478,7 +4566,7 @@ fixes/small improvements/cleanups.
 Significant features
 ~~~~~~~~~~~~~~~~~~~~
 
-The node deamon now tries to mlock itself into memory, unless the
+The node daemon now tries to mlock itself into memory, unless the
 ``--no-mlock`` flag is passed. It also doesn't fail if it can't write
 its logs, and falls back to console logging. This allows emergency
 features such as ``gnt-node powercycle`` to work even in the event of a

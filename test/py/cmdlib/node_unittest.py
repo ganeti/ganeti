@@ -291,12 +291,12 @@ class TestLUNodeSetParams(CmdlibTestCase):
     self.node = self.cfg.AddNewNode(
         primary_ip='192.168.168.191',
         secondary_ip='192.168.168.192',
-        master_candidate=True, uuid='00000000-dead-beef-dead-beefdeadbeef')
+        master_candidate=True, uuid='blue_bunny')
 
     self.snode = self.cfg.AddNewNode(
         primary_ip='192.168.168.193',
         secondary_ip='192.168.168.194',
-        master_candidate=True, uuid='11111111-dead-beef-dead-beefdeadbeef')
+        master_candidate=True, uuid='pink_bunny')
 
   def testSetSecondaryIp(self):
     self.instance = self.cfg.AddNewInstance(primary_node=self.node,
@@ -310,8 +310,8 @@ class TestLUNodeSetParams(CmdlibTestCase):
     self.assertEqual(sorted(self.wconfd.all_locks.items()), [
         ('cluster/BGL', 'shared'),
         ('instance/mock_inst_1.example.com', 'shared'),
-        ('node-res/00000000-dead-beef-dead-beefdeadbeef', 'exclusive'),
-        ('node/00000000-dead-beef-dead-beefdeadbeef', 'exclusive')])
+        ('node-res/blue_bunny', 'exclusive'),
+        ('node/blue_bunny', 'exclusive')])
 
   def testSetSecondaryIpNoLock(self):
     self.instance = self.cfg.AddNewInstance(primary_node=self.node,
@@ -324,8 +324,8 @@ class TestLUNodeSetParams(CmdlibTestCase):
     self.assertEqual('254.254.254.254', self.node.secondary_ip)
     self.assertEqual(sorted(self.wconfd.all_locks.items()), [
         ('cluster/BGL', 'shared'),
-        ('node-res/00000000-dead-beef-dead-beefdeadbeef', 'exclusive'),
-        ('node/00000000-dead-beef-dead-beefdeadbeef', 'exclusive')])
+        ('node-res/blue_bunny', 'exclusive'),
+        ('node/blue_bunny', 'exclusive')])
 
 
 if __name__ == "__main__":

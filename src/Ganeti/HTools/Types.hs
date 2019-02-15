@@ -254,9 +254,6 @@ $(THH.buildObject "IPolicy" "iPolicy"
       THH.simpleField ConstantUtils.ipolicyVcpuRatio [t| Double |]
   , THH.renameField "SpindleRatio" $
       THH.simpleField ConstantUtils.ipolicySpindleRatio [t| Double |]
-  , THH.renameField "MemoryRatio" .
-      THH.defaultField [| ConstantUtils.ipolicyDefaultsMemoryRatio |] $
-      THH.simpleField ConstantUtils.ipolicyMemoryRatio [t| Double |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
@@ -278,7 +275,6 @@ defIPolicy =
           , iPolicyDiskTemplates = [minBound..maxBound]
           , iPolicyVcpuRatio = ConstantUtils.ipolicyDefaultsVcpuRatio
           , iPolicySpindleRatio = ConstantUtils.ipolicyDefaultsSpindleRatio
-          , iPolicyMemoryRatio = ConstantUtils.ipolicyDefaultsMemoryRatio
           }
 
 -- | The dynamic resource specs of a machine (i.e. load or load
@@ -362,8 +358,6 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailDisk -- ^ Failed due to not enough disk
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
-              | FailTooSmall -- ^ Failed due to the instance being smaller
-                             -- than allowed
               | FailTags -- ^ Failed due to tag exclusion
               | FailMig  -- ^ Failed due to migration restrictions
               | FailDiskCount -- ^ Failed due to wrong number of disks
@@ -383,11 +377,10 @@ type FailStats = [(FailMode, Int)]
 -- will instead raise an exception.
 type OpResult = GenericResult FailMode
 
--- | 'FromString' instance for 'FailMode' designed to catch unintended
+-- | 'Error' instance for 'FailMode' designed to catch unintended
 -- use as a general monad.
-instance FromString FailMode where
-  mkFromString v = error $ "Programming error: OpResult used as generic monad"
-                           ++ v
+instance Error FailMode where
+  strMsg v = error $ "Programming error: OpResult used as generic monad" ++ v
 
 -- | Conversion from 'OpResult' to 'Result'.
 opToResult :: OpResult a -> Result a

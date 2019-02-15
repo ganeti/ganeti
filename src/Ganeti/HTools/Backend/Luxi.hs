@@ -46,18 +46,53 @@ import Ganeti.BasicTypes
 import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import qualified Ganeti.Query.Language as Qlang
+import Ganeti.Types (Hypervisor(..))
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.JSON (fromJVal, tryFromObj, arrayMaybeFromJVal,
-                    getKeysFromContainer, Container)
-import Ganeti.Objects (PartialNicParams)
+import Ganeti.JSON (fromObj, fromJVal, tryFromObj, arrayMaybeFromJVal)
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 
 -- * Utility functions
+
+-- | Get values behind \"data\" part of the result.
+getData :: (Monad m) => JSValue -> m JSValue
+getData (JSObject o) = fromObj (fromJSObject o) "data"
+getData x = fail $ "Invalid input, expected dict entry but got " ++ show x
+
+-- | Converts a (status, value) into m value, if possible.
+parseQueryField :: (Monad m) => JSValue -> m (JSValue, JSValue)
+parseQueryField (JSArray [status, result]) = return (status, result)
+parseQueryField o =
+  fail $ "Invalid query field, expected (status, value) but got " ++ show o
+
+-- | Parse a result row.
+parseQueryRow :: (Monad m) => JSValue -> m [(JSValue, JSValue)]
+parseQueryRow (JSArray arr) = mapM parseQueryField arr
+parseQueryRow o =
+  fail $ "Invalid query row result, expected array but got " ++ show o
+
+-- | Parse an overall query result and get the [(status, value)] list
+-- for each element queried.
+parseQueryResult :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
+parseQueryResult (JSArray arr) = mapM parseQueryRow arr
+parseQueryResult o =
+  fail $ "Invalid query result, expected array but got " ++ show o
+
+-- | Prepare resulting output as parsers expect it.
+extractArray :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
+extractArray v =
+  getData v >>= parseQueryResult
+
+-- | Testing result status for more verbose error message.
+fromJValWithStatus :: (Text.JSON.JSON a, Monad m) => (JSValue, JSValue) -> m a
+fromJValWithStatus (st, v) = do
+  st' <- fromJVal st
+  Qlang.checkRS st' v >>= fromJVal
 
 annotateConvert :: String -> String -> String -> Result a -> Result a
 annotateConvert otype oname oattr =
@@ -73,7 +108,7 @@ genericConvert :: (Text.JSON.JSON a) =>
                -> (JSValue, JSValue) -- ^ The value we're trying to convert
                -> Result a           -- ^ The annotated result
 genericConvert otype oname oattr =
-  annotateConvert otype oname oattr . L.fromJValWithStatus
+  annotateConvert otype oname oattr . fromJValWithStatus
 
 convertArrayMaybe :: (Text.JSON.JSON a) =>
                   String             -- ^ The object type
@@ -95,8 +130,7 @@ queryNodesMsg =
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
       "ctotal", "cnos", "offline", "drained", "vm_capable",
       "ndp/spindle_count", "group.uuid", "tags",
-      "ndp/exclusive_storage", "sptotal", "spfree", "ndp/cpu_speed",
-      "hv_state"]
+      "ndp/exclusive_storage", "sptotal", "spfree", "ndp/cpu_speed"]
      Qlang.EmptyFilter
 
 -- | The input data for instance query.
@@ -104,7 +138,7 @@ queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRInstance)
      ["name", "disk_usage", "be/memory", "be/vcpus",
-      "status", "pnode", "snodes", "tags", "oper_ram",
+      "status", "pnode", "snodes", "tags",
       "be/auto_balance", "disk_template",
       "be/spindle_use", "disk.sizes", "disk.spindles",
       "forthcoming"] Qlang.EmptyFilter
@@ -117,7 +151,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRGroup)
-     ["uuid", "name", "alloc_policy", "ipolicy", "tags", "networks"]
+     ["uuid", "name", "alloc_policy", "ipolicy", "tags"]
      Qlang.EmptyFilter
 
 -- | Wraper over 'callMethod' doing node query.
@@ -137,28 +171,23 @@ queryGroups :: L.Client -> IO (Result JSValue)
 queryGroups = liftM errToResult . L.callMethod queryGroupsMsg
 
 -- | Parse a instance list in JSON format.
-getInstances :: Bool -- ^ use only state-of-record (SoR) data
-             -> NameAssoc
+getInstances :: NameAssoc
              -> JSValue
              -> Result [(String, Instance.Instance)]
-getInstances sor ktn arr = L.extractArray arr >>= mapM (parseInstance sor ktn)
+getInstances ktn arr = extractArray arr >>= mapM (parseInstance ktn)
 
 -- | Construct an instance from a JSON object.
-parseInstance :: Bool -- ^ use only state-of-record (SoR) data
-              -> NameAssoc
+parseInstance :: NameAssoc
               -> [(JSValue, JSValue)]
               -> Result (String, Instance.Instance)
-parseInstance sor ktn
-  [ name, disk, mem, vcpus, status, pnode, snodes, tags, oram
-  , auto_balance, disk_template, su, dsizes, dspindles, forthcoming ] = do
-  xname <- annotateResult "Parsing new instance" (L.fromJValWithStatus name)
+parseInstance ktn [ name, disk, mem, vcpus
+                  , status, pnode, snodes, tags
+                  , auto_balance, disk_template, su
+                  , dsizes, dspindles, forthcoming ] = do
+  xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
-  xmem <- case (sor, oram) of -- FIXME: remove the "guessing"
-            (False, (_, JSRational _ _)) -> convert "oper_ram" oram
-            -- Note: "oper_ram" is live data; we only use it if not told
-            -- to restrict to state-of-record data
-            _ -> convert "be/memory" mem
+  xmem <- convert "be/memory" mem
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
   xsnodes <- convert "snodes" snodes::Result [String]
@@ -179,20 +208,19 @@ parseInstance sor ktn
              xforthcoming
   return (xname, inst)
 
-parseInstance _ _ v = fail ("Invalid instance query result: " ++ show v)
+parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
 
 -- | Parse a node list in JSON format.
 getNodes :: NameAssoc -> JSValue -> Result [(String, Node.Node)]
-getNodes ktg arr = L.extractArray arr >>= mapM (parseNode ktg)
+getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               , ctotal, cnos, offline, drained, vm_capable, spindles, g_uuid
-              , tags, excl_stor, sptotal, spfree, cpu_speed, hv_state ]
-
+              , tags, excl_stor, sptotal, spfree, cpu_speed ]
     = do
-  xname <- annotateResult "Parsing new node" (L.fromJValWithStatus name)
+  xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
   xoffline <- convert "offline" offline
   xdrained <- convert "drained" drained
@@ -221,11 +249,9 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
       -- is the only supported disk template
   xctotal <- lvconvert 0.0 "ctotal" ctotal
   xcnos <- lvconvert 0 "cnos" cnos
-  xhv_state <- convert "hv_state" hv_state
-  let node_mem = obtainNodeMemory xhv_state xmnode
-      node = flip Node.setCpuSpeed xcpu_speed .
+  let node = flip Node.setCpuSpeed xcpu_speed .
              flip Node.setNodeTags xtags $
-             Node.create xname xmtotal node_mem xmfree xdtotal xdfree
+             Node.create xname xmtotal xmnode xmfree xdtotal xdfree
              xctotal xcnos (not live || xdrained) xsptotal xspfree
              xgdx xexcl_stor
   return (xname, node)
@@ -233,33 +259,33 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
 
 -- | Parses the cluster tags.
-getClusterData :: JSValue -> Result ([String], IPolicy, String)
+getClusterData :: JSValue -> Result ([String], IPolicy, String, Hypervisor)
 getClusterData (JSObject obj) = do
   let errmsg = "Parsing cluster info"
       obj' = fromJSObject obj
   ctags <- tryFromObj errmsg obj' "tags"
   cpol <- tryFromObj errmsg obj' "ipolicy"
   master <- tryFromObj errmsg obj' "master"
-  return (ctags, cpol, master)
+  hypervisor <- tryFromObj errmsg obj' "default_hypervisor"
+  return (ctags, cpol, master, hypervisor)
 
 getClusterData _ = Bad "Cannot parse cluster info, not a JSON record"
 
 -- | Parses the cluster groups.
 getGroups :: JSValue -> Result [(String, Group.Group)]
-getGroups jsv = L.extractArray jsv >>= mapM parseGroup
+getGroups jsv = extractArray jsv >>= mapM parseGroup
 
 -- | Parses a given group information.
 parseGroup :: [(JSValue, JSValue)] -> Result (String, Group.Group)
-parseGroup [uuid, name, apol, ipol, tags, nets] = do
-  xname <- annotateResult "Parsing new group" (L.fromJValWithStatus name)
+parseGroup [uuid, name, apol, ipol, tags] = do
+  xname <- annotateResult "Parsing new group" (fromJValWithStatus name)
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid
   xapol <- convert "alloc_policy" apol
   xipol <- convert "ipolicy" ipol
   xtags <- convert "tags" tags
-  xnets <- convert "networks" nets :: Result (Container PartialNicParams)
-  let xnetids = getKeysFromContainer xnets
-  return (xuuid, Group.create xname xuuid xapol xnetids xipol xtags)
+  -- TODO: parse networks to which this group is connected
+  return (xuuid, Group.create xname xuuid xapol [] xipol xtags)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 
@@ -282,22 +308,21 @@ readData master =
 
 -- | Converts the output of 'readData' into the internal cluster
 -- representation.
-parseData :: Bool -- ^ use only state-of-record (SoR) data
-          -> (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
+parseData :: (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
           -> Result ClusterData
-parseData sor (groups, nodes, instances, cinfo) = do
+parseData (groups, nodes, instances, cinfo) = do
   group_data <- groups >>= getGroups
   let (group_names, group_idx) = assignIndices group_data
   node_data <- nodes >>= getNodes group_names
   let (node_names, node_idx) = assignIndices node_data
-  inst_data <- instances >>= getInstances sor node_names
+  inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (ctags, cpol, master) <- cinfo >>= getClusterData
+  (ctags, cpol, master, hypervisor) <- cinfo >>= getClusterData
   node_idx' <- setMaster node_names node_idx master
-  return (ClusterData group_idx node_idx' inst_idx ctags cpol)
+  let node_idx'' = Container.map (`Node.setHypervisor` hypervisor) node_idx'
+  return (ClusterData group_idx node_idx'' inst_idx ctags cpol)
 
 -- | Top level function for data loading.
-loadData :: Bool -- ^ use only state-of-record (SoR) data
-         -> String -- ^ Unix socket to use as source
+loadData :: String -- ^ Unix socket to use as source
          -> IO (Result ClusterData)
-loadData sor = fmap (parseData sor) . readData
+loadData = fmap parseData . readData

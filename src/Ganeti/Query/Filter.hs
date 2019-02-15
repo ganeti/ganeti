@@ -66,14 +66,13 @@ module Ganeti.Query.Filter
   , FilterOp(..)
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Monad (liftM, mzero)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Traversable (traverse)
 import Text.JSON (JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
 import qualified Text.Regex.PCRE as PCRE
@@ -137,7 +136,7 @@ trueFilter v = Bad . ParameterError $
 -- | A type synonim for a rank-2 comparator function. This is used so
 -- that we can pass the usual '<=', '>', '==' functions to 'binOpFilter'
 -- and for them to be used in multiple contexts.
-type Comparator = forall a . (Eq a, Ord a) => a -> a -> Bool
+type Comparator = (Eq a, Ord a) => a -> a -> Bool
 
 -- | Equality checker.
 --
@@ -184,10 +183,10 @@ containsFilter :: FilterValue -> JSValue -> ErrorResult Bool
 -- note: the next two implementations are the same, but we have to
 -- repeat them due to the encapsulation done by FilterValue
 containsFilter (QuotedString val) lst = do
-  lst' <- fromJVal lst :: ErrorResult [String]
+  lst' <- fromJVal lst
   return $! val `elem` lst'
 containsFilter (NumericValue val) lst = do
-  lst' <- fromJVal lst :: ErrorResult [Integer]
+  lst' <- fromJVal lst
   return $! val `elem` lst'
 
 

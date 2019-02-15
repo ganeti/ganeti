@@ -34,10 +34,10 @@
 import os.path
 import logging
 import logging.handlers
+from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import compat
-from ganeti import pathutils
 
 
 class _ReopenableLogHandler(logging.handlers.BaseRotatingHandler):
@@ -188,8 +188,7 @@ def _ReopenLogFiles(handlers):
 
 def SetupLogging(logfile, program, debug=0, stderr_logging=False,
                  multithreaded=False, syslog=constants.SYSLOG_USAGE,
-                 console_logging=False, root_logger=None,
-                 verbose=True):
+                 console_logging=False, root_logger=None):
   """Configures the logging module.
 
   @type logfile: str
@@ -213,8 +212,6 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
       the system console if logging fails
   @type root_logger: logging.Logger
   @param root_logger: Root logger to use (for unittests)
-  @type verbose: boolean
-  @param verbose: whether to log at 'info' level already (logfile logging only)
   @raise EnvironmentError: if we can't open the log file and
       syslog/stderr logging is disabled
   @rtype: callable
@@ -255,7 +252,7 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
     syslog_handler.setLevel(logging.INFO)
     root_logger.addHandler(syslog_handler)
 
-  if syslog != constants.SYSLOG_ONLY and logfile:
+  if syslog != constants.SYSLOG_ONLY:
     # this can fail, if the logging directories are not setup or we have
     # a permisssion problem; in this case, it's best to log but ignore
     # the error if stderr_logging is True, and if false we re-raise the
@@ -270,10 +267,8 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
       logfile_handler.setFormatter(formatter)
       if debug:
         logfile_handler.setLevel(logging.DEBUG)
-      elif verbose:
-        logfile_handler.setLevel(logging.INFO)
       else:
-        logfile_handler.setLevel(logging.WARN)
+        logfile_handler.setLevel(logging.INFO)
       root_logger.addHandler(logfile_handler)
       reopen_handlers.append(logfile_handler)
     except EnvironmentError:
@@ -287,37 +282,45 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
 
 
 def SetupToolLogging(debug, verbose, threadname=False,
-                     toolname=None, logfile=pathutils.LOG_TOOLS):
+                     _root_logger=None, _stream=None):
   """Configures the logging module for tools.
 
-  All log messages are sent to the tools.log logfile.
+  All log messages are sent to stderr.
 
-  @type toolname: string
-  @param toolname: name of the tool that's logging
   @type debug: boolean
   @param debug: Disable log message filtering
   @type verbose: boolean
   @param verbose: Enable verbose log messages
   @type threadname: boolean
   @param threadname: Whether to include thread name in output
-  @type logfile: string
-  @param logfile: the path of the log file to use, use "None"
-    for tools which don't necessarily run on Ganeti nodes (and
-    thus don't have the Ganeti log directory).
 
   """
-  if not toolname:
-    toolname = "unspecified_tool"
+  if _root_logger is None:
+    root_logger = logging.getLogger("")
+  else:
+    root_logger = _root_logger
 
-  # 'SetupLogging' takes a quite unintuitive 'debug' option that
-  # is '0' for 'log higher than debug level' and '1' for
-  # 'log at NOSET' level. Hence this conversion.
-  debug_int = 0
+  fmt = StringIO()
+  fmt.write("%(asctime)s:")
+
+  if threadname:
+    fmt.write(" %(threadName)s")
+
+  if debug or verbose:
+    fmt.write(" %(levelname)s")
+
+  fmt.write(" %(message)s")
+
+  formatter = logging.Formatter(fmt.getvalue())
+
+  stderr_handler = logging.StreamHandler(_stream)
+  stderr_handler.setFormatter(formatter)
   if debug:
-    debug_int = 1
+    stderr_handler.setLevel(logging.NOTSET)
+  elif verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.WARNING)
 
-  SetupLogging(logfile,
-               program=toolname,
-               debug=debug_int,
-               multithreaded=threadname,
-               verbose=verbose)
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)

@@ -56,7 +56,7 @@ _mond_enabled() {
 }
 
 if _mond_enabled; then
-  DAEMONS+=( ganeti-mond ganeti-maintd)
+  DAEMONS+=( ganeti-mond )
 fi
 
 # The full list of all daemons we know about
@@ -110,9 +110,6 @@ _daemon_usergroup() {
       ;;
     metad)
       echo "@GNTMETADUSER@:@GNTMETADGROUP@"
-      ;;
-    maintd)
-      echo "@GNTMONDUSER@:@GNTMONDGROUP@"
       ;;
     *)
       echo "root:@GNTDAEMONSGROUP@"

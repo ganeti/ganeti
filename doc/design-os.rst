@@ -2,6 +2,10 @@
 Ganeti OS installation redesign
 ===============================
 
+:Created: 2013-Dec-12
+:Status: Partially Implemented
+:Ganeti-Version: 2.12.0, 2.13.0
+
 .. contents:: :depth: 3
 
 This is a design document detailing a new OS installation procedure, which is
@@ -459,11 +463,6 @@ as a JSON serialized dictionary having the parameter name as the key, and the
 pair ``(<value>, <visibility>)`` as the value, where ``<value>`` is the
 user-provided value of the parameter, and ``<visibility>`` is either ``public``,
 ``private`` or ``secret``.
-
-The OS parameters can also be accessed individually by issuing a GET request
-to::
-
-  http://169.254.169.254/ganeti/<version>/os/parameters/<parameter>
 
 The installation scripts to be run inside the virtualized environment will be
 available at::

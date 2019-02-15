@@ -65,7 +65,7 @@ from ganeti import serializer
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "NodeGroup", "Cluster", "FillDict", "Network",
-           "Filter", "Maintenance"]
+           "Filter"]
 
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
@@ -418,7 +418,6 @@ class ConfigData(ConfigObject):
     "networks",
     "disks",
     "filters",
-    "maintenance",
     "serial_no",
     ] + _TIMESTAMPS
 
@@ -431,7 +430,6 @@ class ConfigData(ConfigObject):
     """
     mydict = super(ConfigData, self).ToDict(_with_private=_with_private)
     mydict["cluster"] = mydict["cluster"].ToDict()
-    mydict["maintenance"] = mydict["maintenance"].ToDict()
     for key in ("nodes", "instances", "nodegroups", "networks", "disks",
                 "filters"):
       mydict[key] = outils.ContainerToDicts(mydict[key])
@@ -453,7 +451,6 @@ class ConfigData(ConfigObject):
     obj.networks = outils.ContainerFromDicts(obj.networks, dict, Network)
     obj.disks = outils.ContainerFromDicts(obj.disks, dict, Disk)
     obj.filters = outils.ContainerFromDicts(obj.filters, dict, Filter)
-    obj.maintenance = Maintenance.FromDict(obj.maintenance)
     return obj
 
   def DisksOfType(self, dev_type):
@@ -496,9 +493,6 @@ class ConfigData(ConfigObject):
       disk.UpgradeConfig()
     if self.filters is None:
       self.filters = {}
-    if self.maintenance is None:
-      self.maintenance = Maintenance.FromDict({})
-    self.maintenance.UpgradeConfig()
 
   def _UpgradeEnabledDiskTemplates(self):
     """Upgrade the cluster's enabled disk templates by inspecting the currently
@@ -555,20 +549,6 @@ class Filter(ConfigObject):
   """Config object representing a filter rule."""
   __slots__ = ["watermark", "priority",
                "predicates", "action", "reason_trail"] + _UUID
-
-
-class Maintenance(ConfigObject):
-  """Config object representing the state of the maintenance daemon"""
-  __slots__ = ["roundDelay", "jobs", "evacuated", "balance", "balanceThreshold",
-               "incidents", "serial_no"] + _TIMESTAMPS
-
-  def UpgradeConfig(self):
-    if self.serial_no is None:
-      self.serial_no = 1
-    if self.mtime is None:
-      self.mtime = time.time()
-    if self.ctime is None:
-      self.ctime = time.time()
 
 
 class Disk(ConfigObject):
@@ -1515,11 +1495,6 @@ class Node(TaggableObject):
     if self.powered is None:
       self.powered = True
 
-    if self.hv_state_static is None:
-      self.hv_state_static = {}
-    if self.disk_state_static is None:
-      self.disk_state_static = {}
-
   def ToDict(self, _with_private=False):
     """Custom function for serializing.
 
@@ -1617,11 +1592,6 @@ class NodeGroup(TaggableObject):
     if self.ipolicy is None:
       self.ipolicy = MakeEmptyIPolicy()
 
-    if self.hv_state_static is None:
-      self.hv_state_static = {}
-    if self.disk_state_static is None:
-      self.disk_state_static = {}
-
     if self.networks is None:
       self.networks = {}
 
@@ -1707,10 +1677,8 @@ class Cluster(TaggableObject):
     "compression_tools",
     "enabled_user_shutdown",
     "data_collectors",
-    "diagnose_data_collector_filename",
     "ssh_key_type",
     "ssh_key_bits",
-    "enabled_predictive_queue",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -2353,7 +2321,6 @@ class MigrationStatus(ConfigObject):
     "status",
     "transferred_ram",
     "total_ram",
-    "dirty_sync_count",
     ]
 
 

@@ -41,12 +41,10 @@ module Test.Ganeti.Query.Language
   , genJSValue
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Test.HUnit (Assertion, assertEqual)
 import Test.QuickCheck
 
+import Control.Applicative
 import Control.Arrow (second)
 import Text.JSON
 

@@ -58,12 +58,6 @@ Filter rules consist of the following:
     This predicate is true, if one of the entries of one of the opcodes
     in this job satisfies the expression.
 
-  - ``user``. Only parameter is a boolean expression.
-    For this expression, there is only one field available ``user``,
-    which represents the authorized user submitted a job via RAPI.
-    If a job is submitted by any other interface or an authentication is
-    turned off in RAPI, it will contain an empty string.
-
 - An ``action``. One of:
 
   - ACCEPT. The job will be accepted; no further filter rules
@@ -97,9 +91,9 @@ ADD
 ~~~
 
 | **add**
-| [\--priority=*PRIORITY*]
-| [\--predicates=*PREDICATES*]
-| [\--action=*ACTION*]
+| [\--priority=*priority*]
+| [\--predicates=*predicates*]
+| [\--action=*action*]
 
 Creates a new filter rule. A UUID is automatically assigned.
 
@@ -124,11 +118,11 @@ REPLACE
 ~~~~~~~
 
 | **replace**
-| [\--priority=*PRIORITY*]
-| [\--predicates=*PREDICATES*]
-| [\--action=*ACTION*]
-| [\--reason=*REASON*]
-| {*filter_uuid*}
+| [\--priority=*priority*]
+| [\--predicates=*predicates*]
+| [\--action=*action*]
+| [\--reason=*reason*]
+| {*filter-uuid*}
 
 Replaces a filter rule, or creates one if it doesn't already exist.
 
@@ -142,15 +136,15 @@ options.
 DELETE
 ~~~~~~
 
-| **delete** {*filter_uuid*}
+| **delete** {*filter-uuid*}
 
 Deletes the indicated filter rule.
 
 LIST
 ~~~~
 
-| **list** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [filter_uuid...]
+| **list** [\--no-headers] [\--separator=*separator*] [-v]
+| [-o *[+]field,...*] [filter-uuid...]
 
 Lists all existing filters in the cluster. If no filter UUIDs are given,
 then all filters are included. Otherwise, only the given filters will be
@@ -183,7 +177,7 @@ List available fields for filters.
 INFO
 ~~~~
 
-| **info** [filter_uuid...]
+| **info** [filter-uuid...]
 
 Displays information about a given filter.
 

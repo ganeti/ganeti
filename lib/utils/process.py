@@ -185,8 +185,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @type noclose_fds: list
   @param noclose_fds: list of additional (fd >=3) file descriptors to leave
                       open for the child process
-  @type input_fd: C{file}-like object containing an actual file descriptor
-                  or numeric file descriptor
+  @type input_fd: C{file}-like object or numeric file descriptor
   @param input_fd: File descriptor for process' standard input
   @type postfork_fn: Callable receiving PID as parameter
   @param postfork_fn: Callback run after fork but before timeout
@@ -523,8 +522,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
   @type noclose_fds: list
   @param noclose_fds: list of additional (fd >=3) file descriptors to leave
                       open for the child process
-  @type input_fd: C{file}-like object containing an actual file descriptor
-                  or numeric file descriptor
+  @type input_fd: C{file}-like object or numeric file descriptor
   @param input_fd: File descriptor for process' standard input
   @type postfork_fn: Callable receiving PID as parameter
   @param postfork_fn: Function run after fork but before timeout

@@ -1309,6 +1309,32 @@ def _GetStatsField(field, kind, data):
     return _FS_UNAVAIL
 
 
+def _GetNodeHvState(_, node):
+  """Converts node's hypervisor state for query result.
+
+  """
+  hv_state = node.hv_state
+
+  if hv_state is None:
+    return _FS_UNAVAIL
+
+  return dict((name, value.ToDict()) for (name, value) in hv_state.items())
+
+
+def _GetNodeDiskState(_, node):
+  """Converts node's disk state for query result.
+
+  """
+  disk_state = node.disk_state
+
+  if disk_state is None:
+    return _FS_UNAVAIL
+
+  return dict((disk_kind, dict((name, value.ToDict())
+                               for (name, value) in kind_state.items()))
+              for (disk_kind, kind_state) in disk_state.items())
+
+
 def _BuildNodeFields():
   """Builds list of fields for node queries.
 
@@ -1335,16 +1361,10 @@ def _BuildNodeFields():
     (_MakeField("custom_ndparams", "CustomNodeParameters", QFT_OTHER,
                 "Custom node parameters"),
       NQ_GROUP, 0, _GetItemAttr("ndparams")),
-    # FIXME: The code below return custom hv_state instead of filled one.
-    # Anyway, this functionality is unlikely to be used.
-    (_MakeField("hv_state", "HypervisorState", QFT_OTHER,
-                "Static hypervisor state for default hypervisor only"),
-     NQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
-    (_MakeField("custom_hv_state", "CustomHypervisorState", QFT_OTHER,
-                "Custom static hypervisor state"),
-     NQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
+    (_MakeField("hv_state", "HypervisorState", QFT_OTHER, "Hypervisor state"),
+     NQ_CONFIG, 0, _GetNodeHvState),
     (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
-     NQ_CONFIG, 0, _GetItemAttr("disk_state_static")),
+     NQ_CONFIG, 0, _GetNodeDiskState),
     ]
 
   fields.extend(_BuildNDFields(False))
@@ -2008,12 +2028,6 @@ def _GetInstanceDiskFields():
      IQ_CONFIG, 0, lambda ctx, inst: [disk.name for disk in inst.disks]),
     (_MakeField("disk.uuids", "Disk_UUIDs", QFT_OTHER, "List of disk UUIDs"),
      IQ_CONFIG, 0, lambda ctx, inst: [disk.uuid for disk in inst.disks]),
-    (_MakeField("disk.storage_ids", "Disk_storage_ids", QFT_OTHER,
-                "List of disk storage ids"),
-     IQ_CONFIG, 0, lambda ctx, inst: [disk.storage_id for disk in inst.disks]),
-    (_MakeField("disk.providers", "Disk_providers", QFT_OTHER,
-                "List of disk ExtStorage providers"),
-     IQ_CONFIG, 0, lambda ctx, inst: [disk.provider for disk in inst.disks]),
     ]
 
   # Disks by number
@@ -2437,9 +2451,6 @@ def _BuildGroupFields():
     (_MakeField("ipolicy", "InstancePolicy", QFT_OTHER,
                 "Instance policy limitations (merged)"),
      GQ_CONFIG, 0, lambda ctx, _: ctx.group_ipolicy),
-    (_MakeField("networks", "Networks", QFT_OTHER,
-                "Node group networks"),
-     GQ_CONFIG, 0, _GetItemAttr("networks")),
     (_MakeField("custom_ipolicy", "CustomInstancePolicy", QFT_OTHER,
                 "Custom instance policy limitations"),
      GQ_CONFIG, 0, _GetItemAttr("ipolicy")),
@@ -2455,11 +2466,6 @@ def _BuildGroupFields():
     (_MakeField("custom_diskparams", "CustomDiskParameters", QFT_OTHER,
                 "Custom disk parameters"),
      GQ_CONFIG, 0, _GetItemAttr("diskparams")),
-    (_MakeField("hv_state", "HypervisorState", QFT_OTHER,
-                "Custom static hypervisor state"),
-     GQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
-    (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
-     GQ_CONFIG, 0, _GetItemAttr("disk_state_static")),
     ])
 
   # ND parameters
@@ -2772,11 +2778,6 @@ def _BuildClusterFields():
     (_MakeField("master_node", "Master", QFT_TEXT, "Master node name"),
      CQ_CONFIG, QFF_HOSTNAME,
      lambda ctx, cluster: _GetNodeName(ctx, None, cluster.master_node)),
-    (_MakeField("hv_state", "HypervisorState", QFT_OTHER,
-                "Custom static hypervisor state"),
-     CQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
-    (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
-     CQ_CONFIG, 0, _GetItemAttr("disk_state_static")),
     ]
 
   # Simple fields

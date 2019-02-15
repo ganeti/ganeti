@@ -35,15 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Storage.Diskstats.Parser (testBlock_Diskstats_Parser) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
+import Control.Applicative ((<*>), (<$>))
 import qualified Data.Attoparsec.Text as A
 import Data.Text (pack)
 import Text.Printf

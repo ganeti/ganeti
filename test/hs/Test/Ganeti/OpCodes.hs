@@ -37,25 +37,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.OpCodes
   ( testOpCodes
-  , genOpCodeFromId
   , OpCodes.OpCode(..)
   ) where
-
-import Prelude ()
-import Ganeti.Prelude
 
 import Test.HUnit as HUnit
 import Test.QuickCheck as QuickCheck
 
-import Control.Monad (when)
+import Control.Applicative
+import Control.Monad
 import Data.Char
 import Data.List
-import Data.Maybe
 import qualified Data.Map as Map
 import qualified Text.JSON as J
 import Text.Printf (printf)
 
-import Test.Ganeti.Objects
+import Test.Ganeti.Objects ()
 import Test.Ganeti.Query.Language ()
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -67,7 +63,6 @@ import qualified Ganeti.ConstantUtils as CU
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Types
 import Ganeti.OpParams
-import Ganeti.Objects
 import Ganeti.JSON
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -143,418 +138,386 @@ arbitraryDataCollectorInterval = do
   intervals <- vector $ length els
   genMaybe . return . containerFromList $ zip els intervals
 
-genOpCodeFromId :: String -> Maybe ConfigData -> Gen OpCodes.OpCode
-genOpCodeFromId op_id cfg =
-  case op_id of
-    "OP_TEST_DELAY" ->
-      OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
-        genNodeNamesNE <*> return Nothing <*> arbitrary <*> arbitrary <*>
-        arbitrary
-    "OP_INSTANCE_REPLACE_DISKS" ->
-      OpCodes.OpInstanceReplaceDisks <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> arbitrary <*> genDiskIndices <*>
-        genMaybe genNodeNameNE <*> return Nothing <*> genMaybe genNameNE
-    "OP_INSTANCE_FAILOVER" ->
-      OpCodes.OpInstanceFailover <$> getInstanceName <*> return Nothing <*>
-      arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
-      return Nothing <*> arbitrary <*> arbitrary <*> genMaybe genNameNE
-    "OP_INSTANCE_MIGRATE" ->
-      OpCodes.OpInstanceMigrate <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> genMaybe getNodeName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
-        arbitrary <*> arbitrary
-    "OP_TAGS_GET" ->
-      arbitraryOpTagsGet
-    "OP_TAGS_SEARCH" ->
-      OpCodes.OpTagsSearch <$> genNameNE
-    "OP_TAGS_SET" ->
-      arbitraryOpTagsSet
-    "OP_TAGS_DEL" ->
-      arbitraryOpTagsDel
-    "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
-    "OP_CLUSTER_RENEW_CRYPTO" -> OpCodes.OpClusterRenewCrypto
-       <$> arbitrary -- Node SSL certificates
-       <*> arbitrary -- renew_ssh_keys
-       <*> arbitrary -- ssh_key_type
-       <*> arbitrary -- ssh_key_bits
-       <*> arbitrary -- verbose
-       <*> arbitrary -- debug
-    "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
-    "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
-    "OP_CLUSTER_VERIFY" ->
-      OpCodes.OpClusterVerify <$> arbitrary <*> arbitrary <*>
-        genListSet Nothing <*> genListSet Nothing <*> arbitrary <*>
-        genMaybe getGroupName <*> arbitrary
-    "OP_CLUSTER_VERIFY_CONFIG" ->
-      OpCodes.OpClusterVerifyConfig <$> arbitrary <*> arbitrary <*>
-        genListSet Nothing <*> arbitrary
-    "OP_CLUSTER_VERIFY_GROUP" ->
-      OpCodes.OpClusterVerifyGroup <$> getGroupName <*> arbitrary <*>
-        arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
-        arbitrary <*> arbitrary
-    "OP_CLUSTER_VERIFY_DISKS" ->
-      OpCodes.OpClusterVerifyDisks <$> genMaybe getGroupName <*> arbitrary
-    "OP_GROUP_VERIFY_DISKS" ->
-      OpCodes.OpGroupVerifyDisks <$> getGroupName <*> arbitrary
-    "OP_CLUSTER_REPAIR_DISK_SIZES" ->
-      OpCodes.OpClusterRepairDiskSizes <$> getInstanceNames
-    "OP_CLUSTER_CONFIG_QUERY" ->
-      OpCodes.OpClusterConfigQuery <$> genFieldsNE
-    "OP_CLUSTER_RENAME" ->
-      OpCodes.OpClusterRename <$> genNameNE
-    "OP_CLUSTER_SET_PARAMS" ->
-      OpCodes.OpClusterSetParams
-        <$> arbitrary                    -- force
-        <*> emptyMUD                     -- hv_state
-        <*> emptyMUD                     -- disk_state
-        <*> genMaybe genName             -- vg_name
-        <*> genMaybe arbitrary           -- enabled_hypervisors
-        <*> genMaybe genEmptyContainer   -- hvparams
-        <*> emptyMUD                     -- beparams
-        <*> genMaybe genEmptyContainer   -- os_hvp
-        <*> genMaybe genEmptyContainer   -- osparams
-        <*> genMaybe genEmptyContainer   -- osparams_private_cluster
-        <*> genMaybe genEmptyContainer   -- diskparams
-        <*> genMaybe arbitrary           -- candidate_pool_size
-        <*> genMaybe arbitrary           -- max_running_jobs
-        <*> genMaybe arbitrary           -- max_tracked_jobs
-        <*> arbitrary                    -- uid_pool
-        <*> arbitrary                    -- add_uids
-        <*> arbitrary                    -- remove_uids
-        <*> arbitrary                    -- maintain_node_health
-        <*> arbitrary                    -- prealloc_wipe_disks
-        <*> arbitrary                    -- nicparams
-        <*> emptyMUD                     -- ndparams
-        <*> emptyMUD                     -- ipolicy
-        <*> genMaybe genPrintableAsciiString
-                                         -- drbd_helper
-        <*> genMaybe genPrintableAsciiString
-                                         -- default_iallocator
-        <*> emptyMUD                     -- default_iallocator_params
-        <*> genMaybe genMacPrefix        -- mac_prefix
-        <*> genMaybe genPrintableAsciiString
-                                         -- master_netdev
-        <*> arbitrary                    -- master_netmask
-        <*> genMaybe (listOf genPrintableAsciiStringNE)
-                                         -- reserved_lvs
-        <*> genMaybe (listOf ((,) <$> arbitrary
-                                  <*> genPrintableAsciiStringNE))
-                                         -- hidden_os
-        <*> genMaybe (listOf ((,) <$> arbitrary
-                                  <*> genPrintableAsciiStringNE))
-                                         -- blacklisted_os
-        <*> arbitrary                    -- use_external_mip_script
-        <*> arbitrary                    -- enabled_disk_templates
-        <*> arbitrary                    -- modify_etc_hosts
-        <*> arbitrary                    -- modify_ssh_config
-        <*> genMaybe genName             -- file_storage_dir
-        <*> genMaybe genName             -- shared_file_storage_dir
-        <*> genMaybe genName             -- gluster_file_storage_dir
-        <*> genMaybe genPrintableAsciiString
-                                         -- install_image
-        <*> genMaybe genPrintableAsciiString
-                                         -- instance_communication_network
-        <*> genMaybe genPrintableAsciiString
-                                         -- zeroing_image
-        <*> genMaybe (listOf genPrintableAsciiStringNE)
-                                         -- compression_tools
-        <*> arbitrary                    -- enabled_user_shutdown
-        <*> genMaybe arbitraryDataCollector   -- enabled_data_collectors
-        <*> arbitraryDataCollectorInterval   -- data_collector_interval
-        <*> genMaybe genName             -- diagnose_data_collector_filename
-        <*> genMaybe (fromPositive <$> arbitrary) -- maintd round interval
-        <*> genMaybe arbitrary           -- enable maintd balancing
-        <*> genMaybe arbitrary           -- maintd balancing threshold
-        <*> arbitrary                    -- enabled_predictive_queue
-    "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
-    "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
-      pure OpCodes.OpClusterActivateMasterIp
-    "OP_CLUSTER_DEACTIVATE_MASTER_IP" ->
-      pure OpCodes.OpClusterDeactivateMasterIp
-    "OP_QUERY" ->
-      OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> genNamesNE <*>
-      pure Nothing
-    "OP_QUERY_FIELDS" ->
-      OpCodes.OpQueryFields <$> arbitrary <*> genMaybe genNamesNE
-    "OP_OOB_COMMAND" ->
-      OpCodes.OpOobCommand <$> getNodeNames <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> arbitrary <*> (arbitrary `suchThat` (>0))
-    "OP_NODE_REMOVE" ->
-      OpCodes.OpNodeRemove <$> getNodeName <*> return Nothing <*>
-        arbitrary <*> arbitrary
-    "OP_NODE_ADD" ->
-      OpCodes.OpNodeAdd <$> getNodeName <*> emptyMUD <*> emptyMUD <*>
-        genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
-        genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD <*>
-        arbitrary <*> arbitrary <*> arbitrary
-    "OP_NODE_QUERYVOLS" ->
-      OpCodes.OpNodeQueryvols <$> genNamesNE <*> genNodeNamesNE
-    "OP_NODE_QUERY_STORAGE" ->
-      OpCodes.OpNodeQueryStorage <$> genNamesNE <*> arbitrary <*>
-        getNodeNames <*> genMaybe genNameNE
-    "OP_NODE_MODIFY_STORAGE" ->
-      OpCodes.OpNodeModifyStorage <$> getNodeName <*> return Nothing <*>
-        arbitrary <*> genMaybe genNameNE <*> pure emptyJSObject
-    "OP_REPAIR_NODE_STORAGE" ->
-      OpCodes.OpRepairNodeStorage <$> getNodeName <*> return Nothing <*>
-        arbitrary <*> genMaybe genNameNE <*> arbitrary
-    "OP_NODE_SET_PARAMS" ->
-      OpCodes.OpNodeSetParams <$> getNodeName <*> return Nothing <*>
-        arbitrary <*> emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*>
-        arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-        genMaybe genNameNE <*> emptyMUD <*> arbitrary <*> arbitrary <*>
-        arbitrary
-    "OP_NODE_POWERCYCLE" ->
-      OpCodes.OpNodePowercycle <$> getNodeName <*> return Nothing <*> arbitrary
-    "OP_NODE_MIGRATE" ->
-      OpCodes.OpNodeMigrate <$> getNodeName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> genMaybe getNodeName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> genMaybe genNameNE
-    "OP_NODE_EVACUATE" ->
-      OpCodes.OpNodeEvacuate <$> arbitrary <*> getNodeName <*>
-        return Nothing <*> genMaybe getNodeName <*> return Nothing <*>
-        genMaybe genNameNE <*> arbitrary <*> arbitrary
-    "OP_INSTANCE_CREATE" ->
-      OpCodes.OpInstanceCreate
-        <$> genFQDN                         -- instance_name
-        <*> arbitrary                       -- force_variant
-        <*> arbitrary                       -- wait_for_sync
-        <*> arbitrary                       -- name_check
-        <*> arbitrary                       -- ignore_ipolicy
-        <*> arbitrary                       -- opportunistic_locking
-        <*> pure emptyJSObject              -- beparams
-        <*> arbitrary                       -- disks
-        <*> arbitrary                       -- disk_template
-        <*> genMaybe getGroupName           -- group_name
-        <*> arbitrary                       -- file_driver
-        <*> genMaybe genNameNE              -- file_storage_dir
-        <*> pure emptyJSObject              -- hvparams
-        <*> arbitrary                       -- hypervisor
-        <*> genMaybe genNameNE              -- iallocator
-        <*> arbitrary                       -- identify_defaults
-        <*> arbitrary                       -- ip_check
-        <*> arbitrary                       -- conflicts_check
-        <*> arbitrary                       -- mode
-        <*> arbitrary                       -- nics
-        <*> arbitrary                       -- no_install
-        <*> pure emptyJSObject              -- osparams
-        <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
-        <*> genMaybe arbitrarySecretJSObj   -- osparams_secret
-        <*> genMaybe genNameNE              -- os_type
-        <*> genMaybe getNodeName            -- pnode
-        <*> return Nothing                  -- pnode_uuid
-        <*> genMaybe getNodeName            -- snode
-        <*> return Nothing                  -- snode_uuid
-        <*> genMaybe (pure [])              -- source_handshake
-        <*> genMaybe genNodeNameNE          -- source_instance_name
-        <*> arbitrary                       -- source_shutdown_timeout
-        <*> genMaybe genNodeNameNE          -- source_x509_ca
-        <*> return Nothing                  -- src_node
-        <*> genMaybe genNodeNameNE          -- src_node_uuid
-        <*> genMaybe genNameNE              -- src_path
-        <*> genPrintableAsciiString         -- compress
-        <*> arbitrary                       -- start
-        <*> arbitrary                       -- forthcoming
-        <*> arbitrary                       -- commit
-        <*> (genTags >>= mapM mkNonEmpty)   -- tags
-        <*> arbitrary                       -- instance_communication
-        <*> arbitrary                       -- helper_startup_timeout
-        <*> arbitrary                       -- helper_shutdown_timeout
-    "OP_INSTANCE_MULTI_ALLOC" ->
-      OpCodes.OpInstanceMultiAlloc <$> arbitrary <*> genMaybe genNameNE <*>
-      pure []
-    "OP_INSTANCE_REINSTALL" ->
-      OpCodes.OpInstanceReinstall <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
-        <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitrarySecretJSObj
-        <*> arbitrary <*> arbitrary
-        <*> genMaybe (listOf genPrintableAsciiString)
-        <*> genMaybe (listOf genPrintableAsciiString)
-    "OP_INSTANCE_REMOVE" ->
-      OpCodes.OpInstanceRemove <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary
-    "OP_INSTANCE_RENAME" ->
-      OpCodes.OpInstanceRename <$> getInstanceName <*> return Nothing <*>
-        (genFQDN >>= mkNonEmpty) <*> arbitrary <*> arbitrary
-    "OP_INSTANCE_STARTUP" ->
-      OpCodes.OpInstanceStartup <$>
-        getInstanceName <*>     -- instance_name
-        return Nothing <*>      -- instance_uuid
-        arbitrary <*>           -- force
-        arbitrary <*>           -- ignore_offline_nodes
-        pure emptyJSObject <*>  -- hvparams
-        pure emptyJSObject <*>  -- beparams
-        arbitrary <*>           -- no_remember
-        arbitrary <*>           -- startup_paused
-        arbitrary               -- shutdown_timeout
-    "OP_INSTANCE_SHUTDOWN" ->
-      OpCodes.OpInstanceShutdown <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-    "OP_INSTANCE_REBOOT" ->
-      OpCodes.OpInstanceReboot <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> arbitrary
-    "OP_INSTANCE_MOVE" ->
-      OpCodes.OpInstanceMove <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> getNodeName <*>
-        return Nothing <*> genPrintableAsciiString <*> arbitrary
-    "OP_INSTANCE_CONSOLE" -> OpCodes.OpInstanceConsole <$> getInstanceName <*>
-        return Nothing
-    "OP_INSTANCE_ACTIVATE_DISKS" ->
-      OpCodes.OpInstanceActivateDisks <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary
-    "OP_INSTANCE_DEACTIVATE_DISKS" ->
-      OpCodes.OpInstanceDeactivateDisks <$> genFQDN <*> return Nothing <*>
-        arbitrary
-    "OP_INSTANCE_RECREATE_DISKS" ->
-      OpCodes.OpInstanceRecreateDisks <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> genNodeNamesNE <*> return Nothing <*> genMaybe getNodeName
-    "OP_INSTANCE_QUERY_DATA" ->
-      OpCodes.OpInstanceQueryData <$> arbitrary <*>
-        getInstanceNames <*> arbitrary
-    "OP_INSTANCE_SET_PARAMS" ->
-      OpCodes.OpInstanceSetParams
-        <$> getInstanceName                 -- instance_name
-        <*> return Nothing                  -- instance_uuid
-        <*> arbitrary                       -- force
-        <*> arbitrary                       -- force_variant
-        <*> arbitrary                       -- ignore_ipolicy
-        <*> arbitrary                       -- nics
-        <*> arbitrary                       -- disks
-        <*> pure emptyJSObject              -- beparams
-        <*> arbitrary                       -- runtime_mem
-        <*> pure emptyJSObject              -- hvparams
-        <*> arbitrary                       -- disk_template
-        <*> pure emptyJSObject              -- ext_params
-        <*> arbitrary                       -- file_driver
-        <*> genMaybe genNameNE              -- file_storage_dir
-        <*> genMaybe getNodeName            -- pnode
-        <*> return Nothing                  -- pnode_uuid
-        <*> genMaybe getNodeName            -- remote_node
-        <*> return Nothing                  -- remote_node_uuid
-        <*> genMaybe genNameNE              -- iallocator
-        <*> genMaybe genNameNE              -- os_name
-        <*> pure emptyJSObject              -- osparams
-        <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
-        <*> arbitrary                       -- clear_osparams
-        <*> arbitrary                       -- clear_osparams_private
-        <*> genMaybe (listOf genPrintableAsciiString) -- remove_osparams
-        <*> genMaybe (listOf genPrintableAsciiString) -- remove_osparams_private
-        <*> arbitrary                       -- wait_for_sync
-        <*> arbitrary                       -- offline
-        <*> arbitrary                       -- conflicts_check
-        <*> arbitrary                       -- hotplug
-        <*> arbitrary                       -- hotplug_if_possible
-        <*> arbitrary                       -- instance_communication
-    "OP_INSTANCE_GROW_DISK" ->
-      OpCodes.OpInstanceGrowDisk <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-    "OP_INSTANCE_CHANGE_GROUP" ->
-      OpCodes.OpInstanceChangeGroup <$> getInstanceName <*> return Nothing <*>
-        arbitrary <*> genMaybe genNameNE <*>
-        genMaybe (resize maxNodes (listOf genNameNE))
-    "OP_GROUP_ADD" ->
-      OpCodes.OpGroupAdd <$> genNameNE <*> arbitrary <*>
-        emptyMUD <*> genMaybe genEmptyContainer <*>
-        emptyMUD <*> emptyMUD <*> emptyMUD
-    "OP_GROUP_ASSIGN_NODES" ->
-      OpCodes.OpGroupAssignNodes <$> getGroupName <*>
-        arbitrary <*> getNodeNames <*> return Nothing
-    "OP_GROUP_SET_PARAMS" ->
-      OpCodes.OpGroupSetParams <$> getGroupName <*>
-        arbitrary <*> emptyMUD <*> genMaybe genEmptyContainer <*>
-        emptyMUD <*> emptyMUD <*> emptyMUD
-    "OP_GROUP_REMOVE" ->
-      OpCodes.OpGroupRemove <$> getGroupName
-    "OP_GROUP_RENAME" ->
-      OpCodes.OpGroupRename <$> getGroupName <*> genNameNE
-    "OP_GROUP_EVACUATE" ->
-      OpCodes.OpGroupEvacuate <$> getGroupName <*>
-        arbitrary <*> genMaybe genNameNE <*> genMaybe genNamesNE <*>
-        arbitrary <*> arbitrary
-    "OP_OS_DIAGNOSE" ->
-      OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
-    "OP_EXT_STORAGE_DIAGNOSE" ->
-      OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
-    "OP_BACKUP_PREPARE" ->
-      OpCodes.OpBackupPrepare <$> getInstanceName <*>
-        return Nothing <*> arbitrary
-    "OP_BACKUP_EXPORT" ->
-      OpCodes.OpBackupExport
-        <$> getInstanceName          -- instance_name
-        <*> return Nothing           -- instance_uuid
-        <*> genPrintableAsciiString  -- compress
-        <*> arbitrary                -- shutdown_timeout
-        <*> arbitrary                -- target_node
-        <*> return Nothing           -- target_node_uuid
-        <*> arbitrary                -- shutdown
-        <*> arbitrary                -- remove_instance
-        <*> arbitrary                -- ignore_remove_failures
-        <*> arbitrary                -- mode
-        <*> genMaybe (pure [])       -- x509_key_name
-        <*> genMaybe genNameNE       -- destination_x509_ca
-        <*> arbitrary                -- zero_free_space
-        <*> arbitrary                -- zeroing_timeout_fixed
-        <*> arbitrary                -- zeroing_timeout_per_mib
-        <*> arbitrary                -- long_sleep
-    "OP_BACKUP_REMOVE" ->
-      OpCodes.OpBackupRemove <$> getInstanceName <*> return Nothing
-    "OP_TEST_ALLOCATOR" ->
-      OpCodes.OpTestAllocator <$> arbitrary <*> arbitrary <*>
-        genNameNE <*> genMaybe (pure []) <*> genMaybe (pure []) <*>
-        arbitrary <*> genMaybe genNameNE <*>
-        (genTags >>= mapM mkNonEmpty) <*>
-        arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
-        arbitrary <*> genMaybe genNodeNamesNE <*> arbitrary <*>
-        genMaybe genNamesNE <*> arbitrary <*> arbitrary <*>
-        genMaybe getGroupName
-    "OP_TEST_JQUEUE" ->
-      OpCodes.OpTestJqueue <$> arbitrary <*> arbitrary <*>
-        resize 20 (listOf genFQDN) <*> arbitrary
-    "OP_TEST_OS_PARAMS" ->
-      OpCodes.OpTestOsParams <$> genMaybe arbitrarySecretJSObj
-    "OP_TEST_DUMMY" ->
-      OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
-        pure J.JSNull <*> pure J.JSNull
-    "OP_NETWORK_ADD" ->
-      OpCodes.OpNetworkAdd <$> genNameNE <*> genIPv4Network <*>
-        genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
-        genMaybe genMacPrefix <*> genMaybe (listOf genIPv4Address) <*>
-        arbitrary <*> (genTags >>= mapM mkNonEmpty)
-    "OP_NETWORK_REMOVE" ->
-      OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
-    "OP_NETWORK_SET_PARAMS" ->
-      OpCodes.OpNetworkSetParams <$> genNameNE <*>
-        genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
-        genMaybe genMacPrefix <*> genMaybe (listOf genIPv4Address) <*>
-        genMaybe (listOf genIPv4Address)
-    "OP_NETWORK_CONNECT" ->
-      OpCodes.OpNetworkConnect <$> getGroupName <*>
-        genNameNE <*> arbitrary <*> genNameNE <*> genPrintableAsciiString <*>
-        arbitrary
-    "OP_NETWORK_DISCONNECT" ->
-      OpCodes.OpNetworkDisconnect <$> getGroupName <*>
-        genNameNE
-    "OP_RESTRICTED_COMMAND" ->
-      OpCodes.OpRestrictedCommand <$> arbitrary <*> getNodeNames <*>
-        return Nothing <*> genNameNE
-    "OP_REPAIR_COMMAND" ->
-      OpCodes.OpRepairCommand <$> getNodeName <*> genNameNE <*>
-        genMaybe genPrintableAsciiStringNE
-    _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
-  where getInstanceName =
-          case cfg of
-               Just c -> fmap (fromMaybe "") . genValidInstanceName $ c
-               Nothing -> genFQDN
-        getNodeName = maybe genFQDN genValidNodeName cfg >>= mkNonEmpty
-        getGroupName = maybe genName genValidGroupName cfg >>= mkNonEmpty
-        getInstanceNames = resize maxNodes (listOf getInstanceName) >>=
-                           mapM mkNonEmpty
-        getNodeNames = resize maxNodes (listOf getNodeName)
-
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
     op_id <- elements OpCodes.allOpIDs
-    genOpCodeFromId op_id Nothing
+    case op_id of
+      "OP_TEST_DELAY" ->
+        OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
+          genNodeNamesNE <*> return Nothing <*> arbitrary <*> arbitrary <*>
+          arbitrary
+      "OP_INSTANCE_REPLACE_DISKS" ->
+        OpCodes.OpInstanceReplaceDisks <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> genDiskIndices <*>
+          genMaybe genNodeNameNE <*> return Nothing <*> genMaybe genNameNE
+      "OP_INSTANCE_FAILOVER" ->
+        OpCodes.OpInstanceFailover <$> genFQDN <*> return Nothing <*>
+        arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
+        return Nothing <*> arbitrary <*> arbitrary <*> genMaybe genNameNE
+      "OP_INSTANCE_MIGRATE" ->
+        OpCodes.OpInstanceMigrate <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
+          return Nothing <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe genNameNE <*> arbitrary <*> arbitrary
+      "OP_TAGS_GET" ->
+        arbitraryOpTagsGet
+      "OP_TAGS_SEARCH" ->
+        OpCodes.OpTagsSearch <$> genNameNE
+      "OP_TAGS_SET" ->
+        arbitraryOpTagsSet
+      "OP_TAGS_DEL" ->
+        arbitraryOpTagsDel
+      "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
+      "OP_CLUSTER_RENEW_CRYPTO" -> OpCodes.OpClusterRenewCrypto
+         <$> arbitrary -- Node SSL certificates
+         <*> arbitrary -- renew_ssh_keys
+         <*> arbitrary -- ssh_key_type
+         <*> arbitrary -- ssh_key_bits
+         <*> arbitrary -- verbose
+         <*> arbitrary -- debug
+      "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
+      "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
+      "OP_CLUSTER_VERIFY" ->
+        OpCodes.OpClusterVerify <$> arbitrary <*> arbitrary <*>
+          genListSet Nothing <*> genListSet Nothing <*> arbitrary <*>
+          genMaybe genNameNE <*> arbitrary
+      "OP_CLUSTER_VERIFY_CONFIG" ->
+        OpCodes.OpClusterVerifyConfig <$> arbitrary <*> arbitrary <*>
+          genListSet Nothing <*> arbitrary
+      "OP_CLUSTER_VERIFY_GROUP" ->
+        OpCodes.OpClusterVerifyGroup <$> genNameNE <*> arbitrary <*>
+          arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
+          arbitrary <*> arbitrary
+      "OP_CLUSTER_VERIFY_DISKS" ->
+        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE
+      "OP_GROUP_VERIFY_DISKS" ->
+        OpCodes.OpGroupVerifyDisks <$> genNameNE
+      "OP_CLUSTER_REPAIR_DISK_SIZES" ->
+        OpCodes.OpClusterRepairDiskSizes <$> genNodeNamesNE
+      "OP_CLUSTER_CONFIG_QUERY" ->
+        OpCodes.OpClusterConfigQuery <$> genFieldsNE
+      "OP_CLUSTER_RENAME" ->
+        OpCodes.OpClusterRename <$> genNameNE
+      "OP_CLUSTER_SET_PARAMS" ->
+        OpCodes.OpClusterSetParams
+          <$> arbitrary                    -- force
+          <*> emptyMUD                     -- hv_state
+          <*> emptyMUD                     -- disk_state
+          <*> genMaybe genName             -- vg_name
+          <*> genMaybe arbitrary           -- enabled_hypervisors
+          <*> genMaybe genEmptyContainer   -- hvparams
+          <*> emptyMUD                     -- beparams
+          <*> genMaybe genEmptyContainer   -- os_hvp
+          <*> genMaybe genEmptyContainer   -- osparams
+          <*> genMaybe genEmptyContainer   -- osparams_private_cluster
+          <*> genMaybe genEmptyContainer   -- diskparams
+          <*> genMaybe arbitrary           -- candidate_pool_size
+          <*> genMaybe arbitrary           -- max_running_jobs
+          <*> genMaybe arbitrary           -- max_tracked_jobs
+          <*> arbitrary                    -- uid_pool
+          <*> arbitrary                    -- add_uids
+          <*> arbitrary                    -- remove_uids
+          <*> arbitrary                    -- maintain_node_health
+          <*> arbitrary                    -- prealloc_wipe_disks
+          <*> arbitrary                    -- nicparams
+          <*> emptyMUD                     -- ndparams
+          <*> emptyMUD                     -- ipolicy
+          <*> genMaybe genPrintableAsciiString
+                                           -- drbd_helper
+          <*> genMaybe genPrintableAsciiString
+                                           -- default_iallocator
+          <*> emptyMUD                     -- default_iallocator_params
+          <*> genMaybe genMacPrefix        -- mac_prefix
+          <*> genMaybe genPrintableAsciiString
+                                           -- master_netdev
+          <*> arbitrary                    -- master_netmask
+          <*> genMaybe (listOf genPrintableAsciiStringNE)
+                                           -- reserved_lvs
+          <*> genMaybe (listOf ((,) <$> arbitrary
+                                    <*> genPrintableAsciiStringNE))
+                                           -- hidden_os
+          <*> genMaybe (listOf ((,) <$> arbitrary
+                                    <*> genPrintableAsciiStringNE))
+                                           -- blacklisted_os
+          <*> arbitrary                    -- use_external_mip_script
+          <*> arbitrary                    -- enabled_disk_templates
+          <*> arbitrary                    -- modify_etc_hosts
+          <*> genMaybe genName             -- file_storage_dir
+          <*> genMaybe genName             -- shared_file_storage_dir
+          <*> genMaybe genName             -- gluster_file_storage_dir
+          <*> genMaybe genPrintableAsciiString
+                                           -- install_image
+          <*> genMaybe genPrintableAsciiString
+                                           -- instance_communication_network
+          <*> genMaybe genPrintableAsciiString
+                                           -- zeroing_image
+          <*> genMaybe (listOf genPrintableAsciiStringNE)
+                                           -- compression_tools
+          <*> arbitrary                    -- enabled_user_shutdown
+          <*> genMaybe arbitraryDataCollector   -- enabled_data_collectors
+          <*> arbitraryDataCollectorInterval   -- data_collector_interval
+      "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
+      "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
+        pure OpCodes.OpClusterActivateMasterIp
+      "OP_CLUSTER_DEACTIVATE_MASTER_IP" ->
+        pure OpCodes.OpClusterDeactivateMasterIp
+      "OP_QUERY" ->
+        OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> genNamesNE <*>
+        pure Nothing
+      "OP_QUERY_FIELDS" ->
+        OpCodes.OpQueryFields <$> arbitrary <*> genMaybe genNamesNE
+      "OP_OOB_COMMAND" ->
+        OpCodes.OpOobCommand <$> genNodeNamesNE <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary <*>
+          (arbitrary `suchThat` (>0))
+      "OP_NODE_REMOVE" ->
+        OpCodes.OpNodeRemove <$> genNodeNameNE <*> return Nothing
+      "OP_NODE_ADD" ->
+        OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
+          genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
+          genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD <*>
+          arbitrary
+      "OP_NODE_QUERYVOLS" ->
+        OpCodes.OpNodeQueryvols <$> genNamesNE <*> genNodeNamesNE
+      "OP_NODE_QUERY_STORAGE" ->
+        OpCodes.OpNodeQueryStorage <$> genNamesNE <*> arbitrary <*>
+          genNodeNamesNE <*> genMaybe genNameNE
+      "OP_NODE_MODIFY_STORAGE" ->
+        OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> genMaybe genNameNE <*> pure emptyJSObject
+      "OP_REPAIR_NODE_STORAGE" ->
+        OpCodes.OpRepairNodeStorage <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> genMaybe genNameNE <*> arbitrary
+      "OP_NODE_SET_PARAMS" ->
+        OpCodes.OpNodeSetParams <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe genNameNE <*> emptyMUD <*> arbitrary
+      "OP_NODE_POWERCYCLE" ->
+        OpCodes.OpNodePowercycle <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary
+      "OP_NODE_MIGRATE" ->
+        OpCodes.OpNodeMigrate <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
+          return Nothing <*> arbitrary <*> arbitrary <*> genMaybe genNameNE
+      "OP_NODE_EVACUATE" ->
+        OpCodes.OpNodeEvacuate <$> arbitrary <*> genNodeNameNE <*>
+          return Nothing <*> genMaybe genNodeNameNE <*> return Nothing <*>
+          genMaybe genNameNE <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_CREATE" ->
+        OpCodes.OpInstanceCreate
+          <$> genFQDN                         -- instance_name
+          <*> arbitrary                       -- force_variant
+          <*> arbitrary                       -- wait_for_sync
+          <*> arbitrary                       -- name_check
+          <*> arbitrary                       -- ignore_ipolicy
+          <*> arbitrary                       -- opportunistic_locking
+          <*> pure emptyJSObject              -- beparams
+          <*> arbitrary                       -- disks
+          <*> arbitrary                       -- disk_template
+          <*> genMaybe genNameNE              -- group_name
+          <*> arbitrary                       -- file_driver
+          <*> genMaybe genNameNE              -- file_storage_dir
+          <*> pure emptyJSObject              -- hvparams
+          <*> arbitrary                       -- hypervisor
+          <*> genMaybe genNameNE              -- iallocator
+          <*> arbitrary                       -- identify_defaults
+          <*> arbitrary                       -- ip_check
+          <*> arbitrary                       -- conflicts_check
+          <*> arbitrary                       -- mode
+          <*> arbitrary                       -- nics
+          <*> arbitrary                       -- no_install
+          <*> pure emptyJSObject              -- osparams
+          <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
+          <*> genMaybe arbitrarySecretJSObj  -- osparams_secret
+          <*> genMaybe genNameNE              -- os_type
+          <*> genMaybe genNodeNameNE          -- pnode
+          <*> return Nothing                  -- pnode_uuid
+          <*> genMaybe genNodeNameNE          -- snode
+          <*> return Nothing                  -- snode_uuid
+          <*> genMaybe (pure [])              -- source_handshake
+          <*> genMaybe genNodeNameNE          -- source_instance_name
+          <*> arbitrary                       -- source_shutdown_timeout
+          <*> genMaybe genNodeNameNE          -- source_x509_ca
+          <*> return Nothing                  -- src_node
+          <*> genMaybe genNodeNameNE          -- src_node_uuid
+          <*> genMaybe genNameNE              -- src_path
+          <*> genPrintableAsciiString         -- compress
+          <*> arbitrary                       -- start
+          <*> arbitrary                       -- forthcoming
+          <*> arbitrary                       -- commit
+          <*> (genTags >>= mapM mkNonEmpty)   -- tags
+          <*> arbitrary                       -- instance_communication
+          <*> arbitrary                       -- helper_startup_timeout
+          <*> arbitrary                       -- helper_shutdown_timeout
+      "OP_INSTANCE_MULTI_ALLOC" ->
+        OpCodes.OpInstanceMultiAlloc <$> arbitrary <*> genMaybe genNameNE <*>
+        pure []
+      "OP_INSTANCE_REINSTALL" ->
+        OpCodes.OpInstanceReinstall <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
+          <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitrarySecretJSObj
+      "OP_INSTANCE_REMOVE" ->
+        OpCodes.OpInstanceRemove <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_RENAME" ->
+        OpCodes.OpInstanceRename <$> genFQDN <*> return Nothing <*>
+          genNodeNameNE <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_STARTUP" ->
+        OpCodes.OpInstanceStartup <$>
+          genFQDN <*>             -- instance_name
+          return Nothing <*>      -- instance_uuid
+          arbitrary <*>           -- force
+          arbitrary <*>           -- ignore_offline_nodes
+          pure emptyJSObject <*>  -- hvparams
+          pure emptyJSObject <*>  -- beparams
+          arbitrary <*>           -- no_remember
+          arbitrary <*>           -- startup_paused
+          arbitrary               -- shutdown_timeout
+      "OP_INSTANCE_SHUTDOWN" ->
+        OpCodes.OpInstanceShutdown <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_REBOOT" ->
+        OpCodes.OpInstanceReboot <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_MOVE" ->
+        OpCodes.OpInstanceMove <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> genNodeNameNE <*> return Nothing <*>
+          genPrintableAsciiString <*> arbitrary
+      "OP_INSTANCE_CONSOLE" -> OpCodes.OpInstanceConsole <$> genFQDN <*>
+          return Nothing
+      "OP_INSTANCE_ACTIVATE_DISKS" ->
+        OpCodes.OpInstanceActivateDisks <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary
+      "OP_INSTANCE_DEACTIVATE_DISKS" ->
+        OpCodes.OpInstanceDeactivateDisks <$> genFQDN <*> return Nothing <*>
+          arbitrary
+      "OP_INSTANCE_RECREATE_DISKS" ->
+        OpCodes.OpInstanceRecreateDisks <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> genNodeNamesNE <*> return Nothing <*>
+          genMaybe genNameNE
+      "OP_INSTANCE_QUERY_DATA" ->
+        OpCodes.OpInstanceQueryData <$> arbitrary <*>
+          genNodeNamesNE <*> arbitrary
+      "OP_INSTANCE_SET_PARAMS" ->
+        OpCodes.OpInstanceSetParams
+          <$> genFQDN                         -- instance_name
+          <*> return Nothing                  -- instance_uuid
+          <*> arbitrary                       -- force
+          <*> arbitrary                       -- force_variant
+          <*> arbitrary                       -- ignore_ipolicy
+          <*> arbitrary                       -- nics
+          <*> arbitrary                       -- disks
+          <*> pure emptyJSObject              -- beparams
+          <*> arbitrary                       -- runtime_mem
+          <*> pure emptyJSObject              -- hvparams
+          <*> arbitrary                       -- disk_template
+          <*> pure emptyJSObject              -- ext_params
+          <*> arbitrary                       -- file_driver
+          <*> genMaybe genNameNE              -- file_storage_dir
+          <*> genMaybe genNodeNameNE          -- pnode
+          <*> return Nothing                  -- pnode_uuid
+          <*> genMaybe genNodeNameNE          -- remote_node
+          <*> return Nothing                  -- remote_node_uuid
+          <*> genMaybe genNameNE              -- iallocator
+          <*> genMaybe genNameNE              -- os_name
+          <*> pure emptyJSObject              -- osparams
+          <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
+          <*> arbitrary                       -- wait_for_sync
+          <*> arbitrary                       -- offline
+          <*> arbitrary                       -- conflicts_check
+          <*> arbitrary                       -- hotplug
+          <*> arbitrary                       -- hotplug_if_possible
+          <*> arbitrary                       -- instance_communication
+      "OP_INSTANCE_GROW_DISK" ->
+        OpCodes.OpInstanceGrowDisk <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+      "OP_INSTANCE_CHANGE_GROUP" ->
+        OpCodes.OpInstanceChangeGroup <$> genFQDN <*> return Nothing <*>
+          arbitrary <*> genMaybe genNameNE <*>
+          genMaybe (resize maxNodes (listOf genNameNE))
+      "OP_GROUP_ADD" ->
+        OpCodes.OpGroupAdd <$> genNameNE <*> arbitrary <*>
+          emptyMUD <*> genMaybe genEmptyContainer <*>
+          emptyMUD <*> emptyMUD <*> emptyMUD
+      "OP_GROUP_ASSIGN_NODES" ->
+        OpCodes.OpGroupAssignNodes <$> genNameNE <*> arbitrary <*>
+          genNodeNamesNE <*> return Nothing
+      "OP_GROUP_SET_PARAMS" ->
+        OpCodes.OpGroupSetParams <$> genNameNE <*> arbitrary <*>
+          emptyMUD <*> genMaybe genEmptyContainer <*>
+          emptyMUD <*> emptyMUD <*> emptyMUD
+      "OP_GROUP_REMOVE" ->
+        OpCodes.OpGroupRemove <$> genNameNE
+      "OP_GROUP_RENAME" ->
+        OpCodes.OpGroupRename <$> genNameNE <*> genNameNE
+      "OP_GROUP_EVACUATE" ->
+        OpCodes.OpGroupEvacuate <$> genNameNE <*> arbitrary <*>
+          genMaybe genNameNE <*> genMaybe genNamesNE <*> arbitrary <*> arbitrary
+      "OP_OS_DIAGNOSE" ->
+        OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
+      "OP_EXT_STORAGE_DIAGNOSE" ->
+        OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
+      "OP_BACKUP_PREPARE" ->
+        OpCodes.OpBackupPrepare <$> genFQDN <*> return Nothing <*> arbitrary
+      "OP_BACKUP_EXPORT" ->
+        OpCodes.OpBackupExport
+          <$> genFQDN                  -- instance_name
+          <*> return Nothing           -- instance_uuid
+          <*> genPrintableAsciiString  -- compress
+          <*> arbitrary                -- shutdown_timeout
+          <*> arbitrary                -- target_node
+          <*> return Nothing           -- target_node_uuid
+          <*> arbitrary                -- shutdown
+          <*> arbitrary                -- remove_instance
+          <*> arbitrary                -- ignore_remove_failures
+          <*> arbitrary                -- mode
+          <*> genMaybe (pure [])       -- x509_key_name
+          <*> genMaybe genNameNE       -- destination_x509_ca
+          <*> arbitrary                -- zero_free_space
+          <*> arbitrary                -- zeroing_timeout_fixed
+          <*> arbitrary                -- zeroing_timeout_per_mib
+          <*> arbitrary                -- long_sleep
+      "OP_BACKUP_REMOVE" ->
+        OpCodes.OpBackupRemove <$> genFQDN <*> return Nothing
+      "OP_TEST_ALLOCATOR" ->
+        OpCodes.OpTestAllocator <$> arbitrary <*> arbitrary <*>
+          genNameNE <*> genMaybe (pure []) <*> genMaybe (pure []) <*>
+          arbitrary <*> genMaybe genNameNE <*>
+          (genTags >>= mapM mkNonEmpty) <*>
+          arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
+          arbitrary <*> genMaybe genNodeNamesNE <*> arbitrary <*>
+          genMaybe genNamesNE <*> arbitrary <*> arbitrary <*>
+          genMaybe genNameNE
+      "OP_TEST_JQUEUE" ->
+        OpCodes.OpTestJqueue <$> arbitrary <*> arbitrary <*>
+          resize 20 (listOf genFQDN) <*> arbitrary
+      "OP_TEST_OS_PARAMS" ->
+        OpCodes.OpTestOsParams <$> genMaybe arbitrarySecretJSObj
+      "OP_TEST_DUMMY" ->
+        OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
+          pure J.JSNull <*> pure J.JSNull
+      "OP_NETWORK_ADD" ->
+        OpCodes.OpNetworkAdd <$> genNameNE <*> genIPv4Network <*>
+          genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
+          genMaybe genMacPrefix <*> genMaybe (listOf genIPv4Address) <*>
+          arbitrary <*> (genTags >>= mapM mkNonEmpty)
+      "OP_NETWORK_REMOVE" ->
+        OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
+      "OP_NETWORK_SET_PARAMS" ->
+        OpCodes.OpNetworkSetParams <$> genNameNE <*>
+          genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
+          genMaybe genMacPrefix <*> genMaybe (listOf genIPv4Address) <*>
+          genMaybe (listOf genIPv4Address)
+      "OP_NETWORK_CONNECT" ->
+        OpCodes.OpNetworkConnect <$> genNameNE <*> genNameNE <*>
+          arbitrary <*> genNameNE <*> genPrintableAsciiString <*> arbitrary
+      "OP_NETWORK_DISCONNECT" ->
+        OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE
+      "OP_RESTRICTED_COMMAND" ->
+        OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
+          return Nothing <*> genNameNE
+      _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 instance Arbitrary OpCodes.CommonOpParams where
   arbitrary = OpCodes.CommonOpParams <$> arbitrary <*> arbitrary <*>

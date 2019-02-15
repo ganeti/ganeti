@@ -30,7 +30,7 @@ Activates the master IP on the master node.
 COMMAND
 ~~~~~~~
 
-**command** [-n *node*] [-g *group*] [-M] {*command*}
+**command** [-n *node-name*] [-g *group*] [-M] {*command*}
 
 Executes a command on all nodes. This command is designed for simple
 usage. For more complex use cases the commands **dsh**\(1) or **cssh**\(1)
@@ -72,7 +72,7 @@ and the command which will be executed will be ``ls -l /etc``.
 COPYFILE
 ~~~~~~~~
 
-| **copyfile** [\--use-replication-network] [-n *node*] [-g *group*]
+| **copyfile** [\--use-replication-network] [-n *node-name*] [-g *group*]
 | {*file*}
 
 Copies a file to all or to some nodes. The argument specifies the
@@ -198,7 +198,6 @@ INIT
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--ipolicy-spindle-ratio *ratio*]
 | [\--ipolicy-vcpu-ratio *ratio*]
-| [\--ipolicy-memory-ratio *ratio*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | [\--drbd-usermode-helper *helper*]
@@ -209,15 +208,14 @@ INIT
 | [\--user-shutdown {yes \| no}]
 | [\--ssh-key-type *type*]
 | [\--ssh-key-bits *bits*]
-| [\--predictive-queue {yes \| no}]
-| {*clustername*}
+| {*cluster-name*}
 
 This commands is only run once initially on the first node of the
 cluster. It will initialize the cluster configuration, setup the
 ssh-keys, start the daemons on the master node, etc. in order to have
 a working one-node cluster.
 
-Note that the *clustername* is not any random name. It has to be
+Note that the *cluster-name* is not any random name. It has to be
 resolvable to an IP address using DNS, and it is best if you give the
 fully-qualified domain name. This hostname must resolve to an IP
 address reserved exclusively for this purpose, i.e. not already in
@@ -589,7 +587,6 @@ of cluster-wide enabled disk templates (which can be set with
 
 - ``--ipolicy-spindle-ratio`` limits the instances-spindles ratio
 - ``--ipolicy-vcpu-ratio`` limits the vcpu-cpu ratio
-- ``--ipolicy-memory-ratio`` limits the memory over-commitment ratio
 
 All the instance policy elements can be overridden at group level. Group
 level overrides can be removed by specifying ``default`` as the value of
@@ -651,10 +648,6 @@ options **ssh-keygen**\(1) exposes. These are currently:
 - ecdsa: 256, 384, or 521 bits
 
 Ganeti defaults to using 2048-bit RSA keys.
-
-The ``--predictive-queue`` option enables or disables the predictive
-queue algorithm for the job scheduler. If this option is not specified,
-Ganeti defaults to enabling the predictive scheduler.
 
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
@@ -732,7 +725,6 @@ MODIFY
 | [\--master-netdev *interface-name*]
 | [\--master-netmask *netmask*]
 | [\--modify-etc-hosts {yes \| no}]
-| [\--modify-ssh-setup {yes \| no}]
 | [\--use-external-mip-script {yes \| no}]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
@@ -752,12 +744,6 @@ MODIFY
 | [\--user-shutdown {yes \| no}]
 | [\--enabled-data-collectors *collectors*]
 | [\--data-collector-interval *intervals*]
-| [\--maintenance-interval *seconds*]
-| [\--auto-balance-cluster {yes \| no }]
-| [\--auto-balance-threshold *score* ]
-| [\--diagnose-data-collector-filename *filename*]
-| [\--predictive-queue {yes \| no}]
-
 
 
 Modify the options for the cluster.
@@ -776,8 +762,8 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--user-shutdown`` options are
 described in the **init** command.
 
-The ``--modify-etc-hosts`` and ``--modify-ssh-setup`` options are described
-by ``--no-etc-hosts`` and ``--no-ssh-setup`` in the **init** command.
+The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
+the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
@@ -832,24 +818,6 @@ data collector. The second option expects similar pairs of collector name
 and number of seconds specifying the interval at which the collector
 shall be collected.
 
-The ``--diagnose-data-collector-filename`` option specifies the filename
-of the script diagnose data collector should run. If this value is an
-empty string, the data collector will return sucess without running
-anything. The default value is empty string.
-
-The ``--maintenance-interval`` option specified the minimal waiting
-time by the maintenance daemon between maintenance rounds.
-The ``--auto-balance-cluster`` option tell the maintenance daemon
-whether to also keep the cluster in a balanced fashion. If so, it
-will carry out moves, provided the gain in the cluster score for
-that move is at least the value specified by ``--auto-balance-threshold``
-in absolute terms, unless the cluster score it at least 10 times that
-value, in which case all beneficial steps will be done if auto-balancing
-is enabled.
-
-The ``--predictive-queue`` option enables or disables the predictive
-queue algorithm for the job scheduler.
-
 See **gnt-cluster init** for a description of ``--install-image`` and
 ``--zeroing-image``.
 
@@ -899,20 +867,10 @@ configuration mismatches.
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
-REMOVE-REPAIR
-~~~~~~~~~~~~~
-
-**remove-repair** *uuid*
-
-Unconditionally remove the specified repair event from the list of repair
-events tracked by the maintenance daemon. Note that if the node still reports
-the same breakage, a new event for this breakage will be created at next
-node querying by the daemon.
-
 RENAME
 ~~~~~~
 
-**rename** [-f] {*name*}
+**rename** [-f] {*new-name*}
 
 Renames the cluster and in the process updates the master IP
 address to the one the new name resolves to. At least one of either
@@ -935,7 +893,6 @@ RENEW-CRYPTO
 | [\--new-ssh-keys] [\--no-ssh-key-check]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
 | [\--ssh-key-type *type*] | [\--ssh-key-bits *bits*]
-| [\--verbose] | [\--debug]
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
@@ -981,15 +938,10 @@ The options ``--ssh-key-type`` and ``ssh-key-bits`` determine the
 properties of the disk types used. They are described in more detail
 in the ``init`` option description.
 
-The options ``--verbose`` and ``--debug`` increase the log level
-of underlying ssh calls to all nodes. If running ``renew-crypto``
-causes any problems, use them and inspect the ``tools.log`` file
-for any unusual output.
-
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~
 
-**repair-disk-sizes** [instance...]
+**repair-disk-sizes** [instance-name...]
 
 This command checks that the recorded size of the given instance's
 disks matches the actual size and updates any mismatches found.
@@ -1091,18 +1043,13 @@ List of error codes:
 VERIFY-DISKS
 ~~~~~~~~~~~~
 
-**verify-disks** [\--node-group *nodegroup*] [\--no-strict]
+**verify-disks** [\--node-group *nodegroup*]
 
 The command checks which instances have degraded DRBD disks and
 activates the disks of those instances.
 
 With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group.
-
-The ``--no-strict`` option runs the group verify disks job in a
-non-strict mode. This only verifies those disks whose node locks could
-be acquired in a best-effort attempt and will skip nodes that are
-recognized as busy with other jobs.
 
 This command is run from the **ganeti-watcher** tool, which also
 has a different, complementary algorithm for doing this check.

@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Cpu.Types
   ( CPUstat(..)
   , CPUavgload(..)
-  , emptyCPUavgload
   ) where
 
 import Ganeti.THH
@@ -50,25 +49,17 @@ $(buildObject "CPUavgload" "cav"
   , simpleField "cpu_total"  [t| Double |]
   ])
 
--- | CPU activity of an idle node. This can be used as a default
--- value for offline nodes.
-emptyCPUavgload :: CPUavgload
-emptyCPUavgload = CPUavgload { cavCpuNumber = 1
-                             , cavCpus = [ 0.0 ]
-                             , cavCpuTotal = 0.0
-                             }
-
 -- | This is the format of the data parsed by the input file.
 $(buildObject "CPUstat" "cs"
   [ simpleField "name"       [t| String |]
-  , simpleField "user"       [t| Integer |]
-  , simpleField "nice"       [t| Integer |]
-  , simpleField "system"     [t| Integer |]
-  , simpleField "idle"       [t| Integer |]
-  , simpleField "iowait"     [t| Integer |]
-  , simpleField "irq"        [t| Integer |]
-  , simpleField "softirq"    [t| Integer |]
-  , simpleField "steal"      [t| Integer |]
-  , simpleField "guest"      [t| Integer |]
-  , simpleField "guest_nice" [t| Integer |]
+  , simpleField "user"       [t| Int |]
+  , simpleField "nice"       [t| Int |]
+  , simpleField "system"     [t| Int |]
+  , simpleField "idle"       [t| Int |]
+  , simpleField "iowait"     [t| Int |]
+  , simpleField "irq"        [t| Int |]
+  , simpleField "softirq"    [t| Int |]
+  , simpleField "steal"      [t| Int |]
+  , simpleField "guest"      [t| Int |]
+  , simpleField "guest_nice" [t| Int |]
   ])

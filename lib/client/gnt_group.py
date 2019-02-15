@@ -63,7 +63,6 @@ def AddGroup(opts, args):
     minmax_ispecs=opts.ipolicy_bounds_specs,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
-    ipolicy_memory_ratio=opts.ipolicy_memory_ratio,
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     group_ipolicy=True)
 
@@ -171,8 +170,7 @@ def SetGroupParams(opts, args):
   allmods = [opts.ndparams, opts.alloc_policy, opts.diskparams, opts.hv_state,
              opts.disk_state, opts.ipolicy_bounds_specs,
              opts.ipolicy_vcpu_ratio, opts.ipolicy_spindle_ratio,
-             opts.ipolicy_memory_ratio, opts.diskparams,
-             opts.ipolicy_disk_templates]
+             opts.diskparams, opts.ipolicy_disk_templates]
   if allmods.count(None) == len(allmods):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -192,7 +190,6 @@ def SetGroupParams(opts, args):
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
-    ipolicy_memory_ratio=opts.ipolicy_memory_ratio,
     group_ipolicy=True,
     allowed_values=[constants.VALUE_DEFAULT])
 
@@ -341,15 +338,15 @@ commands = {
     [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT,
      HV_STATE_OPT, DISK_STATE_OPT, PRIORITY_OPT]
     + SUBMIT_OPTS + INSTANCE_POLICY_OPTS,
-    "<group_name>", "Add a new node group to the cluster"),
+    "<group-name>", "Add a new node group to the cluster"),
   "assign-nodes": (
     AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES,
     [DRY_RUN_OPT, FORCE_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<group_name> <node>...", "Assign nodes to a group"),
+    "<group-name> <node-name>...", "Assign nodes to a group"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT],
-    "[<group_name>...]",
+    "[<group-name>...]",
     "Lists the node groups in the cluster. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."
     " The default list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
@@ -362,39 +359,39 @@ commands = {
     [ALLOC_POLICY_OPT, NODE_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT,
      DISK_PARAMS_OPT, PRIORITY_OPT]
     + INSTANCE_POLICY_OPTS,
-    "<group_name>", "Alters the parameters of a node group"),
+    "<group>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "[--dry-run] <group-name>",
+    "[--dry-run] <group>",
     "Remove an (empty) node group from the cluster"),
   "rename": (
     RenameGroup, [ArgGroup(min=2, max=2)],
     [DRY_RUN_OPT] + SUBMIT_OPTS + [PRIORITY_OPT],
-    "[--dry-run] <group-name> <new-name>", "Rename a node group"),
+    "[--dry-run] <old-name> <new-name>", "Rename a node group"),
   "evacuate": (
     EvacuateGroup, [ArgGroup(min=1, max=1)],
     [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, SEQUENTIAL_OPT,
      FORCE_FAILOVER_OPT]
     + SUBMIT_OPTS,
-    "[-I <iallocator>] [--to <group>]",
+    "[-I <iallocator>] [--to <group>] <source-group>",
     "Evacuate all instances within a group"),
   "list-tags": (
     ListTags, ARGS_ONE_GROUP, [],
-    "<group_name>", "List the tags of the given group"),
+    "<group>", "List the tags of the given group"),
   "add-tags": (
     AddTags, [ArgGroup(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<group_name> tag...", "Add tags to the given group"),
+    "<group> <tag>...", "Add tags to the given group"),
   "remove-tags": (
     RemoveTags, [ArgGroup(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<group_name> tag...", "Remove tags from the given group"),
+    "<group> <tag>...", "Remove tags from the given group"),
   "info": (
-    GroupInfo, ARGS_MANY_GROUPS, [], "[<group_name>...]",
+    GroupInfo, ARGS_MANY_GROUPS, [], "[<group>...]",
     "Show group information"),
   "show-ispecs-cmd": (
     ShowCreateCommand, ARGS_MANY_GROUPS, [INCLUDEDEFAULTS_OPT],
-    "[--include-defaults] [<group_name>...]",
+    "[--include-defaults] [<group>...]",
     "Show the command line to re-create a group"),
   }
 

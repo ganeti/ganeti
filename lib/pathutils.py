@@ -123,7 +123,6 @@ VNC_PASSWORD_FILE = CONF_DIR + "/vnc-cluster-password"
 HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 FILE_STORAGE_PATHS_FILE = CONF_DIR + "/file-storage-paths"
 RESTRICTED_COMMANDS_DIR = CONF_DIR + "/restricted-commands"
-REPAIR_COMMANDS_DIR = CONF_DIR + "/node-repair-commands"
 
 #: Node daemon certificate path
 NODED_CERT_FILE = DATA_DIR + "/server.pem"
@@ -134,9 +133,6 @@ NODED_CERT_MODE = 0440
 
 #: Locked in exclusive mode while noded verifies a remote command
 RESTRICTED_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-restricted-commands.lock"
-
-#: Locked in exclusive mode while noded verifies a remote command
-REPAIR_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-repair-commands.lock"
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
 # mode to block watcher (see L{cli._RunWhileDaemonsStoppedHelper.Call}
@@ -168,8 +164,6 @@ LOG_OS_DIR = LOG_DIR + "/os"
 LOG_ES_DIR = LOG_DIR + "/extstorage"
 #: Directory for storing Xen config files after failed instance starts
 LOG_XEN_DIR = LOG_DIR + "/xen"
-# Directory to store the output of kvm instances
-LOG_KVM_DIR = LOG_DIR + "/kvm"
 
 # Job queue paths
 JOB_QUEUE_LOCK_FILE = QUEUE_DIR + "/lock"
@@ -196,4 +190,3 @@ def GetLogFilename(daemon_name):
 LOG_WATCHER = GetLogFilename("watcher")
 LOG_COMMANDS = GetLogFilename("commands")
 LOG_BURNIN = GetLogFilename("burnin")
-LOG_TOOLS = GetLogFilename("tools")

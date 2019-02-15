@@ -37,9 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.JQScheduler (testJQScheduler) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Lens ((&), (.~), _2)
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (inits)
@@ -47,6 +45,7 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Data.Set (Set, difference)
 import qualified Data.Set as Set
+import Data.Traversable (traverse)
 import Text.JSON (JSValue(..))
 import Test.HUnit
 import Test.QuickCheck
@@ -520,7 +519,7 @@ case_jobFiltering = do
 -- `doc/design-optables.rst`.
 prop_jobFiltering :: Property
 prop_jobFiltering =
-  forAllShrink (arbitrary `suchThat` (not . null . qEnqueued)) shrink $ \q ->
+  forAllShrink arbitrary shrink $ \q ->
     forAllShrink (resize 4 arbitrary) shrink $ \(NonEmpty filterList) ->
 
       let running  = qRunning q ++ qManipulated q
@@ -545,7 +544,8 @@ prop_jobFiltering =
 
           -- Makes sure that each action appears with some probability.
           actionName = head . words . show
-          allActions = map actionName [ Accept, Pause, Reject, RateLimit 0 ]
+          allActions = map actionName [ Accept, Continue, Pause, Reject
+                                      , RateLimit 0 ]
           applyingActions = map (actionName . frAction)
                               . mapMaybe (applyingFilter filters)
                               $ map jJob enqueued
@@ -555,8 +555,9 @@ prop_jobFiltering =
               [ stableCover (a `elem` applyingActions) perc ("is " ++ a)
               | a <- allActions ]
 
-      -- `covers` should be before `conjoin` (see QuickCheck bug 27).
-      in actionCovers $ conjoin
+      -- `covers` should be after `==>` and before `conjoin` (see QuickCheck
+      -- bugs 25 and 27).
+      in (enqueued /= []) ==> actionCovers $ conjoin
 
            [ counterexample "scheduled jobs must be subsequence" $
                toRun `isSubsequenceOf` enqueued

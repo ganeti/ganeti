@@ -1,10 +1,10 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables, CPP #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
 
 {-| Utility functions. -}
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,6 @@ module Ganeti.Utils
   , applyIf
   , commaJoin
   , ensureQuoted
-  , divideList
-  , balancedSum
   , tryRead
   , readMaybe
   , formatTable
@@ -60,7 +58,6 @@ module Ganeti.Utils
   , exitWhen
   , exitUnless
   , logWarningIfBad
-  , logAndBad
   , rStripSpace
   , newUUID
   , isUUID
@@ -99,39 +96,21 @@ module Ganeti.Utils
   , ensurePermissions
   , ordNub
   , isSubsequenceOf
-  , maxBy
-  , threadDelaySeconds
-  , monotoneFind
-  , iterateJust
-  , partitionM
   , frequency
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad
+import Control.Monad.Error
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
 import Data.IORef
-#if MIN_VERSION_base(4,8,0)
-import Data.List hiding (isSubsequenceOf)
-#else
-import Data.List ( intercalate
-                 , find
-                 , foldl'
-                 , group
-                 , transpose
-                 , sort
-                 , sortBy
-                 , isPrefixOf
-                 , maximumBy)
-#endif
+import Data.List
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -211,26 +190,7 @@ ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
                  then '\'':v ++ "'"
                  else v
 
--- | Delay a thread for several seconds.
-threadDelaySeconds :: Int -> IO ()
-threadDelaySeconds = threadDelay . (*) 1000000
-
--- | Split a list into two lists of approximately the same length.
-divideList :: [a] -> ([a], [a])
-divideList [] = ([], [])
-divideList [a] = ([a], [])
-divideList (a:b:xs) = let (ls, rs) = divideList xs in (a:ls, b:rs)
-
 -- * Mathematical functions
-
--- | Compute the sum of a list of numbers, all about the same value,
--- and do so in a balanced way to avoid adding numbers of too different
--- values (and thus too bad inaccuracies).
-balancedSum :: Num a => [a] -> a
-balancedSum [] = 0
-balancedSum [x] = x
-balancedSum xs = let (ls, rs) = divideList xs
-                 in balancedSum ls + balancedSum rs
 
 -- Simple and slow statistical functions, please replace with better
 -- versions
@@ -238,11 +198,16 @@ balancedSum xs = let (ls, rs) = divideList xs
 -- | Standard deviation function.
 stdDev :: [Double] -> Double
 stdDev lst =
-  let len = fromIntegral $ length lst
-      mean = balancedSum lst / len
-      sqDist x = let d = x - mean in d * d
-      variance = balancedSum (map sqDist lst) / len
-  in sqrt variance
+  -- first, calculate the list length and sum lst in a single step,
+  -- for performance reasons
+  let (ll', sx) = foldl' (\(rl, rs) e ->
+                           let rl' = rl + 1
+                               rs' = rs + e
+                           in rl' `seq` rs' `seq` (rl', rs')) (0::Int, 0) lst
+      ll = fromIntegral ll'::Double
+      mv = sx / ll
+      av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
+  in sqrt (av / ll) -- stddev
 
 -- *  Logical functions
 
@@ -386,12 +351,6 @@ logWarningIfBad msg defVal (Bad s) = do
   return defVal
 logWarningIfBad _ _ (Ok v) = return v
 
--- | Log a message and return a Bad result.
-logAndBad :: String -> IO (Result a)
-logAndBad msg = do
-  logNotice msg
-  return $ Bad msg
-
 -- | Try an IO interaction, log errors and unfold as a 'Result'.
 tryAndLogIOError :: IO a -> String -> (a -> Result b) -> IO (Result b)
 tryAndLogIOError io msg okfn =
@@ -514,9 +473,6 @@ cTimeToClockTime :: EpochTime -> ClockTime
 cTimeToClockTime (CTime timet) = TOD (toInteger timet) 0
 
 -- | A version of `diffClockTimes` that works around ghc bug #2519.
---
--- FIXME: diffClocktimes uses local time (badly), so it still has
--- issues when daylight savings time. Move to new time library!
 diffClockTimes :: ClockTime -> ClockTime -> TimeDiff
 diffClockTimes t1 t2 =
   let delta = STime.diffClockTimes t1 t2
@@ -863,45 +819,6 @@ isSubsequenceOf []    _                    = True
 isSubsequenceOf _     []                   = False
 isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
                                | otherwise = isSubsequenceOf a b
-
--- | Compute the maximum of two elements by a given order.
--- As opposed to using `maximumBy`, is function is guaranteed
--- to be total, as the signature enforces a non-empty list of
--- arguments.
-maxBy :: (a -> a -> Ordering) -> a -> a -> a
-maxBy ord a b = maximumBy ord [a, b]
-
--- | Given a predicate that is monotone on a list, find the
--- first list entry where it holds, if any. Use the monotonicity
--- property to evaluate the property at as few places as possible,
--- guided by the heuristics provided.
-monotoneFind :: ([a] -> Int) -> (a -> Bool) -> [a] -> Maybe a
-monotoneFind heuristics p xs =
-  let count = heuristics xs
-  in case () of
-    _ | x:xs' <- drop count xs
-        -> if p x
-             then (`mplus` Just x) . monotoneFind heuristics p
-                  $ take count xs
-             else monotoneFind heuristics p xs'
-    _ | x:xs' <- xs
-        -> if p x
-             then Just x
-             else monotoneFind heuristics p xs'
-    _ -> Nothing
-
--- | Iterate a function as long as it returns Just values, collecting
--- all the Justs that where obtained.
-iterateJust :: (a -> Maybe a) -> a -> [a]
-iterateJust f a = a : maybe [] (iterateJust f) (f a)
-
--- | A version of partition with a monadic predicate
--- Implementation taken from David Fox's Extras package.
-partitionM :: (Monad m) => (a -> m Bool) -> [a] -> m ([a], [a])
-partitionM p = foldM f ([], [])
-  where f (a, b) x = do
-        pv <- p x
-        return $ if pv then (x : a, b) else (a, x : b)
 
 {-# ANN frequency "HLint: ignore Use alternative" #-}
 -- | Returns a list of tuples of elements and the number of times they occur

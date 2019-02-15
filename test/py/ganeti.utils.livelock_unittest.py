@@ -1,6 +1,7 @@
 #!/usr/bin/python
+#
 
-# Copyright (C) 2015 Google Inc.
+# Copyright (C) 2018 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,34 +27,42 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# This is a test script to ease debugging of SSL problems. It can be
-# applied on any of Ganeti's SSL certificates (for example client.pem
-# and server.pem) and will output a digest.
 
-import sys
-import OpenSSL
+"""Script for testing utils.LiveLock
+
+"""
+
+import os
+import unittest
+
+from ganeti.utils.livelock import LiveLock
+from ganeti import pathutils
+
+import testutils
 
 
-def usage():
-    print "%s filename" % sys.argv[0]
-    print
-    print "'filename' must be a filename of an SSL certificate in PEM format."
+class TestLiveLock(unittest.TestCase):
+  """Whether LiveLock() works
+
+  """
+  @testutils.patch_object(pathutils, 'LIVELOCK_DIR', '/tmp')
+  def test(self):
+    lock = LiveLock()
+    lock_path = lock.GetPath()
+    self.assertTrue(os.path.exists(lock_path))
+    self.assertTrue(lock_path.startswith('/tmp/pid'))
+    lock.close()
+    self.assertFalse(os.path.exists(lock_path))
+
+  @testutils.patch_object(pathutils, 'LIVELOCK_DIR', '/tmp')
+  def testName(self):
+    lock = LiveLock('unittest.lock')
+    lock_path = lock.GetPath()
+    self.assertTrue(os.path.exists(lock_path))
+    self.assertTrue(lock_path.startswith('/tmp/unittest.lock_'))
+    lock.close()
+    self.assertFalse(os.path.exists(lock_path))
 
 
 if __name__ == "__main__":
-
-    if len(sys.argv) < 2:
-      usage()
-
-    cert_fd = open(sys.argv[1], "r")
-    cert_plain = cert_fd.read()
-
-    print "Certificate:"
-    print cert_plain
-
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           cert_plain)
-
-    print "Digest:"
-    print cert.digest("sha1")
-
+  testutils.GanetiTestProgram()

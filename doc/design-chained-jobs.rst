@@ -2,6 +2,10 @@
 Chained jobs
 ============
 
+:Created: 2011-Jul-14
+:Status: Implemented
+:Ganeti-Version: 2.5.0
+
 .. contents:: :depth: 4
 
 This is a design document about the innards of Ganeti's job processing.
@@ -33,7 +37,7 @@ Proposed changes
 ================
 
 With the implementation of :ref:`job priorities
-<jqueue-job-priority-design>` the processing code was re-architectured
+<jqueue-job-priority-design>` the processing code was re-architected
 and became a lot more versatile. It now returns jobs to the queue in
 case the locks for an opcode can't be acquired, allowing other
 jobs/opcodes to be run in the meantime.
@@ -160,7 +164,7 @@ following possibilities:
 Based on these arguments, the proposal is to do the following:
 
 - Rename ``JOB_STATUS_WAITLOCK`` constant to ``JOB_STATUS_WAITING`` to
-  reflect its actual meanting: the job is waiting for something
+  reflect its actual meaning: the job is waiting for something
 - While waiting for dependencies and locks, jobs are in the "waiting"
   status
 - Export dependency information in lock monitor; example output::

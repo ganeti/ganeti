@@ -39,7 +39,7 @@ from ganeti import compat
 from ganeti import pathutils
 
 
-def RpcResultsToHooksResults(rpc_results):
+def _RpcResultsToHooksResults(rpc_results):
   """Function to convert RPC results to the format expected by HooksMaster.
 
   @type rpc_results: dict(node: L{rpc.RpcResult})
@@ -56,8 +56,7 @@ def RpcResultsToHooksResults(rpc_results):
 class HooksMaster(object):
   def __init__(self, opcode, hooks_path, nodes, hooks_execution_fn,
                hooks_results_adapt_fn, build_env_fn, prepare_post_nodes_fn,
-               log_fn, htype=None, cluster_name=None, master_name=None,
-               master_uuid=None, job_id=None):
+               log_fn, htype=None, cluster_name=None, master_name=None):
     """Base class for hooks masters.
 
     This class invokes the execution of hooks according to the behaviour
@@ -94,10 +93,6 @@ class HooksMaster(object):
     @param cluster_name: name of the cluster
     @type master_name: string
     @param master_name: name of the master
-    @type master_uuid: string
-    @param master_uuid: uuid of the master
-    @type job_id: int
-    @param job_id: the id of the job process (used in global post hooks)
 
     """
     self.opcode = opcode
@@ -110,8 +105,6 @@ class HooksMaster(object):
     self.htype = htype
     self.cluster_name = cluster_name
     self.master_name = master_name
-    self.master_uuid = master_uuid
-    self.job_id = job_id
 
     self.pre_env = self._BuildEnv(constants.HOOKS_PHASE_PRE)
     (self.pre_nodes, self.post_nodes) = nodes
@@ -158,24 +151,7 @@ class HooksMaster(object):
 
     return env
 
-  def _CheckParamsAndExecHooks(self, node_list, hpath, phase, env):
-    """Check rpc parameters and call hooks_execution_fn (rpc).
-
-    """
-    if node_list is None or not node_list:
-      return {}
-
-    # Convert everything to strings
-    env = dict([(str(key), str(val)) for key, val in env.iteritems()])
-    assert compat.all(key == "PATH" or key.startswith("GANETI_")
-                      for key in env)
-    for node in node_list:
-      assert utils.UUID_RE.match(node), "Invalid node uuid %s" % node
-
-    return self.hooks_execution_fn(node_list, hpath, phase, env)
-
-  def _RunWrapper(self, node_list, hpath, phase, phase_env, is_global=False,
-                  post_status=None):
+  def _RunWrapper(self, node_list, hpath, phase, phase_env):
     """Simple wrapper over self.callfn.
 
     This method fixes the environment before executing the hooks.
@@ -199,34 +175,18 @@ class HooksMaster(object):
     if self.master_name is not None:
       env["GANETI_MASTER"] = self.master_name
 
-    if self.job_id and is_global:
-      env["GANETI_JOB_ID"] = self.job_id
-    if phase == constants.HOOKS_PHASE_POST and is_global:
-      assert post_status is not None
-      env["GANETI_POST_STATUS"] = post_status
-
     if phase_env:
       env = utils.algo.JoinDisjointDicts(env, phase_env)
 
-    if not is_global:
-      return self._CheckParamsAndExecHooks(node_list, hpath, phase, env)
+    # Convert everything to strings
+    env = dict([(str(key), str(val)) for key, val in env.iteritems()])
 
-    # For global hooks, we need to send different env values to master and
-    # to the others
-    ret = dict()
-    env["GANETI_IS_MASTER"] = constants.GLOBAL_HOOKS_MASTER
-    master_set = frozenset([self.master_uuid])
-    ret.update(self._CheckParamsAndExecHooks(master_set, hpath, phase, env))
+    assert compat.all(key == "PATH" or key.startswith("GANETI_")
+                      for key in env)
 
-    if node_list:
-      node_list = frozenset(set(node_list) - master_set)
-    env["GANETI_IS_MASTER"] = constants.GLOBAL_HOOKS_NOT_MASTER
-    ret.update(self._CheckParamsAndExecHooks(node_list, hpath, phase, env))
+    return self.hooks_execution_fn(node_list, hpath, phase, env)
 
-    return ret
-
-  def RunPhase(self, phase, node_uuids=None, is_global=False,
-               post_status=None):
+  def RunPhase(self, phase, node_names=None):
     """Run all the scripts for a phase.
 
     This is the main function of the HookMaster.
@@ -236,37 +196,33 @@ class HooksMaster(object):
 
     @param phase: one of L{constants.HOOKS_PHASE_POST} or
         L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
-    @param node_uuids: overrides the predefined list of nodes for the given
+    @param node_names: overrides the predefined list of nodes for the given
         phase
-    @param is_global: whether global or per-opcode hooks should be executed
-    @param post_status: the job execution status for the global post hooks
     @return: the processed results of the hooks multi-node rpc call
     @raise errors.HooksFailure: on communication failure to the nodes
     @raise errors.HooksAbort: on failure of one of the hooks
 
     """
     if phase == constants.HOOKS_PHASE_PRE:
-      if node_uuids is None:
-        node_uuids = self.pre_nodes
+      if node_names is None:
+        node_names = self.pre_nodes
       env = self.pre_env
     elif phase == constants.HOOKS_PHASE_POST:
-      if node_uuids is None:
-        node_uuids = self.post_nodes
-        if node_uuids is not None and self.prepare_post_nodes_fn is not None:
-          node_uuids = frozenset(self.prepare_post_nodes_fn(list(node_uuids)))
+      if node_names is None:
+        node_names = self.post_nodes
+        if node_names is not None and self.prepare_post_nodes_fn is not None:
+          node_names = frozenset(self.prepare_post_nodes_fn(list(node_names)))
       env = self._BuildEnv(phase)
     else:
       raise AssertionError("Unknown phase '%s'" % phase)
 
-    if not node_uuids and not is_global:
+    if not node_names:
       # empty node list, we should not attempt to run this as either
       # we're in the cluster init phase and the rpc client part can't
       # even attempt to run, or this LU doesn't do hooks at all
       return
 
-    hooks_path = constants.GLOBAL_HOOKS_DIR if is_global else self.hooks_path
-    results = self._RunWrapper(node_uuids, hooks_path, phase, env, is_global,
-                               post_status)
+    results = self._RunWrapper(node_names, self.hooks_path, phase, env)
     if not results:
       msg = "Communication Failure"
       if phase == constants.HOOKS_PHASE_PRE:
@@ -312,11 +268,11 @@ class HooksMaster(object):
     """
     phase = constants.HOOKS_PHASE_POST
     hpath = constants.HOOKS_NAME_CFGUPDATE
-    nodes = [self.master_uuid]
+    nodes = [self.master_name]
     self._RunWrapper(nodes, hpath, phase, self.pre_env)
 
   @staticmethod
-  def BuildFromLu(hooks_execution_fn, lu, job_id=None):
+  def BuildFromLu(hooks_execution_fn, lu):
     if lu.HPATH is None:
       nodes = (None, None)
     else:
@@ -329,25 +285,9 @@ class HooksMaster(object):
     master_name = cluster_name = None
     if lu.cfg:
       master_name = lu.cfg.GetMasterNodeName()
-      master_uuid = lu.cfg.GetMasterNode()
       cluster_name = lu.cfg.GetClusterName()
 
     return HooksMaster(lu.op.OP_ID, lu.HPATH, nodes, hooks_execution_fn,
-                       RpcResultsToHooksResults, lu.BuildHooksEnv,
+                       _RpcResultsToHooksResults, lu.BuildHooksEnv,
                        lu.PreparePostHookNodes, lu.LogWarning, lu.HTYPE,
-                       cluster_name, master_name, master_uuid, job_id)
-
-
-def ExecGlobalPostHooks(opcode, master_name, rpc_runner, log_fn,
-                        cluster_name, master_uuid, job_id, status):
-  """ Build hooks manager and execute global post hooks just on the master
-
-  """
-  hm = HooksMaster(opcode, hooks_path=None, nodes=([], [master_uuid]),
-                   hooks_execution_fn=rpc_runner,
-                   hooks_results_adapt_fn=RpcResultsToHooksResults,
-                   build_env_fn=None, prepare_post_nodes_fn=None,
-                   log_fn=log_fn, htype=None, cluster_name=cluster_name,
-                   master_name=master_name, master_uuid=master_uuid,
-                   job_id=job_id)
-  hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True, post_status=status)
+                       cluster_name, master_name)

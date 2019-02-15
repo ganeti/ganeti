@@ -8,7 +8,7 @@ used in many other places and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,17 +55,12 @@ module Ganeti.HTools.CLI
   -- * The options
   , oDataFile
   , oDiskMoves
-  , oAvoidDiskMoves
-  , oLongSolutionThreshold
-  , oAvoidLongSolutions
   , oDiskTemplate
   , oDryRun
   , oSpindleUse
   , oDynuFile
-  , oMemWeight
   , oMonD
   , oMonDDataFile
-  , oMonDKvmRSS
   , oMonDXen
   , oEvacMode
   , oMonDExitMissing
@@ -77,7 +72,6 @@ module Ganeti.HTools.CLI
   , oForce
   , oFullEvacuation
   , oGroup
-  , oIdleDefault
   , oIAllocSrc
   , oIgnoreDyn
   , oIgnoreNonRedundant
@@ -118,7 +112,7 @@ module Ganeti.HTools.CLI
   , oShowVer
   , oShowComp
   , oSkipNonRedundant
-  , oSoR
+  , oStaticKvmNodeMemory
   , oStdSpec
   , oTargetResources
   , oTieredSpec
@@ -150,40 +144,21 @@ import Ganeti.Utils
 data Options = Options
   { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
   , optDiskMoves   :: Bool           -- ^ Allow disk moves
-  , optAvoidDiskMoves :: Double      -- ^ Allow only disk moves improving
-                                     -- cluster score in more than
-                                     -- optAvoidDiskMoves times
-  , optLongSolutionThreshold :: Int  -- ^ The threshold in seconds,
-                                     -- that defines long-time solutions
-  , optAvoidLongSolutions :: Double  -- ^ Allow only long solutions,
-                                     -- whose K/N metrics are more,
-                                     -- than algLongSolutionsFactor,
-                                     -- where K is the number of times cluster
-                                     -- metric has increased and N is how much
-                                     -- the estimated time to perform
-                                     -- this solution exceeds the threshold
   , optInstMoves   :: Bool           -- ^ Allow instance moves
   , optDiskTemplate :: Maybe DiskTemplate  -- ^ Override for the disk template
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
-  , optIdleDefault :: Bool           -- ^ Assume idle load for all not provided
-                                     -- dynamic utilisation data
   , optIgnoreSoftErrors :: Bool      -- ^ Ignore soft errors in balancing moves
   , optIndependentGroups :: Bool     -- ^ consider groups independently
   , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
-  , optSoR         :: Bool           -- ^ only use state-of-record data
   , optMonD        :: Bool           -- ^ Query MonDs
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
                                      -- by MonDs
   , optMonDXen     :: Bool           -- ^ Should Xen-specific collectors be
                                      -- considered (only if MonD is queried)
-  , optMonDKvmRSS  :: Bool           -- ^ Should kvm RSS information be
-                                     -- considered (only if MonD is queried)
   , optMonDExitMissing :: Bool       -- ^ If the program should exit on missing
                                      -- MonD data
-  , optMemWeight   :: Double         -- ^ Rescale the weight of memory
-                                     -- utilisation
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -211,7 +186,7 @@ data Options = Options
   , optNoHeaders   :: Bool           -- ^ Do not show a header line
   , optNoSimulation :: Bool          -- ^ Skip the rebalancing dry-run
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
-  , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
+  , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to
   , optOffline     :: [String]       -- ^ Names of offline nodes
   , optRestrictToNodes :: Maybe [String] -- ^ if not Nothing, restrict
                                      -- allocation to those nodes
@@ -229,6 +204,8 @@ data Options = Options
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
   , optSkipNonRedundant :: Bool      -- ^ Skip nodes with non-redundant instance
+  , optStaticKvmNodeMemory :: Int    -- ^ Use static value for node memory
+                                     -- ^ on KVM
   , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
   , optTargetResources :: Double     -- ^ Target resources for squeezing
   , optTestCount   :: Maybe Int      -- ^ Optional test count override
@@ -244,25 +221,18 @@ defaultOptions :: Options
 defaultOptions  = Options
   { optDataFile    = Nothing
   , optDiskMoves   = True
-  , optAvoidDiskMoves = 1.0
-  , optLongSolutionThreshold = 1000
-  , optAvoidLongSolutions = 0.0
   , optInstMoves   = True
   , optIndependentGroups = False
   , optAcceptExisting = False
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
-  , optIdleDefault = False
   , optIgnoreSoftErrors = False
   , optDynuFile    = Nothing
-  , optSoR         = False
   , optMonD        = False
   , optMonDFile = Nothing
   , optMonDXen     = False
-  , optMonDKvmRSS  = False
   , optMonDExitMissing = False
-  , optMemWeight   = 1.0
   , optEvacMode    = False
   , optRestrictedMigrate = False
   , optExInst      = []
@@ -292,6 +262,7 @@ defaultOptions  = Options
   , optNodeSim     = []
   , optNodeTags    = Nothing
   , optSkipNonRedundant = False
+  , optStaticKvmNodeMemory = 4096
   , optOffline     = []
   , optRestrictToNodes = Nothing
   , optOfflineMaintenance = False
@@ -373,34 +344,6 @@ oDiskMoves =
    \ thus allowing only the 'cheap' failover/migrate operations",
    OptComplNone)
 
-oAvoidDiskMoves :: OptType
-oAvoidDiskMoves =
-  (Option "" ["avoid-disk-moves"]
-   (reqWithConversion (tryRead "disk moves avoiding factor")
-    (\f opts -> Ok opts { optAvoidDiskMoves = f }) "FACTOR")
-   "gain in cluster metrics on each balancing step including disk moves\
-   \ should be FACTOR times higher than the gain after migrations in order to\
-   \ admit disk move during the step",
-   OptComplFloat)
-
-oLongSolutionThreshold :: OptType
-oLongSolutionThreshold =
-  (Option "" ["long-solution-threshold"]
-   (reqWithConversion (tryRead "long-time solution threshold")
-    (\f opts -> Ok opts { optLongSolutionThreshold = f }) "FACTOR")
-   "specify the threshold in seconds, that defines long-time solutions",
-   OptComplInteger)
-
-oAvoidLongSolutions :: OptType
-oAvoidLongSolutions =
-  (Option "" ["avoid-long-solutions"]
-   (reqWithConversion (tryRead "long-time solutions avoiding factor")
-    (\f opts -> Ok opts { optAvoidLongSolutions = f }) "FACTOR")
-   "solution should increase cluster metric in more times,\
-   \ than it's estimated time multiplied by avoiding factor\
-   \ exceeds the threshold",
-   OptComplFloat)
-
 oMonD :: OptType
 oMonD =
   (Option "" ["mond"]
@@ -422,28 +365,6 @@ oMonDXen =
   (Option "" ["mond-xen"]
     (NoArg (\ opts -> Ok opts { optMonDXen = True }))
     "also consider xen-specific collectors in MonD queries",
-    OptComplNone)
-
-oMonDKvmRSS :: OptType
-oMonDKvmRSS =
-  (Option "" ["mond-kvm-rss"]
-    (NoArg (\ opts -> Ok opts { optMonDKvmRSS = True }))
-    "also consider residual-set-size data for kvm instances via MonD",
-    OptComplNone)
-
-oMemWeight :: OptType
-oMemWeight =
-  (Option "" ["mem-weight"]
-   (reqWithConversion (tryRead "memory weight factor")
-    (\ f opts -> Ok opts { optMemWeight = f }) "FACTOR")
-   "Rescale the weight of the memory utilization by the given factor",
-   OptComplFloat)
-
-oSoR :: OptType
-oSoR =
-  (Option "" ["state-of-record"]
-    (NoArg (\ opts -> Ok opts { optSoR = True }))
-    "only use state-of-record data",
     OptComplNone)
 
 oMonDExitMissing :: OptType
@@ -501,13 +422,6 @@ oIgnoreDyn =
   (Option "" ["ignore-dynu"]
    (NoArg (\ opts -> Ok opts {optIgnoreDynu = True}))
    "Ignore any dynamic utilisation information",
-   OptComplNone)
-
-oIdleDefault :: OptType
-oIdleDefault =
-  (Option "" ["idle-default"]
-   (NoArg (\ opts -> Ok opts {optIdleDefault = True}))
-   "Assume idleness for any non-availabe dynamic utilisation data",
    OptComplNone)
 
 oIgnoreSoftErrors :: OptType
@@ -709,7 +623,7 @@ oMinResources =
   (Option "" ["minimal-resources"]
    (reqWithConversion (tryRead "minimal resources")
     (\d opts -> Ok opts { optMinResources = d}) "FACTOR")
-   "minimal resources to be present on each in multiples of\ 
+   "minimal resources to be present on each in multiples of\
    \ the standard allocation for not onlining standby nodes",
    OptComplFloat)
 
@@ -749,7 +663,7 @@ oNodeTags =
    (ReqArg (\ f opts -> Ok opts { optNodeTags = Just $ sepSplit ',' f })
     "TAG,...") "Restrict to nodes with the given tags",
    OptComplString)
-     
+
 oOfflineMaintenance :: OptType
 oOfflineMaintenance =
   (Option "" ["offline-maintenance"]
@@ -851,6 +765,15 @@ oSkipNonRedundant =
    (NoArg (\ opts -> Ok opts { optSkipNonRedundant = True }))
     "Skip nodes that host a non-redundant instance",
     OptComplNone)
+
+oStaticKvmNodeMemory :: OptType
+oStaticKvmNodeMemory =
+  (Option "" ["static-kvm-node-memory"]
+   (reqWithConversion (tryRead "static node memory")
+    (\i opts -> Ok opts { optStaticKvmNodeMemory = i }) "N")
+   "use static node memory [in MB] on KVM instead of value reported by \
+   \hypervisor. Use 0 to take value reported from hypervisor.",
+   OptComplInteger)
 
 oStdSpec :: OptType
 oStdSpec =

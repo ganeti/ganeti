@@ -82,23 +82,12 @@ module Ganeti.HTools.Cluster
   , findSplitInstances
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative (liftA2)
+import Control.Applicative ((<$>), liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
 import qualified Data.IntSet as IntSet
-import qualified Data.Set as Set
-import Data.List ( nub
-                 , sortBy
-                 , foldl'
-                 , intersect
-                 , partition
-                 , (\\)
-                 , sort
-                 , intercalate)
-import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, mapMaybe)
+import Data.List
+import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 
@@ -115,8 +104,7 @@ import Ganeti.HTools.Cluster.AllocationSolution
 import Ganeti.HTools.Cluster.Evacuate ( EvacSolution(..), emptyEvacSolution
                                       , updateEvacSolution, reverseEvacSolution
                                       , nodeEvacInstance)
-import Ganeti.HTools.Cluster.Metrics (compCV, compClusterStatistics
-                                      , optimalCVScore)
+import Ganeti.HTools.Cluster.Metrics (compCV, compClusterStatistics)
 import Ganeti.HTools.Cluster.Moves (applyMoveEx)
 import Ganeti.HTools.Cluster.Utils (splitCluster, instancePriGroup
                                    , availableGroupNodes, iMoveToJob)
@@ -238,11 +226,9 @@ updateCStats cs node =
                csFspn = x_fspn, csIspn = x_ispn, csTspn = x_tspn
              }
         = cs
-      inc_amem = Node.fMem node - Node.rMem node
-      inc_amem' = if inc_amem > 0 then inc_amem else 0
+      inc_amem = Node.availMem node
       inc_adsk = Node.availDisk node
-      inc_imem = truncate (Node.tMem node) - Node.nMem node
-                 - Node.xMem node - Node.fMem node
+      inc_imem = Node.iMem node
       inc_icpu = Node.uCpu node
       inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
       inc_ispn = Node.tSpindles node - Node.fSpindles node
@@ -250,13 +236,13 @@ updateCStats cs node =
       inc_acpu = Node.availCpu node
       inc_ncpu = fromIntegral (Node.uCpu node) /
                  iPolicyVcpuRatio (Node.iPolicy node)
-  in cs { csFmem = x_fmem + fromIntegral (Node.fMem node)
+  in cs { csFmem = x_fmem + fromIntegral (Node.unallocatedMem node)
         , csFdsk = x_fdsk + fromIntegral (Node.fDsk node)
         , csFspn = x_fspn + fromIntegral (Node.fSpindles node)
-        , csAmem = x_amem + fromIntegral inc_amem'
+        , csAmem = x_amem + fromIntegral inc_amem
         , csAdsk = x_adsk + fromIntegral inc_adsk
         , csAcpu = x_acpu + fromIntegral inc_acpu
-        , csMmem = max x_mmem (fromIntegral inc_amem')
+        , csMmem = max x_mmem (fromIntegral inc_amem)
         , csMdsk = max x_mdsk (fromIntegral inc_adsk)
         , csMcpu = max x_mcpu (fromIntegral inc_acpu)
         , csImem = x_imem + fromIntegral inc_imem
@@ -346,65 +332,61 @@ checkSingleStep force ini_tbl target cur_tbl move =
              upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
          in compareTables cur_tbl upd_tbl
 
--- | Generate all possible migration moves of an instance given some
--- additional parameters
-migrationMoves :: MirrorType -- ^ The mirroring type of the instance
-               -> Bool       -- ^ Whether the secondary node is active
-               -> [Ndx]      -- ^ Target node candidate list
-               -> [IMove]    -- ^ List of valid result moves
-migrationMoves MirrorNone _ _ = []
-migrationMoves MirrorInternal False _ = []
-migrationMoves MirrorInternal True  _ = [Failover]
-migrationMoves MirrorExternal _ nodes_idx = map FailoverToAny nodes_idx
+-- | Given the status of the current secondary as a valid new node and
+-- the current candidate target node, generate the possible moves for
+-- a instance.
+possibleMoves :: MirrorType -- ^ The mirroring type of the instance
+              -> Bool       -- ^ Whether the secondary node is a valid new node
+              -> Bool       -- ^ Whether we can change the primary node
+              -> Bool       -- ^ Whether we alowed to move disks
+              -> (Bool, Bool) -- ^ Whether migration is restricted and whether
+                              -- the instance primary is offline
+              -> Ndx        -- ^ Target node candidate
+              -> [IMove]    -- ^ List of valid result moves
 
--- | Generate all possible disk moves (complex instance moves consist of disk
--- moves and maybe migrations) of an instance given some additional parameters
-diskMoves :: MirrorType   -- ^ The mirroring type of the instance
-          -> Bool         -- ^ Whether the secondary node is a valid new node
-          -> Bool         -- ^ Whether we can change the primary node
-          -> (Bool, Bool) -- ^ Whether migration is restricted and whether
-                          -- the instance primary is offline
-          -> [Ndx]        -- ^ Target node candidates list
-          -> [IMove]      -- ^ List of valid result moves
-diskMoves MirrorNone _ _ _ _ = []
-diskMoves MirrorExternal _ _ _ _ = []
-diskMoves MirrorInternal valid_sec inst_moves restr nodes_idx =
-  concatMap (intMirrSingleDiskMove valid_sec inst_moves restr) nodes_idx
-  where
-    intMirrSingleDiskMove _ False _ tdx =
-      [ReplaceSecondary tdx]
+possibleMoves MirrorNone _ _ _ _ _ = []
 
-    intMirrSingleDiskMove _ _ (True, False) tdx =
-      [ReplaceSecondary tdx]
+possibleMoves MirrorExternal _ False _ _ _ = []
 
-    intMirrSingleDiskMove True True (False, _) tdx =
-      [ ReplaceSecondary tdx
-      , ReplaceAndFailover tdx
-      , ReplacePrimary tdx
-      , FailoverAndReplace tdx
-      ]
+possibleMoves MirrorExternal _ True _ _ tdx =
+  [ FailoverToAny tdx ]
 
-    intMirrSingleDiskMove True True (True, True) tdx =
-      [ ReplaceSecondary tdx
-      , ReplaceAndFailover tdx
-      , FailoverAndReplace tdx
-      ]
+possibleMoves MirrorInternal _ _ False _ _ = []
 
-    intMirrSingleDiskMove False True _ tdx =
-      [ ReplaceSecondary tdx
-      , ReplaceAndFailover tdx
-      ]
+possibleMoves MirrorInternal _ False True _ tdx =
+  [ ReplaceSecondary tdx ]
 
+possibleMoves MirrorInternal _ _ True (True, False) tdx =
+  [ ReplaceSecondary tdx
+  ]
+
+possibleMoves MirrorInternal True True True (False, _) tdx =
+  [ ReplaceSecondary tdx
+  , ReplaceAndFailover tdx
+  , ReplacePrimary tdx
+  , FailoverAndReplace tdx
+  ]
+
+possibleMoves MirrorInternal True True True (True, True) tdx =
+  [ ReplaceSecondary tdx
+  , ReplaceAndFailover tdx
+  , FailoverAndReplace tdx
+  ]
+
+possibleMoves MirrorInternal False True True _ tdx =
+  [ ReplaceSecondary tdx
+  , ReplaceAndFailover tdx
+  ]
 
 -- | Compute the best move for a given instance.
 checkInstanceMove ::  AlgorithmOptions -- ^ Algorithmic options for balancing
                   -> [Ndx]             -- ^ Allowed target node indices
                   -> Table             -- ^ Original table
                   -> Instance.Instance -- ^ Instance to move
-                  -> (Table, Table)    -- ^ Pair of best new tables:
-                                       -- migrations only and with disk moves
+                  -> Table             -- ^ Best new table for this instance
 checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
   let force = algIgnoreSoftErrors opts
+      disk_moves = algDiskMoves opts
       inst_moves = algInstanceMoves opts
       rest_mig = algRestrictedMigration opts
       opdx = Instance.pNode target
@@ -413,130 +395,47 @@ checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
       nodes = filter (`notElem` bad_nodes) nodes_idx
       mir_type = Instance.mirrorType target
       use_secondary = elem osdx nodes_idx && inst_moves
+      aft_failover = if mir_type == MirrorInternal && use_secondary
+                       -- if drbd and allowed to failover
+                       then checkSingleStep force ini_tbl target ini_tbl
+                              Failover
+                       else ini_tbl
       primary_drained = Node.offline
                         . flip Container.find nl
                         $ Instance.pNode target
-
-      migrations = migrationMoves mir_type use_secondary nodes
-      disk_moves = diskMoves mir_type use_secondary inst_moves
-                   (rest_mig, primary_drained) nodes
-
-      -- iterate over the possible nodes and migrations for this instance
-      best_migr_tbl =
-        if inst_moves
-          then foldl' (checkSingleStep force ini_tbl target) ini_tbl migrations
-          else ini_tbl
-      -- iterate over the possible moves for this instance
-      best_tbl =
-        foldl' (checkSingleStep force ini_tbl target) best_migr_tbl disk_moves
-  in (best_migr_tbl, best_tbl)
-
--- | The default network bandwidth value in Mbit/s
-defaultBandwidth :: Int
-defaultBandwidth = 100
-
--- | Compute network bandwidth during given move in Mbit/s
-plcBandwidth :: Table -> Placement -> Int
-plcBandwidth (Table nl _ _ _) (_, pn, sn, move, _) =
-  fromMaybe defaultBandwidth (Node.calcBandwidthToNode src dst)
-  where getNode ndx = Container.find ndx nl
-        (src, dst) = case move of
-          Failover -> (getNode pn, getNode sn)
-          FailoverToAny ndx -> (getNode pn, getNode ndx)
-          ReplacePrimary ndx -> (getNode pn, getNode ndx)
-          ReplaceSecondary ndx -> (getNode sn, getNode ndx)
-          ReplaceAndFailover ndx -> (getNode sn, getNode ndx)
-          FailoverAndReplace ndx -> (getNode sn, getNode ndx)
-
--- | Compute the amount of data to be moved
-moveVolume :: IMove -> Instance.Instance -> Int
-moveVolume Failover inst = Instance.mem inst
-moveVolume (FailoverToAny _) inst = Instance.mem inst
-moveVolume _ inst = Instance.mem inst + Instance.dsk inst
-
--- | Compute the estimated time to perform move
-placementTimeEstimation :: Table -> Placement -> Double
-placementTimeEstimation tbl@(Table _ il _ _)
-                        plc@(idx, _, _, move, _) =
-  (fromIntegral volume * 8) / fromIntegral bandwidth
-  where volume = moveVolume move (Container.find idx il)
-        bandwidth = plcBandwidth tbl plc
-
--- | Compute the estimated time to perform solution
-solutionTimeEstimation :: Table -> Double
-solutionTimeEstimation fin_tbl@(Table _ _ _ plcs) = sum times
-    where times = map (placementTimeEstimation fin_tbl) plcs
-
--- | Filter long-time solutions without enough gain
-filterLongSolutions :: AlgorithmOptions
-                    -> Table
-                    -> Table
-                    -> Maybe Table
-filterLongSolutions opts ini_tbl fin_tbl =
-  let long_sol_th = fromIntegral $ algLongSolutionThreshold opts
-      long_sol_f = algLongSolutionsFactor opts
-      fin_t = solutionTimeEstimation fin_tbl
-      time_metric = fin_t / long_sol_th
-      Table nl _ ini_cv _ = ini_tbl
-      Table _ _ fin_cv _ = fin_tbl
-      opt_cv = optimalCVScore nl
-      improvement = (ini_cv - opt_cv) / (fin_cv - opt_cv)
-  in if long_sol_f < 0.01 ||
-        fin_t < long_sol_th ||
-        fin_cv == opt_cv ||
-        improvement > long_sol_f * time_metric
-  then Just fin_tbl
-  else Nothing
-
--- | Filter solutions without enough gain
-filterMoveByGain :: AlgorithmOptions -> Table -> Table -> Maybe Table
-filterMoveByGain opts ini_tbl fin_tbl =
-  let mg_limit = algMinGainLimit opts
-      min_gain = algMinGain opts
-      Table _ _ ini_cv _ = ini_tbl
-      Table _ _ fin_cv _ = fin_tbl
-  in if fin_cv < ini_cv && (ini_cv > mg_limit
-      || ini_cv - fin_cv > min_gain)
-      then Just fin_tbl -- this round made success, return the new table
-      else Nothing
+      all_moves = concatMap (possibleMoves mir_type use_secondary inst_moves
+                             disk_moves (rest_mig, primary_drained)) nodes
+    in
+      -- iterate over the possible nodes for this instance
+      foldl' (checkSingleStep force ini_tbl target) aft_failover all_moves
 
 -- | Compute the best next move.
 checkMove :: AlgorithmOptions       -- ^ Algorithmic options for balancing
              -> [Ndx]               -- ^ Allowed target node indices
              -> Table               -- ^ The current solution
              -> [Instance.Instance] -- ^ List of instances still to move
-             -> Maybe Table         -- ^ The new solution
-checkMove opts nodes_idx ini_tbl@(Table _ _ ini_cv _) victims =
-  let disk_moves = algDiskMoves opts
-      disk_moves_f = algDiskMovesFactor opts
+             -> Table               -- ^ The new solution
+checkMove opts nodes_idx ini_tbl victims =
+  let Table _ _ _ ini_plc = ini_tbl
       -- we're using rwhnf from the Control.Parallel.Strategies
       -- package; we don't need to use rnf as that would force too
       -- much evaluation in single-threaded cases, and in
       -- multi-threaded case the weak head normal form is enough to
       -- spark the evaluation
-      table_pairs = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
-                    victims
-
-      wout_disk_moves_tbl = mapMaybe longSolFilter (map fst table_pairs)
-      with_disk_moves_tbl = mapMaybe longSolFilter (map snd table_pairs)
-
+      tables = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
+               victims
       -- iterate over all instances, computing the best move
-      best_migr_tbl@(Table _ _ best_migr_cv _) =
-        foldl' compareTables ini_tbl wout_disk_moves_tbl
-      best_tbl@(Table _ _ best_cv _) =
-        foldl' compareTables ini_tbl with_disk_moves_tbl
-      best_sol = if not disk_moves
-                  || ini_cv - best_cv <= (ini_cv - best_migr_cv) * disk_moves_f
-                  then best_migr_tbl
-                  else best_tbl -- best including disk moves
-  in Just best_sol >>= filterMoveByGain opts ini_tbl
-  where longSolFilter = filterLongSolutions opts ini_tbl
+      best_tbl = foldl' compareTables ini_tbl tables
+      Table _ _ _ best_plc = best_tbl
+  in if length best_plc == length ini_plc
+       then ini_tbl -- no advancement
+       else best_tbl
 
 -- | Check if we are allowed to go deeper in the balancing.
 doNextBalance :: Table     -- ^ The starting table
               -> Int       -- ^ Remaining length
               -> Score     -- ^ Score at which to stop
-              -> Bool      -- ^ True if we can continue
+              -> Bool      -- ^ The resulting table and commands
 doNextBalance ini_tbl max_rounds min_score =
   let Table _ _ ini_cv ini_plc = ini_tbl
       ini_plc_len = length ini_plc
@@ -548,7 +447,9 @@ tryBalance :: AlgorithmOptions  -- ^ Algorithmic options for balancing
               -> Maybe Table    -- ^ The resulting table and commands
 tryBalance opts ini_tbl =
     let evac_mode = algEvacMode opts
-        Table ini_nl ini_il _ _ = ini_tbl
+        mg_limit = algMinGainLimit opts
+        min_gain = algMinGain opts
+        Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
         all_nodes = Container.elems ini_nl
         (offline_nodes, online_nodes) = partition Node.offline all_nodes
@@ -560,13 +461,12 @@ tryBalance opts ini_tbl =
         reloc_inst = filter (\i -> Instance.movable i &&
                                    Instance.autoBalance i) all_inst'
         node_idx = map Node.idx online_nodes
-        allowed_node = maybe (const True) (flip Set.member)
-                         $ algAllowedNodes opts
-        good_nidx = filter allowed_node node_idx
-        allowed_inst = liftA2 (&&) (allowed_node . Instance.pNode)
-                         (liftA2 (||) allowed_node (< 0) . Instance.sNode)
-        good_reloc_inst = filter allowed_inst reloc_inst
-    in checkMove opts good_nidx ini_tbl good_reloc_inst
+        fin_tbl = checkMove opts node_idx ini_tbl reloc_inst
+        (Table _ _ fin_cv _) = fin_tbl
+    in
+      if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
+      then Just fin_tbl -- this round made success, return the new table
+      else Nothing
 
 -- * Allocation functions
 
@@ -872,13 +772,12 @@ iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats =
 -- | Guess a number of machines worth trying to put on the cluster in one step.
 -- The goal is to guess a number close to the actual capacity of the cluster but
 -- preferrably not bigger, unless it is quite small (as we don't want to do
--- big steps smaller than 10).
+-- big steps smaller than 20).
 guessBigstepSize :: Node.List -> Instance.Instance -> Int
 guessBigstepSize nl inst =
   let nodes = Container.elems nl
-      totalUnusedMemory = sum $ map Node.fMem nodes
-      reserved = round . maximum $ map Node.tMem nodes
-      capacity = (totalUnusedMemory - reserved) `div` Instance.mem inst
+      totalAvail = sum $ map Node.availMem nodes
+      capacity = totalAvail `div` Instance.mem inst
       -- however, at every node we might lose almost an instance if it just
       -- doesn't fit by a tiny margin
       guess = capacity - Container.size nl
@@ -939,39 +838,6 @@ sufficesShrinking allocFn inst fm =
   of x:_ -> Just . snd $ x
      _ -> Nothing
 
--- | For a failure determine the underlying resource that most likely
--- causes this kind of failure. In particular, N+1 violations are most
--- likely caused by lack of memory.
-underlyingCause :: FailMode -> FailMode
-underlyingCause FailN1 = FailMem
-underlyingCause x = x
-
--- | Shrink a resource of an instance until the failure statistics for
--- this resource changes. Note that it might no be possible to allocate
--- an instance at this size; nevertheless there might be a need to change
--- the resource to shrink on, e.g., if the current instance is too big on
--- two resources.
-doShrink :: (Instance.Instance -> AllocSolution) -> Instance.Instance
-         -> FailMode -> Maybe Instance.Instance
-doShrink allocFn inst fm =
-  let physRes = underlyingCause fm
-      getCount = runListHead 0 snd . filter ((==) physRes . fst)
-                 . collapseFailures . map underlyingCause . asFailures
-      initialStat = getCount $ allocFn inst
-      hasChanged = ((/=) initialStat . getCount . fst)
-      -- as the list of possible shrinks can be quite long, and, moreover,
-      -- has some cost of computing it, our heuristics is to look into it
-      -- only for a limited range; only once the list is shorter, we do
-      -- binary search.
-      lookAhead = 50
-      heuristics xs = if null (drop lookAhead xs)
-                        then length xs `div` 2
-                        else lookAhead
-  in fmap snd
-     . monotoneFind heuristics hasChanged
-     . map (allocFn &&& id)
-     $ iterateOk (`Instance.shrinkByType` physRes) inst
-
 -- | Tiered allocation method.
 --
 -- This places instances on the cluster, and decreases the spec until
@@ -988,20 +854,21 @@ tieredAlloc opts nl il limit newinst allocnodes ixes cstats =
                                Nothing -> (False, Nothing)
                                Just n -> (n <= ixes_cnt,
                                             Just (n - ixes_cnt))
-          sortedErrs = nub . map (underlyingCause . fst)
-                        $ sortBy (flip $ comparing snd) errs
-          allocFn = fromMaybe emptyAllocSolution
-                      . flip (tryAlloc opts nl' il') allocnodes
-          suffShrink = sufficesShrinking allocFn newinst
-          bigSteps = filter isJust . map suffShrink $ drop 1 sortedErrs
+          sortedErrs = map fst $ sortBy (comparing snd) errs
+          suffShrink = sufficesShrinking
+                         (fromMaybe emptyAllocSolution
+                          . flip (tryAlloc opts nl' il') allocnodes)
+                       newinst
+          bigSteps = filter isJust . map suffShrink . reverse $ sortedErrs
           progress (Ok (_, _, _, newil', _)) (Ok (_, _, _, newil, _)) =
             length newil' > length newil
           progress _ _ = False
       in if stop then newsol else
-           let newsol' = case map (doShrink allocFn newinst) sortedErrs of
-                 Just newinst' : _ -> tieredAlloc opts nl' il' newlimit
-                                        newinst' allocnodes ixes' cstats'
-                 _ -> newsol
+           let newsol' = case Instance.shrinkByType newinst . last
+                                $ sortedErrs of
+                 Bad _ -> newsol
+                 Ok newinst' -> tieredAlloc opts nl' il' newlimit
+                                newinst' allocnodes ixes' cstats'
            in if progress newsol' newsol then newsol' else
                 case bigSteps of
                   Just newinst':_ -> tieredAlloc opts nl' il' newlimit
@@ -1097,7 +964,7 @@ getMoves (Table _ initial_il _ initial_plc, Table final_nl _ _ final_plc) =
           (_, cmds) = computeMoves inst inst_name mv np ns
       in (affected, idx, mv, cmds)
   in map plctoMoves . reverse . drop (length initial_plc) $ reverse final_plc
-             
+
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
 mergeJobs :: ([JobSet], [Ndx]) -> MoveJob -> ([JobSet], [Ndx])

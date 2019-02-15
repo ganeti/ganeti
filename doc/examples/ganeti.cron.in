@@ -3,14 +3,11 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 # On reboot, continue a Ganeti upgrade, if one was in progress
 @reboot root [ -x @SBINDIR@/gnt-cluster ] && @SBINDIR@/gnt-cluster upgrade --resume
 
-# Restart failed instances (in non-strict mode every 5 minutes)
-5-25/5,35-55/5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher --no-strict
-
-# Restart failed instances (in strict mode every 30 minutes)
-*/30 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
+# Restart failed instances (every 5 minutes)
+*/5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
 
 # Clean job archive (at 01:45 AM)
-45 1 * * * @GNTMASTERUSER@ [ -x @SBINDIR@/ganeti-cleaner ] && REMOVE_AFTER=21 @SBINDIR@/ganeti-cleaner master
+45 1 * * * @GNTMASTERUSER@ [ -x @SBINDIR@/ganeti-cleaner ] && @SBINDIR@/ganeti-cleaner master
 
 # Clean job archive (at 02:45 AM)
 45 2 * * * @GNTNODEDUSER@ [ -x @SBINDIR@/ganeti-cleaner ] && @SBINDIR@/ganeti-cleaner node

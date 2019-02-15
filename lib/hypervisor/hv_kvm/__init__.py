@@ -361,6 +361,8 @@ def _UpgradeSerializedRuntime(serialized_runtime):
       # handle old instances in the cluster properly.
       if "pci" in dev:
         # This is practically the old _GenerateDeviceKVMId()
+        hv_dev_type = _DEVICE_TYPE[dev_type](hvparams)
+        dev["hvinfo"]["driver"] = _DEVICE_DRIVER[dev_type](hv_dev_type)
         dev["hvinfo"]["id"] = "hot%s-%s-%s-%s" % (dev_type.lower(),
                                                   uuid.split("-")[0],
                                                   "pci",
@@ -488,6 +490,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_KVM_SCSI_CONTROLLER_TYPE:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_SCSI_CONTROLLER_TYPES),
+    constants.HV_DISK_DISCARD:
+      hv_base.ParamInSet(False, constants.HT_VALID_DISCARD_TYPES),
     constants.HV_KVM_CDROM_DISK_TYPE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
@@ -497,6 +501,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_MIGRATION_BANDWIDTH: hv_base.REQ_NONNEGATIVE_INT_CHECK,
     constants.HV_MIGRATION_DOWNTIME: hv_base.REQ_NONNEGATIVE_INT_CHECK,
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
+    constants.HV_USE_GUEST_AGENT: hv_base.NO_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     constants.HV_DISK_CACHE:
       hv_base.ParamInSet(True, constants.HT_VALID_CACHE_TYPES),
@@ -515,7 +520,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
-    constants.HV_WORKER_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     constants.HV_CPU_TYPE: hv_base.NO_CHECK,
     constants.HV_CPU_CORES: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_THREADS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
@@ -538,14 +542,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
 
-  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+([-\w]+)",
+  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
     re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
                r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
                r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
-  _MIGRATION_PRECOPY_PASSES_RE = \
-    re.compile(r"\s*dirty sync count:\s+(\d+)", re.I | re.M)
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -754,6 +756,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._CTRL_DIR, "%s.qmp" % instance_name)
 
   @classmethod
+  def _InstanceQemuGuestAgentMonitor(cls, instance_name):
+    """Returns the instance serial QEMU Guest Agent socket name
+
+    """
+    return utils.PathJoin(cls._CTRL_DIR, "%s.qga" % instance_name)
+
+  @classmethod
   def _InstanceKvmdMonitor(cls, instance_name):
     """Returns the instance kvm daemon socket name
 
@@ -839,6 +848,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(cls._InstanceMonitor(instance_name))
     utils.RemoveFile(cls._InstanceSerial(instance_name))
     utils.RemoveFile(cls._InstanceQmpMonitor(instance_name))
+    utils.RemoveFile(cls._InstanceQemuGuestAgentMonitor(instance_name))
     utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
     utils.RemoveFile(cls._InstanceKeymapFile(instance_name))
     uid_file = cls._InstanceUidFile(instance_name)
@@ -906,25 +916,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if cpus == constants.CPU_PINNING_OFF:
       # we checked this at import time
       # pylint: disable=E1101
-      target_process.set_cpu_affinity(range(psutil.cpu_count()))
+      target_process.cpu_affinity(range(psutil.cpu_count()))
     else:
-      target_process.set_cpu_affinity(cpus)
-      # psutil 2.x deprecated (but still supports) get_children and the wrapper
-      # method sig doesn't show the keyword args, so quell the pylint warning.
-      # pylint: disable=E1123
-      for p in target_process.get_children(recursive=True):
-        p.set_cpu_affinity(cpus)
+      target_process.cpu_affinity(cpus)
 
   @classmethod
-  def _AssignCpuAffinity(cls, cpu_mask, worker_cpu_mask, process_id,
-                         thread_dict):
+  def _AssignCpuAffinity(cls, cpu_mask, process_id, thread_dict):
     """Change CPU affinity for running VM according to given CPU mask.
 
     @param cpu_mask: CPU mask as given by the user. e.g. "0-2,4:all:1,3"
     @type cpu_mask: string
-    @param worker_cpu_mask: CPU mask as given by the user for the worker
-      threads. e.g. "0-2,4"
-    @type worker_cpu_mask: string
     @param process_id: process ID of KVM process. Used to pin entire VM
                        to physical CPUs.
     @type process_id: int
@@ -932,18 +933,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type thread_dict: dict int:int
 
     """
-    worker_cpu_list = utils.ParseCpuMask(worker_cpu_mask)
-    cls._SetProcessAffinity(process_id, worker_cpu_list)
-
-    # Convert the string CPU mask to a list of list of ints
+    # Convert the string CPU mask to a list of list of int's
     cpu_list = utils.ParseMultiCpuMask(cpu_mask)
+
     if len(cpu_list) == 1:
       all_cpu_mapping = cpu_list[0]
-      if all_cpu_mapping != constants.CPU_PINNING_OFF:
-        # The vcpus do not inherit the affinity of the parent process so they
-        # also must be pinned.
-        for vcpu in thread_dict:
-          cls._SetProcessAffinity(thread_dict[vcpu], all_cpu_mapping)
+      if all_cpu_mapping == constants.CPU_PINNING_OFF:
+        # If CPU pinning has 1 entry that's "all", then do nothing
+        pass
+      else:
+        # If CPU pinning has one non-all entry, map the entire VM to
+        # one set of physical CPUs
+        cls._SetProcessAffinity(process_id, all_cpu_mapping)
     else:
       # The number of vCPUs mapped should match the number of vCPUs
       # reported by KVM. This was already verified earlier, so
@@ -974,7 +975,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  def _ExecuteCpuAffinity(self, instance_name, cpu_mask, worker_cpu_mask):
+  def _ExecuteCpuAffinity(self, instance_name, cpu_mask):
     """Complete CPU pinning.
 
     @type instance_name: string
@@ -988,7 +989,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Get vCPU thread IDs, to be used if need to pin vCPUs separately
     thread_dict = self._GetVcpuThreadIds(instance_name)
     # Run CPU pinning, based on configured mask
-    self._AssignCpuAffinity(cpu_mask, worker_cpu_mask, pid, thread_dict)
+    self._AssignCpuAffinity(cpu_mask, pid, thread_dict)
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
@@ -1115,6 +1116,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       aio_val = ",aio=%s" % aio_mode
     else:
       aio_val = ""
+    # discard mode
+    discard_mode = up_hvp[constants.HV_DISK_DISCARD]
+    if discard_mode == constants.HT_DISCARD_DEFAULT:
+      discard_val = ""
+    else:
+      discard_val = ",discard=%s" % discard_mode
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
@@ -1124,12 +1131,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
                           " to prevent shared storage corruption on migration",
                           disk_cache)
-        cache_val = ",cache=none"
-      elif aio_mode == constants.HT_KVM_AIO_NATIVE and disk_cache != "none":
-        # TODO: make this a hard error, instead of a silent overwrite
-        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                        " to prevent QEMU failures in version 2.6+",
-                        disk_cache)
         cache_val = ",cache=none"
       elif disk_cache != constants.HT_CACHE_DEFAULT:
         cache_val = ",cache=%s" % disk_cache
@@ -1148,8 +1149,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
-      drive_val = "file=%s,format=raw%s%s%s%s" % \
-                  (drive_uri, if_val, boot_val, cache_val, aio_val)
+      drive_val = "file=%s,format=raw%s%s%s%s%s" % \
+                  (drive_uri, if_val, boot_val, cache_val, aio_val, discard_val)
 
       # virtio-blk-pci case
       if device_driver is not None:
@@ -1284,10 +1285,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd.extend(["-balloon", "virtio"])
     kvm_cmd.extend(["-daemonize"])
-    # logfile for qemu
-    qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
-                                  "%s.log" % instance.name)
-    kvm_cmd.extend(["-D", qemu_logfile])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
@@ -1405,14 +1402,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         vnc_bind_address)
         else:
           vnc_bind_address = if_ip4_addresses[0]
-      if (netutils.IP4Address.IsValid(vnc_bind_address) or
-          netutils.IP6Address.IsValid(vnc_bind_address)):
+      if netutils.IP4Address.IsValid(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:
             vnc_arg = ":%d" % (display)
-          elif netutils.IP6Address.IsValid(vnc_bind_address):
-            vnc_arg = "[%s]:%d" % (vnc_bind_address, display)
           else:
             vnc_arg = "%s:%d" % (vnc_bind_address, display)
         else:
@@ -1568,6 +1562,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Set system UUID to instance UUID
     if self._UUID_RE.search(kvmhelp):
       kvm_cmd.extend(["-uuid", instance.uuid])
+
+    # Add guest agent socket
+    if hvp[constants.HV_USE_GUEST_AGENT]:
+      qga_addr = utils.GetFreeSlot(bus_slots[_PCI_BUS], reserve=True)
+      qga_pci_info = "bus=%s,addr=%s" % (_PCI_BUS, hex(qga_addr))
+      qga_path = self._InstanceQemuGuestAgentMonitor(instance.name)
+      logging.info("KVM: Guest Agent available at %s", qga_path)
+      # The 'qga0' identified can change, but the 'org.qemu.guest_agent.0'
+      # string is the default expected by the Guest Agent.
+      kvm_cmd.extend([
+        "-chardev", "socket,path=%s,server,nowait,id=qga0" % qga_path,
+        "-device", "virtio-serial,id=qga0,%s" % qga_pci_info,
+        "-device", "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0",
+        ])
 
     if hvp[constants.HV_KVM_EXTRA]:
       kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
@@ -1902,8 +1910,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # during instance startup anyway, and to avoid problems when soft
     # rebooting the instance.
     cpu_pinning = False
-    if up_hvp.get(constants.HV_CPU_MASK, None) \
-        and up_hvp[constants.HV_CPU_MASK] != constants.CPU_PINNING_ALL:
+    if up_hvp.get(constants.HV_CPU_MASK, None):
       cpu_pinning = True
 
     if security_model == constants.HT_SM_POOL:
@@ -1960,8 +1967,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # If requested, set CPU affinity and resume instance execution
     if cpu_pinning:
-      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK],
-                               up_hvp[constants.HV_WORKER_CPU_MASK])
+      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK])
 
     start_memory = self._InstanceStartupMemory(instance)
     if start_memory < instance.beparams[constants.BE_MAXMEM]:
@@ -2494,20 +2500,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
-  def StartPostcopy(self, instance):
-    """Switch a migration from precopy to postcopy mode.
-
-    Requires that an instance is currently migrating, and that the
-    postcopy-ram (x-postcopy-ram on QEMU version 2.5 and below)
-    migration capability is enabled in the instance's hypervisor
-    parameters.
-
-    @type instance: L{objects.Instance}
-    @param instance: The instance being migrated.
-
-    """
-    self._CallMonitorCommand(instance.name, 'migrate_start_postcopy')
-
   def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
 
@@ -2560,10 +2552,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           if match:
             migration_status.transferred_ram = match.group("transferred")
             migration_status.total_ram = match.group("total")
-          sync_count_match = \
-            self._MIGRATION_PRECOPY_PASSES_RE.search(result.stdout)
-          if sync_count_match:
-            migration_status.dirty_sync_count = sync_count_match.group(1)
 
           return migration_status
 
@@ -2764,15 +2752,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      % username)
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      bound_to_addr = (netutils.IP4Address.IsValid(vnc_bind_address) or
-                       netutils.IP6Address.IsValid(vnc_bind_address))
+      bound_to_addr = netutils.IP4Address.IsValid(vnc_bind_address)
       is_interface = netutils.IsValidInterface(vnc_bind_address)
       is_path = utils.IsNormAbsPath(vnc_bind_address)
       if not bound_to_addr and not is_interface and not is_path:
         raise errors.HypervisorError("VNC: The %s parameter must be either"
                                      " a valid IP address, an interface name,"
                                      " or an absolute path" %
-                                     constants.HV_VNC_BIND_ADDRESS)
+                                     constants.HV_KVM_SPICE_BIND)
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     if spice_bind:

@@ -61,13 +61,8 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
                             , lockLevel, LockLevel
                             , ClientType(ClientOther), ClientId(..) )
 import qualified Ganeti.Locking.Waiting as LW
-import Ganeti.Objects ( ConfigData, DRBDSecret, LogicalVolume, Ip4Address
-                      , configMaintenance, maintRoundDelay, maintJobs
-                      , maintBalance, maintBalanceThreshold, maintEvacuated
-                      , Incident, maintIncidents
-                      )
+import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume, Ip4Address)
 import Ganeti.Objects.Lens (configClusterL, clusterMasterNodeL)
-import Ganeti.Types (JobId)
 import Ganeti.WConfd.ConfigState (csConfigDataL)
 import qualified Ganeti.WConfd.ConfigVerify as V
 import Ganeti.WConfd.DeathDetection (cleanupLocks)
@@ -169,30 +164,6 @@ flushConfig = forceConfigStateDistribution Everywhere
 -- modifying it. It is not necessary to hold a lock for this operation.
 flushConfigGroup :: String -> WConfdMonad ()
 flushConfigGroup = forceConfigStateDistribution . ToGroups . S.singleton
-
--- *** Access to individual parts of the configuration
-
--- | Get the configurable value of the maintenance interval
-maintenanceRoundDelay :: WConfdMonad Int
-maintenanceRoundDelay = liftM ( maintRoundDelay . configMaintenance )
-                              CW.readConfig
-
--- | Get the list of jobs in the state of the maintenance daemon.
-maintenanceJobs :: WConfdMonad [JobId]
-maintenanceJobs = liftM ( maintJobs . configMaintenance ) CW.readConfig
-
--- | Get the information related to balancing for the maintenance daemon.
-maintenanceBalancing :: WConfdMonad (Bool, Double)
-maintenanceBalancing = liftM ((maintBalance &&& maintBalanceThreshold)
-                              . configMaintenance) CW.readConfig
-
--- | Get the list of recently evacuated instances.
-maintenanceEvacuated :: WConfdMonad [String]
-maintenanceEvacuated = liftM (maintEvacuated . configMaintenance) CW.readConfig
-
--- | Get the list of current incidents.
-maintenanceIncidents :: WConfdMonad [Incident]
-maintenanceIncidents = liftM (maintIncidents . configMaintenance) CW.readConfig
 
 -- ** Temporary reservations related functions
 
@@ -425,11 +396,6 @@ exportedFunctions = [ 'echo
                     , 'writeConfigAndUnlock
                     , 'flushConfig
                     , 'flushConfigGroup
-                    , 'maintenanceRoundDelay
-                    , 'maintenanceJobs
-                    , 'maintenanceBalancing
-                    , 'maintenanceEvacuated
-                    , 'maintenanceIncidents
                     -- temporary reservations (common)
                     , 'dropAllReservations
                     -- DRBD

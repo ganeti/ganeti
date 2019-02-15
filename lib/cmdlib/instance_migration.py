@@ -284,7 +284,6 @@ class TLMigrateInstance(Tasklet):
   # Constants
   _MIGRATION_POLL_INTERVAL = 1      # seconds
   _MIGRATION_FEEDBACK_INTERVAL = 10 # seconds
-  _POSTCOPY_SYNC_COUNT_THRESHOLD = 2 # Precopy passes before enabling postcopy
 
   def __init__(self, lu, instance_uuid, instance_name, cleanup, failover,
                fallback, ignore_consistency, allow_runtime_changes,
@@ -752,6 +751,27 @@ class TLMigrateInstance(Tasklet):
 
     self._CloseInstanceDisks(self.target_node_uuid)
 
+    unmap_types = (constants.DT_RBD, constants.DT_EXT)
+    if utils.AnyDiskOfType(disks, unmap_types):
+      # If the instance's disk template is `rbd' or `ext' and there was an
+      # unsuccessful migration, unmap the device from the target node.
+      unmap_disks = [d for d in disks if d.dev_type in unmap_types]
+      disks = ExpandCheckDisks(unmap_disks, unmap_disks)
+      self.feedback_fn("* unmapping instance's disks %s from %s" %
+                       (utils.CommaJoin(d.name for d in unmap_disks),
+                        self.cfg.GetNodeName(self.target_node_uuid)))
+      for disk in disks:
+        result = self.rpc.call_blockdev_shutdown(self.target_node_uuid,
+                                                 (disk, self.instance))
+        msg = result.fail_msg
+        if msg:
+          logging.error("Migration failed and I couldn't unmap the block device"
+                        " %s on target node %s: %s", disk.iv_name,
+                        self.cfg.GetNodeName(self.target_node_uuid), msg)
+          logging.error("You need to unmap the device %s manually on %s",
+                        disk.iv_name,
+                        self.cfg.GetNodeName(self.target_node_uuid))
+
     if utils.AllDiskOfType(disks, constants.DTS_EXT_MIRROR):
       self._OpenInstanceDisks(self.source_node_uuid, True)
       return
@@ -917,16 +937,6 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* starting memory transfer")
     last_feedback = time.time()
-
-    cluster_migration_caps = \
-      cluster.hvparams.get("kvm", {}).get(constants.HV_KVM_MIGRATION_CAPS, "")
-    migration_caps = \
-      self.instance.hvparams.get(constants.HV_KVM_MIGRATION_CAPS,
-                                 cluster_migration_caps)
-    # migration_caps is a ':' delimited string, so checking
-    # if 'postcopy-ram' is a substring also covers using
-    # x-postcopy-ram for QEMU 2.5
-    postcopy_enabled = "postcopy-ram" in migration_caps
     while True:
       result = self.rpc.call_instance_get_migration_status(
                  self.source_node_uuid, self.instance)
@@ -943,20 +953,7 @@ class TLMigrateInstance(Tasklet):
         raise errors.OpExecError("Could not migrate instance %s: %s" %
                                  (self.instance.name, msg))
 
-      if (postcopy_enabled
-          and ms.status == constants.HV_MIGRATION_ACTIVE
-          and int(ms.dirty_sync_count) >= self._POSTCOPY_SYNC_COUNT_THRESHOLD):
-        self.feedback_fn("* finishing memory transfer with postcopy")
-        self.rpc.call_instance_start_postcopy(self.source_node_uuid,
-                                              self.instance)
-
-      if self.instance.hypervisor == 'kvm':
-        migration_active = \
-          ms.status in constants.HV_KVM_MIGRATION_ACTIVE_STATUSES
-      else:
-        migration_active = \
-          ms.status == constants.HV_MIGRATION_ACTIVE
-      if not migration_active:
+      if result.payload.status != constants.HV_MIGRATION_ACTIVE:
         self.feedback_fn("* memory transfer complete")
         break
 

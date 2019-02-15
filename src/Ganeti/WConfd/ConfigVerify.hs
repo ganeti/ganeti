@@ -39,8 +39,7 @@ module Ganeti.WConfd.ConfigVerify
   , verifyConfigErr
   ) where
 
-import Control.Monad (forM_)
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import qualified Data.Map as M

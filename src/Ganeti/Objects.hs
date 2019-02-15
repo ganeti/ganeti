@@ -80,12 +80,11 @@ module Ganeti.Objects
   , Cluster(..)
   , ConfigData(..)
   , TimeStampObject(..) -- re-exported from Types
-  , UuidObject(..)      -- re-exported from Types
-  , SerialNoObject(..)  -- re-exported from Types
-  , TagsObject(..)      -- re-exported from Types
-  , DictObject(..)      -- re-exported from THH
-  , TagSet(..)          -- re-exported from THH
-  , emptyTagSet         -- re-exported from THH
+  , UuidObject(..) -- re-exported from Types
+  , SerialNoObject(..) -- re-exported from Types
+  , TagsObject(..) -- re-exported from Types
+  , DictObject(..) -- re-exported from THH
+  , TagSet -- re-exported from THH
   , Network(..)
   , AddressPool(..)
   , Ip4Address()
@@ -104,22 +103,16 @@ module Ganeti.Objects
   , module Ganeti.PartialParams
   , module Ganeti.Objects.Disk
   , module Ganeti.Objects.Instance
-  , module Ganeti.Objects.Maintenance
-  , FilledHvStateParams(..)
-  , PartialHvStateParams(..)
-  , allHvStateParamFields
-  , FilledHvState
-  , PartialHvState ) where
+  ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Arrow (first)
 import Control.Monad.State
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (foldl', intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
+import Data.Monoid
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
 import Data.Tuple (swap)
@@ -134,10 +127,8 @@ import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON (DictObject(..), Container, emptyContainer, GenericContainer)
 import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Objects.Disk
-import Ganeti.Objects.Maintenance
 import Ganeti.Objects.Nic
 import Ganeti.Objects.Instance
-import Ganeti.Objects.HvState
 import Ganeti.Query.Language
 import Ganeti.PartialParams
 import Ganeti.Types
@@ -327,8 +318,6 @@ $(buildObject "PartialIPolicy" "ipolicy"
     simpleField "std" [t| PartialISpecParams |]
   , optionalField . renameField "SpindleRatioP" $
     simpleField "spindle-ratio" [t| Double |]
-  , optionalField . renameField "MemoryRatioP" $
-    simpleField "memory-ratio" [t| Double |]
   , optionalField . renameField "VcpuRatioP" $
     simpleField "vcpu-ratio" [t| Double |]
   , optionalField . renameField "DiskTemplatesP" $
@@ -342,8 +331,6 @@ $(buildObject "FilledIPolicy" "ipolicy"
     simpleField ConstantUtils.ispecsMinmax [t| [MinMaxISpecs] |]
   , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
   , simpleField "spindle-ratio"  [t| Double |]
-  , defaultField [| ConstantUtils.ipolicyDefaultsMemoryRatio |] $
-    simpleField "memory-ratio"  [t| Double |]
   , simpleField "vcpu-ratio"     [t| Double |]
   , simpleField "disk-templates" [t| [DiskTemplate] |]
   ])
@@ -354,20 +341,17 @@ instance PartialParams FilledIPolicy PartialIPolicy where
             (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                            , ipolicyStdSpec       = fstd
                            , ipolicySpindleRatio  = fspindleRatio
-                           , ipolicyMemoryRatio   = fmemoryRatio
                            , ipolicyVcpuRatio     = fvcpuRatio
                            , ipolicyDiskTemplates = fdiskTemplates})
             (PartialIPolicy { ipolicyMinMaxISpecsP  = pminmax
                             , ipolicyStdSpecP       = pstd
                             , ipolicySpindleRatioP  = pspindleRatio
-                            , ipolicyMemoryRatioP   = pmemoryRatio
                             , ipolicyVcpuRatioP     = pvcpuRatio
                             , ipolicyDiskTemplatesP = pdiskTemplates}) =
     FilledIPolicy
                 { ipolicyMinMaxISpecs  = fromMaybe fminmax pminmax
                 , ipolicyStdSpec       = maybe fstd (fillParams fstd) pstd
                 , ipolicySpindleRatio  = fromMaybe fspindleRatio pspindleRatio
-                , ipolicyMemoryRatio   = fromMaybe fmemoryRatio pmemoryRatio
                 , ipolicyVcpuRatio     = fromMaybe fvcpuRatio pvcpuRatio
                 , ipolicyDiskTemplates = fromMaybe fdiskTemplates
                                          pdiskTemplates
@@ -375,31 +359,22 @@ instance PartialParams FilledIPolicy PartialIPolicy where
   toPartial (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                            , ipolicyStdSpec       = fstd
                            , ipolicySpindleRatio  = fspindleRatio
-                           , ipolicyMemoryRatio   = fmemoryRatio
                            , ipolicyVcpuRatio     = fvcpuRatio
                            , ipolicyDiskTemplates = fdiskTemplates}) =
     PartialIPolicy
                 { ipolicyMinMaxISpecsP  = Just fminmax
                 , ipolicyStdSpecP       = Just $ toPartial fstd
                 , ipolicySpindleRatioP  = Just fspindleRatio
-                , ipolicyMemoryRatioP   = Just fmemoryRatio
                 , ipolicyVcpuRatioP     = Just fvcpuRatio
                 , ipolicyDiskTemplatesP = Just fdiskTemplates
                 }
   toFilled (PartialIPolicy { ipolicyMinMaxISpecsP  = pminmax
                            , ipolicyStdSpecP       = pstd
                            , ipolicySpindleRatioP  = pspindleRatio
-                           , ipolicyMemoryRatioP   = pmemoryRatio
                            , ipolicyVcpuRatioP     = pvcpuRatio
                            , ipolicyDiskTemplatesP = pdiskTemplates}) =
-    FilledIPolicy <$> pminmax <*> (toFilled =<< pstd) <*> pspindleRatio
-                  <*> pmemoryRatio <*> pvcpuRatio <*> pdiskTemplates
-
--- | Disk state parameters.
---
--- As according to the documentation this option is unused by Ganeti,
--- the content is just a 'JSValue'.
-type DiskState = Container JSValue
+    FilledIPolicy <$> pminmax <*> (toFilled =<< pstd) <*>  pspindleRatio
+                  <*> pvcpuRatio <*> pdiskTemplates
 
 -- * Node definitions
 
@@ -414,20 +389,32 @@ $(buildParam "ND" "ndp"
   , simpleField "cpu_speed"     [t| Double |]
   ])
 
+-- | Disk state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type DiskState = Container JSValue
+
+-- | Hypervisor state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type HypervisorState = Container JSValue
+
 $(buildObject "Node" "node" $
-  [ simpleField "name"              [t| String          |]
-  , simpleField "primary_ip"        [t| String          |]
-  , simpleField "secondary_ip"      [t| String          |]
-  , simpleField "master_candidate"  [t| Bool            |]
-  , simpleField "offline"           [t| Bool            |]
-  , simpleField "drained"           [t| Bool            |]
-  , simpleField "group"             [t| String          |]
-  , simpleField "master_capable"    [t| Bool            |]
-  , simpleField "vm_capable"        [t| Bool            |]
-  , simpleField "ndparams"          [t| PartialNDParams |]
-  , simpleField "powered"           [t| Bool            |]
+  [ simpleField "name"             [t| String |]
+  , simpleField "primary_ip"       [t| String |]
+  , simpleField "secondary_ip"     [t| String |]
+  , simpleField "master_candidate" [t| Bool   |]
+  , simpleField "offline"          [t| Bool   |]
+  , simpleField "drained"          [t| Bool   |]
+  , simpleField "group"            [t| String |]
+  , simpleField "master_capable"   [t| Bool   |]
+  , simpleField "vm_capable"       [t| Bool   |]
+  , simpleField "ndparams"         [t| PartialNDParams |]
+  , simpleField "powered"          [t| Bool   |]
   , notSerializeDefaultField [| emptyContainer |] $
-    simpleField "hv_state_static"   [t| PartialHvState  |]
+    simpleField "hv_state_static"   [t| HypervisorState |]
   , notSerializeDefaultField [| emptyContainer |] $
     simpleField "disk_state_static" [t| DiskState       |]
   ]
@@ -458,15 +445,15 @@ type GroupDiskParams = Container DiskParams
 type Networks = Container PartialNicParams
 
 $(buildObject "NodeGroup" "group" $
-  [ simpleField "name"              [t| String |]
+  [ simpleField "name"         [t| String |]
   , defaultField [| [] |] $ simpleField "members" [t| [String] |]
-  , simpleField "ndparams"          [t| PartialNDParams |]
-  , simpleField "alloc_policy"      [t| AllocPolicy     |]
-  , simpleField "ipolicy"           [t| PartialIPolicy  |]
-  , simpleField "diskparams"        [t| GroupDiskParams |]
-  , simpleField "networks"          [t| Networks        |]
+  , simpleField "ndparams"     [t| PartialNDParams |]
+  , simpleField "alloc_policy" [t| AllocPolicy     |]
+  , simpleField "ipolicy"      [t| PartialIPolicy  |]
+  , simpleField "diskparams"   [t| GroupDiskParams |]
+  , simpleField "networks"     [t| Networks        |]
   , notSerializeDefaultField [| emptyContainer |] $
-    simpleField "hv_state_static"   [t| PartialHvState  |]
+    simpleField "hv_state_static"   [t| HypervisorState |]
   , notSerializeDefaultField [| emptyContainer |] $
     simpleField "disk_state_static" [t| DiskState       |]
   ]
@@ -526,7 +513,6 @@ data FilterPredicate
   = FPJobId (Filter FilterField)
   | FPOpCode (Filter FilterField)
   | FPReason (Filter FilterField)
-  | FPUser (Filter FilterField)
   deriving (Eq, Ord, Show)
 
 
@@ -535,7 +521,6 @@ instance JSON FilterPredicate where
     FPJobId expr  -> JSArray [string "jobid",  showJSON expr]
     FPOpCode expr -> JSArray [string "opcode", showJSON expr]
     FPReason expr -> JSArray [string "reason", showJSON expr]
-    FPUser expr   -> JSArray [string "user", showJSON expr]
     where
       string = JSString . toJSString
 
@@ -545,7 +530,6 @@ instance JSON FilterPredicate where
       | name == toJSString "jobid"  -> FPJobId <$> readJSON expr
       | name == toJSString "opcode" -> FPOpCode <$> readJSON expr
       | name == toJSString "reason" -> FPReason <$> readJSON expr
-      | name == toJSString "user"   -> FPUser <$> readJSON expr
     JSArray (JSString name:params) ->
       fail $ "malformed FilterPredicate: bad parameter list for\
              \ '" ++ fromJSString name ++ "' predicate: "
@@ -680,10 +664,10 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"              [t| IpFamily                |]
   , simpleField "prealloc_wipe_disks"            [t| Bool                    |]
   , simpleField "ipolicy"                        [t| FilledIPolicy           |]
-  , notSerializeDefaultField [| emptyContainer |] $
-    simpleField "hv_state_static"                [t| FilledHvState           |]
-  , notSerializeDefaultField [| emptyContainer |] $
-    simpleField "disk_state_static"              [t| DiskState               |]
+  , defaultField [| emptyContainer |] $
+    simpleField "hv_state_static"                [t| HypervisorState        |]
+  , defaultField [| emptyContainer |] $
+    simpleField "disk_state_static"              [t| DiskState              |]
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]          |]
   , simpleField "candidate_certs"                [t| CandidateCertificates   |]
   , simpleField "max_running_jobs"               [t| Int                     |]
@@ -694,11 +678,8 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "compression_tools"              [t| [String]                |]
   , simpleField "enabled_user_shutdown"          [t| Bool                    |]
   , simpleField "data_collectors"         [t| Container DataCollectorConfig  |]
-  , defaultField [| [] |] $ simpleField
-      "diagnose_data_collector_filename"         [t| String                  |]
   , simpleField "ssh_key_type"                   [t| SshKeyType              |]
   , simpleField "ssh_key_bits"                   [t| Int                     |]
-  , simpleField "enabled_predictive_queue"       [t| Bool                    |]
  ]
  ++ timeStampFields
  ++ uuidFields
@@ -721,6 +702,7 @@ instance TagsObject Cluster where
 -- * ConfigData definitions
 
 $(buildObject "ConfigData" "config" $
+--  timeStampFields ++
   [ simpleField "version"    [t| Int                 |]
   , simpleField "cluster"    [t| Cluster             |]
   , simpleField "nodes"      [t| Container Node      |]
@@ -729,7 +711,6 @@ $(buildObject "ConfigData" "config" $
   , simpleField "networks"   [t| Container Network   |]
   , simpleField "disks"      [t| Container Disk      |]
   , simpleField "filters"    [t| Container FilterRule |]
-  , simpleField "maintenance" [t| MaintenanceData    |]
   ]
   ++ timeStampFields
   ++ serialFields)
@@ -750,3 +731,4 @@ $(buildObject "MasterNetworkParameters" "masterNetworkParameters"
   , simpleField "netdev"    [t| String   |]
   , simpleField "ip_family" [t| IpFamily |]
   ])
+

@@ -40,9 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Objects.Instance where
 
 import qualified Data.ByteString.UTF8 as UTF8
-
-import Prelude ()
-import Ganeti.Prelude
+import Data.Monoid
 
 import Ganeti.JSON (emptyContainer)
 import Ganeti.Objects.Nic

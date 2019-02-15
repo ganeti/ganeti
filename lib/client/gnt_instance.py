@@ -398,33 +398,14 @@ def ReinstallInstance(opts, args):
       if not AskUser(usertext):
         return 1
 
-  if opts.clear_osparams and opts.remove_osparams is not None:
-    raise errors.OpPrereqError(
-      "Using --remove-os-parameters with "
-      "--clear-os-parameters is not possible", errors.ECODE_INVAL)
-
-  if opts.clear_osparams_private and opts.remove_osparams_private is not None:
-    raise errors.OpPrereqError(
-      "Using --remove-os-parameters-private with "
-      "--clear-os-parameters-private is not possible", errors.ECODE_INVAL)
-
-  remove_osparams = opts.remove_osparams or []
-  remove_osparams_private = opts.remove_osparams_private or []
-
   jex = JobExecutor(verbose=multi_on, opts=opts)
   for instance_name in inames:
-    op = opcodes.OpInstanceReinstall(
-      instance_name=instance_name,
-      os_type=os_name,
-      force_variant=opts.force_variant,
-      osparams=opts.osparams,
-      osparams_private=opts.osparams_private,
-      osparams_secret=opts.osparams_secret,
-      clear_osparams=opts.clear_osparams,
-      clear_osparams_private=opts.clear_osparams_private,
-      remove_osparams=remove_osparams,
-      remove_osparams_private=remove_osparams_private
-    )
+    op = opcodes.OpInstanceReinstall(instance_name=instance_name,
+                                     os_type=os_name,
+                                     force_variant=opts.force_variant,
+                                     osparams=opts.osparams,
+                                     osparams_private=opts.osparams_private,
+                                     osparams_secret=opts.osparams_secret)
     jex.QueueJob(instance_name, op)
 
   results = jex.WaitOrShow(not opts.submit_only)
@@ -904,7 +885,7 @@ def ConnectToInstanceConsole(opts, args):
 
   del cl
 
-  ((console_data, oper_state), ) = idata
+  (console_data, oper_state) = idata[0]
   if not console_data:
     if oper_state:
       # Instance is running
@@ -1390,8 +1371,6 @@ def SetInstanceParams(opts, args):
   """
   if not (opts.nics or opts.disks or opts.disk_template or opts.hvparams or
           opts.beparams or opts.os or opts.osparams or opts.osparams_private
-          or opts.clear_osparams or opts.clear_osparams_private
-          or opts.remove_osparams or opts.remove_osparams_private
           or opts.offline_inst or opts.online_inst or opts.runtime_mem or
           opts.new_primary_node or opts.instance_communication is not None):
     ToStderr("Please give at least one of the parameters.")
@@ -1456,50 +1435,31 @@ def SetInstanceParams(opts, args):
 
   instance_comm = opts.instance_communication
 
-  if opts.clear_osparams and opts.remove_osparams is not None:
-    raise errors.OpPrereqError(
-      "Using --remove-os-parameters with "
-      "--clear-os-parameters is not possible", errors.ECODE_INVAL)
-
-  if opts.clear_osparams_private and opts.remove_osparams_private is not None:
-    raise errors.OpPrereqError(
-      "Using --remove-os-parameters-private with "
-      "--clear-os-parameters-private is not possible", errors.ECODE_INVAL)
-
-  remove_osparams = opts.remove_osparams or []
-  remove_osparams_private = opts.remove_osparams_private or []
-
-  op = opcodes.OpInstanceSetParams(
-    instance_name=args[0],
-    nics=nics,
-    disks=disks,
-    hotplug=opts.hotplug,
-    hotplug_if_possible=opts.hotplug_if_possible,
-    disk_template=opts.disk_template,
-    ext_params=ext_params,
-    file_driver=opts.file_driver,
-    file_storage_dir=opts.file_storage_dir,
-    remote_node=opts.node,
-    iallocator=opts.iallocator,
-    pnode=opts.new_primary_node,
-    hvparams=opts.hvparams,
-    beparams=opts.beparams,
-    runtime_mem=opts.runtime_mem,
-    os_name=opts.os,
-    osparams=opts.osparams,
-    osparams_private=opts.osparams_private,
-    clear_osparams=opts.clear_osparams,
-    clear_osparams_private=opts.clear_osparams_private,
-    remove_osparams=remove_osparams,
-    remove_osparams_private=remove_osparams_private,
-    force_variant=opts.force_variant,
-    force=opts.force,
-    wait_for_sync=opts.wait_for_sync,
-    offline=offline,
-    conflicts_check=opts.conflicts_check,
-    ignore_ipolicy=opts.ignore_ipolicy,
-    instance_communication=instance_comm
-  )
+  op = opcodes.OpInstanceSetParams(instance_name=args[0],
+                                   nics=nics,
+                                   disks=disks,
+                                   hotplug=opts.hotplug,
+                                   hotplug_if_possible=opts.hotplug_if_possible,
+                                   disk_template=opts.disk_template,
+                                   ext_params=ext_params,
+                                   file_driver=opts.file_driver,
+                                   file_storage_dir=opts.file_storage_dir,
+                                   remote_node=opts.node,
+                                   iallocator=opts.iallocator,
+                                   pnode=opts.new_primary_node,
+                                   hvparams=opts.hvparams,
+                                   beparams=opts.beparams,
+                                   runtime_mem=opts.runtime_mem,
+                                   os_name=opts.os,
+                                   osparams=opts.osparams,
+                                   osparams_private=opts.osparams_private,
+                                   force_variant=opts.force_variant,
+                                   force=opts.force,
+                                   wait_for_sync=opts.wait_for_sync,
+                                   offline=offline,
+                                   conflicts_check=opts.conflicts_check,
+                                   ignore_ipolicy=opts.ignore_ipolicy,
+                                   instance_communication=instance_comm)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1616,7 +1576,7 @@ commands = {
   "add": (
     AddInstance, [ArgHost(min=1, max=1)],
     COMMON_CREATE_OPTS + add_opts,
-    "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
+    "[...] -t disk-type -n node[:secondary-node] -o os-type <instance-name>",
     "Creates and adds a new instance to the cluster"),
   "batch-create": (
     BatchCreate, [ArgFile(min=1, max=1)],
@@ -1626,14 +1586,15 @@ commands = {
   "console": (
     ConnectToInstanceConsole, ARGS_ONE_INSTANCE,
     [SHOWCMD_OPT, PRIORITY_OPT],
-    "[--show-cmd] <instance>", "Opens a console on the specified instance"),
+    "[--show-cmd] <instance-name>",
+    "Opens a console on the specified instance"),
   "failover": (
     FailoverInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, IGNORE_CONSIST_OPT] + SUBMIT_OPTS +
     [SHUTDOWN_TIMEOUT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT,
      IGNORE_IPOLICY_OPT, CLEANUP_OPT],
-    "[-f] <instance>", "Stops the instance, changes its primary node and"
+    "[-f] <instance-name>", "Stops the instance, changes its primary node and"
     " (if it was originally running) starts it on the new node"
     " (the secondary for mirrored instances or any node"
     " for shared storage)."),
@@ -1643,7 +1604,7 @@ commands = {
      PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT, ALLOW_FAILOVER_OPT,
      IGNORE_IPOLICY_OPT, IGNORE_HVVERSIONS_OPT, NORUNTIME_CHGS_OPT]
     + SUBMIT_OPTS,
-    "[-f] <instance>", "Migrate instance to its secondary node"
+    "[-f] <instance-name>", "Migrate instance to its secondary node"
     " (only for mirrored instances)"),
   "move": (
     MoveInstance, ARGS_ONE_INSTANCE,
@@ -1651,18 +1612,18 @@ commands = {
     [SINGLE_NODE_OPT, COMPRESS_OPT,
      SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT, PRIORITY_OPT, IGNORE_CONSIST_OPT,
      IGNORE_IPOLICY_OPT],
-    "[-f] <instance>", "Move instance to an arbitrary node"
+    "[-f] <instance-name>", "Move instance to an arbitrary node"
     " (only for instances of type file and lv)"),
   "info": (
     ShowInstanceConfig, ARGS_MANY_INSTANCES,
     [STATIC_OPT, ALL_OPT, ROMAN_OPT, PRIORITY_OPT],
-    "[-s] {--all | <instance>...}",
+    "[-s] {--all | <instance-name>...}",
     "Show information on the specified instance(s)"),
   "list": (
     ListInstances, ARGS_MANY_INSTANCES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT,
      FORCE_FILTER_OPT],
-    "[<instance>...]",
+    "[<instance-name>...]",
     "Lists the instances and their status. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."
     " The default field list is (in order): %s." %
@@ -1679,27 +1640,25 @@ commands = {
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT]
     + SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT,
-                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT,
-                     CLEAR_OSPARAMS_OPT, CLEAR_OSPARAMS_PRIVATE_OPT,
-                     REMOVE_OSPARAMS_OPT, REMOVE_OSPARAMS_PRIVATE_OPT],
+                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   "remove": (
     RemoveInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SHUTDOWN_TIMEOUT_OPT, IGNORE_FAILURES_OPT] + SUBMIT_OPTS
     + [DRY_RUN_OPT, PRIORITY_OPT],
-    "[-f] <instance>", "Shuts down the instance and removes it"),
+    "[-f] <instance-name>", "Shuts down the instance and removes it"),
   "rename": (
     RenameInstance,
     [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
     [FORCE_OPT, NOIPCHECK_OPT, NONAMECHECK_OPT] + SUBMIT_OPTS
     + [DRY_RUN_OPT, PRIORITY_OPT],
-    "<instance> <new_name>", "Rename the instance"),
+    "<old-name> <new-name>", "Rename the instance"),
   "replace-disks": (
     ReplaceDisks, ARGS_ONE_INSTANCE,
     [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT,
      NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT] + SUBMIT_OPTS
     + [DRY_RUN_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT],
-    "[-s|-p|-a|-n NODE|-I NAME] <instance>",
+    "[-s|-p|-a|-n NODE|-I NAME] <instance-name>",
     "Replaces disks for the instance"),
   "modify": (
     SetInstanceParams, ARGS_ONE_INSTANCE,
@@ -1710,10 +1669,8 @@ commands = {
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
      HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT,
-     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT,
-     CLEAR_OSPARAMS_OPT, CLEAR_OSPARAMS_PRIVATE_OPT,
-     REMOVE_OSPARAMS_OPT, REMOVE_OSPARAMS_PRIVATE_OPT],
-    "<instance>", "Alters the parameters of an instance"),
+     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT],
+    "<instance-name>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
     [FORCE_OPT, m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
@@ -1740,40 +1697,41 @@ commands = {
   "activate-disks": (
     ActivateDisks, ARGS_ONE_INSTANCE,
     SUBMIT_OPTS + [IGNORE_SIZE_OPT, PRIORITY_OPT, WFSYNC_OPT],
-    "<instance>", "Activate an instance's disks"),
+    "<instance-name>", "Activate an instance's disks"),
   "deactivate-disks": (
     DeactivateDisks, ARGS_ONE_INSTANCE,
     [FORCE_OPT] + SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT],
-    "[-f] <instance>", "Deactivate an instance's disks"),
+    "[-f] <instance-name>", "Deactivate an instance's disks"),
   "recreate-disks": (
     RecreateDisks, ARGS_ONE_INSTANCE,
     SUBMIT_OPTS +
     [DISK_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT,
      IALLOCATOR_OPT],
-    "<instance>", "Recreate an instance's disks"),
+    "<instance-name>", "Recreate an instance's disks"),
   "grow-disk": (
     GrowDisk,
     [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1),
      ArgUnknown(min=1, max=1)],
     SUBMIT_OPTS +
     [NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT, ABSOLUTE_OPT, IGNORE_IPOLICY_OPT],
-    "<instance> <disk> <size>", "Grow an instance's disk"),
+    "<instance-name> <disk> <size>", "Grow an instance's disk"),
   "change-group": (
     ChangeGroup, ARGS_ONE_INSTANCE,
     [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, PRIORITY_OPT]
     + SUBMIT_OPTS,
-    "[-I <iallocator>] [--to <group>]", "Change group of instance"),
+    "[-I <iallocator>] [--to <group>] <instance-name>",
+    "Change group of instance"),
   "list-tags": (
     ListTags, ARGS_ONE_INSTANCE, [],
-    "<instance_name>", "List the tags of the given instance"),
+    "<instance-name>", "List the tags of the given instance"),
   "add-tags": (
     AddTags, [ArgInstance(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<instance_name> tag...", "Add tags to the given instance"),
+    "<instance-name> <tag>...", "Add tags to the given instance"),
   "remove-tags": (
     RemoveTags, [ArgInstance(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<instance_name> tag...", "Remove tags from given instance"),
+    "<instance-name> <tag>...", "Remove tags from given instance"),
   }
 
 #: dictionary with aliases for commands

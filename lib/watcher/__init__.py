@@ -345,36 +345,12 @@ def _CheckForOfflineNodes(nodes, instance):
   return compat.any(nodes[node_name].offline for node_name in instance.snodes)
 
 
-def _GetPendingVerifyDisks(cl, uuid):
-  """Checks if there are any currently running or pending group verify jobs and
-  if so, returns their id.
-
-  """
-  qfilter = qlang.MakeSimpleFilter("status",
-                                    frozenset([constants.JOB_STATUS_RUNNING,
-                                               constants.JOB_STATUS_QUEUED,
-                                               constants.JOB_STATUS_WAITING]))
-  qresult = cl.Query(constants.QR_JOB, ["id", "summary"], qfilter)
-
-  ids = [jobid for ((_, jobid), (_, (job, ))) in qresult.data
-         if job == ("GROUP_VERIFY_DISKS(%s)" % uuid)]
-  return ids
-
-
-def _VerifyDisks(cl, uuid, nodes, instances, is_strict):
+def _VerifyDisks(cl, uuid, nodes, instances):
   """Run a per-group "gnt-cluster verify-disks".
 
   """
-
-  existing_jobs = _GetPendingVerifyDisks(cl, uuid)
-  if existing_jobs:
-    logging.info("There are verify disks jobs already pending (%s), skipping "
-                 "VerifyDisks step for %s.",
-                 utils.CommaJoin(existing_jobs), uuid)
-    return
-
   op = opcodes.OpGroupVerifyDisks(
-    group_name=uuid, priority=constants.OP_PRIO_LOW, is_strict=is_strict)
+    group_name=uuid, priority=constants.OP_PRIO_LOW)
   op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
                 "Verifying disks of group %s" % uuid,
                 utils.EpochNano())]
@@ -501,9 +477,6 @@ def ParseOptions():
                     help="Don't wait for child processes")
   parser.add_option("--no-verify-disks", dest="no_verify_disks", default=False,
                     action="store_true", help="Do not verify disk status")
-  parser.add_option("--no-strict", dest="no_strict",
-                    default=False, action="store_true",
-                    help="Do not run group verify in strict mode")
   parser.add_option("--rapi-ip", dest="rapi_ip",
                     default=constants.IP4_ADDRESS_LOCALHOST,
                     help="Use this IP to talk to RAPI.")
@@ -731,7 +704,6 @@ def _GlobalWatcher(opts):
   # we are on master now
   utils.EnsureDaemon(constants.RAPI)
   utils.EnsureDaemon(constants.WCONFD)
-  utils.EnsureDaemon(constants.MAINTD)
 
   # If RAPI isn't responding to queries, try one restart
   logging.debug("Attempting to talk to remote API on %s",
@@ -871,7 +843,7 @@ def _GroupWatcher(opts):
 
   logging.debug("Using state file %s", state_path)
 
-  # Group watcher file lock
+  # Global watcher
   statefile = state.OpenStateFile(state_path) # pylint: disable=E0602
   if not statefile:
     return constants.EXIT_FAILURE
@@ -894,28 +866,26 @@ def _GroupWatcher(opts):
 
     started = _CheckInstances(client, notepad, instances, locks)
     _CheckDisks(client, notepad, nodes, instances, started)
+
+    # Check if the nodegroup only has ext storage type
+    only_ext = compat.all(i.disk_template == constants.DT_EXT
+                          for i in instances.values())
+
+    # We skip current NodeGroup verification if there are only external storage
+    # devices. Currently we provide an interface for external storage provider
+    # for disk verification implementations, however current ExtStorageDevice
+    # does not provide an API for this yet.
+    #
+    # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
+    # is implemented.
+    if not opts.no_verify_disks and not only_ext:
+      _VerifyDisks(client, group_uuid, nodes, instances)
   except Exception, err:
     logging.info("Not updating status file due to failure: %s", err)
     raise
   else:
     # Save changes for next run
     notepad.Save(state_path)
-    notepad.Close()
-
-  # Check if the nodegroup only has ext storage type
-  only_ext = compat.all(i.disk_template == constants.DT_EXT
-                        for i in instances.values())
-
-  # We skip current NodeGroup verification if there are only external storage
-  # devices. Currently we provide an interface for external storage provider
-  # for disk verification implementations, however current ExtStorageDevice
-  # does not provide an API for this yet.
-  #
-  # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
-  # is implemented.
-  if not opts.no_verify_disks and not only_ext:
-    is_strict = not opts.no_strict
-    _VerifyDisks(client, group_uuid, nodes, instances, is_strict=is_strict)
 
   return constants.EXIT_SUCCESS
 

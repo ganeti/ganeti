@@ -40,30 +40,23 @@ module Test.Ganeti.Objects
   ( testObjects
   , Node(..)
   , genConfigDataWithNetworks
-  , genConfigDataWithValues
   , genDisk
   , genDiskWithChildren
   , genEmptyCluster
   , genInst
   , genInstWithNets
   , genValidNetwork
-  , genValidGroupName
-  , genValidNodeName
-  , genValidInstanceName
   , genBitStringMaxLen
   ) where
-
-import Prelude ()
-import Ganeti.Prelude
 
 import Test.QuickCheck
 import qualified Test.HUnit as HUnit
 
-import Control.Monad (liftM, when)
+import Control.Applicative
+import Control.Monad
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char
-import qualified Data.Foldable as F
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
@@ -98,41 +91,18 @@ instance Arbitrary (Container DataCollectorConfig) where
     return GenericContainer {
       fromContainer = Map.fromList $ zip names configs }
 
--- FYI: Currently only memory node value is used
-instance Arbitrary PartialHvStateParams where
-  arbitrary = PartialHvStateParams <$> pure Nothing <*> pure Nothing
-              <*> pure Nothing <*> genMaybe (fromPositive <$> arbitrary)
-              <*> pure Nothing
-
-instance Arbitrary PartialHvState where
-  arbitrary = do
-    hv_params <- arbitrary
-    return GenericContainer {
-      fromContainer = Map.fromList [ hv_params ] }
-
--- FYI: Currently only memory node value is used
-instance Arbitrary FilledHvStateParams where
-  arbitrary = FilledHvStateParams <$> pure 0 <*> pure 0 <*> pure 0
-              <*> (fromPositive <$> arbitrary) <*> pure 0
-
-instance Arbitrary FilledHvState where
-  arbitrary = do
-    hv_params <- arbitrary
-    return GenericContainer {
-      fromContainer = Map.fromList [ hv_params ] }
-
 instance Arbitrary BS.ByteString where
   arbitrary = fmap UTF8.fromString arbitrary
 
 $(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
-  arbitrary = Node <$> genFQDN <*> genIp6Addr <*> genIp6Addr
+  arbitrary = Node <$> genFQDN <*> genFQDN <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> fmap UTF8.fromString genUUID <*> arbitrary
-              <*> arbitrary -- TagSet
+              <*> (Set.fromList <$> genTags)
 
 $(genArbitrary ''BlockDriver)
 
@@ -223,7 +193,7 @@ instance Arbitrary ForthcomingInstanceData where
       -- serial
       <*> arbitrary
       -- tags
-      <*> arbitrary
+      <*> (Set.fromList <$> genTags)
 
 instance Arbitrary RealInstanceData where
   arbitrary =
@@ -264,7 +234,7 @@ instance Arbitrary RealInstanceData where
       -- serial
       <*> arbitrary
       -- tags
-      <*> arbitrary
+      <*> (Set.fromList <$> genTags)
 
 instance Arbitrary Instance where
   arbitrary = frequency [ (1, ForthcomingInstance <$> arbitrary)
@@ -372,7 +342,7 @@ instance Arbitrary ClusterBeParams where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
 instance Arbitrary TagSet where
-  arbitrary = TagSet . Set.fromList <$> genTags
+  arbitrary = Set.fromList <$> genTags
 
 instance Arbitrary IAllocatorParams where
   arbitrary = return $ GenericContainer Map.empty
@@ -419,35 +389,6 @@ instance Arbitrary SshKeyType where
     , pure ECDSA
     ]
 
-instance Arbitrary RepairStatus where
-  arbitrary = elements [ RSNoted, RSPending, RSCanceled, RSFailed, RSCompleted ]
-
-instance Arbitrary RepairAction where
-  arbitrary = elements [ RANoop, RALiveRepair, RAEvacuate, RAEvacuateFailover ]
-
-instance Arbitrary Incident where
-  arbitrary = Incident <$> pure (J.JSObject $ J.toJSObject [])
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-
-instance Arbitrary MaintenanceData where
-  arbitrary = MaintenanceData <$> (fromPositive <$> arbitrary)
-                              <*> arbitrary
-                              <*> arbitrary
-                              <*> arbitrary
-                              <*> arbitrary
-                              <*> arbitrary
-                              <*> arbitrary
-                              <*> arbitrary
-                              <*> arbitrary
-
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated
 -- for the reservations.
@@ -467,7 +408,7 @@ genValidNetwork = do
   ctime <- arbitrary
   mtime <- arbitrary
   let n = Network name mac_prefix (mkIp4Network net netmask) net6 gateway
-          gateway6 res ext_res uuid ctime mtime 0 emptyTagSet
+          gateway6 res ext_res uuid ctime mtime 0 Set.empty
   return n
 
 -- | Generate an arbitrary string consisting of '0' and '1' of the given length.
@@ -504,7 +445,6 @@ genEmptyCluster ncount = do
       networks = GenericContainer Map.empty
       disks = GenericContainer Map.empty
       filters = GenericContainer Map.empty
-  maintenance <- arbitrary
   let contgroups = GenericContainer $ Map.singleton (UTF8.fromString guuid) grp
   serial <- arbitrary
   -- timestamp fields
@@ -512,7 +452,7 @@ genEmptyCluster ncount = do
   mtime <- arbitrary
   cluster <- resize 8 arbitrary
   let c = ConfigData version cluster contnodes contgroups continsts networks
-            disks filters ctime maintenance mtime serial
+            disks filters ctime mtime serial
   return c
 
 -- | FIXME: make an even simpler base version of creating a cluster.
@@ -532,45 +472,6 @@ genConfigDataWithNetworks old_cfg = do
         (map (\n -> (UTF8.fromString $ uuidOf n, n)) nets_unique)
       new_cfg = old_cfg { configNetworks = net_map }
   return new_cfg
-
-genConfigDataWithValues :: Int -> Int -> Gen ConfigData
-genConfigDataWithValues nNodes nInsts = do
-  cfg <- genConfigDataWithNetworks =<< genEmptyCluster nNodes
-  insts <- vectorOf nInsts (genInstanceFromConfigData cfg)
-  let getInstName i
-        | RealInstance rinst <- i = UTF8.fromString $ realInstName rinst
-        | ForthcomingInstance finst <- i =
-            UTF8.fromString . fromMaybe "" $ forthcomingInstName finst
-        | otherwise = error ("Inconsistent instance type: " ++ show i)
-  let instmap = Map.fromList . map (\x -> (getInstName x, x)) $ insts
-      continsts = GenericContainer instmap
-  return $ cfg { configInstances = continsts }
-
-genInstanceFromConfigData :: ConfigData -> Gen Instance
-genInstanceFromConfigData cfg = do
-  inst <- RealInstance <$> arbitrary
-  let nets = map (fromNonEmpty . networkName) . F.toList . configNetworks $ cfg
-      nodes = map nodeName . F.toList . configNodes $ cfg
-      new_inst = case inst of
-                    RealInstance rinst ->
-                      RealInstance rinst { realInstPrimaryNode = head nodes }
-                    ForthcomingInstance finst ->
-                      ForthcomingInstance finst
-                        { forthcomingInstPrimaryNode = Just $ head nodes }
-  -- FIXME: generate instance's secondary nodes using drbd/disk info
-  enhanceInstWithNets new_inst nets
-
-genValidGroupName :: ConfigData -> Gen String
-genValidGroupName cfg =
-  elements . map groupName . F.toList . configNodegroups $ cfg
-
-genValidNodeName :: ConfigData -> Gen String
-genValidNodeName cfg =
-  elements . map nodeName . F.toList . configNodes $ cfg
-
-genValidInstanceName :: ConfigData -> Gen (Maybe String)
-genValidInstanceName cfg =
-  elements . map instName . F.toList . configInstances $ cfg
 
 -- * Test properties
 
@@ -750,7 +651,7 @@ genNodeGroup = do
   mtime <- arbitrary
   uuid <- genFQDN `suchThat` (/= name)
   serial <- arbitrary
-  tags <- arbitrary
+  tags <- Set.fromList <$> genTags
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
               net_map hv_state disk_state ctime mtime (UTF8.fromString uuid)
               serial tags

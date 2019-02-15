@@ -68,7 +68,7 @@ import Ganeti.THH
 import Ganeti.Utils (getCurrentTimeUSec)
 
 -- | The possible classes a data collector can belong to.
-data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor | DCNode
+data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
   deriving (Show, Eq, Read, Enum, Bounded)
 
 -- | Get the category name and return it as a string.
@@ -145,7 +145,7 @@ instance JSON DCVersion where
 
 -- | Type for the value field of the `CollectorMap` below.
 data CollectorData =
-  CPULoadData (Seq.Seq (ClockTime, [Integer]))
+  CPULoadData (Seq.Seq (ClockTime, [Int]))
   | InstanceCpuLoad (Map.Map String (Seq.Seq (ClockTime, Double)))
 
 instance NFData ClockTime where

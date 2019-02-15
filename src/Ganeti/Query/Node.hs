@@ -38,10 +38,8 @@ module Ganeti.Query.Node
   , collectLiveData
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Data.List (intercalate)
+import Control.Applicative
+import Data.List
 import Data.Maybe
 import qualified Text.JSON as J
 
@@ -245,14 +243,13 @@ nodeFields =
   , (FieldDefinition "powered" "Powered" QFTBool
        "Whether node is thought to be powered on",
      FieldConfig getNodePower, QffNormal)
-  , (FieldDefinition "hv_state" "HypervisorState" QFTOther
-       "Static hypervisor state for default hypervisor only",
-     FieldConfig $ (rsNormal .) . getFilledHvStateParams, QffNormal)
-  , (FieldDefinition "custom_hv_state" "CustomHypervisorState" QFTOther
-       "Custom static hypervisor state",
-     FieldSimple $ rsNormal . nodeHvStateStatic, QffNormal)
+  -- FIXME: the two fields below are incomplete in Python, part of the
+  -- non-implemented node resource model; they are declared just for
+  -- parity, but are not functional
+  , (FieldDefinition "hv_state" "HypervisorState" QFTOther "Hypervisor state",
+     FieldSimple (const rsUnavail), QffNormal)
   , (FieldDefinition "disk_state" "DiskState" QFTOther "Disk state",
-     FieldSimple $ rsNormal . nodeDiskStateStatic, QffNormal)
+     FieldSimple (const rsUnavail), QffNormal)
   ] ++
   map nodeLiveFieldBuilder nodeLiveFieldsDefs ++
   map buildNdParamField allNDParamFields ++

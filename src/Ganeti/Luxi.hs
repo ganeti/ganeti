@@ -60,8 +60,6 @@ module Ganeti.Luxi
   , recvMsgExt
   , sendMsg
   , allLuxiCalls
-  , extractArray
-  , fromJValWithStatus
   ) where
 
 import Control.Applicative (optional, liftA, (<|>))
@@ -73,7 +71,8 @@ import Text.JSON.Types
 import Ganeti.BasicTypes
 import Ganeti.Constants
 import Ganeti.Errors
-import Ganeti.JSON (fromJResult, fromJVal, fromObj, Tuple5(..), MaybeForJSON(..), TimeAsDoubleJSON(..))
+import Ganeti.JSON (fromJResult, fromJVal, Tuple5(..),
+                    MaybeForJSON(..), TimeAsDoubleJSON(..))
 import Ganeti.UDSServer
 import Ganeti.Objects
 import Ganeti.OpParams (pTagsObject)
@@ -383,41 +382,3 @@ queryJobsStatus s jids = do
                                          LuxiError "Missing job status field"
                                     else Ok (map head vals)
                        J.Error x -> Bad $ LuxiError x
-
--- * Utility functions
-
--- | Get values behind \"data\" part of the result.
-getData :: (Monad m) => JSValue -> m JSValue
-getData (JSObject o) = fromObj (fromJSObject o) "data"
-getData x = fail $ "Invalid input, expected dict entry but got " ++ show x
-
--- | Converts a (status, value) into m value, if possible.
-parseQueryField :: (Monad m) => JSValue -> m (JSValue, JSValue)
-parseQueryField (JSArray [status, result]) = return (status, result)
-parseQueryField o =
-  fail $ "Invalid query field, expected (status, value) but got " ++ show o
-
--- | Parse a result row.
-parseQueryRow :: (Monad m) => JSValue -> m [(JSValue, JSValue)]
-parseQueryRow (JSArray arr) = mapM parseQueryField arr
-parseQueryRow o =
-  fail $ "Invalid query row result, expected array but got " ++ show o
-
--- | Parse an overall query result and get the [(status, value)] list
--- for each element queried.
-parseQueryResult :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
-parseQueryResult (JSArray arr) = mapM parseQueryRow arr
-parseQueryResult o =
-  fail $ "Invalid query result, expected array but got " ++ show o
-
--- | Prepare resulting output as parsers expect it.
-extractArray :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
-extractArray v =
-  getData v >>= parseQueryResult
-
--- | Testing result status for more verbose error message.
-fromJValWithStatus :: (J.JSON a, Monad m) => (JSValue, JSValue) -> m a
-fromJValWithStatus (st, v) = do
-  st' <- fromJVal st
-  Qlang.checkRS st' v >>= fromJVal
-

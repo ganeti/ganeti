@@ -224,7 +224,6 @@ support all options. Some common options are:
   - disk templates
   - vcpu ratio
   - spindle ratio
-  - memory ratio (optional)
 
 \--mond=*yes|no*
   If given the program will query all MonDs to fetch data from the

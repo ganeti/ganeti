@@ -253,8 +253,6 @@
 
     "job-list": true,
 
-    "global-hooks": true,
-
     "jobqueue-performance": true,
     "parallel-performance": true,
 
@@ -277,8 +275,7 @@
     "default-instance-tests": true,
     "exclusive-storage-instance-tests": false,
 
-    "mon-collector": true,
-    "maintd": true
+    "mon-collector": true
   },
 
   "options": {

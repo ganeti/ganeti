@@ -251,9 +251,9 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          strict_host_check=options.ssh_key_check)
 
   (_, pub_keyfile) = root_keyfiles[ssh_key_type]
-  pub_key = ssh.ReadRemoteSshPubKey(pub_keyfile, node, cluster_name, ssh_port,
-                                    options.ssh_key_check,
-                                    options.ssh_key_check)
+  pub_key = ssh.ReadRemoteSshPubKeys(pub_keyfile, node, cluster_name, ssh_port,
+                                     options.ssh_key_check,
+                                     options.ssh_key_check)
   # Unfortunately, we have to add the key with the node name rather than
   # the node's UUID here, because at this point, we do not have a UUID yet.
   # The entry will be corrected in noded later.
@@ -358,9 +358,7 @@ def AddNode(opts, args):
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
                          hv_state=hv_state,
-                         node_setup=modify_ssh_setup,
-                         verbose=opts.verbose,
-                         debug=opts.debug > 0)
+                         node_setup=modify_ssh_setup)
   SubmitOpCode(op, opts=opts)
 
 
@@ -663,9 +661,7 @@ def RemoveNode(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpNodeRemove(node_name=args[0],
-                            debug=opts.debug > 0,
-                            verbose=opts.verbose)
+  op = opcodes.OpNodeRemove(node_name=args[0])
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -995,7 +991,7 @@ def SetNodeParams(opts, args):
   # Comparing explicitly to false to distinguish between a parameter
   # modification that doesn't set the node online (where the value will be None)
   # and modifying the node to bring it online.
-  if opts.offline is False:
+  if opts.offline is False and not opts.force:
     usertext = ("You are setting this node online manually. If the"
                 " configuration has changed, this can cause issues such as"
                 " split brain. To safely bring a node back online, please use"
@@ -1018,9 +1014,7 @@ def SetNodeParams(opts, args):
                                auto_promote=opts.auto_promote,
                                powered=opts.node_powered,
                                hv_state=hv_state,
-                               disk_state=disk_state,
-                               verbose=opts.verbose,
-                               debug=opts.debug > 0)
+                               disk_state=disk_state)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1071,19 +1065,6 @@ def RestrictedCommand(opts, args):
       ToStdout(text)
 
   return exit_code
-
-
-def RepairCommand(opts, args):
-  cl = GetClient()
-  if opts.input:
-    inp = opts.input.decode('string_escape')
-  else:
-    inp = None
-  op = opcodes.OpRepairCommand(command=args[0], node_name=args[1],
-                               input=inp)
-  result = SubmitOrSend(op, opts, cl=cl)
-  print result
-  return constants.EXIT_SUCCESS
 
 
 class ReplyStatus(object):
@@ -1180,7 +1161,7 @@ commands = {
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
      DISK_STATE_OPT],
     "[-s ip] [--readd] [--no-ssh-key-check] [--force-join]"
-    " [--no-node-setup] [--verbose] [--network] [--debug] <node_name>",
+    " [--no-node-setup] [--verbose] [--network] <node-name>",
     "Add a node to the cluster"),
   "evacuate": (
     EvacuateNode, ARGS_ONE_NODE,
@@ -1205,12 +1186,12 @@ commands = {
     " (only for instances of type drbd)"),
   "info": (
     ShowNodeConfig, ARGS_MANY_NODES, [],
-    "[<node_name>...]", "Show information about the node(s)"),
+    "[<node>...]", "Show information about the node(s)"),
   "list": (
     ListNodes, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT,
      FORCE_FILTER_OPT],
-    "[nodes...]",
+    "[<node-name>...]",
     "Lists the nodes in the cluster. The available fields can be shown using"
     " the \"list-fields\" command (see the man page for details)."
     " The default field list is (in order): %s." %
@@ -1226,12 +1207,12 @@ commands = {
     [MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT,
-     NODE_POWERED_OPT, HV_STATE_OPT, DISK_STATE_OPT, VERBOSE_OPT],
-    "<node_name>", "Alters the parameters of a node"),
+     NODE_POWERED_OPT, HV_STATE_OPT, DISK_STATE_OPT],
+    "<node-name>", "Alters the parameters of a node"),
   "powercycle": (
     PowercycleNode, ARGS_ONE_NODE,
     [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<node_name>", "Tries to forcefully powercycle a node"),
+    "<node-name>", "Tries to forcefully powercycle a node"),
   "power": (
     PowerNode,
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
@@ -1240,20 +1221,20 @@ commands = {
     [AUTO_PROMOTE_OPT, PRIORITY_OPT,
      IGNORE_STATUS_OPT, FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT,
      POWER_DELAY_OPT],
-    "on|off|cycle|status [nodes...]",
+    "on|off|cycle|status [<node-name>...]",
     "Change power state of node by calling out-of-band helper."),
   "remove": (
-    RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT, VERBOSE_OPT],
-    "[--verbose] [--debug] <node_name>", "Removes a node from the cluster"),
+    RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT],
+    "<node-name>", "Removes a node from the cluster"),
   "volumes": (
     ListVolumes, [ArgNode()],
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, PRIORITY_OPT],
-    "[<node_name>...]", "List logical volumes on node(s)"),
+    "[<node-name>...]", "List logical volumes on node(s)"),
   "list-storage": (
     ListStorage, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, _STORAGE_TYPE_OPT,
      PRIORITY_OPT],
-    "[<node_name>...]", "List physical volumes on node(s). The available"
+    "[<node-name>...]", "List physical volumes on node(s). The available"
     " fields are (see the man page for details): %s." %
     (utils.CommaJoin(_LIST_STOR_HEADERS))),
   "modify-storage": (
@@ -1262,43 +1243,40 @@ commands = {
      ArgChoice(min=1, max=1, choices=_MODIFIABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
     [ALLOCATABLE_OPT, DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<node_name> <storage_type> <name>", "Modify storage volume on a node"),
+    "<node-name> <storage-type> <volume-name>",
+    "Modify storage volume on a node"),
   "repair-storage": (
     RepairStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_REPAIRABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
     [IGNORE_CONSIST_OPT, DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<node_name> <storage_type> <name>",
+    "<node-name> <storage-type> <volume-name>",
     "Repairs a storage volume on a node"),
   "list-tags": (
     ListTags, ARGS_ONE_NODE, [],
-    "<node_name>", "List the tags of the given node"),
+    "<node-name>", "List the tags of the given node"),
   "add-tags": (
     AddTags, [ArgNode(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<node_name> tag...", "Add tags to the given node"),
+    "<node-name> <tag>...", "Add tags to the given node"),
   "remove-tags": (
     RemoveTags, [ArgNode(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<node_name> tag...", "Remove tags from the given node"),
+    "<node-name> <tag>...", "Remove tags from the given node"),
   "health": (
     Health, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, PRIORITY_OPT, OOB_TIMEOUT_OPT],
-    "[<node_name>...]", "List health of node(s) using out-of-band"),
+    "[<node-name>...]", "List health of node(s) using out-of-band"),
   "list-drbd": (
     ListDrbd, ARGS_ONE_NODE,
     [NOHDR_OPT, SEP_OPT],
-    "[<node_name>]", "Query the list of used DRBD minors on the given node"),
+    "<node>", "Query the list of used DRBD minors on the given node"),
   "restricted-command": (
     RestrictedCommand, [ArgUnknown(min=1, max=1)] + ARGS_MANY_NODES,
     [SYNC_OPT, PRIORITY_OPT] + SUBMIT_OPTS + [SHOW_MACHINE_OPT, NODEGROUP_OPT],
-    "<command> <node_name> [<node_name>...]",
+    "<command> <node-name>...",
     "Executes a restricted command on node(s)"),
-  "repair-command": (
-    RepairCommand, [ArgUnknown(min=1, max=1), ArgNode(min=1, max=1)],
-    [SUBMIT_OPT, INPUT_OPT], "{--input <input>} <command> <node_name>",
-    "Executes a repair command on a node"),
   }
 
 #: dictionary with aliases for commands

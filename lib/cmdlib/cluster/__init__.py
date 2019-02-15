@@ -191,9 +191,7 @@ class LUClusterRenewCrypto(NoHooksLU):
       potential_master_candidates,
       cluster_info.ssh_key_type, # Old key type
       self.ssh_key_type,         # New key type
-      self.ssh_key_bits,         # New key bits
-      self.op.debug,
-      self.op.verbose)
+      self.ssh_key_bits)         # New key bits
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
 
     # After the keys have been successfully swapped, time to commit the change
@@ -323,7 +321,7 @@ class LUClusterDestroy(LogicalUnit):
     master_params = self.cfg.GetMasterNetworkParameters()
 
     # Run post hooks on master node before it's removed
-    RunPostHook(self, master_params.uuid)
+    RunPostHook(self, self.cfg.GetNodeName(master_params.uuid))
 
     ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
@@ -1369,6 +1367,12 @@ class LUClusterSetParams(LogicalUnit):
             else:
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
 
+      # Cleanup any OS that has an empty hypervisor parameter list, as we don't
+      # need them in the cluster config anymore.
+      for os_name, hvs in self.new_os_hvp.items():
+        if not hvs:
+          self.new_os_hvp.pop(os_name, None)
+
     # os parameters
     self._BuildOSParams(cluster)
 
@@ -1479,20 +1483,6 @@ class LUClusterSetParams(LogicalUnit):
         self.cfg.SetVGName(new_volume)
       else:
         feedback_fn("Cluster LVM configuration already in desired"
-                    " state, not changing")
-
-  def _SetDiagnoseDataCollectorFilename(self, feedback_fn):
-    """Determines and sets the filename of the script
-    diagnose data collector should run.
-
-    """
-    if self.op.diagnose_data_collector_filename is not None:
-      fn = self.op.diagnose_data_collector_filename
-      if fn != self.cfg.GetDiagnoseDataCollectorFilename():
-        self.cfg.SetDiagnoseDataCollectorFilename(fn)
-      else:
-        feedback_fn("Diagnose data collector filename"
-                    " configuration already in desired"
                     " state, not changing")
 
   def _SetFileStorageDir(self, feedback_fn):
@@ -1662,16 +1652,11 @@ class LUClusterSetParams(LogicalUnit):
     self._SetSharedFileStorageDir(feedback_fn)
     self.cfg.Update(self.cluster, feedback_fn)
     self._SetDrbdHelper(feedback_fn)
-    self._SetDiagnoseDataCollectorFilename(feedback_fn)
 
     # re-read the fresh configuration again
     self.cluster = self.cfg.GetClusterInfo()
 
     ensure_kvmd = False
-    stop_kvmd_silently = not (
-        constants.HT_KVM in self.cluster.enabled_hypervisors or
-        (self.op.enabled_hypervisors is not None and
-         constants.HT_KVM in self.op.enabled_hypervisors))
 
     active = constants.DATA_COLLECTOR_STATE_ACTIVE
     if self.op.enabled_data_collectors is not None:
@@ -1732,15 +1717,6 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.modify_etc_hosts is not None:
       self.cluster.modify_etc_hosts = self.op.modify_etc_hosts
 
-    if self.op.modify_ssh_setup is not None:
-      if (self.op.modify_ssh_setup and
-          not self.cfg.GetClusterInfo().modify_ssh_setup):
-        feedback_fn(
-          "Enabling modify_ssh_setup for cluster. You may need to run"
-          " 'gnt-cluster renew-crypto --new-ssh-keys --no-ssh-key-check'"
-          " to redistribute the ssh public key settings for each node.")
-      self.cluster.modify_ssh_setup = self.op.modify_ssh_setup
-
     if self.op.prealloc_wipe_disks is not None:
       self.cluster.prealloc_wipe_disks = self.op.prealloc_wipe_disks
 
@@ -1769,9 +1745,6 @@ class LUClusterSetParams(LogicalUnit):
           self.cluster.enabled_user_shutdown != self.op.enabled_user_shutdown:
       self.cluster.enabled_user_shutdown = self.op.enabled_user_shutdown
       ensure_kvmd = True
-
-    if self.op.enabled_predictive_queue is not None:
-      self.cluster.enabled_predictive_queue = self.op.enabled_predictive_queue
 
     def helper_os(aname, mods, desc):
       desc += " OS list"
@@ -1852,19 +1825,10 @@ class LUClusterSetParams(LogicalUnit):
     # this will update the cluster object and sync 'Ssconf', and kvmd
     # uses 'Ssconf'.
     if ensure_kvmd:
-      EnsureKvmdOnNodes(self, feedback_fn, silent_stop=stop_kvmd_silently)
+      EnsureKvmdOnNodes(self, feedback_fn)
 
     if self.op.compression_tools is not None:
       self.cfg.SetCompressionTools(self.op.compression_tools)
-
-    if self.op.maint_round_delay is not None:
-      self.cfg.SetMaintdRoundDelay(self.op.maint_round_delay)
-
-    if self.op.maint_balance is not None:
-      self.cfg.SetMaintdBalance(self.op.maint_balance)
-
-    if self.op.maint_balance_threshold is not None:
-      self.cfg.SetMaintdBalanceThreshold(self.op.maint_balance_threshold)
 
     network_name = self.op.instance_communication_network
     if network_name is not None:

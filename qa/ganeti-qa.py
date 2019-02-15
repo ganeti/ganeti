@@ -48,10 +48,8 @@ import qa_env
 import qa_error
 import qa_filters
 import qa_group
-import qa_global_hooks
 import qa_instance
 import qa_iptables
-import qa_maintd
 import qa_monitoring
 import qa_network
 import qa_node
@@ -892,13 +890,6 @@ def RunMonitoringTests():
   RunTestIf("mon-collector", qa_monitoring.TestInstStatusCollector)
 
 
-def RunMaintdTests():
-  if constants.DT_DRBD8 in qa_config.GetEnabledDiskTemplates():
-    RunTestIf("maintd", qa_maintd.TestEvacuate)
-    RunTestIf("maintd", qa_maintd.TestEvacuateFailover)
-    if constants.ENABLE_RESTRICTED_COMMANDS:
-      RunTestIf("maintd", qa_maintd.TestLiveRepair)
-
 PARALLEL_TEST_DICT = {
   "parallel-failover": qa_performance.TestParallelInstanceFailover,
   "parallel-migration": qa_performance.TestParallelInstanceMigration,
@@ -973,8 +964,6 @@ def RunQa():
   RunTestBlock(RunGroupRwTests)
   RunTestBlock(RunNetworkTests)
   RunTestBlock(RunFilterTests)
-
-  RunTestIf("global-hooks", qa_global_hooks.RunGlobalHooksTests)
 
   # The master shouldn't be readded or put offline; "delay" needs a non-master
   # node to test
@@ -1097,7 +1086,6 @@ def RunQa():
     qa_cluster.AssertClusterVerify()
 
   RunTestBlock(RunMonitoringTests)
-  RunTestBlock(RunMaintdTests)
 
   RunPerformanceTests()
 

@@ -2,6 +2,10 @@
 Instance move improvements
 ========================================
 
+:Created: 2014-Apr-11
+:Status: Partially Implemented
+:Ganeti-Version: 2.12.0
+
 .. contents:: :depth: 3
 
 Ganeti provides tools for moving instances within and between clusters. Through
@@ -30,8 +34,6 @@ certain moves. Using opportunistic locking during instance moves results in
 greater parallelization. As all of these approaches aim to tackle two different
 aspects of the problem, they do not exclude each other and will be presented
 independently.
-
-.. _move-performance:
 
 The performance of Ganeti moves
 ===============================

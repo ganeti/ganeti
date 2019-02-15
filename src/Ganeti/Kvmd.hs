@@ -59,13 +59,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Kvmd where
 
-import Prelude ()
-import Ganeti.Prelude hiding (rem)
+import Prelude hiding (rem)
 
+import Control.Applicative ((<$>))
 import Control.Exception (try)
 import Control.Concurrent
 import Control.Monad (unless, when)
-import Data.List (isPrefixOf, isInfixOf)
+import Data.List
 import Data.Set (Set)
 import qualified Data.Set as Set (delete, empty, insert, member)
 import System.Directory

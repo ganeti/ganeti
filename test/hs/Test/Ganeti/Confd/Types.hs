@@ -42,9 +42,7 @@ module Test.Ganeti.Confd.Types
   , ConfdReqQ(..)
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Test.QuickCheck
 import Test.HUnit
 import qualified Text.JSON as J

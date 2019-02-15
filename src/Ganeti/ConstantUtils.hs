@@ -37,10 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.ConstantUtils where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Data.Char (ord)
+import Data.Monoid (Monoid(..))
 import Data.Set (Set)
 import qualified Data.Set as Set (difference, fromList, toList, union)
 
@@ -206,31 +204,8 @@ ipolicyVcpuRatio = "vcpu-ratio"
 ipolicySpindleRatio :: String
 ipolicySpindleRatio = "spindle-ratio"
 
-ipolicyMemoryRatio :: String
-ipolicyMemoryRatio = "memory-ratio"
-
 ipolicyDefaultsVcpuRatio :: Double
 ipolicyDefaultsVcpuRatio = 4.0
 
 ipolicyDefaultsSpindleRatio :: Double
 ipolicyDefaultsSpindleRatio = 32.0
-
-ipolicyDefaultsMemoryRatio :: Double
-ipolicyDefaultsMemoryRatio = 1.0
-
--- * Hypervisor state default parameters
-
-hvstDefaultCpuNode :: Int
-hvstDefaultCpuNode = 1
-
-hvstDefaultCpuTotal :: Int
-hvstDefaultCpuTotal = 1
-
-hvstDefaultMemoryHv :: Int
-hvstDefaultMemoryHv = 1024
-
-hvstDefaultMemoryTotal :: Int
-hvstDefaultMemoryTotal = 1024
-
-hvstDefaultMemoryNode :: Int
-hvstDefaultMemoryNode = 4096

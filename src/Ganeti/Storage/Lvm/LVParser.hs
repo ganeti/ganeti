@@ -37,9 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Storage.Lvm.LVParser (lvParser, lvCommand, lvParams) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative ((<*>), (*>), (<*), (<$>))
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)

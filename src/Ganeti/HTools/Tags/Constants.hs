@@ -43,7 +43,6 @@ module Ganeti.HTools.Tags.Constants
   , migrationPrefix
   , allowMigrationPrefix
   , locationPrefix
-  , bandwidthPrefix
   , desiredLocationPrefix
   , standbyAuto
   , autoRepairTagPrefix
@@ -75,10 +74,6 @@ allowMigrationPrefix = "htools:allowmigration:"
 -- | The prefix for node location tags.
 locationPrefix :: String
 locationPrefix = "htools:nlocation:"
-
--- | The prefix for bandwidth between nodes.
-bandwidthPrefix :: String
-bandwidthPrefix = "htools:bandwidth:"
 
 -- | The prefix for instance desired location tags.
 desiredLocationPrefix :: String

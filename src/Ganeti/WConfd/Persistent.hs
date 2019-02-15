@@ -46,7 +46,7 @@ module Ganeti.WConfd.Persistent
   , persistentTempRes
   ) where
 
-import Control.Monad.Error.Class (catchError)
+import Control.Monad.Error
 import System.Directory (doesFileExist)
 import qualified Text.JSON as J
 

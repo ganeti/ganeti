@@ -274,10 +274,6 @@ _INSTANCE_CALLS = [
     ("target", None, "Target node name"),
     ("live", None, "Whether the migration should be done live or not"),
     ], None, None, "Migrate an instance"),
-  ("instance_start_postcopy", SINGLE, None, constants.RPC_TMO_NORMAL, [
-      ("instance", ED_INST_DICT, "Instance object"),
-  ], None, None, "Switch a migrating instance from precopy to "
-                 "postcopy mode."),
   ("instance_finalize_migration_src", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("instance", ED_INST_DICT, "Instance object"),
     ("success", None, "Whether the migration succeeded or not"),
@@ -547,9 +543,7 @@ _NODE_CALLS = [
     ("to_public_keys", None, "Whether the node's key should be added"
      " to all nodes' public key file"),
     ("get_public_keys", None, "Whether the node should get the other nodes'"
-     " public keys"),
-    ("debug", None, "Set loglevel of ssh calls to 'debug'."),
-    ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
+     " public keys")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
   ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_FAST, [
     ("node_uuid", None, "UUID of the node whose key is removed"),
@@ -565,9 +559,7 @@ _NODE_CALLS = [
     ("clear_public_keys", None,
      "If the 'ganeti_pub_keys' file of the node should be cleared."),
     ("readd", None,
-     "Whether this is a readd operation."),
-    ("debug", None, "Set loglevel of ssh calls to 'debug'."),
-    ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
+     "Whether this is a readd operation.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
   ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_4HRS, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
@@ -576,13 +568,8 @@ _NODE_CALLS = [
     ("potential_master_candidates", None, "Potential master candidates"),
     ("old_key_type", None, "The type of key previously used"),
     ("new_key_type", None, "The type of key to generate"),
-    ("new_key_bits", None, "The length of the key to generate"),
-    ("debug", None, "Set logging of SSH update tool to 'debug'."),
-    ("verbose", None, "Set logging of SSH update tool to 'info'.")],
+    ("new_key_bits", None, "The length of the key to generate")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),
-  ("node_ssh_key_remove_light", MULTI, None, constants.RPC_TMO_FAST, [
-    ("node_name", None, "Name of the node whose key is removed")],
-    None, None, "Remove a node's SSH key from the master's public key file."),
   ]
 
 _MISC_CALLS = [
@@ -606,10 +593,6 @@ _MISC_CALLS = [
   ("restricted_command", MULTI, None, constants.RPC_TMO_SLOW, [
     ("cmd", None, "Command name"),
     ], None, None, "Runs restricted command"),
-  ("repair_command", SINGLE, None, constants.RPC_TMO_SLOW, [
-    ("cmd", None, "Command name"),
-    ("inp", None, "Input to be passed as stdin"),
-    ], None, None, "Runs repair command"),
   ("run_oob", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("oob_program", None, None),
     ("command", None, None),

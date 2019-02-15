@@ -52,6 +52,7 @@ from ganeti import rapi
 from ganeti import errors
 
 from ganeti.rapi.client import UsesRapiClient
+import ganeti.rapi.client_utils # pylint: disable=W0611
 
 
 SRC_RAPI_PORT_OPT = \
@@ -943,9 +944,9 @@ def _CheckInstanceOptions(parser, options, instance_names):
       options.nics = cli.ParseNicOption(options.nics)
   else:
     # Moving more than one instance
-    if compat.any([options.dest_instance_name, options.dest_primary_node,
-                   options.dest_secondary_node, options.hvparams,
-                   options.beparams, options.osparams, options.nics]):
+    if compat.any(options.dest_instance_name, options.dest_primary_node,
+                  options.dest_secondary_node, options.hvparams,
+                  options.beparams, options.osparams, options.nics):
       parser.error("The options --dest-instance-name, --dest-primary-node,"
                    " --dest-secondary-node, --hypervisor-parameters,"
                    " --backend-parameters, --os-parameters and --net can"
@@ -1031,10 +1032,7 @@ def main():
   """
   (parser, options, args) = ParseOptions()
 
-  utils.SetupToolLogging(
-      options.debug, options.verbose, threadname=True,
-      toolname=os.path.splitext(os.path.basename(__file__))[0],
-      logfile=None)
+  utils.SetupToolLogging(options.debug, options.verbose, threadname=True)
 
   (src_cluster_name, dest_cluster_name, instance_names) = \
     CheckOptions(parser, options, args)

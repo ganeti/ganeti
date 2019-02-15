@@ -41,20 +41,19 @@ module Ganeti.Monitoring.Server
   , DataCollector(..)
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Control.Applicative
 import Control.DeepSeq (force)
 import Control.Exception.Base (evaluate)
-import Control.Monad (void, forever, liftM, foldM, foldM_, mzero)
+import Control.Monad
 import Control.Monad.IO.Class
-import Data.ByteString.Char8 (unpack)
+import Data.ByteString.Char8 (pack, unpack)
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Maybe (fromMaybe)
 import Data.List (find)
+import Data.Monoid (mempty)
 import qualified Data.Map as Map
 import qualified Data.PSQueue as Queue
+import Network.BSD (getServicePortNumber)
 import Snap.Core
 import Snap.Http.Server
 import qualified Text.JSON as J
@@ -72,8 +71,7 @@ import Ganeti.Objects (DataCollectorConfig(..))
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Runtime
-import Ganeti.Utils (getCurrentTimeUSec)
-import Ganeti.Utils.Http (httpConfFromOpts, error404, plainJSON)
+import Ganeti.Utils (getCurrentTimeUSec, withDefaultOnIOError)
 
 -- * Types and constants definitions
 
@@ -89,6 +87,17 @@ type PrepResult = Config Snap ()
 latestAPIVersion :: Int
 latestAPIVersion = C.mondLatestApiVersion
 
+-- * Configuration handling
+
+-- | The default configuration for the HTTP server.
+defaultHttpConf :: FilePath -> FilePath -> Config Snap ()
+defaultHttpConf accessLog errorLog =
+  setAccessLog (ConfigFileLog accessLog) .
+  setCompression False .
+  setErrorLog (ConfigFileLog errorLog) $
+  setVerbose False
+  emptyConfig
+
 -- * Helper functions
 
 -- | Check function for the monitoring agent.
@@ -97,18 +106,28 @@ checkMain _ = return $ Right ()
 
 -- | Prepare function for monitoring agent.
 prepMain :: PrepFn CheckResult PrepResult
-prepMain opts _ = httpConfFromOpts GanetiMond opts
+prepMain opts _ = do
+  accessLog <- daemonsExtraLogFile GanetiMond AccessLog
+  errorLog <- daemonsExtraLogFile GanetiMond ErrorLog
+  defaultPort <- withDefaultOnIOError C.defaultMondPort
+                 . liftM fromIntegral
+                 $ getServicePortNumber C.mond
+  return .
+    setPort
+      (maybe defaultPort fromIntegral (optPort opts)) .
+    maybe id (setBind . pack) (optBindAddress opts)
+    $ defaultHttpConf accessLog errorLog
 
 -- * Query answers
 
 -- | Reply to the supported API version numbers query.
 versionQ :: Snap ()
-versionQ = plainJSON [latestAPIVersion]
+versionQ = writeBS . pack $ J.encode [latestAPIVersion]
 
 -- | Version 1 of the monitoring HTTP API.
 version1Api :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
 version1Api mvar mvarConfig =
-  let returnNull = plainJSON J.JSNull
+  let returnNull = writeBS . pack $ J.encode J.JSNull :: Snap ()
   in ifTop returnNull <|>
      route
        [ ("list", listHandler mvarConfig)
@@ -152,7 +171,7 @@ dcListItem dc =
 listHandler :: MVar ConfigAccess -> Snap ()
 listHandler mvarConfig = dir "collectors" $ do
   collectors' <- liftIO $ activeCollectors mvarConfig
-  plainJSON $ map dcListItem collectors'
+  writeBS . pack . J.encode $ map dcListItem collectors'
 
 -- | Handler for returning data collector reports.
 reportHandler :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
@@ -168,7 +187,7 @@ allReports :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
 allReports mvar mvarConfig = do
   collectors' <- liftIO $ activeCollectors mvarConfig
   reports <- mapM (liftIO . getReport mvar) collectors'
-  plainJSON reports
+  writeBS . pack . J.encode $ reports
 
 -- | Takes the CollectorMap and a DataCollector and returns the report for this
 -- collector.
@@ -194,7 +213,6 @@ catFromName "instance"   = BT.Ok $ Just DCInstance
 catFromName "storage"    = BT.Ok $ Just DCStorage
 catFromName "daemon"     = BT.Ok $ Just DCDaemon
 catFromName "hypervisor" = BT.Ok $ Just DCHypervisor
-catFromName "node"       = BT.Ok $ Just DCNode
 catFromName "default"    = BT.Ok Nothing
 catFromName _            = BT.Bad "No such category"
 
@@ -202,6 +220,11 @@ errorReport :: Snap ()
 errorReport = do
   modifyResponse $ setResponseStatus 404 "Not found"
   writeBS "Unable to produce a report for the requested resource"
+
+error404 :: Snap ()
+error404 = do
+  modifyResponse $ setResponseStatus 404 "Not found"
+  writeBS "Resource not found"
 
 -- | Return the report of one collector.
 oneReport :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
@@ -220,7 +243,7 @@ oneReport mvar mvarConfig = do
       Just col -> return col
       Nothing -> fail "Unable to find the requested collector"
   dcr <- liftIO $ getReport mvar collector
-  plainJSON dcr
+  writeBS . pack . J.encode $ dcr
 
 -- | The function implementing the HTTP API of the monitoring agent.
 monitoringApi :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()

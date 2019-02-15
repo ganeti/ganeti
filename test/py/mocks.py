@@ -58,11 +58,7 @@ class FakeConfig(object):
     return True
 
   def GetNodeList(self):
-    return [
-      "01234567-89ab-cdef-fedc-aaaaaaaaaaaa",
-      "01234567-89ab-cdef-fedc-bbbbbbbbbbbb",
-      "01234567-89ab-cdef-fedc-cccccccccccc"
-    ]
+    return ["a", "b", "c"]
 
   def GetRsaHostKey(self):
     return FAKE_CLUSTER_KEY
@@ -74,7 +70,7 @@ class FakeConfig(object):
     return "test.cluster"
 
   def GetMasterNode(self):
-    return "01234567-89ab-cdef-fedc-aaaaaaaaaaaa"
+    return "a"
 
   def GetMasterNodeName(self):
     return netutils.Hostname.GetSysName()
@@ -208,6 +204,3 @@ class FakeLU(object):
   def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
     # pylint: disable=W0613
     return lu_result
-
-  def HooksAbortCallBack(self, phase, feedback_fn, exception):
-    pass

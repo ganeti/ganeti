@@ -44,7 +44,7 @@ echo '{"request": 0}' | ./test/hs/hail -
 >>>= 0
 
 ./test/hs/hail $TESTDATA_DIR/hail-alloc-invalid-twodisks.json
->>> /"success":false,.*FailTooSmall: 1/
+>>> /"success":false,.*FailDisk: 1/
 >>>= 0
 
 # check that hail honors network requirements
@@ -84,12 +84,12 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>>= 0
 
 ./test/hs/hail $T/hail-alloc-invalid-twodisks.json.excl-stor
->>> /"success":false,.*FailTooSmall: 1"/
+>>> /"success":false,.*FailDisk: 1"/
 >>>= 0
 
 # Same tests with exclusive storage enabled, but no spindles info in instances
 ./test/hs/hail $T/hail-alloc-drbd.json.fail-excl-stor
->>> /"success":false,.*FailTooSmall: 12"/
+>>> /"success":false,.*FailSpindles: 12"/
 >>>= 0
 
 ./test/hs/hail $T/hail-reloc-drbd.json.fail-excl-stor
@@ -101,11 +101,11 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>>= 0
 
 ./test/hs/hail $T/hail-change-group.json.fail-excl-stor
->>> /"success":true,"info":"Request successful: 1 instances failed to move and 0 were moved successfully",.*FailTooSmall: 2"/
+>>> /"success":true,"info":"Request successful: 1 instances failed to move and 0 were moved successfully",.*FailSpindles: 2"/
 >>>= 0
 
 ./test/hs/hail $T/hail-alloc-twodisks.json.fail-excl-stor
->>> /"success":false,.*FailTooSmall: 1"/
+>>> /"success":false,.*FailSpindles: 1"/
 >>>= 0
 
 # check that hail correctly parses admin state
@@ -165,7 +165,7 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>>= 0
 
 ./test/hs/hail $T/hail-alloc-spindles.json.excl-stor
->>> /"success":true,"info":"Request successful: Selected group: group1,.*FailTooSmall: 2",.*"result":\["node1"\]/
+>>> /"success":true,"info":"Request successful: Selected group: group1,.*FailSpindles: 2",.*"result":\["node1"\]/
 >>>= 0
 
 # Check that --ignore-soft-errors works and ignores tag errors
@@ -228,11 +228,6 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 # Verify allocate-secondary
 ./test/hs/hail $TESTDATA_DIR/hail-alloc-secondary.json
 >>> /successes 2, failures 0.*"result":"node-2-2"/
->>>= 0
-
-# Memory over-commitment test
-./test/hs/hail $TESTDATA_DIR/hail-alloc-memory-over-commitment.json
->>> /"success":true.*/
 >>>= 0
 
 # Check that hail account location tags

@@ -225,30 +225,6 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNdParams(node)
 
-  def _UnlockedGetFilledHvStateParams(self, node):
-    cfg = self._ConfigData()
-    cluster_hv_state = cfg.cluster.hv_state_static
-    def_hv = self._UnlockedGetHypervisorType()
-    cluster_fv = constants.HVST_DEFAULTS if def_hv not in cluster_hv_state \
-                                         else cluster_hv_state[def_hv]
-    group_hv_state = self._UnlockedGetNodeGroup(node.group).hv_state_static
-    group_fv = cluster_fv if def_hv not in group_hv_state else \
-               objects.FillDict(cluster_fv, group_hv_state[def_hv])
-    node_fv = group_fv if def_hv not in node.hv_state_static else \
-              objects.FillDict(group_fv, node.hv_state_static[def_hv])
-    return {def_hv: node_fv}
-
-  @ConfigSync(shared=1)
-  def GetFilledHvStateParams(self, node):
-    """Get the node params populated with cluster defaults.
-
-    @type node: L{objects.Node}
-    @param node: The node we want to know the params for
-    @return: A dict with the filled in node hv_state params for the default hv
-
-    """
-    return self._UnlockedGetFilledHvStateParams(node)
-
   @ConfigSync(shared=1)
   def GetNdGroupParams(self, nodegroup):
     """Get the node groups params populated with cluster defaults.
@@ -1291,18 +1267,12 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.gluster_storage_dir
 
-  def _UnlockedGetHypervisorType(self):
-    """Get the hypervisor type for this cluster.
-
-    """
-    return self._ConfigData().cluster.enabled_hypervisors[0]
-
   @ConfigSync(shared=1)
   def GetHypervisorType(self):
     """Get the hypervisor type for this cluster.
 
     """
-    return self._UnlockedGetHypervisorType()
+    return self._ConfigData().cluster.enabled_hypervisors[0]
 
   @ConfigSync(shared=1)
   def GetRsaHostKey(self):
@@ -2979,21 +2949,6 @@ class ConfigWriter(object):
     self._ConfigData().cluster.serial_no += 1
 
   @ConfigSync(shared=1)
-  def GetDiagnoseDataCollectorFilename(self):
-    """Return the diagnose data collector filename
-
-    """
-    return self._ConfigData().cluster.diagnose_data_collector_filename
-
-  @ConfigSync()
-  def SetDiagnoseDataCollectorFilename(self, fn):
-    """Set the volume group name.
-
-    """
-    self._ConfigData().cluster.diagnose_data_collector_filename = fn
-    self._ConfigData().cluster.serial_no += 1
-
-  @ConfigSync(shared=1)
   def GetDRBDHelper(self):
     """Return DRBD usermode helper.
 
@@ -3421,21 +3376,6 @@ class ConfigWriter(object):
     for inst_uuid, inst_info in self._UnlockedGetAllInstancesInfo().items():
       if disk_uuid in inst_info.disks:
         return inst_uuid
-
-  def SetMaintdRoundDelay(self, delay):
-    """Set the minimal time the maintenance daemon should wait between rounds"""
-    utils.SimpleRetry(True, self._wconfd.SetMaintdRoundDelay, 0.1, 30,
-                      args=[delay])
-
-  def SetMaintdBalance(self, flag):
-    """Enable/disable auto-balancing by the maintenance daemon"""
-    utils.SimpleRetry(True, self._wconfd.SetMaintdBalance, 0.1, 30,
-                      args=[flag])
-
-  def SetMaintdBalanceThreshold(self, score):
-    """Set the minimal score improvement per move for balancing steps"""
-    utils.SimpleRetry(True, self._wconfd.SetMaintdBalanceThreshold, 0.1, 30,
-                      args=[score])
 
 
 class DetachedConfig(ConfigWriter):

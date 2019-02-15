@@ -44,7 +44,7 @@ module Ganeti.Utils.Monad
   ) where
 
 import Control.Monad
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error
 import Control.Monad.Trans.Maybe
 
 -- | Retries the given action up to @n@ times.

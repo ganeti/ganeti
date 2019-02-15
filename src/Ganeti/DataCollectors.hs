@@ -34,18 +34,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.DataCollectors( collectors ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Map (findWithDefault)
+import Data.Monoid (mempty)
 
 import qualified Ganeti.DataCollectors.CPUload as CPUload
-import qualified Ganeti.DataCollectors.Diagnose as Diagnose
 import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
-import qualified Ganeti.DataCollectors.KvmRSS as KvmRSS
 import qualified Ganeti.DataCollectors.Lv as Lv
 import qualified Ganeti.DataCollectors.XenCpuLoad as XenCpuLoad
 import Ganeti.DataCollectors.Types (DataCollector(..),ReportBuilder(..))
@@ -58,12 +54,10 @@ collectors :: [DataCollector]
 collectors =
   [ cpuLoadCollector
   , xenCpuLoadCollector
-  , kvmRSSCollector
   , diskStatsCollector
   , drdbCollector
   , instStatusCollector
   , lvCollector
-  , diagnoseCollector
   ]
   where
     f .&&. g = \x y -> f x y && g x y
@@ -89,9 +83,6 @@ collectors =
     lvCollector =
       DataCollector Lv.dcName Lv.dcCategory Lv.dcKind
         (StatelessR Lv.dcReport) Nothing activeConfig updateInterval
-    diagnoseCollector =
-      DataCollector Diagnose.dcName Diagnose.dcCategory Diagnose.dcKind
-        (StatelessR Diagnose.dcReport) Nothing activeConfig updateInterval
     cpuLoadCollector =
       DataCollector CPUload.dcName CPUload.dcCategory CPUload.dcKind
         (StatefulR CPUload.dcReport) (Just CPUload.dcUpdate) activeConfig
@@ -100,6 +91,3 @@ collectors =
       DataCollector XenCpuLoad.dcName XenCpuLoad.dcCategory XenCpuLoad.dcKind
         (StatefulR XenCpuLoad.dcReport) (Just XenCpuLoad.dcUpdate) activeConfig
         updateInterval
-    kvmRSSCollector =
-      DataCollector KvmRSS.dcName KvmRSS.dcCategory KvmRSS.dcKind
-        (StatelessR KvmRSS.dcReport) Nothing activeConfig updateInterval

@@ -59,8 +59,6 @@ __all__ = [
   "CAPAB_MASTER_OPT",
   "CAPAB_VM_OPT",
   "CLEANUP_OPT",
-  "CLEAR_OSPARAMS_OPT",
-  "CLEAR_OSPARAMS_PRIVATE_OPT",
   "cli_option",
   "CLUSTER_DOMAIN_SECRET_OPT",
   "COMMIT_OPT",
@@ -85,10 +83,8 @@ __all__ = [
   "DST_NODE_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_DATA_COLLECTORS_OPT",
-  "DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT",
   "ENABLED_DISK_TEMPLATES_OPT",
   "ENABLED_HV_OPT",
-  "ENABLED_PREDICTIVE_QUEUE_OPT",
   "ENABLED_USER_SHUTDOWN_OPT",
   "ERROR_CODES_OPT",
   "EXT_PARAMS_OPT",
@@ -128,7 +124,6 @@ __all__ = [
   "IGNORE_SOFT_ERRORS_OPT",
   "IGNORE_SIZE_OPT",
   "INCLUDEDEFAULTS_OPT",
-  "INPUT_OPT",
   "INSTALL_IMAGE_OPT",
   "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "INSTANCE_COMMUNICATION_OPT",
@@ -140,12 +135,8 @@ __all__ = [
   "IPOLICY_STD_SPECS_OPT",
   "IPOLICY_STD_SPECS_STR",
   "IPOLICY_VCPU_RATIO",
-  "IPOLICY_MEMORY_RATIO",
   "LONG_SLEEP_OPT",
   "MAC_PREFIX_OPT",
-  "MAINT_BALANCE_OPT",
-  "MAINT_BALANCE_THRESHOLD_OPT",
-  "MAINT_INTERVAL_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
   "MASTER_NETMASK_OPT",
@@ -153,7 +144,6 @@ __all__ = [
   "MC_OPT",
   "MIGRATION_MODE_OPT",
   "MODIFY_ETCHOSTS_OPT",
-  "MODIFY_SSH_SETUP_OPT",
   "NET_OPT",
   "NETWORK6_OPT",
   "NETWORK_OPT",
@@ -224,8 +214,6 @@ __all__ = [
   "REASON_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
-  "REMOVE_OSPARAMS_OPT",
-  "REMOVE_OSPARAMS_PRIVATE_OPT",
   "REMOVE_RESERVED_IPS_OPT",
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
@@ -736,34 +724,6 @@ OSPARAMS_SECRET_OPT = cli_option("--os-parameters-secret",
                                       " saved; you must supply these for every"
                                       " operation.)")
 
-CLEAR_OSPARAMS_OPT = cli_option("--clear-os-parameters",
-                                dest="clear_osparams",
-                                action="store_true",
-                                default=False,
-                                help="Clear current OS parameters")
-
-CLEAR_OSPARAMS_PRIVATE_OPT = cli_option("--clear-os-parameters-private",
-                                        dest="clear_osparams_private",
-                                        action="store_true",
-                                        default=False,
-                                        help="Clear current private OS"
-                                             " parameters")
-
-REMOVE_OSPARAMS_OPT = cli_option("--remove-os-parameters",
-                                 dest="remove_osparams",
-                                 type="list",
-                                 default=None,
-                                 help="Comma-separated list of OS parameters"
-                                      " that should be removed")
-
-REMOVE_OSPARAMS_PRIVATE_OPT = cli_option("--remove-os-parameters-private",
-                                         dest="remove_osparams_private",
-                                         type="list",
-                                         default=None,
-                                         help="Comma-separated list of private"
-                                              " OS parameters that should be"
-                                              " removed")
-
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
                                help="Force an unknown variant")
@@ -848,13 +808,6 @@ IPOLICY_SPINDLE_RATIO = cli_option("--ipolicy-spindle-ratio",
                                    help=("The maximum allowed instances to"
                                          " spindle ratio"))
 
-IPOLICY_MEMORY_RATIO = cli_option("--ipolicy-memory-ratio",
-                                   dest="ipolicy_memory_ratio",
-                                   type="maybefloat", default=None,
-                                   help=("The maximum allowed used memory to"
-                                         " physicall memory ratio (in terms of"
-                                         " memory overcommitment)"))
-
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
                             " format hypervisor:option=value,option=value,...",
@@ -902,7 +855,7 @@ IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
 IGNORE_HVVERSIONS_OPT = cli_option("--ignore-hvversions",
                                    dest="ignore_hvversions",
                                    action="store_true", default=False,
-                                   help="Ignore imcompatible hypervisor"
+                                   help="Ignore incompatible hypervisor"
                                    " versions between source and target")
 
 ALLOW_FAILOVER_OPT = cli_option("--allow-failover",
@@ -1119,13 +1072,6 @@ ENABLED_DISK_TEMPLATES_OPT = cli_option("--enabled-disk-templates",
                                              "disk templates",
                                         type="string", default=None)
 
-ENABLED_PREDICTIVE_QUEUE_OPT = cli_option("--predictive-queue",
-                                          default=None,
-                                          dest="enabled_predictive_queue",
-                                          help="Whether the predictive queue is"
-                                               "enabled",
-                                          type="bool")
-
 ENABLED_USER_SHUTDOWN_OPT = cli_option("--user-shutdown",
                                        default=None,
                                        dest="enabled_user_shutdown",
@@ -1154,21 +1100,6 @@ COMPRESSION_TOOLS_OPT = \
                dest="compression_tools", type="string", default=None,
                help="Comma-separated list of compression tools which are"
                     " allowed to be used by Ganeti in various operations")
-
-MAINT_INTERVAL_OPT = \
-  cli_option("--maintenance-interval", dest="maint_round_delay", type="int",
-             default=None, help="Minimal time in seconds, the maintenance"
-             " daemon waits between rounds")
-
-MAINT_BALANCE_OPT = \
-  cli_option("--auto-balance-cluster", dest="maint_balance", type="bool",
-             default=None, metavar=_YORNO, help="Whether the maintenance"
-             " daemon should balance the cluster")
-
-MAINT_BALANCE_THRESHOLD_OPT = \
-  cli_option("--auto-balance-threshold", dest="maint_balance_threshold",
-             type="float", default=None, metavar="CLUSTERSCORE",
-             help="Minimal gain for an auto-balancing step to be taken")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"
@@ -1231,7 +1162,8 @@ GLOBAL_GLUSTER_FILEDIR_OPT = cli_option(
   help="Specify the default directory (cluster-wide) for mounting Gluster"
   " file systems [%s]" %
   pathutils.DEFAULT_GLUSTER_STORAGE_DIR,
-  metavar="GLUSTERDIR", default=None)
+  metavar="GLUSTERDIR",
+  default=pathutils.DEFAULT_GLUSTER_STORAGE_DIR)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify %s" % pathutils.ETC_HOSTS,
@@ -1246,12 +1178,6 @@ MODIFY_ETCHOSTS_OPT = \
 NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
                                     help="Don't initialize SSH keys",
                                     action="store_false", default=True)
-
-MODIFY_SSH_SETUP_OPT = \
- cli_option("--modify-ssh-setup", dest="modify_ssh_setup", metavar=_YORNO,
-            default=None, type="bool",
-            help="Defines whether the cluster should update node SSH keys"
-            " on node add and on renew-crypto")
 
 ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
                              help="Enable parseable error messages",
@@ -1663,17 +1589,6 @@ ENABLED_DATA_COLLECTORS_OPT = \
                "in the format collector=bool, where collector is one of %s."
                % ", ".join(constants.DATA_COLLECTOR_NAMES))
 
-DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT = \
-    cli_option("--diagnose-data-collector-filename",
-                         dest="diagnose_data_collector_filename",
-                         help=("Set's the file name of the script"
-                               " diagnose data collector should run"
-                               " If this value is empty string, the collector"
-                               " will return a success value"
-                               " without running anything"),
-                         type="string")
-
-
 VERIFY_CLUTTER_OPT = cli_option(
     "--verify-ssh-clutter", default=False, dest="verify_clutter",
     help="Verify that Ganeti did not clutter"
@@ -1682,11 +1597,6 @@ VERIFY_CLUTTER_OPT = cli_option(
 LONG_SLEEP_OPT = cli_option(
     "--long-sleep", default=False, dest="long_sleep",
     help="Allow long shutdowns when backing up instances", action="store_true")
-
-INPUT_OPT = cli_option("--input", dest="input", default=None,
-                       help=("input to be passed as stdin"
-                             " to the repair command"),
-                       type="string")
 
 SSH_KEY_TYPE_OPT = \
     cli_option("--ssh-key-type", default=None,
@@ -1745,7 +1655,6 @@ INSTANCE_POLICY_OPTS = [
   IPOLICY_DISK_TEMPLATES,
   IPOLICY_VCPU_RATIO,
   IPOLICY_SPINDLE_RATIO,
-  IPOLICY_MEMORY_RATIO,
   ]
 
 # instance policy split specs options

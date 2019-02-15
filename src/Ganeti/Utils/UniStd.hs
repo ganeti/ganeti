@@ -54,7 +54,7 @@ foreign import ccall "fsync" fsync :: CInt -> IO CInt
 -- Because of a bug in GHC 7.6.3 (at least), calling 'hIsClosed' on a handle
 -- to get the file descriptor leaks memory. Therefore we open a given file
 -- just to sync it and close it again.
-fsyncFile :: (FromString e) => FilePath -> ResultT e IO ()
+fsyncFile :: (Error e) => FilePath -> ResultT e IO ()
 fsyncFile path = liftIO
   $ bracket (openFd path ReadOnly Nothing defaultFileFlags) closeFd callfsync
   where

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012, 2013, 2015 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -487,32 +487,23 @@ def UploadData(node, data, mode=0600, filename=None):
 
   """
   if filename:
-    quoted_filename = utils.ShellQuote(filename)
-    directory = utils.ShellQuote(os.path.dirname(filename))
-
-    cmd = " && ".join([
-      "mkdir -p %s" % directory,
-      "cat > %s" % quoted_filename,
-      "chmod %o %s" % (mode, quoted_filename)])
+    tmp = "tmp=%s" % utils.ShellQuote(filename)
   else:
-    cmd = " && ".join([
-      'tmp=$(mktemp --tmpdir gnt.XXXXXX)',
-      'chmod %o "${tmp}"' % mode,
-      'cat > "${tmp}"',
-      'echo "${tmp}"'])
+    tmp = ('tmp=$(mktemp --tmpdir gnt.XXXXXX) && '
+           'chmod %o "${tmp}"') % mode
+  cmd = ("%s && "
+         "[[ -f \"${tmp}\" ]] && "
+         "cat > \"${tmp}\" && "
+         "echo \"${tmp}\"") % tmp
 
-  p = subprocess.Popen(GetSSHCommand(node, cmd),
-                       shell=False,
-                       stdin=subprocess.PIPE,
-                       stdout=subprocess.PIPE)
+  p = subprocess.Popen(GetSSHCommand(node, cmd), shell=False,
+                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   p.stdin.write(data)
   p.stdin.close()
   AssertEqual(p.wait(), 0)
 
-  if filename:
-    return filename
-  else:
-    return _GetCommandStdout(p).strip()
+  # Return temporary filename
+  return _GetCommandStdout(p).strip()
 
 
 def BackupFile(node, path):
@@ -535,17 +526,6 @@ def BackupFile(node, path):
   print "Backup filename: %s" % result
 
   return result
-
-
-def IsFileExists(node, path):
-  """Checks if a file on the node exists.
-
-  """
-  cmd = ("[[ -f \"%s\" ]] && echo yes || echo no" % path)
-
-  # Return temporary filename
-  result = GetCommandOutput(node, cmd).strip()
-  return True if result == "yes" else False
 
 
 @contextlib.contextmanager

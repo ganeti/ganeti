@@ -171,16 +171,16 @@ commands = {
      SHUTDOWN_TIMEOUT_OPT, REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, ZERO_FREE_SPACE_OPT, ZEROING_TIMEOUT_FIXED_OPT,
      ZEROING_TIMEOUT_PER_MIB_OPT, LONG_SLEEP_OPT] + SUBMIT_OPTS,
-    "-n <target_node> [opts...] <name>",
+    "-n <node-name> [opts...] <instance-name>",
     "Exports an instance to an image"),
   "import": (
     ImportInstance, ARGS_ONE_INSTANCE, COMMON_CREATE_OPTS + import_opts,
-    "[...] -t disk-type -n node[:secondary-node] <name>",
+    "[...] -t disk-type -n node[:secondary-node] <instance-name>",
     "Imports an instance from an exported image"),
   "remove": (
     RemoveExport, [ArgUnknown(min=1, max=1)],
     [DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
-    "<name>", "Remove exports of named instance from the filesystem."),
+    "<instance-name>", "Remove exports of named instance from the filesystem."),
   }
 
 

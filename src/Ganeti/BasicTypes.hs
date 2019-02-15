@@ -8,7 +8,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2015 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,6 @@ module Ganeti.BasicTypes
   , Result
   , ResultT(..)
   , mkResultT
-  , mkResultT'
-  , mkResultTEither
   , withError
   , withErrorT
   , toError
@@ -52,7 +50,6 @@ module Ganeti.BasicTypes
   , tryError
   , Error(..) -- re-export from Control.Monad.Error
   , MonadIO(..) -- re-export from Control.Monad.IO.Class
-  , FromString(..)
   , isOk
   , isBad
   , justOk
@@ -78,11 +75,7 @@ module Ganeti.BasicTypes
   , compareNameComponent
   , ListSet(..)
   , emptyListSet
-  , Down(..)
   ) where
-
-import Prelude ()
-import Ganeti.Prelude
 
 import Control.Applicative
 import Control.Exception (try)
@@ -92,15 +85,13 @@ import Control.Monad.Error.Class
 import Control.Monad.Trans
 import Control.Monad.Trans.Control
 import Data.Function
-import Data.List (find, isPrefixOf)
+import Data.List
 import Data.Maybe
+import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)
 import qualified Text.JSON as JSON (readJSON, showJSON)
-#if MIN_VERSION_base(4,6,0)
-import Data.Ord
-#endif
 
 -- Remove after we require >= 1.8.58
 -- See: https://github.com/ndmitchell/hlint/issues/24
@@ -121,42 +112,26 @@ genericResult _ g (Ok b) = g b
 -- | Type alias for a string Result.
 type Result = GenericResult String
 
--- | Type class for things that can be built from strings.
-class FromString a where
-  mkFromString :: String -> a
-
--- | Trivial 'String' instance; requires FlexibleInstances extension
--- though.
-instance FromString [Char] where
-  mkFromString = id
-
-instance FromString IOError where
-  mkFromString = userError
-
 -- | 'Monad' instance for 'GenericResult'.
-instance (FromString a) => Monad (GenericResult a) where
+instance (Error a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
   return = Ok
-  fail   = Bad . mkFromString
+  fail   = Bad . strMsg
 
 instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
   fmap fn (Ok val) = Ok (fn val)
 
-instance (FromString a, Monoid a) => Alternative (GenericResult a) where
-  empty = Bad $ mkFromString "zero Result when used as empty"
+instance (Error a, Monoid a) => MonadPlus (GenericResult a) where
+  mzero = Bad $ strMsg "zero Result when used as MonadPlus"
   -- for mplus, when we 'add' two Bad values, we concatenate their
   -- error descriptions
-  (Bad x) <|> (Bad y) = Bad (x `mappend` mkFromString "; " `mappend` y)
-  (Bad _) <|> x = x
-  x@(Ok _) <|> _ = x
+  (Bad x) `mplus` (Bad y) = Bad (x `mappend` strMsg "; " `mappend` y)
+  (Bad _) `mplus` x = x
+  x@(Ok _) `mplus` _ = x
 
-instance (FromString a, Monoid a) => MonadPlus (GenericResult a) where
-  mzero = empty
-  mplus = (<|>)
-
-instance (FromString a) => MonadError a (GenericResult a) where
+instance (Error a) => MonadError a (GenericResult a) where
   throwError = Bad
   {-# INLINE throwError #-}
   catchError x h = genericResult h (const x) x
@@ -168,6 +143,10 @@ instance Applicative (GenericResult a) where
   _       <*> (Bad x) = Bad x
   (Ok f)  <*> (Ok x)  = Ok $ f x
 
+instance (Error a, Monoid a) => Alternative (GenericResult a) where
+  empty = mzero
+  (<|>) = mplus
+
 -- | This is a monad transformation for Result. It's implementation is
 -- based on the implementations of MaybeT and ErrorT.
 --
@@ -175,6 +154,7 @@ instance Applicative (GenericResult a) where
 -- If 'mplus' combines two failing operations, errors of both of them
 -- are combined.
 newtype ResultT a m b = ResultT {runResultT :: m (GenericResult a b)}
+  deriving (Functor)
 
 -- | Eliminates a 'ResultT' value given appropriate continuations
 elimResultT :: (Monad m)
@@ -188,19 +168,16 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
     result (Bad e)  = l e
 {-# INLINE elimResultT #-}
 
-instance (Monad m) => Functor (ResultT a m) where
-  fmap f = ResultT . liftM (fmap f) . runResultT
-
-instance (Monad m, FromString a) => Applicative (ResultT a m) where
+instance (Applicative m, Monad m, Error a) => Applicative (ResultT a m) where
   pure = return
   (<*>) = ap
 
-instance (Monad m, FromString a) => Monad (ResultT a m) where
-  fail err = ResultT (return . Bad $ mkFromString err)
+instance (Monad m, Error a) => Monad (ResultT a m) where
+  fail err = ResultT (return . Bad $ strMsg err)
   return   = lift . return
   (>>=)    = flip (elimResultT throwError)
 
-instance (Monad m, FromString a) => MonadError a (ResultT a m) where
+instance (Monad m, Error a) => MonadError a (ResultT a m) where
   throwError = ResultT . return . Bad
   catchError = catchErrorT
 
@@ -208,24 +185,24 @@ instance MonadTrans (ResultT a) where
   lift = ResultT . liftM Ok
 
 -- | The instance catches any 'IOError' using 'try' and converts it into an
--- error message using 'mkFromString'.
+-- error message using 'strMsg'.
 --
 -- This way, monadic code within 'ResultT' that uses solely 'liftIO' to
 -- include 'IO' actions ensures that all IO exceptions are handled.
 --
 -- Other exceptions (see instances of 'Exception') are not currently handled.
 -- This might be revised in the future.
-instance (MonadIO m, FromString a) => MonadIO (ResultT a m) where
+instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
   liftIO = ResultT . liftIO
                    . liftM (either (failError . show) return)
                    . (try :: IO a -> IO (Either IOError a))
 
-instance (MonadBase IO m, FromString a) => MonadBase IO (ResultT a m) where
+instance (MonadBase IO m, Error a) => MonadBase IO (ResultT a m) where
   liftBase = ResultT . liftBase
                    . liftM (either (failError . show) return)
                    . (try :: IO a -> IO (Either IOError a))
 
-instance (FromString a) => MonadTransControl (ResultT a) where
+instance (Error a) => MonadTransControl (ResultT a) where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
   type StT (ResultT a) b = GenericResult a b
@@ -239,7 +216,7 @@ instance (FromString a) => MonadTransControl (ResultT a) where
   {-# INLINE liftWith #-}
   {-# INLINE restoreT #-}
 
-instance (FromString a, MonadBaseControl IO m)
+instance (Error a, MonadBaseControl IO m)
          => MonadBaseControl IO (ResultT a m) where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
@@ -256,18 +233,17 @@ instance (FromString a, MonadBaseControl IO m)
   {-# INLINE liftBaseWith #-}
   {-# INLINE restoreM #-}
 
-instance (Monad m, FromString a, Monoid a)
-         => Alternative (ResultT a m) where
-  empty = ResultT $ return mzero
+instance (Monad m, Error a, Monoid a) => MonadPlus (ResultT a m) where
+  mzero = ResultT $ return mzero
   -- Ensure that 'y' isn't run if 'x' contains a value. This makes it a bit
   -- more complicated than 'mplus' of 'GenericResult'.
-  x <|> y = elimResultT combine return x
+  mplus x y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
-instance (Monad m, FromString a, Monoid a)
-         => MonadPlus (ResultT a m) where
-  mzero = empty
-  mplus = (<|>)
+instance (Alternative m, Monad m, Error a, Monoid a)
+         => Alternative (ResultT a m) where
+  empty = mzero
+  (<|>) = mplus
 
 -- | Changes the error message of a result value, if present.
 -- Note that since 'GenericResult' is also a 'MonadError', this function
@@ -277,7 +253,7 @@ withError :: (MonadError e m) => (e' -> e) -> GenericResult e' a -> m a
 withError f = genericResult (throwError . f) return
 
 -- | Changes the error message of a @ResultT@ value, if present.
-withErrorT :: (Monad m, FromString e)
+withErrorT :: (Monad m, Error e)
            => (e' -> e) -> ResultT e' m a -> ResultT e m a
 withErrorT f = ResultT . liftM (withError f) . runResultT
 
@@ -293,10 +269,10 @@ toErrorBase :: (MonadBase b m, MonadError e m) => ResultT e b a -> m a
 toErrorBase = (toError =<<) . liftBase . runResultT
 {-# INLINE toErrorBase #-}
 
--- | An alias for @withError mkFromString@, which is often
--- used to lift a pure error to a monad stack. See also 'annotateResult'.
-toErrorStr :: (MonadError e m, FromString e) => Result a -> m a
-toErrorStr = withError mkFromString
+-- | An alias for @withError strMsg@, which is often used to lift a pure error
+-- to a monad stack. See also 'annotateResult'.
+toErrorStr :: (MonadError e m, Error e) => Result a -> m a
+toErrorStr = withError strMsg
 
 -- | Run a given computation and if an error occurs, return it as `Left` of
 -- `Either`.
@@ -313,18 +289,8 @@ tryError = flip catchError (return . Left) . liftM Right
 -- should be handled by the given action.
 --
 -- See also 'toErrorStr'.
-mkResultT :: (Monad m, FromString e) => m (Result a) -> ResultT e m a
+mkResultT :: (Monad m, Error e) => m (Result a) -> ResultT e m a
 mkResultT = ResultT . liftM toErrorStr
-
--- | Generalisation of mkResultT accepting any showable failures.
-mkResultT' :: (Monad m, FromString e, Show s)
-           => m (GenericResult s a) -> ResultT e m a
-mkResultT' = mkResultT . liftM (genericResult (Bad . show) Ok)
-
--- | Generalisation of mkResultT accepting any showable failures.
-mkResultTEither :: (Monad m, FromString e, Show s)
-           => m (Either s a) -> ResultT e m a
-mkResultTEither = mkResultT . liftM (either (Bad . show) Ok)
 
 -- | Simple checker for whether a 'GenericResult' is OK.
 isOk :: GenericResult a b -> Bool
@@ -363,33 +329,32 @@ isRight = not . isLeft
 -- 'MonadError'. Since 'Result' is an instance of 'MonadError' itself,
 -- it's a generalization of type @String -> Result a -> Result a@.
 -- See also 'toErrorStr'.
-annotateResult :: (MonadError e m, FromString e) => String -> Result a -> m a
+annotateResult :: (MonadError e m, Error e) => String -> Result a -> m a
 annotateResult owner = toErrorStr . annotateError owner
 
 -- | Annotate an error with an ownership information inside a 'MonadError'.
 -- See also 'annotateResult'.
-annotateError :: (MonadError e m, FromString e, Monoid e)
-              => String -> m a -> m a
+annotateError :: (MonadError e m, Error e, Monoid e) => String -> m a -> m a
 annotateError owner =
-  flip catchError (throwError . mappend (mkFromString $ owner ++ ": "))
+  flip catchError (throwError . mappend (strMsg $ owner ++ ": "))
 {-# INLINE annotateError #-}
 
 -- | Throws a 'String' message as an error in a 'MonadError'.
 -- This is a generalization of 'Bad'.
 -- It's similar to 'fail', but works within a 'MonadError', avoiding the
 -- unsafe nature of 'fail'.
-failError :: (MonadError e m, FromString e) => String -> m a
-failError = throwError . mkFromString
+failError :: (MonadError e m, Error e) => String -> m a
+failError = throwError . strMsg
 
 -- | A synonym for @flip@ 'catchErrorT'.
-handleErrorT :: (Monad m, FromString e)
+handleErrorT :: (Monad m, Error e)
              => (e' -> ResultT e m a) -> ResultT e' m a -> ResultT e m a
 handleErrorT handler = elimResultT handler return
 {-# INLINE handleErrorT #-}
 
 -- | Catches an error in a @ResultT@ value. This is similar to 'catchError',
 -- but in addition allows to change the error type.
-catchErrorT :: (Monad m, FromString e)
+catchErrorT :: (Monad m, Error e)
             => ResultT e' m a -> (e' -> ResultT e m a) -> ResultT e m a
 catchErrorT = flip handleErrorT
 {-# INLINE catchErrorT #-}
@@ -506,52 +471,3 @@ instance (Ord a, JSON a) => JSON (ListSet a) where
 
 emptyListSet :: ListSet a
 emptyListSet = ListSet Set.empty
-
-#if MIN_VERSION_base(4,6,0)
--- Down already defined in Data.Ord
-#else
--- Copyright   :  (c) The University of Glasgow 2005
--- License     :  BSD-style
-
-newtype Down a = Down a deriving (Eq, Show, Read)
-
-instance Ord a => Ord (Down a) where
-    compare (Down x) (Down y) = y `compare` x
-
-{- License text of the above code fragment:
-
-The Glasgow Haskell Compiler License
-
-Copyright 2004, The University Court of the University of Glasgow.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-- Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-
-- Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-
-- Neither name of the University nor the names of its contributors may be
-used to endorse or promote products derived from this software without
-specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY COURT OF THE UNIVERSITY OF
-GLASGOW AND THE CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-UNIVERSITY COURT OF THE UNIVERSITY OF GLASGOW OR THE CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-DAMAGE.
-
--}
-
-#endif

@@ -52,8 +52,8 @@ from ganeti import rapi
 
 import ganeti.http.server # pylint: disable=W0611
 import ganeti.server.rapi # pylint: disable=W0611
-from ganeti.rapi.auth import users_file
 import ganeti.rapi.client # pylint: disable=W0611
+
 
 _URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
 
@@ -361,23 +361,18 @@ class InputTestClient(object):
     username = utils.GenerateSecret()
     password = utils.GenerateSecret()
 
-    # pylint: disable=W0232
-    class SimpleAuthenticator(object):
-      # pylint: disable=R0201
-      def ValidateRequest(self, req, _handler_access, _realm):
-        """Called to verify user credentials given in HTTP request.
+    def user_fn(wanted):
+      """Called to verify user credentials given in HTTP request.
 
-        """
-        wanted, _ = http.auth.HttpServerRequestAuthentication \
-                      .ExtractUserPassword(req)
-        assert username == wanted
-        return users_file.PasswordFileUser(username, password,
-                                           [rapi.RAPI_ACCESS_WRITE]).name
+      """
+      assert username == wanted
+      return http.auth.PasswordFileUser(username, password,
+                                        [rapi.RAPI_ACCESS_WRITE])
 
     self._lcr = _LuxiCallRecorder()
 
     # Create a mock RAPI server
-    handler = _RapiMock(SimpleAuthenticator(), self._lcr)
+    handler = _RapiMock(user_fn, self._lcr)
 
     self._client = \
       rapi.client.GanetiRapiClient("master.example.com",

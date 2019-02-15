@@ -55,8 +55,6 @@ groupFields =
   , (FieldDefinition "custom_ipolicy" "CustomInstancePolicy" QFTOther
        "Custom instance policy limitations",
      FieldSimple (rsNormal . groupIpolicy), QffNormal)
-  , (FieldDefinition "networks" "Networks" QFTOther "Node group networks",
-     FieldSimple (rsNormal . groupNetworks), QffNormal)
   , (FieldDefinition "custom_ndparams" "CustomNDParams" QFTOther
        "Custom node parameters",
      FieldSimple (rsNormal . groupNdparams), QffNormal)
@@ -85,11 +83,6 @@ groupFields =
        "List of primary instances",
      FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . fst .
                           getGroupInstances cfg . uuidOf), QffNormal)
-  , (FieldDefinition "hv_state" "HypervisorState" QFTOther
-       "Custom static hypervisor state",
-     FieldSimple (rsNormal . groupHvStateStatic), QffNormal)
-  , (FieldDefinition "disk_state" "DiskState" QFTOther "Disk state",
-     FieldSimple (rsNormal . groupDiskStateStatic), QffNormal)
   ] ++
   map buildNdParamField allNDParamFields ++
   timeStampFields ++

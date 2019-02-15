@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,6 @@ import System.IO
 import Text.Printf (printf)
 
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), fromCLIOptions)
-import Ganeti.HTools.Backend.MonD (scaleMemoryWeight)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
@@ -96,27 +95,22 @@ options = do
     , oVerbose
     , oQuiet
     , oOfflineNode
+    , oStaticKvmNodeMemory
     , oMinScore
     , oMaxCpu
     , oMinDisk
     , oMinGain
     , oMinGainLim
     , oDiskMoves
-    , oAvoidDiskMoves
-    , oLongSolutionThreshold
-    , oAvoidLongSolutions
     , oSelInst
     , oInstMoves
     , oIgnoreSoftErrors
     , oDynuFile
-    , oIdleDefault
     , oIgnoreDyn 
     , oMonD
     , oMonDDataFile
     , oMonDExitMissing
     , oMonDXen
-    , oMonDKvmRSS
-    , oMemWeight
     , oExTags
     , oExInst
     , oSaveCluster
@@ -319,14 +313,13 @@ main opts args = do
       showinsts = optShowInsts opts
       force = optIgnoreSoftErrors opts
 
-  ini_cdata@(ClusterData gl fixed_nl ilf' ctags ipol) <- loadExternalData opts
+  ini_cdata@(ClusterData gl fixed_nl ilf ctags ipol) <- loadExternalData opts
 
   when (verbose > 1) $ do
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
        putStrLn $ "Loaded cluster ipolicy: " ++ show ipol
 
-  nlf' <- setNodeStatus opts fixed_nl
-  let (nlf, ilf) = scaleMemoryWeight (optMemWeight opts) (nlf', ilf')
+  nlf <- setNodeStatus opts fixed_nl
   checkCluster verbose nlf ilf
 
   maybeSaveData (optSaveCluster opts) "original" "before balancing" ini_cdata

@@ -231,12 +231,9 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
-                         constants.HOOKS_PHASE_PRE, index=0)
-    self.assertHooksCall([self.master.uuid], "cluster-destroy",
-                         constants.HOOKS_PHASE_POST, index=1)
-    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
-                         constants.HOOKS_PHASE_POST, index=2)
+    self.assertSingleHooksCall([self.master.name],
+                               "cluster-destroy",
+                               constants.HOOKS_PHASE_POST)
 
 
 class TestLUClusterPostInit(CmdlibTestCase):
@@ -246,12 +243,9 @@ class TestLUClusterPostInit(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
-                         constants.HOOKS_PHASE_PRE, index=0)
-    self.assertHooksCall([self.master.uuid], "cluster-init",
-                         constants.HOOKS_PHASE_POST, index=1)
-    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
-                         constants.HOOKS_PHASE_POST, index=2)
+    self.assertSingleHooksCall([self.master.uuid],
+                               "cluster-init",
+                               constants.HOOKS_PHASE_POST)
 
 
 class TestLUClusterQuery(CmdlibTestCase):
@@ -465,8 +459,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
   def testValidDiskparams(self):
     diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool",
-                                     constants.RBD_ACCESS: "kernelspace",
-                                     constants.RBD_USER_ID: "thejanitor"}}
+                                     constants.RBD_ACCESS: "kernelspace"}}
     op = opcodes.OpClusterSetParams(diskparams=diskparams)
     self.ExecOpCode(op)
     self.assertEqual(diskparams[constants.DT_RBD],
@@ -812,6 +805,22 @@ class TestLUClusterSetParams(CmdlibTestCase):
 
     assert constants.HT_FAKE not in self.cluster.os_hvp["mocked_os"]
 
+  def testRemoveOsFromOsHvpList(self):
+    os_hvp = {
+        "mocked_os_1": {
+            constants.HT_FAKE: {
+                constants.HV_MIGRATION_MODE: constants.HT_MIGRATION_NONLIVE
+            }
+        },
+        "mocked_os_2": {} # This is the one that needs to be removed.
+    }
+
+    op = opcodes.OpClusterSetParams(os_hvp=os_hvp)
+    self.ExecOpCode(op)
+
+    assert (constants.HT_FAKE in self.cluster.os_hvp["mocked_os_1"] and
+            "mocked_os_2" not in self.cluster.os_hvp)
+
   def testDefaultOsHvp(self):
     os_hvp = {"mocked_os": constants.HVC_DEFAULTS.copy()}
     self.cluster.os_hvp = {"mocked_os": {}}
@@ -1004,28 +1013,6 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.assertEqual(True, self.cluster.prealloc_wipe_disks)
     self.assertEqual(["/dev/mock_lv"], self.cluster.reserved_lvs)
     self.assertEqual(True, self.cluster.use_external_mip_script)
-
-  def testEnableSshSetup(self):
-    # Check the flag is disabled by default
-    old = False
-    self.assertEqual(old, self.cluster.modify_ssh_setup)
-
-    # Try all 4 permutations of off->off, off->on, on->on, on->off
-    for new in (False, True, True, False):
-      self.mcpu.ClearLogMessages()
-      self.ExecOpCode(opcodes.OpClusterSetParams(modify_ssh_setup=new))
-
-      # Check the flag is updated to the new value
-      self.assertEqual(new, self.cluster.modify_ssh_setup)
-
-      # Switching off modify_ssh_setup should succeed silently,
-      # Switching it on should warn, and leaving it the same should do nothing
-      if not old and new:
-        self.mcpu.assertLogContainsRegex("gnt-cluster renew-crypto")
-      else:
-        self.mcpu.assertLogIsEmpty()
-
-      old = new
 
   def testAddHiddenOs(self):
     self.cluster.hidden_os = ["hidden1", "hidden2"]
@@ -1236,7 +1223,7 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
   def _AddNormalNode(self):
     self.normalnode = copy.deepcopy(self.master)
     self.normalnode.master_candidate = False
-    self.normalnode.uuid = "deadbeef-dead-beef-dead-beefdeadbeef"
+    self.normalnode.uuid = "normal-node-uuid"
     self.cfg.AddNode(self.normalnode, None)
 
   def testVerifyMasterCandidate(self):
@@ -2188,9 +2175,7 @@ class TestLUClusterVerifyGroupUpdateNodeInfo(TestLUClusterVerifyGroupMethods):
   def setUp(self):
     super(TestLUClusterVerifyGroupUpdateNodeInfo, self).setUp()
     self.nimg = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
-    self.valid_hvresult = {constants.NV_HVINFO: {"memory_free":  1024,
-                                                 "memory_total": 4096,
-                                                 "memory_dom0":  3072}}
+    self.valid_hvresult = {constants.NV_HVINFO: {"memory_free": 1024}}
 
   @withLockedLU
   def testInvalidHvNodeResult(self, lu):
@@ -2202,9 +2187,7 @@ class TestLUClusterVerifyGroupUpdateNodeInfo(TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def testInvalidMemoryFreeHvNodeResult(self, lu):
     lu._UpdateNodeInfo(self.master,
-                       {constants.NV_HVINFO: {"memory_free":  'abc',
-                                              "memory_total": 1024,
-                                              "memory_dom0":  2048}},
+                       {constants.NV_HVINFO: {"memory_free": "abc"}},
                        self.nimg, None)
     self.mcpu.assertLogContainsRegex(
       "node returned invalid nodeinfo, check hypervisor")
@@ -2421,7 +2404,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     self._client_node_cert = self._CreateTempFile()
     shutil.copy(testutils.TestDataFilename("cert2.pem"), self._client_node_cert)
     self._client_node_cert_digest = \
-        "BF:24:F7:57:50:60:43:87:83:E3:0D:7E:EF:DD:14:6C:13:43:20:4E"
+        "30:AF:82:D0:00:1C:F2:99:DE:A8:6D:31:7F:C9:D5:46:70:07:EC:4F"
 
   def tearDown(self):
     super(TestLUClusterRenewCrypto, self).tearDown()

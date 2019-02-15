@@ -38,9 +38,7 @@ from ganeti import opcodes
 
 from testsupport import *
 
-from functools import partial
 import testutils
-import mock
 
 
 class TestLUInstanceMigrate(CmdlibTestCase):
@@ -49,21 +47,12 @@ class TestLUInstanceMigrate(CmdlibTestCase):
 
     self.snode = self.cfg.AddNewNode()
 
-    self._ResetRPC()
-
-    self.inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
-                                        admin_state=constants.ADMINST_UP,
-                                        secondary_node=self.snode)
-    self.op = opcodes.OpInstanceMigrate(instance_name=self.inst.name)
-
-  def _ResetRPC(self):
     hv_info = ("bootid",
                [{
                  "type": constants.ST_LVM_VG,
                  "storage_free": 10000
                }],
                ({"memory_free": 10000}, ))
-
     self.rpc.call_node_info.return_value = \
       self.RpcResultsBuilder() \
         .AddSuccessfulNode(self.master, hv_info) \
@@ -86,15 +75,17 @@ class TestLUInstanceMigrate(CmdlibTestCase):
     self.rpc.call_instance_get_migration_status.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, objects.MigrationStatus())
-    self.rpc.call_instance_start_postcopy.return_value = \
-      self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.master, True)
     self.rpc.call_instance_finalize_migration_dst.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.snode, True)
     self.rpc.call_instance_finalize_migration_src.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, True)
+
+    self.inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
+                                        admin_state=constants.ADMINST_UP,
+                                        secondary_node=self.snode)
+    self.op = opcodes.OpInstanceMigrate(instance_name=self.inst.name)
 
   def testPlainDisk(self):
     inst = self.cfg.AddNewInstance(disk_template=constants.DT_PLAIN)
@@ -115,64 +106,6 @@ class TestLUInstanceMigrate(CmdlibTestCase):
     op = self.CopyOpCode(self.op)
     self.ExecOpCode(op)
 
-  def _buildMigrationStatusResponse(self, **kwargs):
-      return self.RpcResultsBuilder().CreateSuccessfulNodeResult(
-          self.master,
-          objects.MigrationStatus(**kwargs)
-      )
-
-  def _execPostcopyMigration(self):
-    self.__status = 'active'
-
-    def change_status(*args, **kwargs):
-      self.__status = 'postcopy-active'
-      return mock.DEFAULT
-
-    def migration_statuses(*args, **kwargs):
-      yield self._buildMigrationStatusResponse(status=self.__status,
-                                               dirty_sync_count='1')
-      for i in range(3):
-        yield self._buildMigrationStatusResponse(status=self.__status,
-                                                 dirty_sync_count='2')
-
-      yield self._buildMigrationStatusResponse(status='completed',
-                                               dirty_sync_count='2')
-
-    self.rpc.call_instance_get_migration_status.side_effect = \
-        migration_statuses()
-    self.rpc.call_instance_start_postcopy.side_effect = change_status
-
-    op = self.CopyOpCode(self.op)
-    self.ExecOpCode(op)
-
-    self._ResetRPC()
-
-  def testPostcopyMigration(self):
-    self.inst.hypervisor = 'kvm'
-    self.inst.hvparams['migration_caps'] = 'postcopy-ram'
-
-    self._execPostcopyMigration()
-
-    self.assertTrue(self.__status == 'postcopy-active',
-                    'Not in postcopy mode after op executed')
-
-    self.inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
-                                        admin_state=constants.ADMINST_UP,
-                                        secondary_node=self.snode)
-
-
-  def testPostcopyMigrationWithDefaultHVParams(self):
-    self.inst.hypervisor = 'kvm'
-    self.cluster.hvparams['kvm']['migration_caps'] = 'postcopy-ram'
-
-    self._execPostcopyMigration()
-
-    self.assertTrue(self.__status == 'postcopy-active',
-                    'Not in postcopy mode after op executed')
-
-    self.inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
-                                        admin_state=constants.ADMINST_UP,
-                                        secondary_node=self.snode)
 
 class TestLUInstanceFailover(CmdlibTestCase):
   def setUp(self):

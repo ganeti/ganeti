@@ -41,25 +41,11 @@ module Ganeti.HTools.AlgorithmParams
   , fromCLIOptions
   ) where
 
-import qualified Data.Set as Set
-
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Types as T
 
 data AlgorithmOptions = AlgorithmOptions
   { algDiskMoves :: Bool            -- ^ Whether disk moves are allowed
-  , algDiskMovesFactor :: Double    -- ^ Allow only disk moves leads to gain
-                                    -- in cluster score more than
-                                    -- algDiskMovesFactor times higher than
-                                    -- the gain in migration moves
-  , algLongSolutionThreshold :: Int -- ^ Threshold for long-time solutions
-  , algLongSolutionsFactor :: Double -- ^ Allow only long solutions,
-                                    -- whose K/N metrics are more,
-                                    -- than algLongSolutionsFactor,
-                                    -- where K is the number of times cluster
-                                    -- metric has increased and N is how much
-                                    -- the estimated time to perform
-                                    -- this solution exceeds the threshold
   , algInstanceMoves :: Bool        -- ^ Whether instance moves are allowed
   , algRestrictedMigration :: Bool  -- ^ Whether migration is restricted
   , algIgnoreSoftErrors :: Bool     -- ^ Whether to always ignore soft errors
@@ -70,8 +56,6 @@ data AlgorithmOptions = AlgorithmOptions
                                     -- like global N+1 redundancy
   , algCapacityIgnoreGroups :: [T.Gdx] -- ^ Groups to ignore in capacity checks
   , algRestrictToNodes :: Maybe [String] -- ^ nodes to restrict allocation to
-  , algAllowedNodes :: Maybe (Set.Set Int) -- ^ if given, do not perform any
-                                    -- operations involving other nodes
   , algAcceptExisting :: Bool       -- ^ accept existing violations in capacity
                                     -- checks
   }
@@ -80,9 +64,6 @@ data AlgorithmOptions = AlgorithmOptions
 fromCLIOptions :: CLI.Options -> AlgorithmOptions
 fromCLIOptions opts = AlgorithmOptions
   { algDiskMoves = CLI.optDiskMoves opts
-  , algDiskMovesFactor = CLI.optAvoidDiskMoves opts
-  , algLongSolutionThreshold = CLI.optLongSolutionThreshold opts
-  , algLongSolutionsFactor = CLI.optAvoidLongSolutions opts
   , algInstanceMoves = CLI.optInstMoves opts
   , algRestrictedMigration = CLI.optRestrictedMigrate opts
   , algIgnoreSoftErrors = CLI.optIgnoreSoftErrors opts
@@ -92,7 +73,6 @@ fromCLIOptions opts = AlgorithmOptions
   , algCapacity = CLI.optCapacity opts
   , algCapacityIgnoreGroups = []
   , algRestrictToNodes = CLI.optRestrictToNodes opts
-  , algAllowedNodes = Nothing
   , algAcceptExisting = CLI.optAcceptExisting opts
   }
 

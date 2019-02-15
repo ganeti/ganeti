@@ -51,12 +51,16 @@ import Text.Printf (printf)
 import System.FilePath
 
 import Ganeti.BasicTypes
+import Ganeti.Types (Hypervisor(..))
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
-import Ganeti.JSON (loadJSArray, JSRecord, tryFromObj, fromJVal, maybeFromObj, fromJResult, tryArrayMaybeFromObj, readEitherString, fromObjWithDefault, asJSObject, emptyContainer)
+import Ganeti.JSON (loadJSArray, JSRecord, tryFromObj, fromJVal, maybeFromObj,
+                    fromJResult, tryArrayMaybeFromObj, readEitherString,
+                    fromObjWithDefault, asJSObject)
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.Constants as C
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
@@ -186,10 +190,8 @@ parseNode ktg a = do
   ctotal <- lvextract 0.0 "ctotal"
   cnos <- lvextract 0 "cnos"
   tags <- extract "tags"
-  hv_state <- extractDef emptyContainer "hv_state"
-  let node_mem = obtainNodeMemory hv_state mnode
-      node = flip Node.setNodeTags tags $
-             Node.create name mtotal node_mem mfree dtotal dfree ctotal cnos
+  let node = flip Node.setNodeTags tags $
+             Node.create name mtotal mnode mfree dtotal dfree ctotal cnos
              (not live || drained) sptotal spfree guuid' excl_stor
   return (name, node)
 
@@ -198,23 +200,24 @@ parseGroup :: JSRecord -> Result (String, Group.Group)
 parseGroup a = do
   name <- tryFromObj "Parsing new group" a "name"
   let extract s = tryFromObj ("Group '" ++ name ++ "'") a s
-  let extractDef s d = fromObjWithDefault a s d
   uuid <- extract "uuid"
   apol <- extract "alloc_policy"
   ipol <- extract "ipolicy"
   tags <- extract "tags"
-  nets <- extractDef "networks" []
-  return (uuid, Group.create name uuid apol nets ipol tags)
+  -- TODO: parse networks to which this group is connected
+  return (uuid, Group.create name uuid apol [] ipol tags)
 
 -- | Parse cluster data from the info resource.
-parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String)
+parseCluster :: JSObject JSValue -> Result ([String], IPolicy,
+                                            String, Hypervisor)
 parseCluster obj = do
   let obj' = fromJSObject obj
       extract s = tryFromObj "Parsing cluster data" obj' s
   master <- extract "master"
   tags <- extract "tags"
   ipolicy <- extract "ipolicy"
-  return (tags, ipolicy, master)
+  hypervisor <- extract "default_hypervisor"
+  return (tags, ipolicy, master, hypervisor)
 
 -- | Loads the raw cluster data from an URL.
 readDataHttp :: String -- ^ Cluster or URL to use as source
@@ -255,12 +258,13 @@ parseData (group_body, node_body, inst_body, info_body) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  (tags, ipolicy, master) <-
+  (tags, ipolicy, master, hypervisor) <-
     info_body >>=
     (fromJResult "Parsing cluster info" . decodeStrict) >>=
     parseCluster
   node_idx' <- setMaster node_names node_idx master
-  return (ClusterData group_idx node_idx' inst_idx tags ipolicy)
+  let node_idx'' = Container.map (`Node.setHypervisor` hypervisor) node_idx'
+  return (ClusterData group_idx node_idx'' inst_idx tags ipolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Cluster or URL to use as source

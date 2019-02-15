@@ -54,13 +54,13 @@ module Ganeti.Utils.MultiMap
   , values
   ) where
 
-import Prelude ()
-import Ganeti.Prelude hiding (lookup, null, elem)
+import Prelude hiding (lookup, null, elem)
 
 import Control.Monad
 import qualified Data.Foldable as F
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, isJust)
+import Data.Monoid
 import qualified Data.Set as S
 import qualified Text.JSON as J
 

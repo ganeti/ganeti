@@ -334,9 +334,8 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
   """
   def decorator(fn):
     def wrapper(*args, **kwargs):
-      # Despite the hooks run locally, we still have to pass an uuid which
-      # will be ignored in RunLocalHooks then.
-      nodes = ([constants.DUMMY_UUID], [constants.DUMMY_UUID])
+      _, myself = ssconf.GetMasterAndMyself()
+      nodes = ([myself], [myself])  # these hooks run locally
 
       env_fn = compat.partial(env_builder_fn, *args, **kwargs)
 
@@ -1081,14 +1080,13 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
   return result
 
 
-def _VerifySshClutter(node_ssh_info, my_name):
+def _VerifySshClutter(node_status_list, my_name):
   """Verifies that the 'authorized_keys' files are not cluttered up.
 
-  @type node_ssh_info: tuple of (node_info, ssh_key_type)
-  @param node_ssh_info: node_info is a list of nodes in the cluster
-                         associated with a couple of flags:
-                         (uuid, name, is_master_candidate,
-                          is_potential_master_candidate, online).
+  @type node_status_list: list of tuples
+  @param node_status_list: list of nodes of the cluster associated with a
+    couple of flags: (uuid, name, is_master_candidate,
+    is_potential_master_candidate, online)
   @type my_name: str
   @param my_name: name of this node
 
@@ -1096,8 +1094,7 @@ def _VerifySshClutter(node_ssh_info, my_name):
   result = []
   (auth_key_file, _) = \
     ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-  node_statuses, _ = node_ssh_info
-  node_names = [name for (_, name, _, _, _) in node_statuses]
+  node_names = [name for (_, name, _, _) in node_status_list]
   multiple_occurrences = ssh.CheckForMultipleKeys(auth_key_file, node_names)
   if multiple_occurrences:
     msg = "There are hosts which have more than one SSH key stored for the" \
@@ -1470,9 +1467,7 @@ def AddNodeSshKey(node_uuid, node_name,
                   pub_key_file=pathutils.SSH_PUB_KEYS,
                   ssconf_store=None,
                   noded_cert_file=pathutils.NODED_CERT_FILE,
-                  run_cmd_fn=ssh.RunSshCmdWithStdin,
-                  ssh_update_debug=False,
-                  ssh_update_verbose=False):
+                  run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Distributes a node's public SSH key across the cluster.
 
   Note that this function should only be executed on the master node, which
@@ -1508,9 +1503,7 @@ def AddNodeSshKey(node_uuid, node_name,
                            pub_key_file=pub_key_file,
                            ssconf_store=ssconf_store,
                            noded_cert_file=noded_cert_file,
-                           run_cmd_fn=run_cmd_fn,
-                           ssh_update_debug=ssh_update_debug,
-                           ssh_update_verbose=ssh_update_verbose)
+                           run_cmd_fn=run_cmd_fn)
 
 
 # Node info named tuple specifically for the use with AddNodeSshKeyBulk
@@ -1528,9 +1521,7 @@ def AddNodeSshKeyBulk(node_list,
                       pub_key_file=pathutils.SSH_PUB_KEYS,
                       ssconf_store=None,
                       noded_cert_file=pathutils.NODED_CERT_FILE,
-                      run_cmd_fn=ssh.RunSshCmdWithStdin,
-                      ssh_update_debug=False,
-                      ssh_update_verbose=False):
+                      run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Distributes a node's public SSH key across the cluster.
 
   Note that this function should only be executed on the master node, which
@@ -1608,14 +1599,13 @@ def AddNodeSshKeyBulk(node_list,
         (constants.SSHS_OVERRIDE, all_keys)
 
       try:
-        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES, backoff,
+            constants.SSHS_MAX_RETRIES,
             errors.SshUpdateError,
             run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
             ssh_port_map.get(node_info.name), node_data,
-            debug=ssh_update_debug, verbose=ssh_update_verbose,
-            use_cluster_key=False, ask_key=False, strict_host_check=False)
+            debug=False, verbose=False, use_cluster_key=False,
+            ask_key=False, strict_host_check=False)
       except errors.SshUpdateError as e:
         # Clean up the master's public key file if adding key fails
         if node_info.to_public_keys:
@@ -1655,13 +1645,13 @@ def AddNodeSshKeyBulk(node_list,
     if node in potential_master_candidates:
       logging.debug("Updating SSH key files of node '%s'.", node)
       try:
-        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
+            constants.SSHS_MAX_RETRIES,
+            errors.SshUpdateError,
             run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
             ssh_port_map.get(node), pot_mc_data,
-            debug=ssh_update_debug, verbose=ssh_update_verbose,
-            use_cluster_key=False, ask_key=False, strict_host_check=False)
+            debug=False, verbose=False, use_cluster_key=False,
+            ask_key=False, strict_host_check=False)
       except errors.SshUpdateError as last_exception:
         error_msg = ("When adding the key of node '%s', updating SSH key"
                      " files of node '%s' failed after %s retries."
@@ -1677,16 +1667,13 @@ def AddNodeSshKeyBulk(node_list,
       if to_authorized_keys:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                    ssh_port_map.get(node), base_data,
-                   debug=ssh_update_debug, verbose=ssh_update_verbose,
-                   use_cluster_key=False, ask_key=False,
-                   strict_host_check=False)
+                   debug=False, verbose=False, use_cluster_key=False,
+                   ask_key=False, strict_host_check=False)
 
   return node_errors
 
 
-# TODO: will be fixed with pending patch series.
-def RemoveNodeSshKey(node_uuid, # pylint: disable=R0913
-                     node_name,
+def RemoveNodeSshKey(node_uuid, node_name,
                      master_candidate_uuids,
                      potential_master_candidates,
                      master_uuid=None,
@@ -1699,9 +1686,7 @@ def RemoveNodeSshKey(node_uuid, # pylint: disable=R0913
                      ssconf_store=None,
                      noded_cert_file=pathutils.NODED_CERT_FILE,
                      readd=False,
-                     run_cmd_fn=ssh.RunSshCmdWithStdin,
-                     ssh_update_debug=False,
-                     ssh_update_verbose=False):
+                     run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Removes the node's SSH keys from the key files and distributes those.
 
   Note that at least one of the flags C{from_authorized_keys},
@@ -1755,9 +1740,7 @@ def RemoveNodeSshKey(node_uuid, # pylint: disable=R0913
                               ssconf_store=ssconf_store,
                               noded_cert_file=noded_cert_file,
                               readd=readd,
-                              run_cmd_fn=run_cmd_fn,
-                              ssh_update_debug=ssh_update_debug,
-                              ssh_update_verbose=ssh_update_verbose)
+                              run_cmd_fn=run_cmd_fn)
 
 
 # Node info named tuple specifically for the use with RemoveNodeSshKeyBulk
@@ -1780,9 +1763,7 @@ def RemoveNodeSshKeyBulk(node_list,
                          ssconf_store=None,
                          noded_cert_file=pathutils.NODED_CERT_FILE,
                          readd=False,
-                         run_cmd_fn=ssh.RunSshCmdWithStdin,
-                         ssh_update_debug=False,
-                         ssh_update_verbose=False):
+                         run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Removes the node's SSH keys from the key files and distributes those.
 
   Note that at least one of the flags C{from_authorized_keys},
@@ -1930,13 +1911,13 @@ def RemoveNodeSshKeyBulk(node_list,
             node_desc = "normal"
           logging.debug("Updating key setup of %s node %s.", node_desc, node)
           try:
-            backoff = 5  # seconds
             utils.RetryByNumberOfTimes(
-                constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
+                constants.SSHS_MAX_RETRIES,
+                errors.SshUpdateError,
                 run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
                 ssh_port, pot_mc_data,
-                debug=ssh_update_debug, verbose=ssh_update_verbose,
-                use_cluster_key=False, ask_key=False, strict_host_check=False)
+                debug=False, verbose=False, use_cluster_key=False,
+                ask_key=False, strict_host_check=False)
           except errors.SshUpdateError as last_exception:
             error_msg = error_msg_final % (
                 node_info.name, node, last_exception)
@@ -1984,14 +1965,13 @@ def RemoveNodeSshKeyBulk(node_list,
       logging.debug("Updating SSH key setup of target node '%s'.",
                     node_info.name)
       try:
-        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES, backoff,
+            constants.SSHS_MAX_RETRIES,
             errors.SshUpdateError,
             run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
             ssh_port, data,
-            debug=ssh_update_debug, verbose=ssh_update_verbose,
-            use_cluster_key=False, ask_key=False, strict_host_check=False)
+            debug=False, verbose=False, use_cluster_key=False,
+            ask_key=False, strict_host_check=False)
       except errors.SshUpdateError as last_exception:
         result_msgs.append(
             (node_info.name,
@@ -2006,49 +1986,16 @@ def RemoveNodeSshKeyBulk(node_list,
   return result_msgs
 
 
-def RemoveSshKeyFromPublicKeyFile(node_name,
-                                  pub_key_file=pathutils.SSH_PUB_KEYS,
-                                  ssconf_store=None):
-  """Removes a SSH key from the master's public key file.
-
-  This is an operation that is only used to clean up after failed operations
-  (for example failed hooks before adding a node). To avoid abuse of this
-  function (and the matching RPC call), we add a safety check to make sure
-  that only stray keys can be removed that belong to nodes that are not
-  in the cluster (anymore).
-
-  @type node_name: string
-  @param node_name: the name of the node whose key is removed
-
-  """
-  if not ssconf_store:
-    ssconf_store = ssconf.SimpleStore()
-
-  node_list = ssconf_store.GetNodeList()
-
-  if node_name in node_list:
-    raise errors.SshUpdateError("Cannot remove key of node '%s',"
-                                " because it still belongs to the cluster."
-                                % node_name)
-
-  keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
-  if not keys_by_name or node_name not in keys_by_name:
-    logging.info("The node '%s' whose key is supposed to be removed does not"
-                 " have an entry in the public key file. Hence, there is"
-                 " nothing left to do.", node_name)
-
-  ssh.RemovePublicKey(node_name, key_file=pub_key_file)
-
-
-def _GenerateNodeSshKey(node_name, ssh_port_map, ssh_key_type, ssh_key_bits,
+def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
+                        ssh_key_bits, pub_key_file=pathutils.SSH_PUB_KEYS,
                         ssconf_store=None,
                         noded_cert_file=pathutils.NODED_CERT_FILE,
                         run_cmd_fn=ssh.RunSshCmdWithStdin,
-                        suffix="",
-                        ssh_update_debug=False,
-                        ssh_update_verbose=False):
+                        suffix=""):
   """Generates the root SSH key pair on the node.
 
+  @type node_uuid: str
+  @param node_uuid: UUID of the node whose key is removed
   @type node_name: str
   @param node_name: name of the node whose key is remove
   @type ssh_port_map: dict of str to int
@@ -2062,6 +2009,12 @@ def _GenerateNodeSshKey(node_name, ssh_port_map, ssh_key_type, ssh_key_bits,
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
 
+  keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+  if not keys_by_uuid or node_uuid not in keys_by_uuid:
+    raise errors.SshUpdateError("Node %s (UUID: %s) whose key is requested to"
+                                " be regenerated is not registered in the"
+                                " public keys file." % (node_name, node_uuid))
+
   data = {}
   _InitSshUpdateData(data, noded_cert_file, ssconf_store)
   cluster_name = data[constants.SSHS_CLUSTER_NAME]
@@ -2069,8 +2022,8 @@ def _GenerateNodeSshKey(node_name, ssh_port_map, ssh_key_type, ssh_key_bits,
 
   run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
              ssh_port_map.get(node_name), data,
-             debug=ssh_update_debug, verbose=ssh_update_verbose,
-             use_cluster_key=False, ask_key=False, strict_host_check=False)
+             debug=False, verbose=False, use_cluster_key=False,
+             ask_key=False, strict_host_check=False)
 
 
 def _GetMasterNodeUUID(node_uuid_name_map, master_node_name):
@@ -2094,15 +2047,58 @@ def _GetOldMasterKeys(master_node_uuid, pub_key_file):
   return old_master_keys_by_uuid
 
 
+def _GetNewMasterKey(root_keyfiles, master_node_uuid):
+  new_master_keys = []
+  for (_, (_, public_key_file)) in root_keyfiles.items():
+    public_key_dir = os.path.dirname(public_key_file)
+    public_key_file_tmp_filename = \
+        os.path.splitext(os.path.basename(public_key_file))[0] \
+        + constants.SSHS_MASTER_SUFFIX + ".pub"
+    public_key_path_tmp = os.path.join(public_key_dir,
+                                       public_key_file_tmp_filename)
+    if os.path.exists(public_key_path_tmp):
+      # for some key types, there might not be any keys
+      key = utils.ReadFile(public_key_path_tmp)
+      new_master_keys.append(key)
+  if not new_master_keys:
+    raise errors.SshUpdateError("Cannot find any type of temporary SSH key.")
+  return {master_node_uuid: new_master_keys}
+
+
+def _ReplaceMasterKeyOnMaster(root_keyfiles):
+  number_of_moves = 0
+  for (_, (private_key_file, public_key_file)) in root_keyfiles.items():
+    key_dir = os.path.dirname(public_key_file)
+    private_key_file_tmp = \
+      os.path.basename(private_key_file) + constants.SSHS_MASTER_SUFFIX
+    public_key_file_tmp = private_key_file_tmp + ".pub"
+    private_key_path_tmp = os.path.join(key_dir,
+                                        private_key_file_tmp)
+    public_key_path_tmp = os.path.join(key_dir,
+                                       public_key_file_tmp)
+    if os.path.exists(public_key_file):
+      utils.CreateBackup(public_key_file)
+      utils.RemoveFile(public_key_file)
+    if os.path.exists(private_key_file):
+      utils.CreateBackup(private_key_file)
+      utils.RemoveFile(private_key_file)
+    if os.path.exists(public_key_path_tmp) and \
+        os.path.exists(private_key_path_tmp):
+      # for some key types, there might not be any keys
+      shutil.move(public_key_path_tmp, public_key_file)
+      shutil.move(private_key_path_tmp, private_key_file)
+      number_of_moves += 1
+  if not number_of_moves:
+    raise errors.SshUpdateError("Could not move at least one master SSH key.")
+
+
 def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                  potential_master_candidates, old_key_type, new_key_type,
                  new_key_bits,
                  ganeti_pub_keys_file=pathutils.SSH_PUB_KEYS,
                  ssconf_store=None,
                  noded_cert_file=pathutils.NODED_CERT_FILE,
-                 run_cmd_fn=ssh.RunSshCmdWithStdin,
-                 ssh_update_debug=False,
-                 ssh_update_verbose=False):
+                 run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Renews all SSH keys and updates authorized_keys and ganeti_pub_keys.
 
   @type node_uuids: list of str
@@ -2140,9 +2136,11 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
     raise errors.ProgrammerError("List of nodes UUIDs and node names"
                                  " does not match in length.")
 
-  old_pub_keyfile = ssh.GetSshPubKeyFilename(old_key_type)
-  new_pub_keyfile = ssh.GetSshPubKeyFilename(new_key_type)
-  old_master_key = ssh.ReadLocalSshPubKeys([old_key_type])
+  (_, root_keyfiles) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+  (_, old_pub_keyfile) = root_keyfiles[old_key_type]
+  (_, new_pub_keyfile) = root_keyfiles[new_key_type]
+  old_master_key = utils.ReadFile(old_pub_keyfile)
 
   node_uuid_name_map = zip(node_uuids, node_names)
 
@@ -2173,13 +2171,20 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
     node_list.append((node_uuid, node_name, master_candidate,
                       potential_master_candidate))
 
+    keys_by_uuid = ssh.QueryPubKeyFile([node_uuid],
+                                       key_file=ganeti_pub_keys_file)
+    if not keys_by_uuid:
+      raise errors.SshUpdateError("No public key of node %s (UUID %s) found,"
+                                  " not generating a new key."
+                                  % (node_name, node_uuid))
+
     if master_candidate:
       logging.debug("Fetching old SSH key from node '%s'.", node_name)
-      old_pub_key = ssh.ReadRemoteSshPubKey(old_pub_keyfile,
-                                            node_name, cluster_name,
-                                            ssh_port_map[node_name],
-                                            False, # ask_key
-                                            False) # key_check
+      old_pub_key = ssh.ReadRemoteSshPubKeys(old_pub_keyfile,
+                                             node_name, cluster_name,
+                                             ssh_port_map[node_name],
+                                             False, # ask_key
+                                             False) # key_check
       if old_pub_key != old_master_key:
         # If we are already in a multi-key setup (that is past Ganeti 2.12),
         # we can safely remove the old key of the node. Otherwise, we cannot
@@ -2203,13 +2208,7 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
         node_info_to_remove,
         master_candidate_uuids,
         potential_master_candidates,
-        master_uuid=master_node_uuid,
-        pub_key_file=ganeti_pub_keys_file,
-        ssconf_store=ssconf_store,
-        noded_cert_file=noded_cert_file,
-        run_cmd_fn=run_cmd_fn,
-        ssh_update_debug=ssh_update_debug,
-        ssh_update_verbose=ssh_update_verbose)
+        master_uuid=master_node_uuid)
     if node_errors:
       all_node_errors = all_node_errors + node_errors
 
@@ -2217,20 +2216,19 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       in node_list:
 
     logging.debug("Generating new SSH key for node '%s'.", node_name)
-    _GenerateNodeSshKey(node_name, ssh_port_map, new_key_type, new_key_bits,
+    _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, new_key_type,
+                        new_key_bits, pub_key_file=ganeti_pub_keys_file,
                         ssconf_store=ssconf_store,
                         noded_cert_file=noded_cert_file,
-                        run_cmd_fn=run_cmd_fn,
-                        ssh_update_verbose=ssh_update_verbose,
-                        ssh_update_debug=ssh_update_debug)
+                        run_cmd_fn=run_cmd_fn)
 
     try:
       logging.debug("Fetching newly created SSH key from node '%s'.", node_name)
-      pub_key = ssh.ReadRemoteSshPubKey(new_pub_keyfile,
-                                        node_name, cluster_name,
-                                        ssh_port_map[node_name],
-                                        False, # ask_key
-                                        False) # key_check
+      pub_key = ssh.ReadRemoteSshPubKeys(new_pub_keyfile,
+                                         node_name, cluster_name,
+                                         ssh_port_map[node_name],
+                                         False, # ask_key
+                                         False) # key_check
     except:
       raise errors.SshUpdateError("Could not fetch key of node %s"
                                   " (UUID %s)" % (node_name, node_uuid))
@@ -2246,15 +2244,14 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                                get_public_keys=True)
     node_keys_to_add.append(node_info)
 
-  node_errors = AddNodeSshKeyBulk(
-      node_keys_to_add, potential_master_candidates,
-      pub_key_file=ganeti_pub_keys_file, ssconf_store=ssconf_store,
-      noded_cert_file=noded_cert_file,
-      run_cmd_fn=run_cmd_fn,
-      ssh_update_debug=ssh_update_debug,
-      ssh_update_verbose=ssh_update_verbose)
-  if node_errors:
-    all_node_errors = all_node_errors + node_errors
+  if node_keys_to_add:
+    node_errors = AddNodeSshKeyBulk(
+        node_keys_to_add, potential_master_candidates,
+        pub_key_file=ganeti_pub_keys_file, ssconf_store=ssconf_store,
+        noded_cert_file=noded_cert_file,
+        run_cmd_fn=run_cmd_fn)
+    if node_errors:
+      all_node_errors = all_node_errors + node_errors
 
   # Renewing the master node's key
 
@@ -2264,21 +2261,19 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
 
   # Generate a new master key with a suffix, don't touch the old one for now
   logging.debug("Generate new ssh key of master.")
-  _GenerateNodeSshKey(master_node_name, ssh_port_map,
+  _GenerateNodeSshKey(master_node_uuid, master_node_name, ssh_port_map,
                       new_key_type, new_key_bits,
+                      pub_key_file=ganeti_pub_keys_file,
                       ssconf_store=ssconf_store,
                       noded_cert_file=noded_cert_file,
                       run_cmd_fn=run_cmd_fn,
-                      suffix=constants.SSHS_MASTER_SUFFIX,
-                      ssh_update_debug=ssh_update_debug,
-                      ssh_update_verbose=ssh_update_verbose)
+                      suffix=constants.SSHS_MASTER_SUFFIX)
   # Read newly created master key
-  new_master_keys = ssh.ReadLocalSshPubKeys(
-      [new_key_type], suffix=constants.SSHS_MASTER_SUFFIX)
+  new_master_key_dict = _GetNewMasterKey(root_keyfiles, master_node_uuid)
 
   # Replace master key in the master nodes' public key file
   ssh.RemovePublicKey(master_node_uuid, key_file=ganeti_pub_keys_file)
-  for pub_key in new_master_keys:
+  for pub_key in new_master_key_dict[master_node_uuid]:
     ssh.AddPublicKey(master_node_uuid, pub_key, key_file=ganeti_pub_keys_file)
 
   # Add new master key to all node's public and authorized keys
@@ -2288,15 +2283,12 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       to_authorized_keys=True, to_public_keys=True,
       get_public_keys=False, pub_key_file=ganeti_pub_keys_file,
       ssconf_store=ssconf_store, noded_cert_file=noded_cert_file,
-      run_cmd_fn=run_cmd_fn,
-      ssh_update_debug=ssh_update_debug,
-      ssh_update_verbose=ssh_update_verbose)
+      run_cmd_fn=run_cmd_fn)
   if node_errors:
     all_node_errors = all_node_errors + node_errors
 
   # Remove the old key file and rename the new key to the non-temporary filename
-  ssh.ReplaceSshKeys(new_key_type, new_key_type,
-                     src_key_suffix=constants.SSHS_MASTER_SUFFIX)
+  _ReplaceMasterKeyOnMaster(root_keyfiles)
 
   # Remove old key from authorized keys
   (auth_key_file, _) = \
@@ -2311,13 +2303,7 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       potential_master_candidates,
       keys_to_remove=old_master_keys_by_uuid, from_authorized_keys=True,
       from_public_keys=False, clear_authorized_keys=False,
-      clear_public_keys=False,
-      pub_key_file=ganeti_pub_keys_file,
-      ssconf_store=ssconf_store,
-      noded_cert_file=noded_cert_file,
-      run_cmd_fn=run_cmd_fn,
-      ssh_update_debug=ssh_update_debug,
-      ssh_update_verbose=ssh_update_verbose)
+      clear_public_keys=False)
   if node_errors:
     all_node_errors = all_node_errors + node_errors
 
@@ -2581,6 +2567,12 @@ def GetInstanceMigratable(instance):
   if iname not in hyper.ListInstances(hvparams=instance.hvparams):
     _Fail("Instance %s is not running", iname)
 
+  for idx in range(len(instance.disks_info)):
+    link_name = _GetBlockDevSymlinkPath(iname, idx)
+    if not os.path.islink(link_name):
+      logging.warning("Instance %s is missing symlink %s for disk %d",
+                      iname, link_name, idx)
+
 
 def GetAllInstancesInfo(hypervisor_list, all_hvparams):
   """Gather data about all instances.
@@ -2773,27 +2765,19 @@ def RunRenameInstance(instance, old_name, debug):
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
 
 
-def _GetBlockDevSymlinkPath(instance_name, idx=None, uuid=None, _dir=None):
+def _GetBlockDevSymlinkPath(instance_name, idx, _dir=None):
   """Returns symlink path for block device.
 
   """
   if _dir is None:
     _dir = pathutils.DISK_LINKS_DIR
 
-  assert idx is not None or uuid is not None
-
-  # Using the idx is deprecated. Use the uuid instead if it is available.
-  if uuid:
-    ident = uuid
-  else:
-    ident = idx
-
   return utils.PathJoin(_dir,
                         ("%s%s%s" %
-                         (instance_name, constants.DISK_SEPARATOR, ident)))
+                         (instance_name, constants.DISK_SEPARATOR, idx)))
 
 
-def _SymlinkBlockDev(instance_name, device_path, idx=None, uuid=None):
+def _SymlinkBlockDev(instance_name, device_path, idx):
   """Set up symlinks to a instance's block device.
 
   This is an auxiliary function run when an instance is start (on the primary
@@ -2803,7 +2787,6 @@ def _SymlinkBlockDev(instance_name, device_path, idx=None, uuid=None):
   @param instance_name: the name of the target instance
   @param device_path: path of the physical block device, on the node
   @param idx: the disk index
-  @param uuid: the disk uuid
   @return: absolute path to the disk's symlink
 
   """
@@ -2811,8 +2794,7 @@ def _SymlinkBlockDev(instance_name, device_path, idx=None, uuid=None):
   if not device_path:
     return None
 
-  link_name = _GetBlockDevSymlinkPath(instance_name, idx, uuid)
-
+  link_name = _GetBlockDevSymlinkPath(instance_name, idx)
   try:
     os.symlink(device_path, link_name)
   except OSError, err:
@@ -2831,19 +2813,13 @@ def _RemoveBlockDevLinks(instance_name, disks):
   """Remove the block device symlinks belonging to the given instance.
 
   """
-  def _remove_symlink(link_name):
+  for idx, _ in enumerate(disks):
+    link_name = _GetBlockDevSymlinkPath(instance_name, idx)
     if os.path.islink(link_name):
       try:
         os.remove(link_name)
       except OSError:
         logging.exception("Can't remove symlink '%s'", link_name)
-
-  for idx, disk in enumerate(disks):
-    link_name = _GetBlockDevSymlinkPath(instance_name, uuid=disk.uuid)
-    _remove_symlink(link_name)
-    # Remove also the deprecated symlink (if any)
-    link_name = _GetBlockDevSymlinkPath(instance_name, idx=idx)
-    _remove_symlink(link_name)
 
 
 def _CalculateDeviceURI(instance, disk, device):
@@ -2888,11 +2864,7 @@ def _GatherAndLinkBlockDevs(instance):
                                     str(disk))
     device.Open()
     try:
-      # Create both index-based and uuid-based symlinks
-      # for backwards compatibility
-      _SymlinkBlockDev(instance.name, device.dev_path, idx=idx)
-      link_name = _SymlinkBlockDev(instance.name, device.dev_path,
-                                   uuid=disk.uuid)
+      link_name = _SymlinkBlockDev(instance.name, device.dev_path, idx)
     except OSError, e:
       raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
                                     e.strerror)
@@ -2974,49 +2946,48 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
 
   if not _GetInstanceInfo(instance):
     logging.info("Instance '%s' not running, doing nothing", instance.name)
-    return
+  else:
+    class _TryShutdown(object):
+      def __init__(self):
+        self.tried_once = False
 
-  class _TryShutdown(object):
-    def __init__(self):
-      self.tried_once = False
+      def __call__(self):
+        try:
+          hyper.StopInstance(instance, retry=self.tried_once, timeout=timeout)
+          if store_reason:
+            _StoreInstReasonTrail(instance.name, reason)
+        except errors.HypervisorError, err:
+          # if the instance does no longer exist, consider this success and go
+          # to cleanup, otherwise fail without retrying
+          if _GetInstanceInfo(instance):
+            _Fail("Failed to stop instance '%s': %s", instance.name, err)
+          return
 
-    def __call__(self):
-      try:
-        hyper.StopInstance(instance, retry=self.tried_once, timeout=timeout)
-        if store_reason:
-          _StoreInstReasonTrail(instance.name, reason)
-      except errors.HypervisorError, err:
-        # if the instance does no longer exist, consider this success and go to
-        # cleanup, otherwise fail without retrying
+        # TODO: Cleanup hypervisor implementations to prevent them from failing
+        # silently. We could easily decide if we want to retry or not by using
+        # HypervisorSoftError()/HypervisorHardError()
+        self.tried_once = True
         if _GetInstanceInfo(instance):
-          _Fail("Failed to stop instance '%s': %s", instance.name, err)
-        return
-
-      # TODO: Cleanup hypervisor implementations to prevent them from failing
-      # silently. We could easily decide if we want to retry or not by using
-      # HypervisorSoftError()/HypervisorHardError()
-      self.tried_once = True
-      if _GetInstanceInfo(instance):
-        raise utils.RetryAgain()
-
-  try:
-    utils.Retry(_TryShutdown(), 5, timeout)
-  except utils.RetryTimeout:
-    # the shutdown did not succeed
-    logging.error("Shutdown of '%s' unsuccessful, forcing", instance.name)
+          raise utils.RetryAgain()
 
     try:
-      hyper.StopInstance(instance, force=True)
-    except errors.HypervisorError, err:
-      # only raise an error if the instance still exists, otherwise
-      # the error could simply be "instance ... unknown"!
+      utils.Retry(_TryShutdown(), 5, timeout)
+    except utils.RetryTimeout:
+      # the shutdown did not succeed
+      logging.error("Shutdown of '%s' unsuccessful, forcing", instance.name)
+
+      try:
+        hyper.StopInstance(instance, force=True)
+      except errors.HypervisorError, err:
+        # only raise an error if the instance still exists, otherwise
+        # the error could simply be "instance ... unknown"!
+        if _GetInstanceInfo(instance):
+          _Fail("Failed to force stop instance '%s': %s", instance.name, err)
+
+      time.sleep(1)
+
       if _GetInstanceInfo(instance):
-        _Fail("Failed to force stop instance '%s': %s", instance.name, err)
-
-    time.sleep(1)
-
-    if _GetInstanceInfo(instance):
-      _Fail("Could not shutdown instance '%s' even by destroy", instance.name)
+        _Fail("Could not shutdown instance '%s' even by destroy", instance.name)
 
   try:
     hyper.CleanupInstance(instance.name)
@@ -3166,21 +3137,6 @@ def MigrateInstance(cluster_name, instance, target, live):
   except errors.HypervisorError, err:
     _Fail("Failed to migrate instance: %s", err, exc=True)
 
-def StartPostcopy(instance):
-  """ Switch a migrating instance from precopy to postcopy mode.
-
-  @type instance: L{objects.Instance}
-  @param instance: the instance currently being migrated to
-                   move to postcopy mode.
-  @raise RPCFail: If enabling postcopy fails for some reason.
-
-  """
-  hyper = hypervisor.GetHypervisor(instance.hypervisor)
-
-  try:
-    hyper.StartPostcopy(instance)
-  except Exception, err:  # pylint: disable=W0703
-    _Fail("Failed to enable postcopy mode: %s", err, exc=True)
 
 def FinalizeMigrationSource(instance, success, live):
   """Finalize the instance migration on the source node.
@@ -3713,10 +3669,7 @@ def BlockdevAssemble(disk, instance, as_primary, idx):
       link_name = None
       uri = None
       if as_primary:
-        # Create both index-based and uuid-based symlinks
-        # for backwards compatibility
-        _SymlinkBlockDev(instance.name, dev_path, idx=idx)
-        link_name = _SymlinkBlockDev(instance.name, dev_path, uuid=disk.uuid)
+        link_name = _SymlinkBlockDev(instance.name, dev_path, idx)
         uri = _CalculateDeviceURI(instance, disk, result)
     elif result:
       return result, result
@@ -4933,11 +4886,7 @@ def BlockdevOpen(instance_name, disks, exclusive):
   for idx, rd in enumerate(bdevs):
     try:
       rd.Open(exclusive=exclusive)
-      _SymlinkBlockDev(instance_name, rd.dev_path, uuid=disks[idx].uuid)
-      # Also create an old type of symlink so that instances
-      # can be migratable, since they may still have deprecated
-      # symlinks in their runtime files.
-      _SymlinkBlockDev(instance_name, rd.dev_path, idx=idx)
+      _SymlinkBlockDev(instance_name, rd.dev_path, idx)
     except errors.BlockDeviceError, err:
       msg.append(str(err))
 
@@ -5280,14 +5229,14 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
       script = inst_os.import_script
 
     elif mode == constants.IEM_EXPORT:
-      disk_path_var = "DISK_%d_PATH" % disk_index
-      if disk_path_var in env:
-        env["EXPORT_DEVICE"] = env[disk_path_var]
-        env["EXPORT_DISK_PATH"] = env[disk_path_var]
+      real_disk = _OpenRealBD(disk)
+      if real_disk.dev_path:
+        env["EXPORT_DEVICE"] = real_disk.dev_path
+        env["EXPORT_DISK_PATH"] = real_disk.dev_path
 
-      disk_uri_var = "DISK_%d_URI" % disk_index
-      if disk_uri_var in env:
-        env["EXPORT_DISK_URI"] = env[disk_uri_var]
+      uri = _CalculateDeviceURI(instance, disk, real_disk)
+      if uri:
+        env["EXPORT_DISK_URI"] = uri
 
       env["EXPORT_INDEX"] = str(disk_index)
       script = inst_os.export_script
@@ -5823,25 +5772,18 @@ def _PrepareRestrictedCmd(path, cmd,
   return _verify_cmd(path, cmd)
 
 
-def RunConstrainedCmd(cmd,
-                      lock_file,
-                      path,
-                      inp=None,
-                      _lock_timeout=_RCMD_LOCK_TIMEOUT,
-                      _sleep_fn=time.sleep,
-                      _prepare_fn=_PrepareRestrictedCmd,
-                      _runcmd_fn=utils.RunCmd,
-                      _enabled=constants.ENABLE_RESTRICTED_COMMANDS):
-  """Executes a command after performing strict tests.
+def RunRestrictedCmd(cmd,
+                     _lock_timeout=_RCMD_LOCK_TIMEOUT,
+                     _lock_file=pathutils.RESTRICTED_COMMANDS_LOCK_FILE,
+                     _path=pathutils.RESTRICTED_COMMANDS_DIR,
+                     _sleep_fn=time.sleep,
+                     _prepare_fn=_PrepareRestrictedCmd,
+                     _runcmd_fn=utils.RunCmd,
+                     _enabled=constants.ENABLE_RESTRICTED_COMMANDS):
+  """Executes a restricted command after performing strict tests.
 
   @type cmd: string
   @param cmd: Command name
-  @type lock_file: string
-  @param lock_file: path to the lock file
-  @type path: string
-  @param path: path to the directory in which the command is present
-  @type inp: string
-  @param inp: Input to be passed to the command
   @rtype: string
   @return: Command output
   @raise RPCFail: In case of an error
@@ -5856,24 +5798,14 @@ def RunConstrainedCmd(cmd,
   try:
     cmdresult = None
     try:
-      lock = utils.FileLock.Open(lock_file)
+      lock = utils.FileLock.Open(_lock_file)
       lock.Exclusive(blocking=True, timeout=_lock_timeout)
 
-      (status, value) = _prepare_fn(path, cmd)
+      (status, value) = _prepare_fn(_path, cmd)
 
       if status:
-        if inp:
-          input_fd = tempfile.TemporaryFile()
-          input_fd.write(inp)
-          input_fd.flush()
-          input_fd.seek(0)
-        else:
-          input_fd = None
         cmdresult = _runcmd_fn([value], env={}, reset_env=True,
-                               postfork_fn=lambda _: lock.Unlock(),
-                               input_fd=input_fd)
-        if input_fd:
-          input_fd.close()
+                               postfork_fn=lambda _: lock.Unlock())
       else:
         logging.error(value)
     except Exception: # pylint: disable=W0703
@@ -5996,7 +5928,8 @@ class HooksRunner(object):
     """
     assert len(node_list) == 1
     node = node_list[0]
-    assert node == constants.DUMMY_UUID
+    _, myself = ssconf.GetMasterAndMyself()
+    assert node == myself
 
     results = self.RunHooks(hpath, phase, env)
 

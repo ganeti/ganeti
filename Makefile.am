@@ -99,7 +99,6 @@ httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
-rapi_authdir = $(pkgpythondir)/rapi/auth
 rpcdir = $(pkgpythondir)/rpc
 rpc_stubdir = $(pkgpythondir)/rpc/stub
 serverdir = $(pkgpythondir)/server
@@ -153,8 +152,8 @@ HS_DIRS = \
 	src/Ganeti/Locking \
 	src/Ganeti/Logging \
 	src/Ganeti/MaintD \
-	src/Ganeti/Monitoring \
 	src/Ganeti/Metad \
+	src/Ganeti/Monitoring \
 	src/Ganeti/Objects \
 	src/Ganeti/OpCodes \
 	src/Ganeti/Query \
@@ -220,7 +219,6 @@ DIRS = \
 	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
-	lib/rapi/auth \
 	lib/rpc \
 	lib/rpc/stub \
 	lib/server \
@@ -305,8 +303,6 @@ CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
 	$(addsuffix /*.hi,$(HS_DIRS)) \
 	$(addsuffix /*.o,$(HS_DIRS)) \
-	$(addsuffix /*.dyn_hi,$(HS_DIRS)) \
-	$(addsuffix /*.dyn_o,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
@@ -357,7 +353,6 @@ CLEANFILES = \
 	src/ganeti-confd \
 	src/ganeti-wconfd \
 	src/ganeti-luxid \
-	src/ganeti-maintd \
 	src/ganeti-metad \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
@@ -377,7 +372,7 @@ clean-local:
 HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
 	src/hconfd src/ganeti-confd
 if ENABLE_MOND
-HS_GENERATED_FILES += src/ganeti-mond src/ganeti-maintd
+HS_GENERATED_FILES += src/ganeti-mond
 endif
 if ENABLE_METADATA
 HS_GENERATED_FILES += src/ganeti-metad
@@ -416,7 +411,6 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-kvmd.service \
 	doc/examples/systemd/ganeti-luxid.service \
 	doc/examples/systemd/ganeti-metad.service \
-	doc/examples/systemd/ganeti-maintd.service \
 	doc/examples/systemd/ganeti-mond.service \
 	doc/examples/systemd/ganeti-noded.service \
 	doc/examples/systemd/ganeti-rapi.service \
@@ -548,8 +542,7 @@ hypervisor_hv_kvm_PYTHON = \
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
-	lib/jqueue/exec.py \
-	lib/jqueue/post_hooks_exec.py
+	lib/jqueue/exec.py
 
 storage_PYTHON = \
 	lib/storage/__init__.py \
@@ -571,12 +564,6 @@ rapi_PYTHON = \
 	lib/rapi/connector.py \
 	lib/rapi/rlib2.py \
 	lib/rapi/testutils.py
-
-rapi_auth_PYTHON = \
-	lib/rapi/auth/__init__.py \
-	lib/rapi/auth/basic_auth.py \
-	lib/rapi/auth/pam.py \
-	lib/rapi/auth/users_file.py
 
 http_PYTHON = \
 	lib/http/__init__.py \
@@ -674,7 +661,6 @@ docinput = \
 	doc/design-2.14.rst \
 	doc/design-2.15.rst \
 	doc/design-2.16.rst \
-	doc/design-2.17.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -692,7 +678,6 @@ docinput = \
 	doc/design-draft.rst \
 	doc/design-file-based-disks-ownership.rst \
 	doc/design-file-based-storage.rst \
-	doc/design-global-hooks.rst \
 	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-hotplug.rst \
 	doc/design-hroller.rst \
@@ -707,15 +692,11 @@ docinput = \
 	doc/design-location.rst \
 	doc/design-linuxha.rst \
 	doc/design-lu-generated-jobs.rst \
-	doc/design-macvtap.rst \
-	doc/design-memory-over-commitment.rst \
-	doc/design-migration-speed-hbal.rst \
 	doc/design-monitoring-agent.rst \
 	doc/design-move-instance-improvements.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-multi-storage-htools.rst \
 	doc/design-multi-version-tests.rst \
-	doc/design-n-m-redundancy.rst \
 	doc/design-network.rst \
 	doc/design-network2.rst \
 	doc/design-node-add.rst \
@@ -729,11 +710,9 @@ docinput = \
 	doc/design-partitioned.rst \
 	doc/design-plain-redundancy.rst \
 	doc/design-performance-tests.rst \
-	doc/design-predictive-queue.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \
-	doc/design-rapi-pam.rst \
 	doc/design-reason-trail.rst \
 	doc/design-repaird.rst \
 	doc/design-reservations.rst \
@@ -791,7 +770,7 @@ HS_COMPILE_PROGS = \
 	src/hs2py \
 	src/rpc-test
 if ENABLE_MOND
-HS_COMPILE_PROGS += src/ganeti-mond src/ganeti-maintd
+HS_COMPILE_PROGS += src/ganeti-mond
 endif
 if ENABLE_METADATA
 HS_COMPILE_PROGS += src/ganeti-metad
@@ -907,7 +886,6 @@ HPCEXCL = --exclude Main \
 	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
-	src/Ganeti/Prelude.hs \
 	src/Ganeti/BasicTypes.hs \
 	src/Ganeti/Codec.hs \
 	src/Ganeti/Common.hs \
@@ -929,12 +907,10 @@ HS_LIB_SRCS = \
 	src/Ganeti/DataCollectors.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
 	src/Ganeti/DataCollectors/CPUload.hs \
-	src/Ganeti/DataCollectors/Diagnose.hs \
 	src/Ganeti/DataCollectors/Diskstats.hs \
 	src/Ganeti/DataCollectors/Drbd.hs \
 	src/Ganeti/DataCollectors/InstStatus.hs \
 	src/Ganeti/DataCollectors/InstStatusTypes.hs \
-	src/Ganeti/DataCollectors/KvmRSS.hs \
 	src/Ganeti/DataCollectors/Lv.hs \
 	src/Ganeti/DataCollectors/Program.hs \
 	src/Ganeti/DataCollectors/Types.hs \
@@ -954,8 +930,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Cluster/AllocationSolution.hs \
 	src/Ganeti/HTools/Cluster/Evacuate.hs \
 	src/Ganeti/HTools/Cluster/Metrics.hs \
-	src/Ganeti/HTools/Cluster/MetricsComponents.hs \
-	src/Ganeti/HTools/Cluster/MetricsTH.hs \
 	src/Ganeti/HTools/Cluster/Moves.hs \
 	src/Ganeti/HTools/Cluster/Utils.hs \
 	src/Ganeti/HTools/Container.hs \
@@ -979,8 +953,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hsqueeze.hs \
 	src/Ganeti/HTools/Program/Hroller.hs \
 	src/Ganeti/HTools/Program/Main.hs \
-	src/Ganeti/HTools/RedundancyLevel.hs \
-	src/Ganeti/HTools/Repair.hs \
 	src/Ganeti/HTools/Tags.hs \
 	src/Ganeti/HTools/Tags/Constants.hs \
 	src/Ganeti/HTools/Types.hs \
@@ -997,7 +969,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/JQScheduler/Types.hs \
 	src/Ganeti/JQueue.hs \
 	src/Ganeti/JQueue/Lens.hs \
-	src/Ganeti/JQueue/LockDecls.hs \
 	src/Ganeti/JQueue/Objects.hs \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
@@ -1011,23 +982,12 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
-	src/Ganeti/MaintD/Autorepairs.hs \
-	src/Ganeti/MaintD/Balance.hs \
-	src/Ganeti/MaintD/CleanupIncidents.hs \
-	src/Ganeti/MaintD/CollectIncidents.hs \
-	src/Ganeti/MaintD/FailIncident.hs \
-	src/Ganeti/MaintD/HandleIncidents.hs \
-        src/Ganeti/MaintD/MemoryState.hs \
-	src/Ganeti/MaintD/Server.hs \
-	src/Ganeti/MaintD/Utils.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/BitArray.hs \
 	src/Ganeti/Objects/Disk.hs \
 	src/Ganeti/Objects/Instance.hs \
-	src/Ganeti/Objects/HvState.hs \
 	src/Ganeti/Objects/Lens.hs \
-	src/Ganeti/Objects/Maintenance.hs \
 	src/Ganeti/Objects/Nic.hs \
 	src/Ganeti/OpCodes.hs \
 	src/Ganeti/OpCodes/Lens.hs \
@@ -1075,7 +1035,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils.hs \
 	src/Ganeti/Utils/Atomic.hs \
 	src/Ganeti/Utils/AsyncWorker.hs \
-	src/Ganeti/Utils/Http.hs \
 	src/Ganeti/Utils/IORef.hs \
 	src/Ganeti/Utils/Livelock.hs \
 	src/Ganeti/Utils/Monad.hs \
@@ -1151,7 +1110,6 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Jobs.hs \
 	test/hs/Test/Ganeti/JQScheduler.hs \
 	test/hs/Test/Ganeti/JQueue.hs \
-	test/hs/Test/Ganeti/JQueue/LockDecls.hs \
 	test/hs/Test/Ganeti/JQueue/Objects.hs \
 	test/hs/Test/Ganeti/Kvmd.hs \
 	test/hs/Test/Ganeti/Luxi.hs \
@@ -1369,14 +1327,12 @@ qa_scripts = \
 	qa/qa_error.py \
 	qa/qa_filters.py \
 	qa/qa_group.py \
-	qa/qa_global_hooks.py \
 	qa/qa_instance.py \
 	qa/qa_instance_utils.py \
 	qa/qa_iptables.py \
 	qa/qa_job.py \
 	qa/qa_job_utils.py \
 	qa/qa_logging.py \
-	qa/qa_maintd.py \
 	qa/qa_monitoring.py \
 	qa/qa_network.py \
 	qa/qa_node.py \
@@ -1537,7 +1493,7 @@ nodist_sbin_SCRIPTS = \
 	src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
-	cp -f $< $@
+	cp -pf $< $@
 
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = \
@@ -1545,10 +1501,10 @@ all_sbin_scripts = \
 	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
 
 src/ganeti-confd: src/hconfd
-	cp -f $< $@
+	cp -pf $< $@
 
 if ENABLE_MOND
-nodist_sbin_SCRIPTS += src/ganeti-mond src/ganeti-maintd
+nodist_sbin_SCRIPTS += src/ganeti-mond
 endif
 
 if ENABLE_METADATA
@@ -1659,7 +1615,6 @@ EXTRA_DIST += \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/build_chroot \
-	devel/cert_digest.py \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
@@ -1760,9 +1715,6 @@ TEST_FILES = \
 	test/autotools/autotools-check-news.test \
 	test/data/htools/clean-nonzero-score.data \
 	test/data/htools/common-suffix.data \
-	test/data/htools/dyn1.json \
-	test/data/htools/dyn2.json \
-	test/data/htools/dyn3.json \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
 	test/data/htools/hail-alloc-desired-location.json \
@@ -1777,29 +1729,23 @@ TEST_FILES = \
 	test/data/htools/hail-alloc-secondary.json \
 	test/data/htools/hail-alloc-spindles.json \
 	test/data/htools/hail-alloc-twodisks.json \
-	test/data/htools/hail-alloc-memory-over-commitment.json \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hail-reloc-drbd-crowded.json \
-	test/data/htools/hbal-avoid-disk-moves.data \
-	test/data/htools/hbal-avoid-long-solutions.data \
 	test/data/htools/hbal-cpu-speed.data \
 	test/data/htools/hbal-desiredlocation-1.data \
 	test/data/htools/hbal-desiredlocation-2.data \
 	test/data/htools/hbal-desiredlocation-3.data \
 	test/data/htools/hbal-desiredlocation-4.data \
 	test/data/htools/hbal-dyn.data \
-	test/data/htools/hbal-dyn2.data \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-forth.data \
 	test/data/htools/hbal-location-1.data \
 	test/data/htools/hbal-location-exclusion.data \
 	test/data/htools/hbal-location-2.data \
-	test/data/htools/hbal-memory-over-commitment.data \
-	test/data/htools/hbal-memory-over-commitment-2.data \
 	test/data/htools/hbal-migration-1.data \
 	test/data/htools/hbal-migration-2.data \
 	test/data/htools/hbal-migration-3.data \
@@ -1892,9 +1838,6 @@ TEST_FILES = \
 	test/data/cluster_config_2.13.json \
 	test/data/cluster_config_2.14.json \
 	test/data/cluster_config_2.15.json \
-	test/data/cluster_config_2.16.json \
-	test/data/cluster_config_2.17.json \
-	test/data/cluster_config_2.18.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/instance-disks.txt \
 	test/data/ip-addr-show-dummy0.txt \
@@ -2052,6 +1995,7 @@ python_tests = \
 	test/py/ganeti.utils.io_unittest-runasroot.py \
 	test/py/ganeti.utils.io_unittest.py \
 	test/py/ganeti.utils.log_unittest.py \
+	test/py/ganeti.utils.livelock_unittest.py \
 	test/py/ganeti.utils.lvm_unittest.py \
 	test/py/ganeti.utils.mlock_unittest.py \
 	test/py/ganeti.utils.nodesetup_unittest.py \
@@ -2150,7 +2094,6 @@ all_python_code = \
 	$(jqueue_PYTHON) \
 	$(storage_PYTHON) \
 	$(rapi_PYTHON) \
-	$(rapi_auth_PYTHON) \
 	$(server_PYTHON) \
 	$(rpc_PYTHON) \
 	$(rpc_stub_PYTHON) \
@@ -3061,9 +3004,7 @@ live-test: all
 commit-check: autotools-check distcheck lint apidoc
 
 autotools-check:
-	@test -n "$(SHELLTEST)" || \
-	    { echo 'shelltest' not found during configure; exit 1; }
-	TESTDATA_DIR=./test/data $(SHELLTEST) $(SHELLTESTARGS) \
+	TESTDATA_DIR=./test/data shelltest $(SHELLTESTARGS) \
   $(abs_top_srcdir)/test/autotools/*-*.test \
   -- --hide-successes
 

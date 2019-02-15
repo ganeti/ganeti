@@ -43,7 +43,6 @@ import qualified Control.Monad.CatchIO as CatchIO (catch)
 import qualified Data.CaseInsensitive as CI
 import Data.List (intercalate)
 import Data.Map (Map)
-import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.ByteString.Char8 as ByteString (pack, unpack)
 import Snap.Core
@@ -99,19 +98,6 @@ serveOsParams inst params =
        writeBS .
        ByteString.pack .
        JSON.encode $ osParams
-
-lookupSingleParam :: String -> JSObject JSValue -> Result String
-lookupSingleParam param osParams =
-  case List.lookup param (JSON.fromJSObject osParams) of
-    Nothing -> Error $ "Instance does not have param " ++ param
-    Just v -> head <$> JSON.readJSON v
-
-serveSingleOsParam :: String -> Map String JSValue -> String -> MetaM
-serveSingleOsParam inst params param =
-  do instParams <- lookupInstanceParams inst params
-     maybeResult (Config.getOsParamsWithVisibility instParams >>=
-                  lookupSingleParam param) $ \paramValue ->
-       writeBS . ByteString.pack $ paramValue
 
 serveOsPackage :: String -> Map String JSValue -> String -> MetaM
 serveOsPackage inst params key =
@@ -178,23 +164,6 @@ handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
        \err -> do
          liftIO . Logging.logWarning $ "Could not serve OS parameters: " ++ err
          error404
-handleMetadata params GET  "ganeti" "latest" paramPath | isParamPath paramPath =
-  case split paramPath of
-    -- The validation of the first two entries is done in isParamPath
-    [_, _, param] -> do
-      remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
-      instanceParams <- liftIO $ do
-        Logging.logInfo $ "OS param " ++ param ++ " for " ++ show remoteAddr
-        readMVar params
-      serveSingleOsParam remoteAddr instanceParams param
-        `catchError`
-        \err -> do
-          liftIO .
-            Logging.logWarning $ "Could not serve single OS param " ++ param ++
-                                 ": " ++ err
-          error404
-    _ -> error404
-  where isParamPath = (==) ["os", "parameters"] . take 2 . split
 handleMetadata params GET  "ganeti" "latest" script | isScript script =
   do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
      instanceParams <- liftIO $ do

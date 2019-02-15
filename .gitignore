@@ -8,7 +8,6 @@
 *.py[co]
 *.swp
 *~
-\#*\#
 *.o
 *.hpc_o
 *.prof_o
@@ -24,7 +23,6 @@
 .hpc/
 
 # /
-/.buildbot
 /.hsenv
 /Makefile
 /Makefile.ghc
@@ -168,8 +166,8 @@
 /src/ganeti-wconfd
 /src/ganeti-kvmd
 /src/ganeti-luxid
-/src/ganeti-metad
 /src/ganeti-maintd
+/src/ganeti-metad
 /src/ganeti-mond
 /src/rpc-test
 

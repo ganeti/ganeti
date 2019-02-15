@@ -41,7 +41,7 @@ module Ganeti.Utils.Livelock
 
 import qualified Control.Exception as E
 import Control.Monad
-import Control.Monad.Error.Class (MonadError)
+import Control.Monad.Error
 import System.Directory (doesFileExist, getDirectoryContents)
 import System.FilePath.Posix ((</>))
 import System.IO
@@ -59,7 +59,7 @@ type Livelock = FilePath
 -- | Appends the current time to the given prefix, creates
 -- the lockfile in the appropriate directory, and locks it.
 -- Returns its full path and the file's file descriptor.
-mkLivelockFile :: (FromString e, MonadError e m, MonadIO m)
+mkLivelockFile :: (Error e, MonadError e m, MonadIO m)
                => FilePath -> m (Fd, Livelock)
 mkLivelockFile prefix = do
   (TOD secs _) <- liftIO getClockTime

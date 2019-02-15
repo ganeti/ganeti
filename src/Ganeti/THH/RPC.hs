@@ -42,12 +42,10 @@ module Ganeti.THH.RPC
   , mkRpcM
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Arrow ((&&&))
 import Control.Monad
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Error.Class
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Language.Haskell.TH
@@ -80,12 +78,12 @@ dispatch fs =
              , US.hExec          = liftToHandler . exec
              }
   where
-    orError :: (MonadError e m, FromString e) => Maybe a -> e -> m a
+    orError :: (MonadError e m, Error e) => Maybe a -> e -> m a
     orError m e = maybe (throwError e) return m
 
     exec (Request m as) = do
       (RpcFn f) <- orError (Map.lookup m fs)
-                           (mkFromString $ "No such method: " ++ m)
+                           (strMsg $ "No such method: " ++ m)
       i <- fromJResultE "RPC input" . J.readJSON $ as
       o <- f i -- lift $ f i
       return $ J.showJSON o

@@ -107,7 +107,6 @@ Alternatively, the appropriate parameter of your HTTP client
    In the current version ``ganeti-rapi``'s realm, ``Ganeti Remote
    API``, can only be changed by modifying the source code.
 
-.. _basic-protocol:
 
 Protocol
 --------
@@ -233,8 +232,7 @@ The instance policy specification is a dict with the following fields:
                                      constants.ISPECS_STD,
                                      constants.IPOLICY_DTS,
                                      constants.IPOLICY_VCPU_RATIO,
-                                     constants.IPOLICY_SPINDLE_RATIO,
-                                     constants.IPOLICY_MEMORY_RATIO])
+                                     constants.IPOLICY_SPINDLE_RATIO])
 
 
 .. pyassert::
@@ -282,8 +280,6 @@ The instance policy specification is a dict with the following fields:
   Maximum ratio of virtual to physical CPUs (`float`)
 :pyeval:`constants.IPOLICY_SPINDLE_RATIO`
   Maximum ratio of instances to their node's ``spindle_count`` (`float`)
-:pyeval:`constants.IPOLICY_MEMORY_RATIO`
-  Maximum ratio of memory overcommitment (`float`)
 
 Usage examples
 --------------

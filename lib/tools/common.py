@@ -184,19 +184,6 @@ def VerifyClusterName(data, error_fn, cluster_name_constant,
   return name
 
 
-def VerifyHmac(data, error_fn):
-  """Verifies the presence of the hmac secret.
-
-  @type data: dict
-
-  """
-  hmac = data.get(constants.NDS_HMAC)
-  if not hmac:
-    raise error_fn("Hmac key must be provided")
-
-  return hmac
-
-
 def LoadData(raw, data_check):
   """Parses and verifies input data.
 

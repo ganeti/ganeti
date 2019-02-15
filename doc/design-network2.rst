@@ -2,6 +2,9 @@
 Network Management (revised)
 ============================
 
+:Created: 2014-Sep-26
+:Status: Draft
+
 .. contents:: :depth: 4
 
 This is a design document detailing how to extend the existing network

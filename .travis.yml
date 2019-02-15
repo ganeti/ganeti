@@ -1,0 +1,88 @@
+language: haskell
+
+sudo: false
+
+addons:
+  apt:
+    packages: &core_packages
+      - bridge-utils
+      - fping
+      - iproute
+      - iputils-arping
+      - lvm2
+      - m4
+      - make
+      - ndisc6
+      - openssl
+      - libssl-dev
+      - python
+      - python-bitarray
+      - python-ipaddr
+      - python-openssl
+      - python-pycurl
+      - python-pyinotify
+      - python-pyparsing
+      - python-simplejson
+      - socat
+      - ssh
+      - python-paramiko
+      - python-psutil
+      - qemu-utils
+      - fakeroot
+      - graphviz
+      - pandoc
+      - python-epydoc
+      - python-setuptools
+      - python-sphinx
+      - python-yaml
+      - python-mock
+      - pep8
+      - pylint
+      - cabal-install
+      - hlint
+      - hscolour
+      - libpcre3-dev
+      - libghc-attoparsec-dev
+      - libghc-base64-bytestring-dev
+      - libghc-cabal-dev
+      - libghc-crypto-dev
+      - libghc-curl-dev
+      - libghc-hinotify-dev
+      - libghc-hslogger-dev
+      - libghc-hunit-dev
+      - libghc-json-dev
+      - libghc-lifted-base-dev
+      - libghc-network-dev
+      - libghc-parallel-dev
+      - libghc-psqueue-dev
+      - libghc-quickcheck2-dev
+      - libghc-regex-pcre-dev
+      - libghc-snap-server-dev
+      - libghc-temporary-dev
+      - libghc-test-framework-dev
+      - libghc-test-framework-hunit-dev
+      - libghc-test-framework-quickcheck2-dev
+      - libghc-text-dev
+      - libghc-utf8-string-dev
+      - libghc-vector-dev
+      - libghc-zlib-dev
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      addons:
+        apt:
+          packages:
+            - *core_packages
+            - [libghc-lens-dev, shelltestrunner]
+
+install:
+  - ghc --version
+  - cabal --version
+  - cabal update && cabal install --only-dependencies --enable-tests cabal/ganeti.template.cabal
+
+script:
+  - ./autogen.sh && ./configure --enable-haskell-tests && make
+  - make hs-tests
+  - make py-tests

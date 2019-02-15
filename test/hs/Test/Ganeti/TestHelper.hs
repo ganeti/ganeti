@@ -39,9 +39,7 @@ module Test.Ganeti.TestHelper
   , genArbitrary
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Data.List (stripPrefix, isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Test.Framework

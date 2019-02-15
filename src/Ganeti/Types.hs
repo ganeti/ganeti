@@ -190,19 +190,17 @@ module Ganeti.Types
   , TagsObject(..)
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Monad (liftM)
 import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)
 import Data.Ratio (numerator, denominator)
+import qualified Data.Set as Set
 import System.Time (ClockTime)
 
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON (Container, HasStringRepr(..))
 import qualified Ganeti.THH as THH
-import qualified Ganeti.THH.Field as THH (TagSet)
 import Ganeti.Utils
 
 -- * Generic types
@@ -1071,4 +1069,5 @@ class SerialNoObject a where
 
 -- | Class of objects that have tags.
 class TagsObject a where
-  tagsOf :: a -> THH.TagSet
+  tagsOf :: a -> Set.Set String
+

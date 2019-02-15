@@ -94,6 +94,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     self.output_invalid = testutils.ReadTestData("bdev-rbd/output_invalid.txt")
 
     self.volume_name = "d7ab910a-4933-4ffe-88d0-faf2ce31390a.rbd.disk0"
+    self.pool_name = "rbd"
     self.test_unique_id = ("rbd", self.volume_name)
     self.test_params = {
       constants.LDP_POOL: "fake_pool"
@@ -102,16 +103,19 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
   def testParseRbdShowmappedJson(self):
     parse_function = bdev.RADOSBlockDevice._ParseRbdShowmappedJson
 
-    self.assertEqual(parse_function(self.json_output_ok, self.volume_name),
-                     "/dev/rbd3")
-    self.assertEqual(parse_function(self.json_output_empty, self.volume_name),
-                     None)
-    self.assertEqual(parse_function(self.json_output_no_matches,
+    self.assertEqual(parse_function(self.json_output_ok, self.pool_name,
+                     self.volume_name), "/dev/rbd3")
+    self.assertEqual(parse_function(self.json_output_ok, "fake_pool",
+                     self.volume_name), None)
+    self.assertEqual(parse_function(self.json_output_empty, self.pool_name,
+                     self.volume_name), None)
+    self.assertEqual(parse_function(self.json_output_no_matches, self.pool_name,
                      self.volume_name), None)
     self.assertRaises(errors.BlockDeviceError, parse_function,
-                      self.json_output_extra_matches, self.volume_name)
+                      self.json_output_extra_matches, self.pool_name,
+                      self.volume_name)
     self.assertRaises(errors.BlockDeviceError, parse_function,
-                      self.output_invalid, self.volume_name)
+                      self.output_invalid, self.pool_name, self.volume_name)
 
   def testParseRbdShowmappedPlain(self):
     parse_function = bdev.RADOSBlockDevice._ParseRbdShowmappedPlain
@@ -321,14 +325,16 @@ class TestLogicalVolume(testutils.GanetiTestCase):
     self.test_params = {
       constants.LDP_STRIPES: 1
       }
-    self.pv_info_return = [objects.LvmPvInfo(name="/dev/sda5", vg_name="xenvg",
+    self.pv_info_return = [objects.LvmPvInfo(name="/dev/sda5",
+                                             vg_name="xenvg",
                                              size=3500000.00, free=5000000.00,
                                              attributes="wz--n-", lv_list=[])]
     self.pv_info_invalid = [objects.LvmPvInfo(name="/dev/s:da5",
                                               vg_name="xenvg",
                                              size=3500000.00, free=5000000.00,
                                               attributes="wz--n-", lv_list=[])]
-    self.pv_info_no_space = [objects.LvmPvInfo(name="/dev/sda5", vg_name="xenvg",
+    self.pv_info_no_space = [objects.LvmPvInfo(name="/dev/sda5",
+                                               vg_name="xenvg",
                                                size=3500000.00, free=0.00,
                                                attributes="wz--n-", lv_list=[])]
 

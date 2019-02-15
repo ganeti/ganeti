@@ -58,7 +58,7 @@ module Ganeti.Objects.BitArray
 import Prelude hiding (foldr)
 
 import Control.Monad
-import Control.Monad.Error.Class (MonadError)
+import Control.Monad.Error
 import qualified Data.IntSet as IS
 import qualified Text.JSON as J
 
@@ -116,7 +116,7 @@ infixl 9 !
 -- | Sets or removes an element from a bit array.
 
 -- | Sets a given bit in an array. Fails if the index is out of bounds.
-setAt :: (MonadError e m, FromString e) => Int -> Bool -> BitArray -> m BitArray
+setAt :: (MonadError e m, Error e) => Int -> Bool -> BitArray -> m BitArray
 setAt i False (BitArray s bits) =
   return $ BitArray s (IS.delete i bits)
 setAt i True (BitArray s bits) | (i >= 0) && (i < s) =

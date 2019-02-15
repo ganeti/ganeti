@@ -168,10 +168,6 @@ opRestrictedCommand :: String
 opRestrictedCommand =
   "Runs a restricted command on node(s)."
 
-opRepairCommand :: String
-opRepairCommand =
-  "Runs a repair command on a given node."
-
 opNodeRemove :: String
 opNodeRemove =
   "Remove a node.\n\

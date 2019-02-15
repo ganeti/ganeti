@@ -36,10 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Storage.Drbd.Parser (drbdStatusParser, commaIntParser) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative ((<|>))
+import Control.Applicative ((<*>), (*>), (<*), (<$>), (<|>), pure)
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)

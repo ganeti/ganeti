@@ -46,8 +46,7 @@ from ganeti import rapi
 from ganeti import http
 from ganeti import objects
 
-from ganeti.rapi.auth.basic_auth import BasicAuthenticator
-from ganeti.rapi.auth import users_file
+import ganeti.rapi.baserlib
 import ganeti.rapi.testutils
 import ganeti.rapi.rlib2
 import ganeti.http.auth
@@ -63,8 +62,7 @@ class TestRemoteApiHandler(unittest.TestCase):
   def _Test(self, method, path, headers, reqbody,
             user_fn=NotImplemented, luxi_client=NotImplemented,
             reqauth=False):
-    rm = rapi.testutils._RapiMock(BasicAuthenticator(user_fn), luxi_client,
-                                  reqauth=reqauth)
+    rm = rapi.testutils._RapiMock(user_fn, luxi_client, reqauth=reqauth)
 
     (resp_code, resp_headers, resp_body) = \
       rm.FetchResponse(path, method, http.ParseHeaders(StringIO(headers)),
@@ -157,7 +155,7 @@ class TestRemoteApiHandler(unittest.TestCase):
         ])
 
       (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
-      self.assertEqual(code, http.HttpBadRequest.code)
+      self.assertEqual(code, http.HttpUnauthorized.code)
 
   @staticmethod
   def _MakeAuthHeaders(username, password, correct_password):
@@ -180,14 +178,16 @@ class TestRemoteApiHandler(unittest.TestCase):
 
     def _LookupUserNoWrite(name):
       if name == username:
-        return users_file.PasswordFileUser(name, password, [])
+        return http.auth.PasswordFileUser(name, password, [])
       else:
         return None
 
     for access in [rapi.RAPI_ACCESS_WRITE, rapi.RAPI_ACCESS_READ]:
       def _LookupUserWithWrite(name):
         if name == username:
-          return users_file.PasswordFileUser(name, password, [access])
+          return http.auth.PasswordFileUser(name, password, [
+            access,
+            ])
         else:
           return None
 
@@ -250,14 +250,10 @@ class TestRemoteApiHandler(unittest.TestCase):
 
     for method in rapi.baserlib._SUPPORTED_METHODS:
       for reqauth in [False, True]:
-        if method == http.HTTP_GET and not reqauth:
-          # we don't have a mock client to test this case
-          continue
         # No authorization
-        (code, _, _) = self._Test(method, path, "", "",
-                                  user_fn=lambda _ : None, reqauth=reqauth)
+        (code, _, _) = self._Test(method, path, "", "", reqauth=reqauth)
 
-        if method == http.HTTP_GET and reqauth:
+        if method == http.HTTP_GET or reqauth:
           self.assertEqual(code, http.HttpUnauthorized.code)
         else:
           self.assertEqual(code, http.HttpNotImplemented.code)

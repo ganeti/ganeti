@@ -710,15 +710,6 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.MigrateInstance(cluster_name, instance, target, live)
 
   @staticmethod
-  def perspective_instance_start_postcopy(params):
-    """ Switches a migrating instance from precopy to postcopy mode
-
-    """
-    instance, = params
-    instance = objects.Instance.FromDict(instance)
-    return backend.StartPostcopy(instance)
-
-  @staticmethod
   def perspective_instance_finalize_migration_src(params):
     """Finalize the instance migration on the source node.
 
@@ -938,15 +929,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (node_uuid, node_name, potential_master_candidates,
-     to_authorized_keys, to_public_keys, get_public_keys,
-     debug, verbose) = params
+     to_authorized_keys, to_public_keys, get_public_keys) = params
     return backend.AddNodeSshKey(node_uuid, node_name,
                                  potential_master_candidates,
                                  to_authorized_keys=to_authorized_keys,
                                  to_public_keys=to_public_keys,
-                                 get_public_keys=get_public_keys,
-                                 ssh_update_debug=debug,
-                                 ssh_update_verbose=verbose)
+                                 get_public_keys=get_public_keys)
 
   @staticmethod
   def perspective_node_ssh_keys_renew(params):
@@ -955,12 +943,10 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (node_uuids, node_names, master_candidate_uuids,
      potential_master_candidates, old_key_type, new_key_type,
-     new_key_bits, debug, verbose) = params
+     new_key_bits) = params
     return backend.RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                                 potential_master_candidates, old_key_type,
-                                new_key_type, new_key_bits,
-                                ssh_update_debug=debug,
-                                ssh_update_verbose=verbose)
+                                new_key_type, new_key_bits)
 
   @staticmethod
   def perspective_node_ssh_key_remove(params):
@@ -970,7 +956,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (node_uuid, node_name,
      master_candidate_uuids, potential_master_candidates,
      from_authorized_keys, from_public_keys, clear_authorized_keys,
-     clear_public_keys, readd, debug, verbose) = params
+     clear_public_keys, readd) = params
     return backend.RemoveNodeSshKey(node_uuid, node_name,
                                     master_candidate_uuids,
                                     potential_master_candidates,
@@ -978,17 +964,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
                                     from_public_keys=from_public_keys,
                                     clear_authorized_keys=clear_authorized_keys,
                                     clear_public_keys=clear_public_keys,
-                                    readd=readd,
-                                    ssh_update_debug=debug,
-                                    ssh_update_verbose=verbose)
-
-  @staticmethod
-  def perspective_node_ssh_key_remove_light(params):
-    """Removes a node's SSH key from the master's public key file.
-
-    """
-    (node_name, ) = params
-    return backend.RemoveSshKeyFromPublicKeyFile(node_name)
+                                    readd=readd)
 
   # cluster --------------------------
 
@@ -1045,23 +1021,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (cmd, ) = params
 
-    return backend.RunConstrainedCmd(
-      cmd,
-      lock_file=pathutils.RESTRICTED_COMMANDS_LOCK_FILE,
-      path=pathutils.RESTRICTED_COMMANDS_DIR)
-
-  @staticmethod
-  def perspective_repair_command(params):
-    """ Run a repair command.
-
-    """
-    (cmd, inp, ) = params
-
-    return backend.RunConstrainedCmd(
-      cmd,
-      lock_file=pathutils.REPAIR_COMMANDS_LOCK_FILE,
-      path=pathutils.REPAIR_COMMANDS_DIR,
-      inp=inp)
+    return backend.RunRestrictedCmd(cmd)
 
   @staticmethod
   def perspective_write_ssconf_files(params):

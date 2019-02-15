@@ -296,8 +296,6 @@ def ParseCpuMask(cpu_mask):
     return []
   cpu_list = []
   for range_def in cpu_mask.split(","):
-    if range_def == constants.CPU_PINNING_ALL:
-      return [constants.CPU_PINNING_ALL_VAL]
     boundaries = range_def.split("-")
     n_elements = len(boundaries)
     if n_elements > 2:
@@ -337,8 +335,11 @@ def ParseMultiCpuMask(cpu_mask):
     return []
   cpu_list = []
   for range_def in cpu_mask.split(constants.CPU_PINNING_SEP):
-    # Uniquify and sort the list before adding
-    cpu_list.append(sorted(set(ParseCpuMask(range_def))))
+    if range_def == constants.CPU_PINNING_ALL:
+      cpu_list.append([constants.CPU_PINNING_ALL_VAL, ])
+    else:
+      # Uniquify and sort the list before adding
+      cpu_list.append(sorted(set(ParseCpuMask(range_def))))
 
   return cpu_list
 

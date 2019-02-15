@@ -52,6 +52,7 @@ module Ganeti.Runtime
   ) where
 
 import Control.Monad
+import Control.Monad.Error
 import qualified Data.Map as M
 import System.Exit
 import System.FilePath
@@ -74,7 +75,6 @@ data GanetiDaemon = GanetiMasterd
                   | GanetiWConfd
                   | GanetiKvmd
                   | GanetiLuxid
-                  | GanetiMaintd
                   | GanetiMond
                     deriving (Show, Enum, Bounded, Eq, Ord)
 
@@ -103,7 +103,6 @@ daemonName GanetiConfd   = "ganeti-confd"
 daemonName GanetiWConfd  = "ganeti-wconfd"
 daemonName GanetiKvmd    = "ganeti-kvmd"
 daemonName GanetiLuxid   = "ganeti-luxid"
-daemonName GanetiMaintd  = "ganeti-maintd"
 daemonName GanetiMond    = "ganeti-mond"
 
 -- | Returns whether the daemon only runs on the master node.
@@ -116,7 +115,6 @@ daemonOnlyOnMaster GanetiConfd   = False
 daemonOnlyOnMaster GanetiWConfd  = True
 daemonOnlyOnMaster GanetiKvmd    = False
 daemonOnlyOnMaster GanetiLuxid   = True
-daemonOnlyOnMaster GanetiMaintd  = True
 daemonOnlyOnMaster GanetiMond    = False
 
 -- | Returns the log file base for a daemon.
@@ -129,7 +127,6 @@ daemonLogBase GanetiConfd   = "conf-daemon"
 daemonLogBase GanetiWConfd  = "wconf-daemon"
 daemonLogBase GanetiKvmd    = "kvm-daemon"
 daemonLogBase GanetiLuxid   = "luxi-daemon"
-daemonLogBase GanetiMaintd  = "maintenance-daemon"
 daemonLogBase GanetiMond    = "monitoring-daemon"
 
 -- | Returns the configured user name for a daemon.
@@ -142,7 +139,6 @@ daemonUser GanetiConfd   = AutoConf.confdUser
 daemonUser GanetiWConfd  = AutoConf.wconfdUser
 daemonUser GanetiKvmd    = AutoConf.kvmdUser
 daemonUser GanetiLuxid   = AutoConf.luxidUser
-daemonUser GanetiMaintd  = AutoConf.mondUser
 daemonUser GanetiMond    = AutoConf.mondUser
 
 -- | Returns the configured group for a daemon.
@@ -155,7 +151,6 @@ daemonGroup (DaemonGroup GanetiConfd)   = AutoConf.confdGroup
 daemonGroup (DaemonGroup GanetiWConfd)  = AutoConf.wconfdGroup
 daemonGroup (DaemonGroup GanetiLuxid)   = AutoConf.luxidGroup
 daemonGroup (DaemonGroup GanetiKvmd)    = AutoConf.kvmdGroup
-daemonGroup (DaemonGroup GanetiMaintd)  = AutoConf.mondGroup
 daemonGroup (DaemonGroup GanetiMond)    = AutoConf.mondGroup
 daemonGroup (ExtraGroup  DaemonsGroup)  = AutoConf.daemonsGroup
 daemonGroup (ExtraGroup  AdminGroup)    = AutoConf.adminGroup
@@ -194,7 +189,7 @@ allGroups = map DaemonGroup [minBound..maxBound] ++
             map ExtraGroup  [minBound..maxBound]
 
 -- | Computes the group/user maps.
-getEnts :: (FromString e) => ResultT e IO RuntimeEnts
+getEnts :: (Error e) => ResultT e IO RuntimeEnts
 getEnts = do
   let userOf = liftM userID . liftIO . getUserEntryForName . daemonUser
   let groupOf = liftM groupID . liftIO . getGroupEntryForName . daemonGroup

@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2014, 2016 Google Inc.
+Copyright (C) 2014 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,17 +39,12 @@ module Ganeti.Codec
   , decompressZlib
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Codec.Compression.Zlib
 import qualified Codec.Compression.Zlib.Internal as I
-import Control.Monad (liftM)
+import Control.Monad.Error
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
-import Control.Monad.Error.Class (MonadError(..))
-
-import Ganeti.BasicTypes
+import Data.Monoid (mempty)
 
 
 -- | Compresses a lazy bytestring.
@@ -59,19 +54,18 @@ compressZlib = compressWith $
 
 -- | Decompresses a lazy bytestring, throwing decoding errors using
 -- 'throwError'.
-decompressZlib :: (MonadError e m, FromString e)
-               => BL.ByteString -> m BL.ByteString
+decompressZlib :: (MonadError e m, Error e) => BL.ByteString -> m BL.ByteString
 #if MIN_VERSION_zlib(0, 6, 0)
 decompressZlib = I.foldDecompressStreamWithInput
                    (liftM . BL.chunk)
                    return
-                   (throwError . mkFromString . (++)"Zlib: " . show)
+                   (throwError . strMsg . (++)"Zlib: " . show)
                    $ I.decompressST I.zlibFormat I.defaultDecompressParams
 #else
 decompressZlib = I.foldDecompressStream
                      (liftM . BL.chunk)
                      (return mempty)
-                     (const $ throwError . mkFromString . ("Zlib: " ++))
+                     (const $ throwError . strMsg . ("Zlib: " ++))
                  . I.decompressWithErrors
                      I.zlibFormat
                      I.defaultDecompressParams

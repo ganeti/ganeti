@@ -55,7 +55,9 @@ prop_stddev_update =
   let original = xs ++ [a] ++ ys
       modified = xs ++ [b] ++ ys
       with_update =
-        getValue $ update (calculate original :: StdDevStat) a b
+        getStatisticValue
+        $ updateStatistics (getStdDevStatistics $ map SimpleNumber original)
+                           (SimpleNumber a, SimpleNumber b)
       direct = stdDev modified
   in counterexample ("Value computed by update " ++ show with_update
                      ++ " differs too much from correct value " ++ show direct)

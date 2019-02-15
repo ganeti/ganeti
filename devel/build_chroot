@@ -22,7 +22,6 @@
 # Additional Variables taken from the environmen
 # DATA_DIR
 # CHROOT_EXTRA_DEBIAN_PACKAGES
-# APT_CACHE
 
 # make the appended variant name more readable
 [ -n "$VARIANT" ] && VARIANT="-${VARIANT#-}"
@@ -42,15 +41,11 @@ ACTUAL_DATA_DIR=$DATA_DIR
 ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
 SHA1_LIST='
 cabal-install-1.18.0.2.tar.gz 2d1f7a48d17b1e02a1e67584a889b2ff4176a773
-cabal-install-1.20.0.3.tar.gz 444448b0f704420e329e8fc1989b6743c1c8546d
 cabal-install-1.22.4.0.tar.gz b98eea96d321cdeed83a201c192dac116e786ec2
-cabal-install-1.22.6.0.tar.gz d474b0eef6944af1abef92419cea13cee50993f3
 ghc-7.6.3-i386-unknown-linux.tar.bz2 f042b4171a2d4745137f2e425e6949c185f8ea14
 ghc-7.6.3-x86_64-unknown-linux.tar.bz2 46ec3f3352ff57fba0dcbc8d9c20f7bcb6924b77
-ghc-7.8.4-i386-unknown-linux-deb7.tar.xz a5d4f65b9b063eae476657cb9b93277609c42cf1
-ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz 11aec12d4bb27f6fa59dcc8535a7a3b3be8cb787
-ghc-7.10.3-i386-deb8-linux.tar.xz 8f4ca6505788deb7f68cde91f38acba68ab37d99
-ghc-7.10.3b-x86_64-deb8-linux.tar.xz c8f277a34bf62d5e8063ee17af427ca5ffe57b68
+ghc-7.8.4-i386-unknown-linux-deb7.tar.bz2 4f523f854c37a43b738359506a89a37a9fa9fc5f
+ghc-7.8.4-x86_64-unknown-linux-deb7.tar.bz2 3f68321b064e5c1ffcb05838b85bcc00aa2315b4
 '
 
 # export all variables needed in the schroot
@@ -144,7 +139,7 @@ cat $ACTUAL_DATA_DIR/temp.schroot.conf.in | subst_variables > $TEMP_CHROOT_CONF
 cat $ACTUAL_DATA_DIR/final.schroot.conf.in | subst_variables > $FINAL_CHROOT_CONF
 
 #Install the base system
-debootstrap --arch $ARCH $DIST_RELEASE $CHDIR $APT_CACHE
+debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
 
 APT_INSTALL="apt-get install -y --no-install-recommends"
 
@@ -192,17 +187,17 @@ function install_ghc {
   local TDIR=$( schroot -c $CHNAME -d / -- mktemp -d )
   [ -n "$TDIR" ]
   if [ "$ARCH" == "amd64" ] ; then
-    download "$TDIR"/ghc.tar.${GHC_COMP} \
-      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_BUILD}-x86_64-${GHC_VARIANT}.tar.${GHC_COMP}
+    download "$TDIR"/ghc.tar.bz2 \
+      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-x86_64-unknown-linux${GHC_VARIANT}.tar.bz2
   elif [ "$ARCH" == "i386" ] ; then
-    download "$TDIR"/ghc.tar.${GHC_COMP} \
-      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_BUILD}-i386-${GHC_VARIANT}.tar.${GHC_COMP}
+    download "$TDIR"/ghc.tar.bz2 \
+      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-i386-unknown-linux${GHC_VARIANT}.tar.bz2
   else
     echo "Don't know what GHC to download for architecture $ARCH" >&2
     return 1
   fi
   schroot -c $CHNAME -d "$TDIR" -- \
-    tar xf ghc.tar.${GHC_COMP}
+    tar xjf ghc.tar.bz2
   schroot -c $CHNAME -d "$TDIR/ghc-${GHC_VERSION}" -- \
     ./configure --prefix=/usr/local
   schroot -c $CHNAME -d "$TDIR/ghc-${GHC_VERSION}" -- \
@@ -230,12 +225,10 @@ case ${DIST_RELEASE}${VARIANT} in
   squeeze)
 
     GHC_VERSION="7.6.3"
-    GHC_BUILD="7.6.3"
-    GHC_VARIANT="unknown-linux"
-    GHC_COMP="bz2"
+    GHC_VARIANT=""
     CABAL_INSTALL_VERSION="1.18.0.2"
-    CABAL_LIB_VERSION="==1.18.1"
-    export GHC_VERSION GHC_BUILD GHC_VARIANT GHC_COMP CABAL_INSTALL_VERSION
+    CABAL_LIB_VERSION=">=1.18.0 && <1.19"
+    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
 
     # do not install libghc6-network-dev, since it's too old, and just
     # confuses the dependencies
@@ -283,10 +276,10 @@ case ${DIST_RELEASE}${VARIANT} in
     in_chroot -- \
       cabal update
 
-    # since we're using Cabal >=1.16, we can use the parallel install option
+    # sinec we're using Cabal >=1.16, we can use the parallel install option
     in_chroot -- \
       cabal install --global -j --enable-library-profiling \
-        attoparsec-0.11.3.4 \
+        attoparsec-0.11.1.0 \
         base64-bytestring-1.0.0.1 \
         blaze-builder-0.3.3.2 \
         case-insensitive-1.1.0.3 \
@@ -299,7 +292,7 @@ case ${DIST_RELEASE}${VARIANT} in
         hslogger-1.2.3 \
         json-0.7 \
         lifted-base-0.2.2.0 \
-        lens-4.2 \
+        lens-4.0.4 \
         MonadCatchIO-transformers-0.3.0.0 \
         network-2.4.1.2 \
         parallel-3.2.0.4 \
@@ -320,6 +313,7 @@ case ${DIST_RELEASE}${VARIANT} in
         PSQueue-1.1 \
         \
         "Cabal $CABAL_LIB_VERSION" \
+        cabal-file-th-0.2.3 \
         shelltestrunner
 
     #Install selected packages from backports
@@ -378,11 +372,9 @@ case ${DIST_RELEASE}${VARIANT} in
      in_chroot -- \
        cabal install --global \
         'base64-bytestring>=1' \
-        lens-4.1.2.1 \
-        unordered-containers-0.2.5.1 \
+        lens-3.10.2 \
         'lifted-base>=0.1.2' \
-        'hlint>=1.9.12' \
-        'haskell-src-exts-1.16.0.1'
+        'hlint>=1.9.12'
 ;;
 
   jessie)
@@ -400,22 +392,11 @@ case ${DIST_RELEASE}${VARIANT} in
       libghc-zlib-dev libghc-psqueue-dev \
       libghc-base64-bytestring-dev libghc-lens-dev libghc-lifted-base-dev \
       libghc-cabal-dev \
-      ghc-prof libghc-network-prof \
-      libghc-test-framework{,-hunit,-quickcheck2}-prof \
-      libghc-json-prof libghc-curl-prof libghc-hinotify-prof \
-      libghc-parallel-prof libghc-utf8-string-prof \
-      libghc-hslogger-prof libghc-crypto-prof \
-      libghc-regex-pcre-prof libghc-attoparsec-prof \
-      libghc-vector-prof libghc-temporary-prof \
-      libghc-snap-server-prof libghc-zlib-prof libghc-psqueue-prof \
-      libghc-base64-bytestring-prof libghc-lens-prof libghc-lifted-base-prof \
-      libghc-cabal-prof \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-pyinotify python-paramiko \
-      python-bitarray python-ipaddr python-yaml python-psutil \
-      qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev pylint openssh-client ca-certificates \
+      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
+      shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags
 
     in_chroot -- \
@@ -426,150 +407,15 @@ case ${DIST_RELEASE}${VARIANT} in
        'hlint>=1.9.12'
 ;;
 
-  jessie-ghc710)
-
-    GHC_VERSION="7.10.3"
-    GHC_BUILD="7.10.3"
-    [ "$ARCH" == "amd64" ] && GHC_BUILD="7.10.3b"
-    GHC_VARIANT="deb8-linux"
-    GHC_COMP="xz"
-    CABAL_INSTALL_VERSION="1.22.6.0"
-    # the version of the Cabal library below must match the version used by
-    # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
-    CABAL_LIB_VERSION=">=1.22.2 && <1.23"
-    export GHC_VERSION GHC_BUILD GHC_VARIANT GHC_COMP CABAL_INSTALL_VERSION
-
-    in_chroot -- \
-      $APT_INSTALL \
-        autoconf automake \
-        zlib1g-dev \
-        libgmp3-dev \
-        libcurl4-openssl-dev \
-        libpcre3-dev \
-        happy \
-        hlint hscolour pandoc \
-        shelltestrunner \
-        graphviz qemu-utils \
-        python-docutils \
-        python-simplejson \
-        python-pyparsing \
-        python-pyinotify \
-        python-pycurl \
-        python-ipaddr \
-        python-yaml \
-        python-paramiko \
-        python-psutil \
-        git \
-        git-email \
-        vim
-
-    in_chroot -- \
-      $APT_INSTALL python-setuptools python-dev build-essential ca-certificates
-
-    in_chroot -- \
-      easy_install \
-        logilab-astng==0.24.1 \
-        logilab-common==0.58.3 \
-        mock==1.0.1 \
-        pylint==0.26.0
-
-    in_chroot -- \
-      easy_install \
-        sphinx==1.1.3 \
-        pep8==1.3.3 \
-        coverage==3.4 \
-        bitarray==0.8.0
-
-    install_ghc
-
-    install_cabal
-
-    in_chroot -- \
-      cabal update
-
-    in_chroot -- \
-      cabal install --global -j --enable-library-profiling \
-        HUnit-1.2.5.2 \
-        PSQueue-1.1 \
-        StateVar-1.1.0.0 \
-        ansi-terminal-0.6.2.1 \
-        ansi-wl-pprint-0.6.7.2 \
-        base-orphans-0.4.1 \
-        base64-bytestring-1.0.0.1 \
-        blaze-builder-0.4.0.1 \
-        bytestring-builder-0.10.6.0.0 \
-        bytestring-mmap-0.2.2 \
-        curl-1.3.8 \
-        enumerator-0.4.20 \
-        extensible-exceptions-0.1.1.4 \
-        hashable-1.2.3.3 \
-        case-insensitive-1.2.0.4 \
-        hinotify-0.3.7 \
-        hostname-1.0 \
-        hslogger-1.2.9 \
-        monads-tf-0.1.0.2 \
-        MonadCatchIO-transformers-0.3.1.3 \
-        nats-1 \
-        parallel-3.2.0.6 \
-        prelude-extras-0.4 \
-        primitive-0.6 \
-        reflection-2 \
-        regex-base-0.93.2 \
-        regex-pcre-0.94.4 \
-        regex-posix-0.95.2 \
-        scientific-0.3.3.8 \
-        attoparsec-0.12.1.6 \
-        attoparsec-enumerator-0.3.4 \
-        streaming-commons-0.1.12.1 \
-        blaze-builder-enumerator-0.2.1.0 \
-        syb-0.5.1 \
-        json-0.9.1 \
-        tagged-0.8.1 \
-        tf-random-0.5 \
-        QuickCheck-2.7.6 \
-        Crypto-4.2.5.1 \
-        transformers-compat-0.4.0.4 \
-        distributive-0.4.4 \
-        exceptions-0.8.0.2 \
-        temporary-1.2.0.3 \
-        transformers-base-0.4.4 \
-        monad-control-1.0.0.4 \
-        lifted-base-0.2.3.6 \
-        unix-compat-0.4.1.4 \
-        unordered-containers-0.2.5.1 \
-        semigroups-0.16.2.2 \
-        bifunctors-5 \
-        utf8-string-0.3.8 \
-        vector-0.11.0.0 \
-        void-0.7 \
-        contravariant-1.3.2 \
-        comonad-4.2.7.2 \
-        profunctors-5.1.1 \
-        semigroupoids-5.0.0.2 \
-        free-4.12.1 \
-        adjunctions-4.2.1 \
-        kan-extensions-4.2.2 \
-        lens-4.12.3 \
-        xml-1.3.14 \
-        test-framework-0.8.1.1 \
-        test-framework-hunit-0.3.0.1 \
-        test-framework-quickcheck2-0.3.0.3 \
-        zlib-bindings-0.1.1.5 \
-        zlib-enum-0.2.3.1 \
-        snap-core-0.9.7.2 \
-        snap-server-0.9.5.1 \
-;;
-
   jessie-ghc78)
 
     GHC_VERSION="7.8.4"
-    GHC_BUILD="7.8.4"
-    GHC_VARIANT="unknown-linux-deb7"
-    GHC_COMP="xz"
-    # Version of cabal-install closest to the jessie install
-    CABAL_INSTALL_VERSION="1.20.0.3"
-    CABAL_LIB_VERSION="==1.20.0.0"
-    export GHC_VERSION GHC_BUILD GHC_VARIANT GHC_COMP CABAL_INSTALL_VERSION
+    GHC_VARIANT="-deb7"
+    CABAL_INSTALL_VERSION="1.22.4.0"
+    # the version of the Cabal library below must match the version used by
+    # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
+    CABAL_LIB_VERSION=">=1.22.2 && <1.23"
+    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
 
     in_chroot -- \
       $APT_INSTALL \
@@ -589,13 +435,12 @@ case ${DIST_RELEASE}${VARIANT} in
         python-ipaddr \
         python-yaml \
         python-paramiko \
-        python-psutil \
         git \
         git-email \
         vim
 
     in_chroot -- \
-      $APT_INSTALL python-setuptools python-dev build-essential ca-certificates
+      $APT_INSTALL python-setuptools python-dev build-essential
 
     in_chroot -- \
       easy_install \
@@ -619,9 +464,7 @@ case ${DIST_RELEASE}${VARIANT} in
       cabal update
 
     # since we're using Cabal >=1.16, we can use the parallel install option
-    # Set LANG as a workaround for a bug in Cabal 1.20 which breaks
-    # tf-random-0.5 install. See https://github.com/haskell/cabal/issues/1883
-    in_chroot -- env LANG=C.UTF-8 \
+    in_chroot -- \
       cabal install --global -j --enable-library-profiling \
         attoparsec==0.12.1.6 \
         base64-bytestring==1.0.0.1 \
@@ -636,7 +479,7 @@ case ${DIST_RELEASE}${VARIANT} in
         hslogger==1.2.8 \
         json==0.9.1 \
         lifted-base==0.2.3.6 \
-        lens==4.12.3 \
+        lens==4.9.1 \
         MonadCatchIO-transformers==0.3.1.3 \
         network==2.6.0.2 \
         parallel==3.2.0.6 \
@@ -645,12 +488,10 @@ case ${DIST_RELEASE}${VARIANT} in
         temporary==1.2.0.3 \
         vector==0.10.12.3 \
         zlib==0.5.4.2 \
-        utf8-string-0.3.8 \
         \
         hlint==1.9.20 \
         HUnit==1.2.5.2 \
-        PSQueue==1.1 \
-        QuickCheck==2.7.6 \
+        QuickCheck==2.8.1 \
         test-framework==0.8.1.1 \
         test-framework-hunit==0.3.0.1 \
         test-framework-quickcheck2==0.3.0.3 \
@@ -658,6 +499,7 @@ case ${DIST_RELEASE}${VARIANT} in
         snap-server==0.9.5.1 \
         \
         "Cabal $CABAL_LIB_VERSION" \
+        cabal-file-th==0.2.3 \
         shelltestrunner==1.3.5
 ;;
 
@@ -681,13 +523,6 @@ EOF
       libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-cabal-dev \
-      ghc-prof \
-      libghc-curl-prof libghc-hinotify-prof \
-      libghc-parallel-prof libghc-utf8-string-prof \
-      libghc-crypto-prof \
-      libghc-attoparsec-prof \
-      libghc-vector-prof libghc-temporary-prof libghc-psqueue-prof \
-      libghc-cabal-prof \
       cabal-install \
       libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
@@ -710,162 +545,23 @@ EOF
      # Precise has network-2.4.0.0, which breaks, see
      #   https://github.com/haskell/network/issues/60
      in_chroot -- \
-       cabal install --global --enable-library-profiling \
+       cabal install --global \
         'base64-bytestring>=1' \
-        'hslogger-1.2.3' \
-        'hlint-1.9.22' \
-        'json-0.7' \
-        'lens-4.1.2.1' \
-        'lifted-base>=0.1.2' \
-        'network>=2.4.0.1' \
-        'regex-pcre>=0.94.4' \
-        'parsec-3.1.3' \
-        shelltestrunner \
-        'snap-server>=0.8.1' \
-        'test-framework-0.8.0.3' \
-        'test-framework-hunit-0.3.0.1' \
-        'test-framework-quickcheck2-0.3.0.2' \
-        'transformers>=0.3.0.0' \
-        zlib-0.5.4.2
-    ;;
-
-  trusty)
-    # ghc, git-email and other dependencies are hosted in the universe
-    # repository, which is not enabled by default.
-    echo "Adding universe repository..."
-    cat > $CHDIR/etc/apt/sources.list.d/universe.list <<EOF
-deb http://archive.ubuntu.com/ubuntu trusty universe
-EOF
-    in_chroot -- \
-      apt-get update
-
-    echo "Installing packages"
-    in_chroot -- \
-      $APT_INSTALL \
-      autoconf automake ghc ghc-haddock \
-      libghc-curl-dev libghc-hinotify-dev \
-      libghc-parallel-dev libghc-utf8-string-dev \
-      libghc-crypto-dev \
-      libghc-attoparsec-dev \
-      libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
-      libghc-cabal-dev \
-      ghc-prof \
-      libghc-curl-prof libghc-hinotify-prof \
-      libghc-parallel-prof libghc-utf8-string-prof \
-      libghc-crypto-prof \
-      libghc-attoparsec-prof \
-      libghc-vector-prof libghc-temporary-prof libghc-psqueue-prof \
-      libghc-cabal-prof \
-      cabal-install \
-      libpcre3 libpcre3-dev happy hscolour pandoc \
-      python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-simplejson python-pyinotify python-pycurl python-paramiko \
-      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      python-dev pylint openssh-client vim git git-email exuberant-ctags \
-      build-essential
-
-    in_chroot -- \
-      easy_install \
-        logilab-astng==0.24.1 \
-        logilab-common==0.58.3 \
-        mock==1.0.1 \
-        pylint==0.26.0 \
-        pep8==1.3.3
-
-    in_chroot -- \
-      cabal update
-
-    # since we're using Cabal >=1.16, we can use the parallel install option
-    in_chroot -- \
-       cabal install --global -j --enable-library-profiling \
-        'base64-bytestring>=1' \
-        'hslogger>=1.2.3' \
+        hslogger-1.2.3 \
         'hlint>=1.9.12' \
-        'json>=0.7' \
-        lens-4.1.2.1 \
+        json-0.7 \
+        lens-3.10.2 \
         'lifted-base>=0.1.2' \
         'network>=2.4.0.1' \
         'regex-pcre>=0.94.4' \
-        'parsec>=3.1.3' \
+        parsec-3.1.3 \
         shelltestrunner \
         'snap-server>=0.8.1' \
-        'test-framework>=0.8.0.3' \
-        'test-framework-hunit>=0.3.0.1' \
-        'test-framework-quickcheck2>=0.3.0.2' \
-        'transformers>=0.3.0.0' \
-        'zlib==0.5.4.2'
+        test-framework-0.8.0.3 \
+        test-framework-hunit-0.3.0.1 \
+        test-framework-quickcheck2-0.3.0.2 \
+        'transformers>=0.3.0.0'
     ;;
-
-  xenial)
-    # ghc, git-email and other dependencies are hosted in the universe
-    # repository, which is not enabled by default.
-    echo "Adding universe repository..."
-    cat > $CHDIR/etc/apt/sources.list.d/universe.list <<EOF
-deb http://archive.ubuntu.com/ubuntu xenial universe
-EOF
-    in_chroot -- \
-      apt-get update
-
-    echo "Installing packages"
-    in_chroot -- \
-      $APT_INSTALL \
-      autoconf automake \
-      zlib1g-dev \
-      ghc ghc-haddock \
-      libghc-curl-dev libghc-hinotify-dev \
-      libghc-parallel-dev libghc-utf8-string-dev \
-      libghc-crypto-dev \
-      libghc-attoparsec-dev \
-      libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
-      libghc-cabal-dev \
-      ghc-prof \
-      libghc-curl-prof libghc-hinotify-prof \
-      libghc-parallel-prof libghc-utf8-string-prof \
-      libghc-crypto-prof \
-      libghc-attoparsec-prof \
-      libghc-vector-prof libghc-temporary-prof libghc-psqueue-prof \
-      libghc-cabal-prof \
-      cabal-install \
-      libpcre3 libpcre3-dev happy hscolour pandoc \
-      python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-simplejson python-pyinotify python-pycurl python-paramiko \
-      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      python-dev pylint openssh-client ca-certificates \
-      vim git git-email exuberant-ctags build-essential
-
-    in_chroot -- \
-      easy_install \
-        logilab-astng==0.24.1 \
-        logilab-common==0.58.3 \
-        mock==1.0.1 \
-        pylint==0.26.0 \
-        pep8==1.3.3
-
-    in_chroot -- \
-      cabal update
-
-    # since we're using Cabal >=1.16, we can use the parallel install option
-    in_chroot -- \
-       cabal install --global -j --enable-library-profiling \
-        'base64-bytestring>=1' \
-        'hslogger>=1.2.3' \
-        'hlint>=1.9.12' \
-        'json>=0.7' \
-        'QuickCheck==2.7.6' \
-        lens-4.12.3 \
-        'lifted-base>=0.1.2' \
-        'network>=2.4.0.1' \
-        'regex-pcre>=0.94.4' \
-        'parsec>=3.1.3' \
-        shelltestrunner \
-        'snap-server>=0.8.1' \
-        'test-framework>=0.8.0.3' \
-        'test-framework-hunit>=0.3.0.1' \
-        'test-framework-quickcheck2>=0.3.0.2' \
-        'transformers>=0.3.0.0' \
-        'zlib==0.5.4.2'
-    ;;
-
 
   *)
     in_chroot -- \
@@ -884,8 +580,7 @@ EOF
       libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
-      python-bitarray python-ipaddr python-yaml python-psutil \
-      qemu-utils python-coverage pep8 \
+      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags \
       build-essential
@@ -925,15 +620,8 @@ in_chroot -- \
                ndisc6 python-openssl openssl \
                python-mock fping qemu-utils
 
-# Ganeti requires psutil APIs only available in 2.x and removed in 3.0.
-# Only jessie and stretch have new enough packages, so install a pinned
-# version elsewhere.
-case ${DIST_RELEASE} in
-  squeeze|wheezy|precise|trusty)
-    in_chroot -- \
-      easy_install 'psutil>=2.0.0,<3.0.0'
-    ;;
-esac
+in_chroot -- \
+  easy_install psutil
 
 in_chroot -- \
   easy_install jsonpointer \

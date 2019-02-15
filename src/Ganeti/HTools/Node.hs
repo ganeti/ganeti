@@ -43,11 +43,9 @@ module Ganeti.HTools.Node
   , create
   -- ** Finalization after data loading
   , buildPeers
-  , computePmem
   , setIdx
   , setAlias
   , setOffline
-  , setXmem
   , setPri
   , calcFmemOfflineOrForthcoming
   , setSec
@@ -60,8 +58,7 @@ module Ganeti.HTools.Node
   , setMigrationTags
   , setRecvMigrationTags
   , setLocationTags
-  , setBandwidthTags
-  , setBandwidthToLocation
+  , setHypervisor
   -- * Tag maps
   , addTags
   , delTags
@@ -80,8 +77,10 @@ module Ganeti.HTools.Node
   -- * Stats
   , availDisk
   , availMem
+  , missingMem
+  , unallocatedMem
+  , recordedFreeMem
   , availCpu
-  , iMem
   , iDsk
   , conflictingPrimaries
   -- * Generate OpCodes
@@ -100,27 +99,23 @@ module Ganeti.HTools.Node
   , mkNodeGraph
   , mkRebootNodeGraph
   , haveExclStorage
-  , calcBandwidthToNode
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Control.Monad (liftM, liftM2)
+import Control.Applicative ((<$>), (<*>))
 import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph
 import qualified Data.IntMap as IntMap
-import Data.List (intercalate, foldl', delete, union, sortBy, groupBy)
+import Data.List hiding (group)
 import qualified Data.Map as Map
 import Data.Ord (comparing)
-import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
 import Text.Printf (printf)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.OpCodes as OpCodes
-import Ganeti.Types (OobCommand(..), TagKind(..), mkNonEmpty)
+import Ganeti.Types (Hypervisor(..), OobCommand(..), TagKind(..), mkNonEmpty)
 import Ganeti.HTools.Container (Container)
 import qualified Ganeti.HTools.Container as Container
 import Ganeti.HTools.Instance (Instance)
@@ -139,11 +134,13 @@ type TagMap = Map.Map String Int
 data Node = Node
   { name     :: String    -- ^ The node name
   , alias    :: String    -- ^ The shortened name (for display purposes)
-  , tMem     :: Double    -- ^ Total memory (MiB)
-  , nMem     :: Int       -- ^ Node memory (MiB)
-  , fMem     :: Int       -- ^ Free memory (MiB)
+  , tMem     :: Double    -- ^ Total memory (MiB) (state-of-world)
+  , nMem     :: Int       -- ^ Node memory (MiB) (state-of-record)
+  , iMem     :: Int       -- ^ Instance memory (MiB) (state-of-record)
+  , fMem     :: Int       -- ^ Free memory (MiB) (state-of-world)
   , fMemForth :: Int      -- ^ Free memory (MiB) including forthcoming
-                          --   instances
+                          --   instances TODO: Use state of record calculations
+                          --   for forthcoming instances (see unallocatedMem)
   , xMem     :: Int       -- ^ Unaccounted memory (MiB)
   , tDsk     :: Double    -- ^ Total disk space (MiB)
   , fDsk     :: Int       -- ^ Free disk space (MiB)
@@ -217,13 +214,10 @@ data Node = Node
                                    -- to
   , locationScore :: Int -- ^ Sum of instance location and desired location
                          -- scores
-  , bandwidthTags :: Set.Set String -- ^ Node's bandwidth tags
-  , bandwidthMap :: Map.Map String Int -- ^ Node's network bandwidth between
-                                    -- current node and any node with given
-                                    -- bandwidth tag in Mbit per second
   , instanceMap :: Map.Map (String, String) Int -- ^ Number of instances with
                                                 -- each exclusion/location tags
                                                 -- pair
+  , hypervisor :: Maybe Hypervisor -- ^ Active hypervisor on the node
   } deriving (Show, Eq)
 {- A note on how we handle spindles
 
@@ -313,10 +307,6 @@ haveExclStorage :: List -> Bool
 haveExclStorage nl =
   any exclStorage $ Container.elems nl
 
--- | Conversion formula from fMem, tMem and nMem to pMem.
-computePmem :: Int -> Double -> Int -> Double
-computePmem fmem tmem nmem = fromIntegral fmem / (tmem - fromIntegral nmem)
-
 -- * Initialization functions
 
 -- | Create a new node.
@@ -334,6 +324,9 @@ create name_init mem_t_init mem_n_init mem_f_init
        , alias = name_init
        , tMem = mem_t_init
        , nMem = mem_n_init
+       , iMem = 0 -- updated after instances are loaded
+       , xMem = 0 -- updated after instances are loaded
+       , pMem = 0 -- updated after instances are loaded
        , fMem = mem_f_init
        , fMemForth = mem_f_init
        , tDsk = dsk_t_init
@@ -357,8 +350,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , peers = P.empty
        , rMem = 0
        , rMemForth = 0
-       , pMem = computePmem mem_f_init mem_t_init mem_n_init
-       , pMemForth = computePmem mem_f_init mem_t_init mem_n_init
+       , pMemForth = fromIntegral mem_f_init / mem_t_init
        , pDsk = if excl_stor
                 then computePDsk spindles_f_init $ fromIntegral spindles_t_init
                 else computePDsk dsk_f_init dsk_t_init
@@ -373,7 +365,6 @@ create name_init mem_t_init mem_n_init mem_f_init
        , offline = offline_init
        , isMaster = False
        , nTags = []
-       , xMem = 0
        , mDsk = T.defReservedDiskRatio
        , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
        , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio T.defIPolicy) cpu_t_init
@@ -392,9 +383,8 @@ create name_init mem_t_init mem_n_init mem_f_init
        , rmigTags = Set.empty
        , locationTags = Set.empty
        , locationScore = 0
-       , bandwidthTags = Set.empty
-       , bandwidthMap = Map.empty
        , instanceMap = Map.empty
+       , hypervisor = Nothing
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
@@ -445,18 +435,9 @@ setRecvMigrationTags t val = t { rmigTags = val }
 setLocationTags :: Node -> Set.Set String -> Node
 setLocationTags t val = t { locationTags = val }
 
--- | Set the network bandwidth tags
-setBandwidthTags :: Node -> Set.Set String -> Node
-setBandwidthTags t val = t { bandwidthTags = val }
-
--- | Add network bandwidth to nodes with given bandwidth tag
-setBandwidthToLocation :: Node -> String -> Int -> Node
-setBandwidthToLocation t tag bandwidth = t { bandwidthMap = new_map }
-  where new_map = Map.insert tag bandwidth (bandwidthMap t)
-
--- | Sets the unnaccounted memory.
-setXmem :: Node -> Int -> Node
-setXmem t val = t { xMem = val }
+-- | Sets the hypervisor attribute.
+setHypervisor :: Node -> Hypervisor -> Node
+setHypervisor t val = t { hypervisor = Just val }
 
 -- | Sets the max disk usage ratio.
 setMdsk :: Node -> Double -> Node
@@ -476,21 +457,11 @@ setPolicy pol node =
        , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio pol) (tCpu node)
        , hiSpindles = computeHiSpindles (T.iPolicySpindleRatio pol)
                       (tSpindles node)
-       , pMem = computePmem (fMem node) (tMem node) (nMem node)
-       , pMemForth = computePmem (fMemForth node) (tMem node) (nMem node)
        }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: P.PeerMap -> P.Elem
 computeMaxRes = P.maxElem
-
--- | Calculates the lower acceptable amount of free memory. It's a negative
--- value, thanks to memory over-commitment
-fMemTreshold :: Node -> Int
-fMemTreshold t =
-  fMemTresholdHelper (T.iPolicyMemoryRatio $ iPolicy t) (tMem t) (nMem t)
-  where fMemTresholdHelper ratio tmem nmem =
-          truncate $ (1 - ratio) * (tmem - fromIntegral nmem)
 
 -- | Builds the peer map for a given node.
 buildPeers :: Node -> Instance.List -> Node
@@ -508,7 +479,7 @@ buildPeers t il =
               (sList t)
       pmap = P.accumArray (+) mdata
       new_rmem = computeMaxRes pmap
-      new_failN1 = fMem t - new_rmem <= fMemTreshold t
+      new_failN1 = fMem t < new_rmem
       new_prem = fromIntegral new_rmem / tMem t
   in t { peers = pmap
        , failN1 = new_failN1
@@ -575,17 +546,6 @@ calcFmemOfflineOrForthcoming node allInstances =
          . filter (not . Instance.usesMemory)
          $ nodeInstances
 
--- | Calculate the network bandwidth between two given nodes
-calcBandwidthToNode :: Node -> Node -> Maybe Int
-calcBandwidthToNode src dst =
-  case bndwths of
-        [] -> Nothing
-        _  -> Just $ minimum bndwths
-  where dstTags = Set.toList $ bandwidthTags dst
-        srcMap = bandwidthMap src
-        mapper = flip Map.lookup srcMap
-        bndwths = mapMaybe mapper dstTags
-
 -- | Calculates the desired location score of an instance, given its primary
 -- node.
 getInstanceDsrdLocScore :: Node -- ^ the primary node of the instance
@@ -642,7 +602,7 @@ setPri t inst
                                 (fMemForth node)
                                 (Instance.mem inst)
 
-          new_pMemForth = computePmem new_fMemForth (tMem node) (nMem node)
+          new_pMemForth = fromIntegral new_fMemForth / tMem node
 
       in node
            { pTags = addTags (pTags node) (Instance.exclTags inst)
@@ -775,7 +735,7 @@ removePri t inst =
             new_dsk_forth = incIf uses_disk (fDskForth n) (Instance.dsk inst)
             new_free_sp_forth = calcNewFreeSpindlesForth False n inst
             new_inst_sp_forth = calcSpindleUseForth False n inst
-            new_mp_forth = computePmem new_mem_forth (tMem n) (nMem n)
+            new_mp_forth = fromIntegral new_mem_forth / tMem n
             new_dp_forth = computeNewPDsk n new_free_sp_forth new_dsk_forth
             new_ucpu_forth = decIf i_online (uCpuForth n) (Instance.vcpus inst)
             new_rcpu_forth = fromIntegral new_ucpu_forth / tCpu n
@@ -801,14 +761,16 @@ removePri t inst =
        then updateForthcomingFields t
        else let
                 new_plist = delete iname (pList t)
-                new_mem = incIf (Instance.usesMemory inst) (fMem t)
-                                (Instance.mem inst)
+
+                (new_i_mem, new_free_mem) = prospectiveMem t inst False
+                new_p_mem = fromIntegral new_free_mem / tMem t
+                new_failn1 = new_free_mem <= rMem t
+
                 new_dsk = incIf uses_disk (fDsk t) (Instance.dsk inst)
                 new_free_sp = calcNewFreeSpindles False t inst
                 new_inst_sp = calcSpindleUse False t inst
-                new_mp = computePmem new_mem (tMem t) (nMem t)
                 new_dp = computeNewPDsk t new_free_sp new_dsk
-                new_failn1 = new_mem - rMem t <= fMemTreshold t
+
                 new_ucpu = decIf i_online (uCpu t) (Instance.vcpus inst)
                 new_rcpu = fromIntegral new_ucpu / tCpu t
                 new_load = utilLoad t `T.subUtil` Instance.util inst
@@ -817,8 +779,8 @@ removePri t inst =
                                  $ getLocationExclusionPairs t inst
 
             in updateForthcomingFields $
-                 t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
-                   , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
+                 t { pList = new_plist, iMem = new_i_mem, fDsk = new_dsk
+                   , failN1 = new_failn1, pMem = new_p_mem, pDsk = new_dp
                    , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
                    , instSpindles = new_inst_sp, fSpindles = new_free_sp
                    , locationScore = locationScore t
@@ -877,7 +839,7 @@ removeSec t inst =
                              then old_rmem
                              else computeMaxRes new_peers
                 new_prem = fromIntegral new_rmem / tMem t
-                new_failn1 = fMem t - new_rmem <= fMemTreshold t
+                new_failn1 = unallocatedMem t <= new_rmem
                 new_dp = computeNewPDsk t new_free_sp new_dsk
                 old_load = utilLoad t
                 new_load = old_load
@@ -917,7 +879,7 @@ addPriEx force t inst =
       inst_tags = Instance.exclTags inst
 
       new_mem_forth = fMemForth t - Instance.mem inst
-      new_mp_forth = computePmem new_mem_forth (tMem t) (nMem t)
+      new_mp_forth = fromIntegral new_mem_forth / tMem t
       new_dsk_forth = decIf uses_disk (fDskForth t) (Instance.dsk inst)
       new_free_sp_forth = calcNewFreeSpindlesForth True t inst
       new_inst_sp_forth = calcSpindleUseForth True t inst
@@ -945,7 +907,7 @@ addPriEx force t inst =
           }
 
       checkForthcomingViolation
-        | new_mem_forth <= fMemTreshold t                = Bad T.FailMem
+        | new_mem_forth <= 0                            = Bad T.FailMem
         | uses_disk && new_dsk_forth <= 0               = Bad T.FailDisk
         | uses_disk && new_dsk_forth < loDsk t          = Bad T.FailDisk
         | uses_disk && exclStorage t
@@ -963,24 +925,23 @@ addPriEx force t inst =
              _ -> Ok $ updateForthcomingFields t
 
       else let
-               new_mem = decIf (Instance.usesMemory inst) (fMem t)
-                               (Instance.mem inst)
+               (new_i_mem, new_free_mem) = prospectiveMem t inst True
+               new_p_mem = fromIntegral new_free_mem / tMem t
+               new_failn1 = new_free_mem <= rMem t
+
                new_dsk = decIf uses_disk (fDsk t) (Instance.dsk inst)
                new_free_sp = calcNewFreeSpindles True t inst
                new_inst_sp = calcSpindleUse True t inst
-               new_failn1 = new_mem - rMem t <= fMemTreshold t
                new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
                new_pcpu = fromIntegral new_ucpu / tCpu t
                new_dp = computeNewPDsk t new_free_sp new_dsk
                new_load = utilLoad t `T.addUtil` Instance.util inst
 
                new_plist = iname:pList t
-               new_mp = computePmem new_mem (tMem t) (nMem t)
-
                new_instance_map = addTags (instanceMap t)
                                 $ getLocationExclusionPairs t inst
       in case () of
-        _ | new_mem <= fMemTreshold t -> Bad T.FailMem
+        _ | new_free_mem <= 0 -> Bad T.FailMem
           | uses_disk && new_dsk <= 0 -> Bad T.FailDisk
           | strict && uses_disk && new_dsk < loDsk t -> Bad T.FailDisk
           | uses_disk && exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
@@ -995,10 +956,10 @@ addPriEx force t inst =
           | otherwise ->
               Ok . updateForthcomingFields $
                 t { pList = new_plist
-                  , fMem = new_mem
+                  , iMem = new_i_mem
                   , fDsk = new_dsk
                   , failN1 = new_failn1
-                  , pMem = new_mp
+                  , pMem = new_p_mem
                   , pDsk = new_dp
                   , uCpu = new_ucpu
                   , pCpu = new_pcpu
@@ -1066,7 +1027,7 @@ addSecExEx ignore_disks force t inst pdx =
         | new_dsk_forth < loDsk t                = Bad T.FailDisk
         | exclStorage t && new_free_sp_forth < 0 = Bad T.FailSpindles
         | new_inst_sp_forth > hiSpindles t       = Bad T.FailDisk
-        | old_mem_forth - secondary_needed_mem <= fMemTreshold t = Bad T.FailMem
+        | secondary_needed_mem >= old_mem_forth  = Bad T.FailMem
         -- TODO Check failN1 including forthcoming instances
         | otherwise                              = Ok ()
 
@@ -1076,13 +1037,13 @@ addSecExEx ignore_disks force t inst pdx =
 
              _ -> Ok $ updateForthcomingFields t
       else let
-               old_mem = fMem t
+               old_mem = unallocatedMem t
                new_dsk = fDsk t - Instance.dsk inst
                new_free_sp = calcNewFreeSpindles True t inst
                new_inst_sp = calcSpindleUse True t inst
                new_rmem = max (rMem t) new_peem
                new_prem = fromIntegral new_rmem / tMem t
-               new_failn1 = old_mem - new_rmem <= fMemTreshold t
+               new_failn1 = old_mem <= new_rmem
                new_dp = computeNewPDsk t new_free_sp new_dsk
                old_load = utilLoad t
                new_load = old_load
@@ -1096,8 +1057,7 @@ addSecExEx ignore_disks force t inst pdx =
           | strict && new_dsk < loDsk t -> Bad T.FailDisk
           | exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
           | strict && new_inst_sp > hiSpindles t -> Bad T.FailDisk
-          | strict && old_mem - secondary_needed_mem <= fMemTreshold t
-                                                   -> Bad T.FailMem
+          | strict && secondary_needed_mem >= old_mem -> Bad T.FailMem
           | strict && new_failn1 && not (failN1 t) -> Bad T.FailMem
 
           -- When strict also check forthcoming limits, but after normal checks
@@ -1136,14 +1096,84 @@ availDisk t =
 iDsk :: Node -> Int
 iDsk t = truncate (tDsk t) - fDsk t
 
+-- | Returns state-of-world free memory on the node.
+-- | NOTE: This value is valid only before placement simulations.
+-- | TODO: Redefine this for memoy overcommitment.
+reportedFreeMem :: Node -> Int
+reportedFreeMem = fMem
+
+-- | Computes state-of-record free memory on the node.
+-- | TODO: Redefine this for memory overcommitment.
+recordedFreeMem :: Node -> Int
+recordedFreeMem t =
+  let total = tMem t
+      node = nMem t
+      inst = iMem t
+  in truncate total - node - inst
+
+-- | Computes the amount of missing memory on the node.
+-- NOTE: This formula uses free memory for calculations as opposed to
+-- used_memory in the definition, that's why it is the inverse.
+-- Explanations for missing memory (+) positive, (-) negative:
+-- (+) instances are using more memory that state-of-record
+--     - on KVM this might be due to the overhead per qemu process
+--     - on Xen manually upsized domains (xen mem-set)
+-- (+) on KVM non-qemu processes might be using more memory than what is
+--     reserved for node (no isolation)
+-- (-) on KVM qemu processes allocate memory on demand, thus an instance grows
+--     over its lifetime until it reaches state-of-record (+overhead)
+-- (-) on KVM KSM might be active
+-- (-) on Xen manually downsized domains (xen mem-set)
+missingMem :: Node -> Int
+missingMem t =
+  recordedFreeMem t - reportedFreeMem t
+
+-- | Computes the 'guaranteed' free memory, that is the minimum of what
+-- is reported by the node (available bytes) and our calculation based on
+-- instance sizes (our records), thus considering missing memory.
+-- NOTE 1: During placement simulations, the recorded memory changes, as
+-- instances are added/removed from the node, thus we have to calculate the
+-- missingMem (correction) before altering state-of-record and then
+-- use that correction to estimate state-of-world memory usage _after_
+-- the placements are done rather than doing min(record, world).
+-- NOTE 2: This is still only an approximation on KVM. As we shuffle instances
+-- during the simulation we are considering their state-of-record size, but
+-- in the real world the moves would shuffle parts of missing memory as well.
+-- Unfortunately as long as we don't have a more finegrained model that can
+-- better explain missing memory (split down based on root causes), we can't
+-- do better.
+-- NOTE 3: This is a hard limit based on available bytes and our bookkeeping.
+-- In case of memory overcommitment, both recordedFreeMem and reportedFreeMem
+-- would be extended by swap size on KVM or baloon size on Xen (their nominal
+-- and reported values).
+unallocatedMem :: Node -> Int
+unallocatedMem t =
+ let state_of_record = recordedFreeMem t
+ in state_of_record - max 0 (xMem t)
+
 -- | Computes the amount of available memory on a given node.
+-- Compared to unallocatedMem, this takes into account also memory reserved for
+-- secondary instances.
+-- NOTE: In case of memory overcommitment, there would be also an additional
+-- soft limit based on RAM size dedicated for instances and sum of
+-- state-of-record instance sizes (iMem): (tMem - nMem)*overcommit_ratio - iMem
 availMem :: Node -> Int
 availMem t =
-  let _f = fMem t
-      _l = rMem t
-  in if _f < _l
-       then 0
-       else _f - _l
+  let reserved = rMem t
+      unallocated = unallocatedMem t
+  in max 0 (unallocated - reserved)
+
+-- | Prospective memory stats after instance operation.
+prospectiveMem :: Node -> Instance
+               -> Bool       -- ^ Operation: True if add, False for remove.
+               -> (Int, Int) -- ^ Tuple (used_by_instances, guaranteed_free_mem)
+prospectiveMem node inst add =
+  let uses_mem = (Instance.usesMemory inst)
+      condOp = if add then incIf else decIf
+      new_i_mem = condOp uses_mem (iMem node) (Instance.mem inst)
+      new_node = node { iMem = new_i_mem }
+      new_free_mem = unallocatedMem new_node
+ in (new_i_mem, new_free_mem)
 
 -- | Computes the amount of available memory on a given node.
 availCpu :: Node -> Int
@@ -1153,10 +1183,6 @@ availCpu t =
   in if _l >= _u
        then _l - _u
        else 0
-
--- | The memory used by instances on a given node.
-iMem :: Node -> Int
-iMem t = truncate (tMem t) - nMem t - xMem t - fMem t
 
 -- * Node graph functions
 -- These functions do the transformations needed so that nodes can be
@@ -1235,9 +1261,10 @@ showField t field =
     "nmem" -> printf "%5d" $ nMem t
     "xmem" -> printf "%5d" $ xMem t
     "fmem" -> printf "%5d" $ fMem t
+    "umem" -> printf "%5d" $ unallocatedMem t
     "imem" -> printf "%5d" $ iMem t
     "rmem" -> printf "%5d" $ rMem t
-    "amem" -> printf "%5d" $ fMem t - rMem t
+    "amem" -> printf "%5d" $ availMem t
     "tdsk" -> printf "%5.0f" $ tDsk t / 1024
     "fdsk" -> printf "%5d" $ fDsk t `div` 1024
     "tcpu" -> printf "%4.0f" $ tCpu t
@@ -1276,9 +1303,10 @@ showHeader field =
     "nmem" -> ("n_mem", True)
     "xmem" -> ("x_mem", True)
     "fmem" -> ("f_mem", True)
+    "umem" -> ("u_mem", True)
+    "amem" -> ("a_mem", True)
     "imem" -> ("i_mem", True)
     "rmem" -> ("r_mem", True)
-    "amem" -> ("a_mem", True)
     "tdsk" -> ("t_dsk", True)
     "fdsk" -> ("f_dsk", True)
     "tcpu" -> ("pcpu", True)
@@ -1325,8 +1353,6 @@ genOpSetOffline node offlineStatus = do
            , OpCodes.opSecondaryIp = Nothing
            , OpCodes.opgenericNdParams = Nothing
            , OpCodes.opPowered = Nothing
-           , OpCodes.opVerbose = False
-           , OpCodes.opDebug = False
            }
 
 -- | Generate OpCode for applying a OobCommand to the given nodes
@@ -1367,7 +1393,7 @@ genAddTagsOpCode node tags = OpCodes.OpTagsSet
 -- | Constant holding the fields we're displaying by default.
 defaultFields :: [String]
 defaultFields =
-  [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
+  [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem", "umem"
   , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "pcnt", "scnt"
   , "pfmem", "pfdsk", "rcpu"
   , "cload", "mload", "dload", "nload" ]

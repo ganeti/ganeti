@@ -40,6 +40,7 @@ from cStringIO import StringIO
 
 from ganeti import compat
 from ganeti import http
+from ganeti import utils
 
 # Digest types from RFC2617
 HTTP_BASIC_AUTH = "Basic"
@@ -136,8 +137,8 @@ class HttpServerRequestAuthentication(object):
     if not realm:
       raise AssertionError("No authentication realm")
 
-    # Check Authentication
-    if self.Authenticate(req):
+    # Check "Authorization" header
+    if self._CheckAuthorization(req):
       # User successfully authenticated
       return
 
@@ -155,25 +156,24 @@ class HttpServerRequestAuthentication(object):
 
     raise http.HttpUnauthorized(headers=headers)
 
-  @staticmethod
-  def ExtractUserPassword(req):
-    """Extracts a user and a password from the http authorization header.
+  def _CheckAuthorization(self, req):
+    """Checks 'Authorization' header sent by client.
 
     @type req: L{http.server._HttpServerRequest}
-    @param req: HTTP request
-    @rtype: (str, str)
-    @return: A tuple containing a user and a password. One or both values
-             might be None if they are not presented
+    @param req: HTTP request context
+    @rtype: bool
+    @return: Whether user is allowed to execute request
+
     """
     credentials = req.request_headers.get(http.HTTP_AUTHORIZATION, None)
     if not credentials:
-      return None, None
+      return False
 
     # Extract scheme
     parts = credentials.strip().split(None, 2)
     if len(parts) < 1:
       # Missing scheme
-      return None, None
+      return False
 
     # RFC2617, section 1.2: "[...] It uses an extensible, case-insensitive
     # token to identify the authentication scheme [...]"
@@ -184,7 +184,7 @@ class HttpServerRequestAuthentication(object):
       if len(parts) < 2:
         raise http.HttpBadRequest(message=("Basic authentication requires"
                                            " credentials"))
-      return HttpServerRequestAuthentication._ExtractBasicUserPassword(parts[1])
+      return self._CheckBasicAuthorization(req, parts[1])
 
     elif scheme == HTTP_DIGEST_AUTH.lower():
       # TODO: Implement digest authentication
@@ -194,82 +194,49 @@ class HttpServerRequestAuthentication(object):
       pass
 
     # Unsupported authentication scheme
-    return None, None
+    return False
 
-  @staticmethod
-  def _ExtractBasicUserPassword(in_data):
-    """Extracts user and password from the contents of an authorization header.
+  def _CheckBasicAuthorization(self, req, in_data):
+    """Checks credentials sent for basic authentication.
 
+    @type req: L{http.server._HttpServerRequest}
+    @param req: HTTP request context
     @type in_data: str
     @param in_data: Username and password encoded as Base64
-    @rtype: (str, str)
-    @return: A tuple containing user and password. One or both values might be
-             None if they are not presented
+    @rtype: bool
+    @return: Whether user is allowed to execute request
 
     """
     try:
       creds = base64.b64decode(in_data.encode("ascii")).decode("ascii")
     except (TypeError, binascii.Error, UnicodeError):
       logging.exception("Error when decoding Basic authentication credentials")
-      raise http.HttpBadRequest(message=("Invalid basic authorization header"))
+      return False
 
     if ":" not in creds:
-      # We have just a username without password
-      return creds, None
+      return False
 
-    # return (user, password) tuple
-    return creds.split(":", 1)
+    (user, password) = creds.split(":", 1)
 
-  def Authenticate(self, req):
-    """Checks the credentiales.
+    return self.Authenticate(req, user, password)
+
+  def Authenticate(self, req, user, password):
+    """Checks the password for a user.
 
     This function MUST be overridden by a subclass.
 
     """
     raise NotImplementedError()
 
-  @staticmethod
-  def ExtractSchemePassword(expected_password):
-    """Extracts a scheme and a password from the expected_password.
-
-    @type expected_password: str
-    @param expected_password: Username and password encoded as Base64
-    @rtype: (str, str)
-    @return: A tuple containing a scheme and a password. Both values will be
-             None when an invalid scheme or password encoded
-
-    """
-    if expected_password is None:
-      return None, None
-    # Backwards compatibility for old-style passwords without a scheme
-    if not expected_password.startswith("{"):
-      expected_password = (HttpServerRequestAuthentication._CLEARTEXT_SCHEME +
-                           expected_password)
-
-    # Check again, just to be sure
-    if not expected_password.startswith("{"):
-      raise AssertionError("Invalid scheme")
-
-    scheme_end_idx = expected_password.find("}", 1)
-
-    # Ensure scheme has a length of at least one character
-    if scheme_end_idx <= 1:
-      logging.warning("Invalid scheme in password")
-      return None, None
-
-    scheme = expected_password[:scheme_end_idx + 1].upper()
-    password = expected_password[scheme_end_idx + 1:]
-
-    return scheme, password
-
-  @staticmethod
-  def VerifyBasicAuthPassword(username, password, expected, realm):
+  def VerifyBasicAuthPassword(self, req, username, password, expected):
     """Checks the password for basic authentication.
 
     As long as they don't start with an opening brace ("E{lb}"), old passwords
     are supported. A new scheme uses H(A1) from RFC2617, where H is MD5 and A1
     consists of the username, the authentication realm and the actual password.
 
+    @type req: L{http.server._HttpServerRequest}
+    @param req: HTTP request context
     @type username: string
     @param username: Username from HTTP headers
     @type password: string
@@ -277,21 +244,33 @@ class HttpServerRequestAuthentication(object):
     @type expected: string
     @param expected: Expected password with optional scheme prefix (e.g. from
                      users file)
-    @type realm: string
-    @param realm: Authentication realm
 
     """
-    scheme, expected_password = HttpServerRequestAuthentication \
-                                  .ExtractSchemePassword(expected)
-    if scheme is None or password is None:
+    # Backwards compatibility for old-style passwords without a scheme
+    if not expected.startswith("{"):
+      expected = self._CLEARTEXT_SCHEME + expected
+
+    # Check again, just to be sure
+    if not expected.startswith("{"):
+      raise AssertionError("Invalid scheme")
+
+    scheme_end_idx = expected.find("}", 1)
+
+    # Ensure scheme has a length of at least one character
+    if scheme_end_idx <= 1:
+      logging.warning("Invalid scheme in password for user '%s'", username)
       return False
 
+    scheme = expected[:scheme_end_idx + 1].upper()
+    expected_password = expected[scheme_end_idx + 1:]
+
     # Good old plain text password
-    if scheme == HttpServerRequestAuthentication._CLEARTEXT_SCHEME:
+    if scheme == self._CLEARTEXT_SCHEME:
       return password == expected_password
 
     # H(A1) as described in RFC2617
-    if scheme == HttpServerRequestAuthentication._HA1_SCHEME:
+    if scheme == self._HA1_SCHEME:
+      realm = self.GetAuthRealm(req)
       if not realm:
         # There can not be a valid password for this case
         raise AssertionError("No authentication realm")
@@ -305,3 +284,56 @@ class HttpServerRequestAuthentication(object):
                     scheme, username)
 
     return False
+
+
+class PasswordFileUser(object):
+  """Data structure for users from password file.
+
+  """
+  def __init__(self, name, password, options):
+    self.name = name
+    self.password = password
+    self.options = options
+
+
+def ParsePasswordFile(contents):
+  """Parses the contents of a password file.
+
+  Lines in the password file are of the following format::
+
+      <username> <password> [options]
+
+  Fields are separated by whitespace. Username and password are mandatory,
+  options are optional and separated by comma (','). Empty lines and comments
+  ('#') are ignored.
+
+  @type contents: str
+  @param contents: Contents of password file
+  @rtype: dict
+  @return: Dictionary containing L{PasswordFileUser} instances
+
+  """
+  users = {}
+
+  for line in utils.FilterEmptyLinesAndComments(contents):
+    parts = line.split(None, 2)
+    if len(parts) < 2:
+      # Invalid line
+      # TODO: Return line number from FilterEmptyLinesAndComments
+      logging.warning("Ignoring non-comment line with less than two fields")
+      continue
+
+    name = parts[0]
+    password = parts[1]
+
+    # Extract options
+    options = []
+    if len(parts) >= 3:
+      for part in parts[2].split(","):
+        options.append(part.strip())
+    else:
+      logging.warning("Ignoring values for user '%s': %s", name, parts[3:])
+
+    users[name] = PasswordFileUser(name, password, options)
+
+  return users

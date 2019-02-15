@@ -38,20 +38,30 @@
 import logging
 import optparse
 import sys
+import os
+import os.path
+import errno
 
+try:
+  from pyinotify import pyinotify # pylint: disable=E0611
+except ImportError:
+  import pyinotify
+
+from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import http
 from ganeti import daemon
 from ganeti import ssconf
 import ganeti.rpc.errors as rpcerr
 from ganeti import serializer
+from ganeti import compat
+from ganeti import utils
 from ganeti import pathutils
 from ganeti.rapi import connector
 from ganeti.rapi import baserlib
-from ganeti.rapi.auth import basic_auth
-from ganeti.rapi.auth import pam
 
 import ganeti.http.auth   # pylint: disable=W0611
+import ganeti.http.server # pylint: disable=W0611
 
 
 class RemoteApiRequestContext(object):
@@ -72,12 +82,12 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
   """
   AUTH_REALM = "Ganeti Remote API"
 
-  def __init__(self, authenticator, reqauth, _client_cls=None):
+  def __init__(self, user_fn, reqauth, _client_cls=None):
     """Initializes this class.
 
-    @type authenticator: an implementation of {RapiAuthenticator} interface
-    @param authenticator: a class containing an implementation of
-                          ValidateRequest function
+    @type user_fn: callable
+    @param user_fn: Function receiving username as string and returning
+      L{http.auth.PasswordFileUser} or C{None} if user is not found
     @type reqauth: bool
     @param reqauth: Whether to require authentication
 
@@ -88,7 +98,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     http.auth.HttpServerRequestAuthentication.__init__(self)
     self._client_cls = _client_cls
     self._resmap = connector.Mapper()
-    self._authenticator = authenticator
+    self._user_fn = user_fn
     self._reqauth = reqauth
 
   @staticmethod
@@ -145,26 +155,28 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     """Determine whether authentication is required.
 
     """
-    # Auth is required if
-    # a) Auth is forced to be enabled always.
-    # b) Auth isn't enforced, but the handler for that path/HTTP method
-    #    (GET, PUT etc) requires cluster config read/write access. An
-    #    example of this can be seen in rapi.rlib2.R_2_jobs_id_wait.GET_ACCESS.
     return self._reqauth or bool(self._GetRequestContext(req).handler_access)
 
-  def Authenticate(self, req):
+  def Authenticate(self, req, username, password):
     """Checks whether a user can access a resource.
 
-    @return: username of an authenticated user or None otherwise
     """
     ctx = self._GetRequestContext(req)
-    auth_user = self._authenticator.ValidateRequest(
-        req, ctx.handler_access, self.GetAuthRealm(req))
-    if auth_user is None:
+
+    user = self._user_fn(username)
+    if not (user and
+            self.VerifyBasicAuthPassword(req, username, password,
+                                         user.password)):
+      # Unknown user or password wrong
       return False
 
-    ctx.handler.auth_user = auth_user
-    return True
+    if (not ctx.handler_access or
+        set(user.options).intersection(ctx.handler_access)):
+      # Allow access
+      return True
+
+    # Access forbidden
+    raise http.HttpForbidden()
 
   def HandleRequest(self, req):
     """Handles a request.
@@ -202,6 +214,101 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     return serializer.DumpJson(result)
 
 
+class RapiUsers(object):
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    self._users = None
+
+  def Get(self, username):
+    """Checks whether a user exists.
+
+    """
+    if self._users:
+      return self._users.get(username, None)
+    else:
+      return None
+
+  def Load(self, filename):
+    """Loads a file containing users and passwords.
+
+    @type filename: string
+    @param filename: Path to file
+
+    """
+    logging.info("Reading users file at %s", filename)
+    try:
+      try:
+        contents = utils.ReadFile(filename)
+      except EnvironmentError, err:
+        self._users = None
+        if err.errno == errno.ENOENT:
+          logging.warning("No users file at %s", filename)
+        else:
+          logging.warning("Error while reading %s: %s", filename, err)
+        return False
+
+      users = http.auth.ParsePasswordFile(contents)
+
+    except Exception, err: # pylint: disable=W0703
+      # We don't care about the type of exception
+      logging.error("Error while parsing %s: %s", filename, err)
+      return False
+
+    self._users = users
+
+    return True
+
+
+class FileEventHandler(asyncnotifier.FileEventHandlerBase):
+  def __init__(self, wm, path, cb):
+    """Initializes this class.
+
+    @param wm: Inotify watch manager
+    @type path: string
+    @param path: File path
+    @type cb: callable
+    @param cb: Function called on file change
+
+    """
+    asyncnotifier.FileEventHandlerBase.__init__(self, wm)
+
+    self._cb = cb
+    self._filename = os.path.basename(path)
+
+    # Different Pyinotify versions have the flag constants at different places,
+    # hence not accessing them directly
+    mask = (pyinotify.EventsCodes.ALL_FLAGS["IN_CLOSE_WRITE"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_DELETE"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_FROM"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_TO"])
+
+    self._handle = self.AddWatch(os.path.dirname(path), mask)
+
+  def process_default(self, event):
+    """Called upon inotify event.
+
+    """
+    if event.name == self._filename:
+      logging.debug("Received inotify event %s", event)
+      self._cb()
+
+
+def SetupFileWatcher(filename, cb):
+  """Configures an inotify watcher for a file.
+
+  @type filename: string
+  @param filename: File to watch
+  @type cb: callable
+  @param cb: Function called on file change
+
+  """
+  wm = pyinotify.WatchManager()
+  handler = FileEventHandler(wm, filename, cb)
+  asyncnotifier.AsyncNotifier(wm, default_proc_fun=handler)
+
+
 def CheckRapi(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -232,13 +339,15 @@ def PrepRapi(options, _):
   """
   mainloop = daemon.Mainloop()
 
-  if options.pamauth:
-    options.reqauth = True
-    authenticator = pam.PamAuthenticator()
-  else:
-    authenticator = basic_auth.BasicAuthenticator()
+  users = RapiUsers()
 
-  handler = RemoteApiHandler(authenticator, options.reqauth)
+  handler = RemoteApiHandler(users.Get, options.reqauth)
+
+  # Setup file watcher (it'll be driven by asyncore)
+  SetupFileWatcher(pathutils.RAPI_USERS_FILE,
+                   compat.partial(users.Load, pathutils.RAPI_USERS_FILE))
+
+  users.Load(pathutils.RAPI_USERS_FILE)
 
   server = http.server.HttpServer(
       mainloop, options.bind_address, options.port, options.max_clients,
@@ -252,12 +361,10 @@ def ExecRapi(options, args, prep_data): # pylint: disable=W0613
   """Main remote API function, executed with the PID file held.
 
   """
-
   (mainloop, server) = prep_data
   try:
     mainloop.Run()
   finally:
-    logging.error("RAPI Daemon Failed")
     server.Stop()
 
 
@@ -274,10 +381,6 @@ def Main():
                     default=False, action="store_true",
                     help=("Disable anonymous HTTP requests and require"
                           " authentication"))
-  parser.add_option("--pam-authentication", dest="pamauth",
-                    default=False, action="store_true",
-                    help=("Enable RAPI authentication and authorization via"
-                          " PAM"))
   parser.add_option("--max-clients", dest="max_clients",
                     default=20, type="int",
                     help="Number of simultaneous connections accepted"

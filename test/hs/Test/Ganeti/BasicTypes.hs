@@ -37,12 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.BasicTypes (testBasicTypes) where
 
-import Prelude ()
-import Ganeti.Prelude
-
 import Test.QuickCheck hiding (Result)
 import Test.QuickCheck.Function
 
+import Control.Applicative
 import Control.Monad
 
 import Test.Ganeti.TestHelper

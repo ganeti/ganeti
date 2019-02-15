@@ -179,8 +179,8 @@ cpu_node
   discovered or set manually. Only used for estimating how many VCPUs
   are left for instances
 
-Note that currently only ``mem_node`` is used by Ganeti; other values
-will be recorded but will not influence the Ganeti operation.
+Note that currently this option is unused by Ganeti; values will be
+recorded but will not influence the Ganeti operation.
 
 
 Disk State Parameters

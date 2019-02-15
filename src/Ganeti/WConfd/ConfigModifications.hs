@@ -1,5 +1,4 @@
-{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, FlexibleContexts,
-    RankNTypes #-}
+{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, FlexibleContexts #-}
 
 {-|  The WConfd functions for direct configuration manipulation
 
@@ -40,21 +39,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative ((<$>))
 import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
-import Control.Lens.Setter (Setter, (.~), (%~), (+~), over)
+import Control.Lens.Setter ((.~), (%~))
+import qualified Data.ByteString.UTF8 as UTF8
 import Control.Lens.Traversal (mapMOf)
-import Control.Lens.Type (Simple)
-import Control.Monad (unless, when, forM_, foldM, liftM, liftM2)
-import Control.Monad.Error.Class (throwError, MonadError)
+import Control.Monad (unless, when, forM_, foldM, liftM2)
+import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,
                                   runStateT, execStateT)
-import qualified Data.ByteString.UTF8 as UTF8
-import Data.Foldable (fold)
+import Data.Foldable (fold, foldMap)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, maybeToList, fromMaybe, fromJust)
 import Language.Haskell.TH (Name)
@@ -72,8 +68,7 @@ import Ganeti.Locking.Locks (ClientId, ciIdentifier)
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
 import Ganeti.Objects.Lens
-import Ganeti.Types (AdminState, AdminStateSource, JobId)
-import Ganeti.Utils (ordNub)
+import Ganeti.Types (AdminState, AdminStateSource)
 import Ganeti.WConfd.ConfigState (ConfigState, csConfigData, csConfigDataL)
 import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock
                            , modifyConfigAndReturnWithLock)
@@ -122,7 +117,7 @@ getAllIDs cs =
 
       instKeys = keysFromC . configInstances . csConfigData $ cs
       nodeKeys = keysFromC . configNodes . csConfigData $ cs
-
+      
       instValues = map uuidOf . valuesFromC
                  . configInstances . csConfigData $ cs
       nodeValues = map uuidOf . valuesFromC . configNodes . csConfigData $ cs
@@ -677,74 +672,6 @@ updateDisk disk = do
     . T.releaseDRBDMinors . UTF8.fromString $ uuidOf disk
   return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
--- | Set a particular value and bump serial in the hosting
--- structure. Arguments are a setter to focus on the part
--- of the configuration that gets serial-bumped, and a modification
--- of that part. The function will do the change and bump the serial
--- in the WConfdMonad temporarily acquiring the configuration lock.
--- Return True if that succeeded and False if the configuration lock
--- was not available; no change is done in the latter case.
-changeAndBump :: (SerialNoObjectL a, TimeStampObjectL a)
-              => Simple Setter ConfigState a
-              -> (a -> a)
-              -> WConfdMonad Bool
-changeAndBump focus change = do
-  now <- liftIO getClockTime
-  let operation = over focus $ (serialL +~ 1) . (mTimeL .~ now) . change
-  liftM isJust $ modifyConfigWithLock
-    (\_ cs -> return . operation $ cs)
-    (return ())
-
--- | Change and bump part of the maintenance part of the configuration.
-changeAndBumpMaint :: (MaintenanceData -> MaintenanceData) -> WConfdMonad Bool
-changeAndBumpMaint = changeAndBump $ csConfigDataL . configMaintenanceL
-
--- | Set the maintenance intervall.
-setMaintdRoundDelay :: Int -> WConfdMonad Bool
-setMaintdRoundDelay delay = changeAndBumpMaint $ maintRoundDelayL .~ delay
-
--- | Clear the list of current maintenance jobs.
-clearMaintdJobs :: WConfdMonad Bool
-clearMaintdJobs = changeAndBumpMaint $ maintJobsL .~ []
-
--- | Append new jobs to the list of current maintenace jobs, if
--- not alread present.
-appendMaintdJobs :: [JobId] -> WConfdMonad Bool
-appendMaintdJobs jobs = changeAndBumpMaint . over maintJobsL
-                          $ ordNub . (++ jobs)
-
--- | Set the autobalance flag.
-setMaintdBalance :: Bool -> WConfdMonad Bool
-setMaintdBalance value = changeAndBumpMaint $ maintBalanceL .~ value
-
--- | Set the auto-balance threshold.
-setMaintdBalanceThreshold :: Double -> WConfdMonad Bool
-setMaintdBalanceThreshold value = changeAndBumpMaint
-                                    $ maintBalanceThresholdL .~ value
-
--- | Add a name to the list of recently evacuated instances.
-addMaintdEvacuated :: [String] -> WConfdMonad Bool
-addMaintdEvacuated names = changeAndBumpMaint . over maintEvacuatedL
-                            $ ordNub . (++ names)
-
--- | Remove a name from the list of recently evacuated instances.
-rmMaintdEvacuated :: String -> WConfdMonad Bool
-rmMaintdEvacuated name = changeAndBumpMaint . over maintEvacuatedL
-                          $ filter (/= name)
-
--- | Update an incident to the list of known incidents; if the incident,
--- as identified by the UUID, is not present, it is added.
-updateMaintdIncident :: Incident -> WConfdMonad Bool
-updateMaintdIncident incident =
-  changeAndBumpMaint . over maintIncidentsL
-    $ (incident :) . filter ((/= uuidOf incident) . uuidOf)
-
--- | Remove an incident from the list of known incidents.
-rmMaintdIncident :: String -> WConfdMonad Bool
-rmMaintdIncident uuid =
-  changeAndBumpMaint . over maintIncidentsL
-    $ filter ((/= uuid) . uuidOf)
-
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -764,13 +691,4 @@ exportedFunctions = [ 'addInstance
                     , 'updateNetwork
                     , 'updateNode
                     , 'updateNodeGroup
-                    , 'setMaintdRoundDelay
-                    , 'clearMaintdJobs
-                    , 'appendMaintdJobs
-                    , 'setMaintdBalance
-                    , 'setMaintdBalanceThreshold
-                    , 'addMaintdEvacuated
-                    , 'rmMaintdEvacuated
-                    , 'updateMaintdIncident
-                    , 'rmMaintdIncident
                     ]

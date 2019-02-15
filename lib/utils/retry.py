@@ -250,8 +250,7 @@ def CountRetry(expected, fn, count, args=None):
                      wait_fn=inc_tries, _time_fn=get_tries)
 
 
-def RetryByNumberOfTimes(max_retries, backoff, exception_class, fn, *args,
-                         **kwargs):
+def RetryByNumberOfTimes(max_retries, exception_class, fn, *args, **kwargs):
   """Retries calling a function up to the specified number of times.
 
   @type max_retries: integer
@@ -262,23 +261,9 @@ def RetryByNumberOfTimes(max_retries, backoff, exception_class, fn, *args,
   @type fn: callable
   @param fn: Function to be called (up to the specified maximum number of
              retries.
-  @type backoff: int
-  @param backoff: this enables and configures the back off behavior after
-     failed tries. If value is '0', there will be no delay between failed
-     tries. If the value is a positive integer, it is interpreted as the
-     base length of the back off delay (in seconds). That means there will be a
-     delay between failed tries of the length specified in this paramter. With
-     each next retry, the delay is increased by the factor of two. For example,
-     if the value is '2', the first delay is 2 seconds, the second 4 seconds,
-     the third 8 seconds (until the max_retries) are hit or the function call
-     succeeds.
 
   """
-  if backoff < 0:
-    raise exception_class("Backoff must be a non-negative integer.")
-
   last_exception = None
-  delay = backoff
   for i in range(max_retries):
     try:
       fn(*args, **kwargs)
@@ -286,8 +271,6 @@ def RetryByNumberOfTimes(max_retries, backoff, exception_class, fn, *args,
     except errors.OpExecError as e:
       logging.error("Error after retry no. %s: %s.", i, e)
       last_exception = e
-      time.sleep(delay)
-      delay *= 2
   else:
     if last_exception:
       raise exception_class("Error after %s retries. Last exception: %s."

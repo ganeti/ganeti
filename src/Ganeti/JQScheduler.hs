@@ -48,29 +48,16 @@ module Ganeti.JQScheduler
   , configChangeNeedsRescheduling
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, (<$>))
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
-import Control.Monad ( when
-                     , mfilter
-                     , liftM
-                     , void
-                     , unless
-                     , forever
-                     , forM_)
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.Function (on)
+import Data.Functor ((<$))
 import Data.IORef (IORef, atomicModifyIORef, newIORef, readIORef)
-import Data.List ( find
-                 , deleteFirstsBy
-                 , sortBy
-                 , intercalate
-                 , partition
-                 , insertBy)
+import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.Ord (comparing)
@@ -86,14 +73,11 @@ import Ganeti.JQScheduler.Filtering (applyingFilter, jobFiltering)
 import Ganeti.JQScheduler.Types
 import Ganeti.JQScheduler.ReasonRateLimiting (reasonRateLimit)
 import Ganeti.JQueue as JQ
-import Ganeti.JQueue.LockDecls
 import Ganeti.JSON (fromContainer)
 import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
 import Ganeti.Objects
-import Ganeti.OpCodes
 import Ganeti.Path
-import Ganeti.Query.Exec (forkPostHooksProcess)
 import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Livelock
@@ -148,6 +132,10 @@ onQueuedJobs f q@Queue { qEnqueued = qe } =
 unreadJob :: QueuedJob -> JobWithStat
 unreadJob job = JobWithStat {jJob=job, jStat=nullFStat, jINotify=Nothing}
 
+-- | Reload interval for polling the running jobs for updates in microseconds.
+watchInterval :: Int
+watchInterval = C.luxidJobqueuePollInterval * 1000000 
+
 -- | Read a cluster parameter from the configuration, using a default if the
 -- configuration is not available.
 getConfigValue :: (Cluster -> a) -> a -> JQStatus -> IO a
@@ -166,12 +154,6 @@ getMaxRunningJobs = getConfigValue clusterMaxRunningJobs 1
 -- and use the smallest possible value, i.e., 1.
 getMaxTrackedJobs :: JQStatus -> IO Int
 getMaxTrackedJobs = getConfigValue clusterMaxTrackedJobs 1
-
--- | Get the boolean that specifies whether or not the predictive queue
--- scheduler is enabled in the cluster. If the configuration is not available,
--- the predictive queue is enabled by default.
-getEnabledPredictiveQueue :: JQStatus -> IO Bool
-getEnabledPredictiveQueue = getConfigValue clusterEnabledPredictiveQueue True
 
 -- | Get the number of jobs currently running.
 getRQL :: JQStatus -> IO Int
@@ -330,46 +312,20 @@ jobEligible queue jWS =
       blocks = flip elem jdeps . qjId . jJob
   in not . any blocks . liftA2 (++) qRunning qEnqueued $ queue
 
-extractFirstOpCode :: JobWithStat -> Maybe OpCode
-extractFirstOpCode job =
-  let qop = listToMaybe . qjOps . jJob $ job
-      metaOps = maybe [] (JQ.toMetaOpCode . qoInput) qop
-  in (fmap metaOpCode) . listToMaybe $ metaOps
-
--- | Sort the given job queue by its static lock weight in relation to the
--- currently running jobs.
-sortByStaticLocks :: ConfigData
-                  -> Queue
-                  -> Timestamp -- Current time
-                  -> [JobWithStat]
-                  -> [JobWithStat]
-sortByStaticLocks cfg queue currTime = sortBy (compare `on` opWeight)
-  where opWeight :: JobWithStat -> Double
-        opWeight job = adjustedWeight currTime (recvTime job)
-                       . staticWeight cfg (extractFirstOpCode job) $ runningOps
-        recvTime = fromMaybe noTimestamp . qjReceivedTimestamp . jJob
-        runningOps = catMaybes . (fmap extractFirstOpCode) . qRunning $ queue
-
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
-selectJobsToRun :: ConfigData
-                -> Int -- How many jobs are allowed to run at the same time.
-                -> Bool -- If the predictive scheduler is enabled
-                -> Timestamp -- Current time
-                -> Set FilterRule -- Filter rules to respect for scheduling
+selectJobsToRun :: Int  -- ^ How many jobs are allowed to run at the
+                        -- same time.
+                -> Set FilterRule -- ^ Filter rules to respect for scheduling
                 -> Queue
                 -> (Queue, [JobWithStat])
-selectJobsToRun cfg count isPredictive currTime filters queue =
+selectJobsToRun count filters queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
-      pickScheduler = if isPredictive
-                         then sortByStaticLocks cfg queue currTime
-                         else id
       chosen = take n
                . jobFiltering queue filters
                . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
-               . pickScheduler
                $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
@@ -462,14 +418,10 @@ scheduleSomeJobs qstate = do
       -- Check if jobs are rejected by a REJECT filter, and cancel them.
       cancelRejectedJobs qstate cfg filters
 
-      ts <- currentTimestamp
-
       -- Select the jobs to run.
       count <- getMaxRunningJobs qstate
-      isPredictive <- getEnabledPredictiveQueue qstate
-      let jobsToRun = selectJobsToRun cfg count isPredictive ts filters
-      chosen <- atomicModifyIORef (jqJobs qstate) jobsToRun
-
+      chosen <- atomicModifyIORef (jqJobs qstate)
+                                  (selectJobsToRun count filters)
       let jobs = map jJob chosen
       unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
         $ map (show . fromJobId . qjId) jobs
@@ -488,7 +440,7 @@ scheduleSomeJobs qstate = do
 showQueue :: Queue -> String
 showQueue (Queue {qEnqueued=waiting, qRunning=running}) =
   let showids = show . map (fromJobId . qjId . jJob)
-  in "Waiting jobs: " ++ showids waiting
+  in "Waiting jobs: " ++ showids waiting 
        ++ "; running jobs: " ++ showids running
 
 -- | Check if a job died, and clean up if so. Return True, if
@@ -524,29 +476,13 @@ checkForDeath state jobWS = do
   return died
 
 -- | Trigger job detection for the job with the given job id.
--- If the job is dead, start post hooks execution process and return True
+-- Return True, if the job is dead.
 cleanupIfDead :: JQStatus -> JobId -> IO Bool
 cleanupIfDead state jid = do
   logDebug $ "Extra job-death detection for " ++ show (fromJobId jid)
   jobs <- readIORef (jqJobs state)
   let jobWS = find ((==) jid . qjId . jJob) $ qRunning jobs
-  -- and run the post hooks
-  let runHooks = do
-        r <- runResultT . withLock (jqForkLock state)
-                                   $ forkPostHooksProcess jid
-        let sjid = show $ fromJobId jid
-        logDebug $ genericResult ((++) $ "Error starting post hooks process "
-                                         ++ "for disappeared job "
-                                         ++ sjid ++ ":")
-                                 (\pid -> "Post hooks for disappeared job "
-                                          ++ sjid ++ "have started in "
-                                          ++ show pid)
-                                 r
-  dead <- maybe (return True) (checkForDeath state) jobWS
-  if dead
-    then runHooks
-    else pure ()
-  return dead
+  maybe (return True) (checkForDeath state) jobWS
 
 -- | Force the queue to check the state of all jobs.
 updateStatusAndScheduleSomeJobs :: JQStatus -> IO ()
@@ -563,7 +499,7 @@ updateStatusAndScheduleSomeJobs qstate =  do
 -- | Time-based watcher for updating the job queue.
 onTimeWatcher :: JQStatus -> IO ()
 onTimeWatcher qstate = forever $ do
-  threadDelaySeconds C.luxidJobqueuePollInterval
+  threadDelay watchInterval
   logDebug "Job queue watcher timer fired"
   updateStatusAndScheduleSomeJobs qstate
   logDebug "Job queue watcher cycle finished"

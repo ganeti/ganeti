@@ -139,10 +139,6 @@ module Ganeti.OpParams
   , pInstOsParams
   , pInstOsParamsPrivate
   , pInstOsParamsSecret
-  , pInstOsParamsClear
-  , pInstOsParamsPrivateClear
-  , pInstOsParamsRemove
-  , pInstOsParamsPrivateRemove
   , pCandidatePoolSize
   , pMaxRunningJobs
   , pMaxTrackedJobs
@@ -151,7 +147,6 @@ module Ganeti.OpParams
   , pRemoveUids
   , pMaintainNodeHealth
   , pModifyEtcHosts
-  , pModifySshSetup
   , pPreallocWipeDisks
   , pNicParams
   , pInstNics
@@ -218,10 +213,6 @@ module Ganeti.OpParams
   , pTempOsParams
   , pTempOsParamsPrivate
   , pTempOsParamsSecret
-  , pTempOsParamsClear
-  , pTempOsParamsPrivateClear
-  , pTempOsParamsRemove
-  , pTempOsParamsPrivateRemove
   , pTempHvParams
   , pTempBeParams
   , pIgnoreFailures
@@ -253,8 +244,6 @@ module Ganeti.OpParams
   , pZeroingTimeoutPerMiB
   , pTagSearchPattern
   , pRestrictedCommand
-  , pRepairCommand
-  , pInput
   , pReplaceDisksMode
   , pReplaceDisksList
   , pAllowFailover
@@ -308,11 +297,7 @@ module Ganeti.OpParams
   , pEnabledUserShutdown
   , pAdminStateSource
   , pEnabledDataCollectors
-  , pMaintdRoundDelay
-  , pMaintdEnableBalancing
-  , pMaintdBalancingThreshold
   , pDataCollectorInterval
-  , pDiagnoseDataCollectorFilename
   , pNodeSslCerts
   , pSshKeyBits
   , pSshKeyType
@@ -320,8 +305,6 @@ module Ganeti.OpParams
   , pNodeSetup
   , pVerifyClutter
   , pLongSleep
-  , pIsStrict
-  , pEnabledPredictiveQueue
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -780,10 +763,6 @@ pMaintainNodeHealth =
 pModifyEtcHosts :: Field
 pModifyEtcHosts = optionalField $ booleanField "modify_etc_hosts"
 
--- | Whether to modify SSH setup on node add or when renewing crypto
-pModifySshSetup :: Field
-pModifySshSetup = optionalField $ booleanField "modify_ssh_setup"
-
 -- | Whether to wipe disks before allocating them to instances.
 pPreallocWipeDisks :: Field
 pPreallocWipeDisks =
@@ -926,12 +905,12 @@ pPowerDelay =
 pRequiredNodes :: Field
 pRequiredNodes =
   withDoc "Required list of node names" .
-  renameField "ReqNodes" $ simpleField "nodes" [t| [NonEmptyString] |]
+  renameField "ReqNodes " $ simpleField "nodes" [t| [NonEmptyString] |]
 
 pRequiredNodeUuids :: Field
 pRequiredNodeUuids =
   withDoc "Required list of node UUIDs" .
-  renameField "ReqNodeUuids" . optionalField $
+  renameField "ReqNodeUuids " . optionalField $
   simpleField "node_uuids" [t| [NonEmptyString] |]
 
 pRestrictedCommand :: Field
@@ -939,17 +918,6 @@ pRestrictedCommand =
   withDoc "Restricted command name" .
   renameField "RestrictedCommand" $
   simpleField "command" [t| NonEmptyString |]
-
-pRepairCommand :: Field
-pRepairCommand =
-  withDoc "Repair command name" .
-  renameField "RepairCommand" $
-  simpleField "command" [t| NonEmptyString |]
-
-pInput :: Field
-pInput =
-  withDoc "Input to be redirected to stdin of repair script" .
-  optionalField $ simpleField "input" [t| NonEmptyString |]
 
 pNodeName :: Field
 pNodeName =
@@ -1262,26 +1230,6 @@ pInstOsParamsSecret =
   optionalField $
   simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
 
-pInstOsParamsClear :: Field
-pInstOsParamsClear =
-  withDoc "Clear current OS parameters from instance" $
-  defaultFalse "clear_osparams"
-
-pInstOsParamsPrivateClear :: Field
-pInstOsParamsPrivateClear =
-  withDoc "Clear current private OS parameters from instance" $
-  defaultFalse "clear_osparams_private"
-
-pInstOsParamsRemove :: Field
-pInstOsParamsRemove =
-  withDoc "Remove OS parameters from instance" .
-  optionalField $ simpleField "remove_osparams" [t| [String] |]
-
-pInstOsParamsPrivateRemove :: Field
-pInstOsParamsPrivateRemove =
-  withDoc "Remove private OS parameters from instance" .
-  optionalField $ simpleField "remove_osparams_private" [t| [String] |]
-
 pPrimaryNode :: Field
 pPrimaryNode =
   withDoc "Primary node for an instance" $
@@ -1401,26 +1349,6 @@ pTempOsParamsSecret =
   withDoc "Secret OS parameters for instance reinstalls" .
   optionalField $
   simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
-
-pTempOsParamsClear :: Field
-pTempOsParamsClear =
-  withDoc "Clear current OS parameters before instance reinstalls" $
-  defaultFalse "clear_osparams"
-
-pTempOsParamsPrivateClear :: Field
-pTempOsParamsPrivateClear =
-  withDoc "Clear current OS private parameters before instance reinstalls" $
-  defaultFalse "clear_osparams_private"
-
-pTempOsParamsRemove :: Field
-pTempOsParamsRemove =
-  withDoc "Remove OS parameters before instance reinstalls" .
-  optionalField $ simpleField "remove_osparams" [t| [String] |]
-
-pTempOsParamsPrivateRemove :: Field
-pTempOsParamsPrivateRemove =
-  withDoc "Remove private OS parameters before instance reinstalls" .
-  optionalField $ simpleField "remove_osparams_private" [t| [String] |]
 
 pShutdownTimeout :: Field
 pShutdownTimeout =
@@ -1593,7 +1521,7 @@ pOsNameChange =
 pDiskIndex :: Field
 pDiskIndex =
   withDoc "Disk index for e.g. grow disk" .
-  renameField "DiskIndex" $ simpleField "disk" [t| DiskIndex |]
+  renameField "DiskIndex " $ simpleField "disk" [t| DiskIndex |]
 
 pDiskChgAmount :: Field
 pDiskChgAmount =
@@ -1814,7 +1742,7 @@ pIAllocatorOs =
 pIAllocatorInstances :: Field
 pIAllocatorInstances =
   withDoc "IAllocator instances field" .
-  renameField "IAllocatorInstances" .
+  renameField "IAllocatorInstances " .
   optionalField $
   simpleField "instances" [t| [NonEmptyString] |]
 
@@ -1963,29 +1891,6 @@ pDataCollectorInterval =
   optionalField $
   simpleField C.dataCollectorsIntervalName [t| GenericContainer String Int |]
 
-pDiagnoseDataCollectorFilename :: Field
-pDiagnoseDataCollectorFilename =
-  withDoc "Sets the filename of the script diagnose data collector should run" $
-  optionalStringField "diagnose_data_collector_filename"
-
-pMaintdRoundDelay :: Field
-pMaintdRoundDelay =
-  withDoc "Minimal delay between rounds of the maintenance daemon"
-  . optionalField
-  $ simpleField "maint_round_delay" [t| Int |]
-
-pMaintdEnableBalancing :: Field
-pMaintdEnableBalancing =
-  withDoc "Whether the maintenance daemon should also keep the cluster balanced"
-  . optionalField
-  $ simpleField "maint_balance" [t| Bool |]
-
-pMaintdBalancingThreshold :: Field
-pMaintdBalancingThreshold =
-  withDoc "Minimal gain per balancing step by the maintenance daemon"
-  . optionalField
-  $ simpleField "maint_balance_threshold" [t| Double |]
-
 pNodeSslCerts :: Field
 pNodeSslCerts =
   withDoc "Whether to renew node SSL certificates" .
@@ -2025,15 +1930,3 @@ pLongSleep =
   withDoc "Whether to allow long instance shutdowns during exports" .
   defaultField [| False |] $
   simpleField "long_sleep" [t| Bool |]
-
-pIsStrict :: Field
-pIsStrict =
-  withDoc "Whether the operation is in strict mode or not." .
-  defaultField [| True |] $
-  simpleField "is_strict" [t| Bool |]
-
-pEnabledPredictiveQueue :: Field
-pEnabledPredictiveQueue =
-  withDoc "Whether the predictive queue is enabled in the cluster." .
-  optionalField $
-  simpleField "enabled_predictive_queue" [t| Bool |]

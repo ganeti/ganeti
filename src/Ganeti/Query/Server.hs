@@ -40,15 +40,13 @@ module Ganeti.Query.Server
   , prepMain
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Concurrent
 import Control.Exception
 import Control.Lens ((.~))
 import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void)
 import Control.Monad.Base (MonadBase, liftBase)
-import Control.Monad.Error.Class (MonadError)
+import Control.Monad.Error (MonadError)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
@@ -273,24 +271,10 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("data_collector_interval",
                showJSON . fmap dataCollectorInterval
                         $ clusterDataCollectors cluster)
-            , ("diagnose_data_collector_filename",
-               showJSON $ clusterDiagnoseDataCollectorFilename cluster)
-            , ("maint_round_delay",
-               showJSON . maintRoundDelay $ configMaintenance  cdata)
-            , ("maint_balance",
-               showJSON . maintBalance $ configMaintenance cdata)
-            , ("maint_balance_threshold",
-               showJSON . maintBalanceThreshold $ configMaintenance cdata)
-            , ("hv_state",
-               showJSON $ clusterHvStateStatic cluster)
-            , ("disk_state",
-               showJSON $ clusterDiskStateStatic cluster)
             , ("modify_ssh_setup",
                showJSON $ clusterModifySshSetup cluster)
             , ("ssh_key_type", showJSON $ clusterSshKeyType cluster)
             , ("ssh_key_bits", showJSON $ clusterSshKeyBits cluster)
-            , ("enabled_predictive_queue",
-               showJSON $ clusterEnabledPredictiveQueue cluster)
             ]
 
   in case master of

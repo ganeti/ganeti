@@ -2,6 +2,10 @@
 Disks
 =====
 
+:Created: 2014-Apr-09
+:Status: Implemented
+:Ganeti-Version: 2.14.0
+
 .. contents:: :depth: 4
 
 This is a design document detailing the implementation of disks as a new

@@ -51,7 +51,6 @@ from ganeti.tools import common
 _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.NDS_CLUSTER_NAME: ht.TNonEmptyString,
   constants.NDS_NODE_DAEMON_CERTIFICATE: ht.TNonEmptyString,
-  constants.NDS_HMAC: ht.TNonEmptyString,
   constants.NDS_SSCONF: ht.TDictOf(ht.TNonEmptyString, ht.TString),
   constants.NDS_START_NODE_DAEMON: ht.TBool,
   constants.NDS_NODE_NAME: ht.TString,
@@ -118,9 +117,7 @@ def Main():
   """
   opts = ParseOptions()
 
-  utils.SetupToolLogging(
-      opts.debug, opts.verbose,
-      toolname=os.path.splitext(os.path.basename(__file__))[0])
+  utils.SetupToolLogging(opts.debug, opts.verbose)
 
   try:
     getent = runtime.GetEnts()
@@ -130,17 +127,10 @@ def Main():
     cluster_name = common.VerifyClusterName(data, SetupError,
                                             constants.NDS_CLUSTER_NAME)
     cert_pem = common.VerifyCertificateStrong(data, SetupError)
-    hmac_key = common.VerifyHmac(data, SetupError)
     ssdata = VerifySsconf(data, cluster_name)
 
     logging.info("Writing ssconf files ...")
     ssconf.WriteSsconfFiles(ssdata, dry_run=opts.dry_run)
-
-    logging.info("Writing hmac.key ...")
-    utils.WriteFile(pathutils.CONFD_HMAC_KEY, data=hmac_key,
-                    mode=pathutils.NODED_CERT_MODE,
-                    uid=getent.masterd_uid, gid=getent.masterd_gid,
-                    dry_run=opts.dry_run)
 
     logging.info("Writing node daemon certificate ...")
     utils.WriteFile(pathutils.NODED_CERT_FILE, data=cert_pem,

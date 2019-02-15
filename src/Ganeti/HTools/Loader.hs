@@ -38,7 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.Loader
   ( mergeData
   , clearDynU
-  , checkData
+  , updateMissing
+  , updateMemStat
   , assignIndices
   , setMaster
   , lookupNode
@@ -53,7 +54,6 @@ module Ganeti.HTools.Loader
   , ClusterData(..)
   , isAllocationRequest
   , emptyCluster
-  , obtainNodeMemory
   , extractDesiredLocations
   , updateDesiredLocationTags
   ) where
@@ -77,11 +77,8 @@ import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Tags as Tags
 import qualified Ganeti.HTools.Tags.Constants as TagsC
 import Ganeti.HTools.Types
-import qualified Ganeti.Types as T
-import qualified Ganeti.Objects as O
 import Ganeti.Utils
-import Ganeti.Types (EvacMode)
-import Ganeti.JSON
+import Ganeti.Types (EvacMode, Hypervisor(..))
 
 -- * Types
 
@@ -180,7 +177,7 @@ setMaster node_names node_idx master = do
 setLocationScore :: Node.List -> Instance.Instance -> Instance.Instance
 setLocationScore nl inst =
   let pnode = Container.find (Instance.pNode inst) nl
-      snode = Container.find (Instance.sNode inst) nl
+      snode = Container.lookup (Instance.sNode inst) nl
   in Moves.setInstanceLocationScore inst pnode snode
 
 -- | For each instance, add its index to its primary and secondary nodes.
@@ -326,26 +323,6 @@ addLocationTags ctags node =
   let ntags = Node.nTags node
   in Node.setLocationTags node $ Tags.getLocations ctags ntags
 
--- | Set bandwidth map on a node, according to
--- cluster tags, group tags and node tags
-addBandwidthData :: [String]
-                 -> Group.List -> Node.Node -> Node.Node
-addBandwidthData ctags gl node =
-  let grp = Container.find (Node.group node) gl
-      nbtags = btagsFilter (Node.nTags node)
-      gbtags = btagsFilter (Group.allTags grp)
-      cbtags = btagsFilter ctags
-      btags = Tags.mergeByPrefixes cbtags $
-              Tags.mergeByPrefixes gbtags nbtags
-      bgraph = Tags.getBandwidthGraph ctags
-      tnode = Node.setBandwidthTags node btags
-      update nd (src, dst, bndwdth)
-        | Set.member src btags = Node.setBandwidthToLocation nd dst bndwdth
-        | Set.member dst btags = Node.setBandwidthToLocation nd src bndwdth
-        | otherwise = nd
-  in foldl update tnode bgraph
-  where btagsFilter = Tags.getBandwidth ctags
-
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
@@ -386,9 +363,8 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
                            (`Node.buildPeers` il4)) nl3
       il6 = Container.map (disableSplitMoves nl3) il5
       nl5 = Container.map (addMigrationTags ctags) nl4
-      nl6 = Container.map (addBandwidthData ctags gl) nl5
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = nl6, cdInstances = il6 })
+         (Ok cdata { cdNodes = nl5, cdInstances = il6 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | In a cluster description, clear dynamic utilisation information.
@@ -397,29 +373,49 @@ clearDynU cdata@(ClusterData _ _ il _ _) =
   let il2 = Container.map (\ inst -> inst {Instance.util = zeroUtil }) il
   in Ok cdata { cdInstances = il2 }
 
--- | Checks the cluster data for consistency.
-checkData :: Node.List -> Instance.List
-          -> ([String], Node.List)
-checkData nl il =
-    Container.mapAccum
-        (\ msgs node ->
-             let nname = Node.name node
-                 delta_mem = truncate (Node.tMem node)
-                             - Node.nMem node
-                             - Node.fMem node
-                             - nodeImem node il
-                 delta_dsk = truncate (Node.tDsk node)
-                             - Node.fDsk node
-                             - nodeIdsk node il
-                 newn = node `Node.setXmem` delta_mem
-                 umsg1 =
-                   if delta_mem > 512 || delta_dsk > 1024
-                      then printf "node %s is missing %d MB ram \
-                                  \and %d GB disk"
-                                  nname delta_mem (delta_dsk `div` 1024):msgs
-                      else msgs
-             in (umsg1, newn)
-        ) [] nl
+-- | Update cluster data to use static node memory on KVM.
+setStaticKvmNodeMem :: Node.List -- ^ Nodes to update
+                       -> Int -- ^ Static node size
+                       -> Node.List -- ^ Updated nodes
+setStaticKvmNodeMem nl static_node_mem =
+  let updateNM n
+          | Node.hypervisor n == Just Kvm = n { Node.nMem = static_node_mem }
+          | otherwise = n
+  in if static_node_mem > 0
+     then Container.map updateNM nl
+     else nl
+
+-- | Update node memory stat based on instance list.
+updateMemStat :: Node.Node -> Instance.List -> Node.Node
+updateMemStat node il =
+  let node2 = node { Node.iMem = nodeImem node il }
+      node3 = node2 { Node.xMem = Node.missingMem node2 }
+  in node3 { Node.pMem = fromIntegral (Node.unallocatedMem node3)
+                         / Node.tMem node3 }
+
+-- | Check the cluster for memory/disk allocation consistency and update stats.
+updateMissing :: Node.List -- ^ All nodes in the cluster
+              -> Instance.List  -- ^ All instances in the cluster
+              -> Int -- ^ Static node memory for KVM
+              -> ([String], Node.List) -- ^ Pair of errors, update node list
+updateMissing nl il static_node_mem =
+    -- This overrides node mem on KVM as loaded from backend. Ganeti 2.17
+    -- handles this using obtainNodeMemory.
+    let nl2 = setStaticKvmNodeMem nl static_node_mem
+        updateSingle msgs node =
+            let nname = Node.name node
+                newn = updateMemStat node il
+                delta_mem = Node.xMem newn
+                delta_dsk = truncate (Node.tDsk node)
+                            - Node.fDsk node
+                            - nodeIdsk node il
+                umsg1 = if delta_mem > 512 || delta_dsk > 1024
+                        then printf
+                             "node %s is missing %d MB ram and %d GB disk"
+                             nname delta_mem (delta_dsk `div` 1024):msgs
+                        else msgs
+            in (umsg1, newn)
+    in Container.mapAccum updateSingle [] nl2
 
 -- | Compute the amount of memory used by primary instances on a node.
 nodeImem :: Node.Node -> Instance.List -> Int
@@ -442,14 +438,3 @@ nodeIdsk node il =
 eitherLive :: (Monad m) => Bool -> a -> m a -> m a
 eitherLive True _ live_data = live_data
 eitherLive False def_data _ = return def_data
-
--- | Obtains memory used by node. It's memory_dom0 for Xen and memNode
--- otherwise because live data collector exists only for Xen
-obtainNodeMemory :: O.FilledHvState -> Int -> Int
-obtainNodeMemory hv_state memory_dom0 =
-  let getNM ((_, hvs):_) 0 = O.hvstateMemNode hvs
-      getNM ((T.XenPvm, _):_) mem_dom0 = mem_dom0
-      getNM ((T.XenHvm, _):_) mem_dom0 = mem_dom0
-      getNM ((_, hvs):_) _ = O.hvstateMemNode hvs
-      getNM _ mem_dom0 = mem_dom0
-  in getNM (M.toList $ fromContainer hv_state) memory_dom0

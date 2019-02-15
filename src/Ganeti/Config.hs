@@ -51,7 +51,6 @@ module Ganeti.Config
     , getMasterNetworkParameters
     , getOnlineNodes
     , getNode
-    , getNodeByUuid
     , getInstance
     , getDisk
     , getFilterRule
@@ -66,9 +65,9 @@ module Ganeti.Config
     , getInstMinorsForNode
     , getInstAllNodes
     , getInstDisks
+    , getInstDisksFromObj
     , getDrbdMinorsForDisk
     , getDrbdMinorsForInstance
-    , getFilledHvStateParams
     , getFilledInstHvParams
     , getFilledInstBeParams
     , getFilledInstOsParams
@@ -81,14 +80,12 @@ module Ganeti.Config
     , getAllLVs
     , buildLinkIpInstnameMap
     , instNodes
-    , instName
     ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
+import Control.Applicative
 import Control.Arrow ((&&&))
-import Control.Monad (liftM)
+import Control.Monad
+import Control.Monad.State
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
@@ -102,7 +99,6 @@ import System.IO
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
-import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Errors
 import Ganeti.JSON (fromJResult, fromContainer, GenericContainer(..))
 import Ganeti.Objects
@@ -153,7 +149,7 @@ computeDiskNodes dsk =
 -- the secondaries.
 instDiskNodes :: ConfigData -> Instance -> S.Set String
 instDiskNodes cfg inst =
-  case getInstDisks cfg inst of
+  case getInstDisksFromObj cfg inst of
     Ok disks -> S.unions $ map computeDiskNodes disks
     Bad _ -> S.empty
 
@@ -189,7 +185,9 @@ getNodeInstances cfg nname =
         sec_insts :: [Instance]
         sec_insts = [inst |
           (inst, disks) <- inst_disks,
-          s_uuid <- mapMaybe (\d -> (instPrimaryNode inst) >>= (computeDiskSecondaryNode d)) disks,
+          s_uuid <- mapMaybe (\d ->
+                              instPrimaryNode inst >>=
+                              computeDiskSecondaryNode d) disks,
           s_uuid == nname]
     in (pri_inst, sec_insts)
 
@@ -280,45 +278,33 @@ getItem' kind name allitems =
                     ECodeNoEnt
   in maybe err Ok $ M.lookup name' allitems
 
--- | Looks up a node by uuid.
-getNodeByUuid :: ConfigData -> String -> ErrorResult Node
-getNodeByUuid cfg uuid =
-  let nodes = fromContainer (configNodes cfg)
-  in getItem' "Node" uuid nodes
-
--- | Looks up a node by name matching.
-getNodeByPartialName :: ConfigData -> String -> ErrorResult Node
-getNodeByPartialName cfg name =
-  let nodes = fromContainer (configNodes cfg)
-      by_name = M.mapKeys (nodeName . (M.!) nodes) nodes
-  in getItem "Node" name by_name
-
 -- | Looks up a node by name or uuid.
 getNode :: ConfigData -> String -> ErrorResult Node
 getNode cfg name =
-  case getNodeByUuid cfg name of
-    -- if not found by uuid, we need to look it up by name
-    x@(Ok _) -> x
-    Bad _ -> getNodeByPartialName cfg name
+  let nodes = fromContainer (configNodes cfg)
+  in case getItem' "Node" name nodes of
+       -- if not found by uuid, we need to look it up by name
+       Ok node -> Ok node
+       Bad _ -> let by_name = M.mapKeys
+                              (nodeName . (M.!) nodes) nodes
+                in getItem "Node" name by_name
 
--- | Looks up an instance by uuid.
-getInstanceByUuid :: ConfigData -> String -> ErrorResult Instance
-getInstanceByUuid cfg uuid =
+-- | Looks up an instance by name or uuid.
+getInstance :: ConfigData -> String -> ErrorResult Instance
+getInstance cfg name =
   let instances = fromContainer (configInstances cfg)
-  in getItem' "Instance" uuid instances
+  in case getItem' "Instance" name instances of
+       -- if not found by uuid, we need to look it up by name
+       Ok inst -> Ok inst
+       Bad _ -> let by_name =
+                      M.delete ""
+                      . M.mapKeys (fromMaybe "" . instName . (M.!) instances)
+                      $ instances
+                in getItem "Instance" name by_name
 
--- | Looks up an instance by approximate name.
-getInstanceByPartialName :: ConfigData -> String -> ErrorResult Instance
-getInstanceByPartialName cfg name =
-  let instances = fromContainer (configInstances cfg)
-      by_name = M.delete ""
-                  . M.mapKeys (fromMaybe "" . instName . (M.!) instances)
-                  $ instances
-  in getItem "Instance" name by_name
-
--- | Looks up an instance by exact name match.
-getInstanceByExactName :: ConfigData -> String -> ErrorResult Instance
-getInstanceByExactName cfg name =
+-- | Looks up an instance by exact name match
+getInstanceByName :: ConfigData -> String -> ErrorResult Instance
+getInstanceByName cfg name =
   let instances = M.elems . fromContainer . configInstances $ cfg
       matching = F.find (maybe False (== name) . instName) instances
   in case matching of
@@ -326,13 +312,6 @@ getInstanceByExactName cfg name =
       Nothing   -> Bad $ OpPrereqError
                    ("Instance name " ++ name ++ " not found")
                    ECodeNoEnt
-
--- | Looks up an instance by partial name or uuid.
-getInstance :: ConfigData -> String -> ErrorResult Instance
-getInstance cfg name =
-  case getInstanceByUuid cfg name of
-    x@(Ok _) -> x
-    Bad _ -> getInstanceByPartialName cfg name
 
 -- | Looks up a disk by uuid.
 getDisk :: ConfigData -> String -> ErrorResult Disk
@@ -387,36 +366,6 @@ getGroupInstances cfg gname =
       ginsts = map (getNodeInstances cfg) gnodes in
   (concatMap fst ginsts, concatMap snd ginsts)
 
--- | default FilledHvStateParams.
-defaultHvStateParams :: FilledHvStateParams
-defaultHvStateParams = FilledHvStateParams
-  { hvstateCpuNode  = CU.hvstDefaultCpuNode
-  , hvstateCpuTotal = CU.hvstDefaultCpuTotal
-  , hvstateMemHv    = CU.hvstDefaultMemoryHv
-  , hvstateMemNode  = CU.hvstDefaultMemoryNode
-  , hvstateMemTotal = CU.hvstDefaultMemoryTotal
-  }
-
--- | Retrieves the node's static hypervisor state parameters, missing values
--- filled with group's parameters, missing group parameters are filled
--- with cluster's parameters. Currently, returns hvstate parameters only for
--- the default hypervisor.
-getFilledHvStateParams :: ConfigData -> Node -> FilledHvState
-getFilledHvStateParams cfg n =
-  let cluster_hv_state =
-        fromContainer . clusterHvStateStatic $ configCluster cfg
-      def_hv = getDefaultHypervisor cfg
-      cluster_fv = fromMaybe defaultHvStateParams $ M.lookup def_hv
-                                                    cluster_hv_state
-      group_fv = case getGroupOfNode cfg n >>=
-                      M.lookup def_hv . fromContainer . groupHvStateStatic of
-                   Just pv -> fillParams cluster_fv pv
-                   Nothing -> cluster_fv
-      node_fv = case M.lookup def_hv . fromContainer $ nodeHvStateStatic n of
-                      Just pv -> fillParams group_fv pv
-                      Nothing -> group_fv
-  in GenericContainer $ M.fromList [(def_hv, node_fv)]
-
 -- | Retrieves the instance hypervisor params, missing values filled with
 -- cluster defaults.
 getFilledInstHvParams :: [String] -> ConfigData -> Instance -> HvParams
@@ -467,17 +416,17 @@ getFilledInstOsParams cfg inst =
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
-  getInstanceByExactName cfg name
+  getInstanceByName cfg name
   >>= withMissingParam "Instance without primary node" return . instPrimaryNode
-  >>= getNodeByUuid cfg
+  >>= getNode cfg
 
 -- | Retrieves all nodes hosting a DRBD disk
 getDrbdDiskNodes :: ConfigData -> Disk -> [Node]
 getDrbdDiskNodes cfg disk =
   let retrieved = case diskLogicalId disk of
                     Just (LIDDrbd8 nodeA nodeB _ _ _ _) ->
-                      justOk [getNodeByUuid cfg nodeA, getNodeByUuid cfg nodeB]
-                    _ -> []
+                      justOk [getNode cfg nodeA, getNode cfg nodeB]
+                    _                            -> []
   in retrieved ++ concatMap (getDrbdDiskNodes cfg) (diskChildren disk)
 
 -- | Retrieves all the nodes of the instance.
@@ -486,15 +435,22 @@ getDrbdDiskNodes cfg disk =
 -- the primary node has to be appended to the results.
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
-  inst <- getInstanceByExactName cfg name
-  inst_disks <- getInstDisks cfg inst
+  inst <- getInstanceByName cfg name
+  inst_disks <- getInstDisksFromObj cfg inst
   let disk_nodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
   return . nub $ pNode:disk_nodes
 
+-- | Get disks for a given instance.
+-- The instance is specified by name or uuid.
+getInstDisks :: ConfigData -> String -> ErrorResult [Disk]
+getInstDisks cfg iname =
+  getInstance cfg iname >>= mapM (getDisk cfg) . instDisks
+
 -- | Get disks for a given instance object.
-getInstDisks :: ConfigData -> Instance -> ErrorResult [Disk]
-getInstDisks cfg = mapM (getDisk cfg) . instDisks
+getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
+getInstDisksFromObj cfg =
+  getInstDisks cfg . uuidOf
 
 -- | Collects a value for all DRBD disks
 collectFromDrbdDisks
@@ -535,7 +491,7 @@ getDrbdMinorsForNode node disk =
 getDrbdMinorsForInstance :: ConfigData -> Instance
                          -> ErrorResult [(Int, String)]
 getDrbdMinorsForInstance cfg =
-  liftM (concatMap getDrbdMinorsForDisk) . getInstDisks cfg
+  liftM (concatMap getDrbdMinorsForDisk) . getInstDisksFromObj cfg
 
 -- | String for primary role.
 rolePrimary :: String
@@ -556,7 +512,7 @@ getInstMinorsForNode cfg node inst =
                 then rolePrimary
                 else roleSecondary
       iname = fromMaybe "" $ instName inst
-      inst_disks = case getInstDisks cfg inst of
+      inst_disks = case getInstDisksFromObj cfg inst of
                      Ok disks -> disks
                      Bad _ -> []
   -- FIXME: the disk/ build there is hack-ish; unify this in a
@@ -653,7 +609,7 @@ getInstanceLVsByNode cd inst =
     withMissingParam "Instance without Primary Node"
       (\i -> return $ MM.fromList . lvsByNode i)
       (instPrimaryNode inst)
-    <*> getInstDisks cd inst
+    <*> getInstDisksFromObj cd inst
   where
     lvsByNode :: String -> [Disk] -> [(String, LogicalVolume)]
     lvsByNode node = concatMap (lvsByNode1 node)

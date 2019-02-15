@@ -41,16 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.Backend.MonD
   ( queryAllMonDDCs
   , pMonDData
-  , Report(..)
-  , DataCollector
-  , dName
-  , fromCurl
-  , mkReport
-  , totalCPUCollector
-  , xenCPUCollector
-  , kvmRSSCollector
-  , scaleMemoryWeight
-  , useInstanceRSSData
   ) where
 
 import Control.Monad
@@ -66,9 +56,8 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Cpu.Types
-import qualified Ganeti.DataCollectors.CPUload as CPUload
-import qualified Ganeti.DataCollectors.KvmRSS as KvmRSS
 import qualified Ganeti.DataCollectors.XenCpuLoad as XenCpuLoad
+import qualified Ganeti.DataCollectors.CPUload as CPUload
 import Ganeti.DataCollectors.Types ( DCReport, DCCategory
                                    , dcReportData, dcReportName
                                    , getCategoryName )
@@ -87,7 +76,6 @@ import Ganeti.Utils (exitIfBad)
 -- | The actual data types for MonD's Data Collectors.
 data Report = CPUavgloadReport CPUavgload
             | InstanceCpuReport (Map.Map String Double)
-            | InstanceRSSReport (Map.Map String Double)
 
 -- | Type describing a data collector basic information.
 data DataCollector = DataCollector
@@ -200,90 +188,14 @@ xenCPUCollector = DataCollector { dName = XenCpuLoad.dcName
                                 , dUse = useInstanceCpuData
                                 }
 
--- * kvm instance RSS collector
-
--- | Parse results of the kvm instance RSS data Collector
-mkKvmRSSReport :: DCReport -> Maybe Report
-mkKvmRSSReport =
-  liftM InstanceRSSReport . maybeParseMap . dcReportData
-
--- | Conversion constant from htools' internal memory unit,
--- which is MiB to RSS unit, which reported in pages (of 4kiB
--- each).
-pagesPerMiB :: Double
-pagesPerMiB = 256.0
-
--- | Update cluster data based on per-instance RSS data.
--- Also set the node's memoy util pool correctly. Our unit
--- of memory usage is pages; there are 256 pages per MiB
--- of node memory not used by the node itself.
-useInstanceRSSData :: [(Node.Node, Report)]
-                   -> (Node.List, Instance.List)
-                   -> Result (Node.List, Instance.List)
-useInstanceRSSData reports (nl, il) = do
-  let toMap (InstanceRSSReport m) = Just m
-      toMap _                     = Nothing
-  let usage = Map.unions $ mapMaybe (toMap . snd) reports
-      missingData = (Set.fromList . map Instance.name $ IntMap.elems il)
-                    Set.\\ Map.keysSet usage
-  unless (Set.null missingData)
-    . Bad . (++) "No RSS information available for "
-    . show $ Set.elems missingData
-  let updateInstance inst =
-        let mem = Map.lookup (Instance.name inst) usage
-            dynU = Instance.util inst
-            dynU' = maybe dynU (\m -> dynU { memWeight = m }) mem
-        in inst { Instance.util = dynU' }
-  let il' = IntMap.map updateInstance il
-  let updateNode node =
-        let mem = sum
-                  . map (\ idx -> maybe 0 (memWeight . Instance.util)
-                                  $ IntMap.lookup idx il')
-                  $ Node.pList node
-            dynU = Node.utilLoad node
-            dynU' = dynU { memWeight = mem }
-            pool = Node.utilPool node
-            nodePages = (Node.tMem node - fromIntegral (Node.nMem node))
-                        * pagesPerMiB
-            pool' = pool { memWeight = nodePages }
-        in node { Node.utilLoad = dynU', Node.utilPool = pool' }
-  let nl' = IntMap.map updateNode nl
-  return (nl', il')
-
--- | Update cluster data based on the per-instance CPU usage
-kvmRSSCollector :: DataCollector
-kvmRSSCollector = DataCollector { dName = KvmRSS.dcName
-                                , dCategory = KvmRSS.dcCategory
-                                , dMkReport = mkKvmRSSReport
-                                , dUse = useInstanceRSSData
-                                }
-
--- | Scale the importance of the memory weight in dynamic utilisation,
--- by multiplying the usage with the given factor. Note that the underlying
--- model for dynamic utilisation is that they are reported in arbitrary units.
-scaleMemoryWeight :: Double
-                  -> (Node.List, Instance.List)
-                  -> (Node.List, Instance.List)
-scaleMemoryWeight f (nl, il) =
-  let updateInst inst =
-        let dynU = Instance.util inst
-            dynU' = dynU { memWeight = f * memWeight dynU}
-        in inst { Instance.util = dynU' }
-      updateNode node =
-        let dynU = Node.utilLoad node
-            dynU' = dynU { memWeight = f * memWeight dynU}
-        in node { Node.utilLoad = dynU' }
-  in (IntMap.map updateNode nl, IntMap.map updateInst il)
-
 -- * Collector choice
 
 -- | The list of Data Collectors used by hail and hbal.
 collectors :: Options -> [DataCollector]
 collectors opts
   | optIgnoreDynu opts = []
-  | otherwise =
-      (if optMonDXen opts then [ xenCPUCollector ] else [ totalCPUCollector ] )
-      ++ [ kvmRSSCollector | optMonDKvmRSS opts ]
+  | optMonDXen opts = [ xenCPUCollector ]
+  | otherwise = [ totalCPUCollector ]
 
 -- * Querying infrastructure
 

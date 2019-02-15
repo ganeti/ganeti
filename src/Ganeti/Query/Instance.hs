@@ -207,12 +207,6 @@ instanceFields =
   , (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
      "List of disk UUIDs",
      FieldConfig getDiskUuids, QffNormal)
-  , (FieldDefinition "disk.storage_ids" "Disk_storage_ids" QFTOther
-     "List of disk storage ids",
-     FieldConfig getStorageIds, QffNormal)
-  , (FieldDefinition "disk.providers" "Disk_providers" QFTOther
-     "List of disk ExtStorage providers",
-     FieldConfig getProviders, QffNormal)
     -- For pre-2.14 backwards compatibility
   , (FieldDefinition "disk_template" "Disk_template" QFTText
      "Instance disk template",
@@ -223,18 +217,18 @@ instanceFields =
   instantiateIndexedFields C.maxDisks
   [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
     "Disk size of %s disk",
-    getIndexedOptionalConfField getInstDisks diskSize,
+    getIndexedOptionalConfField getInstDisksFromObj diskSize,
     QffNormal)
   , (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
     "Spindles of %s disk",
-    getIndexedOptionalConfField getInstDisks diskSpindles,
+    getIndexedOptionalConfField getInstDisksFromObj diskSpindles,
     QffNormal)
   , (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
     "Name of %s disk",
-    getIndexedOptionalConfField getInstDisks diskName, QffNormal)
+    getIndexedOptionalConfField getInstDisksFromObj diskName, QffNormal)
   , (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
     "UUID of %s disk",
-    getIndexedConfField getInstDisks uuidOf, QffNormal)
+    getIndexedConfField getInstDisksFromObj uuidOf, QffNormal)
   ] ++
 
   -- Aggregate nic parameter fields
@@ -387,7 +381,7 @@ getDefaultNicParams cfg =
 -- visible to the instance.
 getDiskSizeRequirements :: ConfigData -> Instance -> ResultEntry
 getDiskSizeRequirements cfg inst =
-  rsErrorNoData . liftA (sum . map getSize) . getInstDisks cfg $ inst
+  rsErrorNoData . liftA (sum . map getSize) . getInstDisksFromObj cfg $ inst
  where
   diskType x = lidDiskType <$> diskLogicalId x
   getSize :: Disk -> Int
@@ -403,41 +397,24 @@ getDiskSizeRequirements cfg inst =
 getDiskSizes :: ConfigData -> Instance -> ResultEntry
 getDiskSizes cfg =
   rsErrorNoData . liftA (map $ MaybeForJSON . diskSize)
-  . getInstDisks cfg
+  . getInstDisksFromObj cfg
 
 -- | Get a list of disk spindles
 getDiskSpindles :: ConfigData -> Instance -> ResultEntry
 getDiskSpindles cfg =
   rsErrorNoData . liftA (map (MaybeForJSON . diskSpindles)) .
-    getInstDisks cfg
+    getInstDisksFromObj cfg
 
 -- | Get a list of disk names for an instance
 getDiskNames :: ConfigData -> Instance -> ResultEntry
 getDiskNames cfg =
   rsErrorNoData . liftA (map (MaybeForJSON . diskName)) .
-    getInstDisks cfg
+    getInstDisksFromObj cfg
 
 -- | Get a list of disk UUIDs for an instance
 getDiskUuids :: ConfigData -> Instance -> ResultEntry
 getDiskUuids cfg =
-  rsErrorNoData . liftA (map uuidOf) . getInstDisks cfg
-
--- | Get a list of ExtStorage providers for an instance
-getProviders :: ConfigData -> Instance -> ResultEntry
-getProviders cfg =
-  rsErrorNoData . liftA (map MaybeForJSON . filter isJust
-                         . mapMaybe getProvider) . getInstDisks cfg
- where
-  getProvider x = getExtProvider <$> diskLogicalId x
-
--- | Get a list of disk storage ids for an instance. Note that for DRBD the list
--- will be empty.
-getStorageIds :: ConfigData -> Instance -> ResultEntry
-getStorageIds cfg = rsErrorNoData .
-  liftA (map MaybeForJSON . filter isJust . mapMaybe storageId) .
-  getInstDisks cfg
- where
-  storageId x = getStorageId <$> diskLogicalId x
+  rsErrorNoData . liftA (map uuidOf) . getInstDisksFromObj cfg
 
 -- | Creates a functions which produces a FieldConfig 'FieldGetter' when fed
 -- an index. Works for fields that may not return a value, expressed through
@@ -728,7 +705,7 @@ isPrimaryOffline :: ConfigData -> Instance -> Bool
 isPrimaryOffline cfg inst =
   let pNodeResult = maybe (Bad $ ParameterError "no primary node") return
                           (instPrimaryNode inst)
-                    >>= getNodeByUuid cfg
+                    >>= getNode cfg
   in case pNodeResult of
      Ok pNode -> nodeOffline pNode
      Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
@@ -946,7 +923,7 @@ collectLiveData liveDataEnabled cfg fields instances
             nub . justOk
                 $ map ( maybe (Bad $ ParameterError "no primary node") return
                        . instPrimaryNode
-                       >=> getNodeByUuid cfg) instances
+                       >=> getNode cfg) instances
           goodNodes = nodesWithValidConfig cfg instanceNodes
       instInfoRes <- executeRpcCall goodNodes (RpcCallAllInstancesInfo hvSpecs)
       consInfoRes <-
@@ -962,7 +939,7 @@ collectLiveData liveDataEnabled cfg fields instances
 -- | An aggregate disk attribute for backward compatibility.
 getDiskTemplate :: ConfigData -> Instance -> ResultEntry
 getDiskTemplate cfg inst =
-  let disks = getInstDisks cfg inst
+  let disks = getInstDisksFromObj cfg inst
       getDt x = lidDiskType <$> diskLogicalId x
       disk_types :: ErrorResult [DiskTemplate]
       disk_types = nub <$> catMaybes <$> map getDt <$> disks

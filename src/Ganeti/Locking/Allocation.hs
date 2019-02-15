@@ -50,12 +50,9 @@ module Ganeti.Locking.Allocation
   , freeLocks
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, (<$>), (<*>), pure)
 import Control.Arrow (second, (***))
-import Control.Monad (unless, guard, foldM, when)
+import Control.Monad
 import Data.Foldable (for_, find)
 import Data.List (foldl')
 import qualified Data.Map as M

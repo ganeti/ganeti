@@ -177,9 +177,7 @@ def main():
   """
   (mode, input_path, options) = ParseOptions()
 
-  utils.SetupToolLogging(
-      options.debug, options.verbose,
-      toolname=os.path.splitext(os.path.basename(__file__))[0])
+  utils.SetupToolLogging(options.debug, options.verbose)
 
   logging.info("Chosen %s mode, reading the %s file", mode, input_path)
   assert mode in (IMPORT_MODE, EXPORT_MODE)

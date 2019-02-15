@@ -2,6 +2,10 @@
 Ganeti Instance Import/Export using Open Virtualization Format
 ==============================================================
 
+:Created: 2011-Jul-22
+:Status: Implemented
+:Ganeti-Version: 2.6.0
+
 Background
 ==========
 
@@ -84,7 +88,7 @@ currently use OVF.
   OpenStack: mostly ``.vmdk``
 
 In our implementation of the OVF we allow a choice between raw, cow and
-vmdk disk formats for both import and export. Other formats covertable
+vmdk disk formats for both import and export. Other formats convertable
 using ``qemu-img`` are allowed in import mode, but not tested.
 The justification is the following:
 

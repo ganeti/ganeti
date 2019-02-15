@@ -2875,7 +2875,6 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ipolicy_disk_templates=None,
                           ipolicy_vcpu_ratio=None,
                           ipolicy_spindle_ratio=None,
-                          ipolicy_memory_ratio=None,
                           group_ipolicy=False,
                           allowed_values=None,
                           fill_all=False):
@@ -2913,8 +2912,6 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
   if ipolicy_spindle_ratio is not None:
     ipolicy_out[constants.IPOLICY_SPINDLE_RATIO] = ipolicy_spindle_ratio
-  if ipolicy_memory_ratio is not None:
-    ipolicy_out[constants.IPOLICY_MEMORY_RATIO] = ipolicy_memory_ratio
 
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
 

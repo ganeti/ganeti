@@ -56,7 +56,7 @@ def GetMinimalConfig():
     "version": constants.CONFIG_VERSION,
     "cluster": {
       "master_node": "node1-uuid",
-      "ipolicy": {},
+      "ipolicy": None,
       "default_iallocator_params": {},
       "diskparams": {},
       "ndparams": {},
@@ -67,16 +67,13 @@ def GetMinimalConfig():
       "compression_tools": constants.IEC_DEFAULT_TOOLS,
       "enabled_user_shutdown": False,
       "data_collectors": {
-        "diagnose": { "active": True, "interval": 5000000 },
         "diskstats": { "active": True, "interval": 5000000 },
         "drbd": { "active": True, "interval": 5000000 },
-        "kvm-inst-rss": { "active": True, "interval": 5000000 },
         "lv": { "active": True, "interval": 5000000 },
         "inst-status-xen": { "active": True, "interval": 5000000 },
         "cpu-avg-load": { "active": True, "interval": 5000000 },
         "xen-cpu-avg-load": { "active": True, "interval": 5000000 },
       },
-      "diagnose_data_collector_filename": "",
       "ssh_key_type": "dsa",
       "ssh_key_bits": 1024,
     },
@@ -84,7 +81,6 @@ def GetMinimalConfig():
     "disks": {},
     "networks": {},
     "filters": {},
-    "maintenance": {},
     "nodegroups": {},
     "nodes": {
       "node1-uuid": {
@@ -439,22 +435,6 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_15(self):
     self._TestUpgradeFromFile("cluster_config_2.15.json", False)
 
-  def testUpgradeFullConfigFrom_2_16(self):
-    self._TestUpgradeFromFile("cluster_config_2.16.json", False)
-
-  def testUpgradeFullConfigFrom_2_17(self):
-    self._TestUpgradeFromFile("cluster_config_2.17.json", False)
-
-  def testUpgradeFullConfigFrom_2_18(self):
-    self._TestUpgradeFromFile("cluster_config_2.18.json", False)
-
-  def test_2_18_to_2_17_downgrade(self):
-    self._TestUpgradeFromFile("cluster_config_2.18.json", False)
-    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
-    oldconf = self._LoadConfig()
-    newconf = self._LoadTestDataConfig("cluster_config_2.17.json")
-    self.assertEqual(oldconf, newconf)
-
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -472,7 +452,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    oldconfname = "cluster_config_2.17.json"
+    oldconfname = "cluster_config_2.15.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)

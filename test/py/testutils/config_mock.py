@@ -64,7 +64,6 @@ def _UpdateIvNames(base_idx, disks):
 
 
 # pylint: disable=R0904
-# pylint: disable=W0102
 class ConfigMock(config.ConfigWriter):
   """A mocked cluster configuration with added methods for easy customization.
 
@@ -110,7 +109,7 @@ class ConfigMock(config.ConfigWriter):
                       ndparams=None,
                       diskparams=None,
                       ipolicy=None,
-                      hv_state_static={},
+                      hv_state_static=None,
                       disk_state_static=None,
                       alloc_policy=None,
                       networks=None):
@@ -161,7 +160,7 @@ class ConfigMock(config.ConfigWriter):
                  ndparams=None,
                  powered=True,
                  hv_state=None,
-                 hv_state_static={},
+                 hv_state_static=None,
                  disk_state=None,
                  disk_state_static=None):
     """Add a new L{objects.Node} to the cluster configuration

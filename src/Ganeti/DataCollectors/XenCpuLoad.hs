@@ -42,10 +42,7 @@ module Ganeti.DataCollectors.XenCpuLoad
   , dcUpdate
   ) where
 
-import Prelude ()
-import Ganeti.Prelude
-
-import Control.Applicative (liftA2)
+import Control.Applicative ((<$>), liftA2)
 import Control.Arrow ((***))
 import Control.Monad (liftM, when)
 import Control.Monad.IO.Class (liftIO)
@@ -146,8 +143,7 @@ dcUpdate maybeCollector = do
                       combinedValues
       withoutOld = Map.filter
                      (liftA2 (&&) (not . Seq.null)
-                      $ (>) (fromIntegral
-                               $ 3 * C.xentopAverageThreshold * 1000000)
+                      $ (>) (fromIntegral $ C.xentopAverageThreshold * 1000000)
                         . (clockTimeToUSec now -) . clockTimeToUSec
                         . fst . flip Seq.index 0)
                      withinRange

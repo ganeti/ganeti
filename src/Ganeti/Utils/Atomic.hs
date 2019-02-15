@@ -43,7 +43,7 @@ module Ganeti.Utils.Atomic
 import qualified Control.Exception.Lifted as L
 import Control.Monad
 import Control.Monad.Base (MonadBase(..))
-import Control.Monad.Error.Class (MonadError)
+import Control.Monad.Error
 import Control.Monad.Trans.Control
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 import System.IO
@@ -97,12 +97,12 @@ atomicUpdateFile path action = do
 -- | Opens a file in a R/W mode, locks it (blocking if needed) and runs
 -- a given action while the file is locked. Releases the lock and
 -- closes the file afterwards.
-withLockedFile :: (MonadError e m, FromString e, MonadBaseControl IO m)
+withLockedFile :: (MonadError e m, Error e, MonadBaseControl IO m)
                => FilePath -> (Fd -> m a) -> m a
 withLockedFile path =
     L.bracket (openAndLock path) (liftBase . closeFd)
   where
-    openAndLock :: (MonadError e m, FromString e, MonadBaseControl IO m)
+    openAndLock :: (MonadError e m, Error e, MonadBaseControl IO m)
                 => FilePath -> m Fd
     openAndLock p = liftBase $ do
       fd <- openFd p ReadWrite Nothing defaultFileFlags

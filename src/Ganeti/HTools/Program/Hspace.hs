@@ -79,7 +79,6 @@ options = do
     , oNodeSim
     , oRapiMaster
     , luxi
-    , oSoR
     , oIAllocSrc
     , oVerbose
     , oQuiet
@@ -94,6 +93,7 @@ options = do
     , oStdSpec
     , oTieredSpec
     , oSaveCluster
+    , oStaticKvmNodeMemory
     ]
 
 -- | The list of arguments supported by the program.
