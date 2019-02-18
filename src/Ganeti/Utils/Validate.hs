@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
 
 {-| A validation monad and corresponding utilities
 
@@ -51,10 +51,9 @@ module Ganeti.Utils.Validate
   , validate'
   ) where
 
-import Control.Applicative
 import Control.Arrow
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Data.Foldable as F
 import Data.Functor.Identity
@@ -100,19 +99,19 @@ execValidate = runIdentity . execValidateT
 
 -- | A helper function for throwing an exception if a list of errors
 -- is non-empty.
-throwIfErrors :: (MonadError e m, Error e) => (a, [String]) -> m a
+throwIfErrors :: (MonadError String m) => (a, [String]) -> m a
 throwIfErrors (x, []) = return x
-throwIfErrors (_, es) = throwError (strMsg $ "Validation errors: "
-                                             ++ intercalate "; " es)
+throwIfErrors (_, es) = throwError $ "Validation errors: "
+                                      ++ intercalate "; " es
 
 -- | Runs a validation action and if there are errors, combine them
 -- into an exception.
-evalValidate :: (MonadError e m, Error e) => ValidationMonad a -> m a
+evalValidate :: (MonadError String m) => ValidationMonad a -> m a
 evalValidate = throwIfErrors . runValidate
 
 -- | Runs a validation action and if there are errors, combine them
 -- into an exception.
-evalValidateT :: (MonadError e m, Error e) => ValidationMonadT m a -> m a
+evalValidateT :: (MonadError String m) => ValidationMonadT m a -> m a
 evalValidateT k = runValidateT k >>= throwIfErrors
 
 -- | A typeclass for objects that can be validated.

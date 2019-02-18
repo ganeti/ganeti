@@ -52,7 +52,6 @@ module Test.Ganeti.Objects
 import Test.QuickCheck
 import qualified Test.HUnit as HUnit
 
-import Control.Applicative
 import Control.Monad
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
@@ -340,9 +339,6 @@ instance Arbitrary ClusterOsParams where
 
 instance Arbitrary ClusterBeParams where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
-
-instance Arbitrary TagSet where
-  arbitrary = Set.fromList <$> genTags
 
 instance Arbitrary IAllocatorParams where
   arbitrary = return $ GenericContainer Map.empty

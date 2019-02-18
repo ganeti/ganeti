@@ -38,46 +38,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.Compat
-  ( rwhnf
-  , Control.Parallel.Strategies.parMap
-  , finiteBitSize
-  , atomicModifyIORef'
+  ( filePath'
+  , maybeFilePath'
+  , toInotifyPath
   ) where
 
-import qualified Control.Parallel.Strategies
-import qualified Data.Bits
-import qualified Data.IORef
+import qualified Data.ByteString.UTF8 as UTF8
+import System.FilePath (FilePath)
+import System.Posix.ByteString.FilePath (RawFilePath)
+import qualified System.INotify
 
--- | Wrapper over the function exported from
--- "Control.Parallel.Strategies".
+-- | Wrappers converting ByteString filepaths to Strings and vice versa
 --
--- This wraps either the old or the new name of the function,
--- depending on the detected library version.
-rwhnf :: Control.Parallel.Strategies.Strategy a
-#if MIN_VERSION_parallel(3,0,0)
-rwhnf = Control.Parallel.Strategies.rseq
-#else
-rwhnf = Control.Parallel.Strategies.rwhnf
-#endif
+-- hinotify 0.3.10 switched to using RawFilePaths instead of FilePaths, the
+-- former being Data.ByteString and the latter String.
+#if MIN_VERSION_hinotify(0,3,10)
+filePath' :: System.INotify.Event -> FilePath
+filePath' = UTF8.toString . System.INotify.filePath
 
+maybeFilePath' :: System.INotify.Event -> Maybe FilePath
+maybeFilePath' ev = UTF8.toString <$> System.INotify.maybeFilePath ev
 
-#if __GLASGOW_HASKELL__ < 707
-finiteBitSize :: (Data.Bits.Bits a) => a -> Int
-finiteBitSize = Data.Bits.bitSize
+toInotifyPath :: FilePath -> RawFilePath
+toInotifyPath = UTF8.fromString
 #else
-finiteBitSize :: (Data.Bits.FiniteBits a) => a -> Int
-finiteBitSize = Data.Bits.finiteBitSize
-#endif
-{-# INLINE finiteBitSize #-}
+filePath' :: System.INotify.Event -> FilePath
+filePath' = System.INotify.filePath
 
--- FIXME: remove this when dropping support for GHC 7.4.
-atomicModifyIORef' :: Data.IORef.IORef a -> (a -> (a, b)) -> IO b
-#if MIN_VERSION_base(4,6,0)
-atomicModifyIORef' = Data.IORef.atomicModifyIORef'
-#else
-atomicModifyIORef' ref f = do
-    b <- Data.IORef.atomicModifyIORef ref $ \a ->
-            case f a of
-                v@(a',_) -> a' `seq` v
-    b `seq` return b
+maybeFilePath' :: System.INotify.Event -> Maybe FilePath
+maybeFilePath' = System.INotify.maybeFilePath
+
+toInotifyPath :: FilePath -> FilePath
+toInotifyPath = id
 #endif

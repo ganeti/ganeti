@@ -42,7 +42,6 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic (monadicIO, run, stop)
 
 import Data.List
-import Control.Applicative
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket)
 import qualified Text.JSON as J
@@ -149,7 +148,8 @@ prop_ClientServer dnschars = monadicIO $ do
       (Luxi.getLuxiClient fpath)
       Luxi.closeClient
       (`luxiClientPong` msgs)
-  stop $ replies ==? msgs
+  _ <- stop $ replies ==? msgs
+  return ()
 
 -- | Check that Python and Haskell define the same Luxi requests list.
 case_AllDefined :: Assertion

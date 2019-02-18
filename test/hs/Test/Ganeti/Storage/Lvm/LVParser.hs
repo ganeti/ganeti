@@ -41,7 +41,6 @@ import Test.HUnit
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
-import Control.Applicative ((<$>), (<*>))
 import Data.List (intercalate)
 
 import Ganeti.Storage.Lvm.LVParser

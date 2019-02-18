@@ -60,7 +60,6 @@ module Ganeti.Logging
   , isDebugMode
   ) where
 
-import Control.Applicative ((<$>))
 import Control.Monad
 import Control.Monad.Error (Error(..), MonadError(..), catchError)
 import Control.Monad.Reader
@@ -68,7 +67,6 @@ import qualified Control.Monad.RWS.Strict as RWSS
 import qualified Control.Monad.State.Strict as SS
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
-import Data.Monoid
 import System.Log.Logger
 import System.Log.Handler.Simple
 import System.Log.Handler.Syslog

@@ -812,23 +812,15 @@ HFLAGS = \
 	-hide-all-packages \
 	`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 	$(GHC_BYVERSION_FLAGS)
-if DEVELOPER_MODE
-HFLAGS += -Werror
-endif
 
 HTEST_SUFFIX = hpc
 HPROF_SUFFIX = prof
 
-DEP_SUFFIXES =
-if GHC_LE_76
-DEP_SUFFIXES += -dep-suffix $(HPROF_SUFFIX) -dep-suffix $(HTEST_SUFFIX)
-else
 # GHC >= 7.8 stopped putting underscores into -dep-suffix by itself
 # (https://ghc.haskell.org/trac/ghc/ticket/9749) so we have to put them.
 # It also needs -dep-suffix "" for the .o file.
-DEP_SUFFIXES += -dep-suffix $(HPROF_SUFFIX)_ -dep-suffix $(HTEST_SUFFIX)_ \
+DEP_SUFFIXES = -dep-suffix $(HPROF_SUFFIX)_ -dep-suffix $(HTEST_SUFFIX)_ \
 	-dep-suffix ""
-endif
 
 # GHC > 7.6 needs -dynamic-too when using Template Haskell since its
 # ghci is switched to loading dynamic libraries by default.
@@ -836,10 +828,7 @@ endif
 # We also don't use it in compilations that use HTEST_SUFFIX (which are
 # compiled with -fhpc) because HPC coverage doesn't interact well with
 # GHCI shared lib loading (https://ghc.haskell.org/trac/ghc/ticket/9762).
-HFLAGS_DYNAMIC =
-if !GHC_LE_76
-HFLAGS_DYNAMIC += -dynamic-too
-endif
+HFLAGS_DYNAMIC = -dynamic-too
 
 if HPROFILE
 HPROFFLAGS = -prof -fprof-auto-top -osuf $(HPROF_SUFFIX)_o \
@@ -866,11 +855,7 @@ HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
 # in base that wasn't fixed until 4.7.0.0 in GHC 7.8 causes random file lock
 # errors in the JQueue tests with the threaded runtime.
 # See https://ghc.haskell.org/trac/ghc/ticket/7646
-if GHC_LE_76
-HEXTRA_TEST =
-else
 HEXTRA_TEST = -threaded -with-rtsopts=-N
-endif
 
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
@@ -1024,6 +1009,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Lvm/Types.hs \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
+	src/Ganeti/THH/Compat.hs \
 	src/Ganeti/THH/Field.hs \
 	src/Ganeti/THH/HsRPC.hs \
 	src/Ganeti/THH/PyRPC.hs \

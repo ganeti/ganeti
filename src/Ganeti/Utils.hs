@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables, CPP #-}
 
 {-| Utility functions. -}
 
@@ -99,7 +99,6 @@ module Ganeti.Utils
   , frequency
   ) where
 
-import Control.Applicative
 import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad
@@ -125,6 +124,7 @@ import Debug.Trace
 import Network.Socket
 
 import Ganeti.BasicTypes
+import Ganeti.Compat
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Logging
 import Ganeti.Runtime
@@ -721,11 +721,11 @@ watchFileBy fpath timeout check read_fn = do
                        logDebug $ "Notified of change in " ++ fpath
                                     ++ "; event: " ++ show e
                        when (e == Ignored)
-                         (addWatch inotify [Modify, Delete] fpath do_watch
+                         (addWatch inotify [Modify, Delete] (toInotifyPath fpath) do_watch
                             >> return ())
                        fstat' <- getFStatSafe fpath
                        writeIORef ref fstat'
-    _ <- addWatch inotify [Modify, Delete] fpath do_watch
+    _ <- addWatch inotify [Modify, Delete] (toInotifyPath fpath) do_watch
     newval <- read_fn
     if check newval
       then do
@@ -812,13 +812,6 @@ ordNub =
         then go s xs
         else x : go (S.insert x s) xs
   in go S.empty
-
--- | `isSubsequenceOf a b`: Checks if a is a subsequence of b.
-isSubsequenceOf :: (Eq a) => [a] -> [a] -> Bool
-isSubsequenceOf []    _                    = True
-isSubsequenceOf _     []                   = False
-isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
-                               | otherwise = isSubsequenceOf a b
 
 {-# ANN frequency "HLint: ignore Use alternative" #-}
 -- | Returns a list of tuples of elements and the number of times they occur

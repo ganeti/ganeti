@@ -92,7 +92,6 @@ module Test.Ganeti.TestCommon
   , counterexample
   ) where
 
-import Control.Applicative
 import Control.Exception (catchJust)
 import Control.Monad
 import Data.Attoparsec.Text (Parser, parseOnly)
@@ -109,9 +108,6 @@ import System.IO.Error (isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
-#if !MIN_VERSION_QuickCheck(2,7,0)
-import qualified Test.QuickCheck as QC
-#endif
 import Test.QuickCheck.Monadic
 import qualified Text.JSON as J
 import Numeric
@@ -120,13 +116,6 @@ import qualified Ganeti.BasicTypes as BasicTypes
 import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Types
 import Ganeti.Utils.Monad (unfoldrM)
-
--- * Arbitrary orphan instances
-
-instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (M.Map k a) where
-  arbitrary = M.fromList <$> arbitrary
-  shrink m = M.fromList <$> shrink (M.toList m)
-
 
 -- * Constants
 
@@ -585,8 +574,3 @@ listOfUniqueBy gen keyFun forbidden = do
         x <- gen `suchThat` ((`Set.notMember` usedKeys) . keyFun)
         return $ Just (x, (i + 1, Set.insert (keyFun x) usedKeys))
 
-
-#if !MIN_VERSION_QuickCheck(2,7,0)
-counterexample :: Testable prop => String -> prop -> Property
-counterexample = QC.printTestCase
-#endif

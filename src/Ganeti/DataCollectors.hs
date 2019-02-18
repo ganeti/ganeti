@@ -36,7 +36,6 @@ module Ganeti.DataCollectors( collectors ) where
 
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Map (findWithDefault)
-import Data.Monoid (mempty)
 
 import qualified Ganeti.DataCollectors.CPUload as CPUload
 import qualified Ganeti.DataCollectors.Diskstats as Diskstats

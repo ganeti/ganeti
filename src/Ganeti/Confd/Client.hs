@@ -40,9 +40,11 @@ module Ganeti.Confd.Client
 import Control.Concurrent
 import Control.Exception (bracket)
 import Control.Monad
+import qualified Data.ByteString.Char8 as Char8
 import Data.List
 import Data.Maybe
 import qualified Network.Socket as S
+import Network.Socket.ByteString (sendTo, recv)
 import System.Posix.Time
 import qualified Text.JSON as J
 
@@ -131,10 +133,10 @@ queryOneServer semaphore answer crType cQuery hmac (host, port) = do
   addr <- resolveAddr (fromIntegral port) host
   (af_family, sockaddr) <-
     exitIfBad "Unable to resolve the IP address" addr
-  replyMsg <- bracket (S.socket af_family S.Datagram S.defaultProtocol) S.sClose
+  replyMsg <- bracket (S.socket af_family S.Datagram S.defaultProtocol) S.close
                 $ \s -> do
-    _ <- S.sendTo s completeMsg sockaddr
-    S.recv s C.maxUdpDataSize
+    _ <- sendTo s (Char8.pack completeMsg) sockaddr
+    Char8.unpack <$> recv s C.maxUdpDataSize
   parsedReply <-
     if C.confdMagicFourcc `isPrefixOf` replyMsg
       then return . parseReply hmac (drop 4 replyMsg) $ confdRqRsalt request

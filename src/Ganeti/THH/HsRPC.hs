@@ -43,7 +43,6 @@ module Ganeti.THH.HsRPC
   , mkRpcCalls
   ) where
 
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
@@ -73,7 +72,7 @@ instance MonadBaseControl IO RpcClientMonad where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
   type StM RpcClientMonad b = StM (ReaderT Client ResultG) b
-  liftBaseWith f = RpcClientMonad . liftBaseWith
+  liftBaseWith f = RpcClientMonad $ liftBaseWith
                    $ \r -> f (r . runRpcClientMonad)
   restoreM = RpcClientMonad . restoreM
 #else

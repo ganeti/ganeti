@@ -65,10 +65,8 @@ module Ganeti.Query.Language
     , checkRS
     ) where
 
-import Control.Applicative
 import Control.DeepSeq
 import Data.Foldable
-import Data.Traversable (Traversable)
 import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
@@ -94,7 +92,8 @@ $(makeJSONInstance ''ResultStatus)
 
 -- | No-op 'NFData' instance for 'ResultStatus', since it's a single
 -- constructor data-type.
-instance NFData ResultStatus
+instance NFData ResultStatus where
+  rnf x = seq x ()
 
 -- | Check that ResultStatus is success or fail with descriptive
 -- message.

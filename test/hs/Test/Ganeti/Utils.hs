@@ -40,7 +40,6 @@ module Test.Ganeti.Utils (testUtils) where
 import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
-import Control.Applicative ((<$>), (<*>))
 import Data.Char (isSpace)
 import qualified Data.Either as Either
 import Data.List
@@ -371,19 +370,6 @@ prop_splitRecombineEithers es =
         (splitleft, splitright, trail) = splitEithers es
         emptylist = []::[Int]
 
--- | Tests 'isSubsequenceOf'.
-prop_isSubsequenceOf :: Property
-prop_isSubsequenceOf = do
-  -- isSubsequenceOf only has access to Eq so restricting to a small
-  -- set of numbers and short lists still covers everything it can do.
-  let num = choose (0, 5)
-  forAll (choose (0, 4)) $ \n1 ->
-    forAll (choose (0, 4)) $ \n2 ->
-      forAll (vectorOf n1 num) $ \(a :: [Int]) ->
-        forAll (vectorOf n2 num) $ \b ->
-          let subs = S.fromList $ subsequences b
-          in a `isSubsequenceOf` b == a `S.member` subs
-
 testSuite "Utils"
             [ 'prop_commaJoinSplit
             , 'prop_commaSplitJoin
@@ -412,5 +398,4 @@ testSuite "Utils"
             , 'prop_chompPrefix_empty_string
             , 'prop_chompPrefix_nothing
             , 'prop_splitRecombineEithers
-            , 'prop_isSubsequenceOf
             ]

@@ -1,12 +1,12 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
+{-# LANGUAGE CPP, TemplateHaskell #-}
 
-{-| Provides interface to the 'zlib' library.
+{-| Shim library for supporting various Template Haskell versions
 
 -}
 
 {-
 
-Copyright (C) 2014 Google Inc.
+Copyright (C) 2018 Ganeti Project Contributors.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,28 +34,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-module Ganeti.Codec
-  ( compressZlib
-  , decompressZlib
+module Ganeti.THH.Compat
+  ( derivesFromNames
   ) where
 
-import Codec.Compression.Zlib
-import qualified Codec.Compression.Zlib.Internal as I
-import Control.Monad.Except
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Lazy.Internal as BL
+import Language.Haskell.TH
 
-
--- | Compresses a lazy bytestring.
-compressZlib :: BL.ByteString -> BL.ByteString
-compressZlib = compressWith $
-  defaultCompressParams { compressLevel = CompressionLevel 3 }
-
--- | Decompresses a lazy bytestring, throwing decoding errors using
--- 'throwError'.
-decompressZlib :: (MonadError String m) => BL.ByteString -> m BL.ByteString
-decompressZlib = I.foldDecompressStreamWithInput
-                   (liftM . BL.chunk)
-                   return
-                   (throwError . (++)"Zlib: " . show)
-                   $ I.decompressST I.zlibFormat I.defaultDecompressParams
+-- | Convert Names to DerivClauses
+--
+-- template-haskell 2.12 (GHC 8.2) has changed the DataD class of
+-- constructors to expect [DerivClause] instead of [Names]. Handle this in a
+-- backwards-compatible way.
+#if MIN_VERSION_template_haskell(2,12,0)
+derivesFromNames :: [Name] -> [DerivClause]
+derivesFromNames names = [DerivClause Nothing $ map ConT names]
+#else
+derivesFromNames :: [Name] -> Cxt
+derivesFromNames names = map ConT names
+#endif

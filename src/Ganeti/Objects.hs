@@ -105,16 +105,15 @@ module Ganeti.Objects
   , module Ganeti.Objects.Instance
   ) where
 
-import Control.Applicative
 import Control.Arrow (first)
 import Control.Monad.State
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (foldl', intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
-import Data.Monoid
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
+import qualified Data.Semigroup as Sem
 import Data.Tuple (swap)
 import Data.Word
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString,
@@ -286,12 +285,15 @@ $(buildObject "DataCollectorConfig" "dataCollector" [
   ])
 
 -- | Central default values of the data collector config.
+instance Sem.Semigroup DataCollectorConfig where
+  _ <> a = a
+
 instance Monoid DataCollectorConfig where
   mempty = DataCollectorConfig
     { dataCollectorActive = True
     , dataCollectorInterval = 10^(6::Integer) * fromIntegral C.mondTimeInterval
     }
-  mappend _ a = a
+  mappend = (Sem.<>)
 
 -- * IPolicy definitions
 

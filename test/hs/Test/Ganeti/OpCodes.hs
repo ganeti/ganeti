@@ -43,7 +43,6 @@ module Test.Ganeti.OpCodes
 import Test.HUnit as HUnit
 import Test.QuickCheck as QuickCheck
 
-import Control.Applicative
 import Control.Monad
 import Data.Char
 import Data.List

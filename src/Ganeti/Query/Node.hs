@@ -38,7 +38,6 @@ module Ganeti.Query.Node
   , collectLiveData
   ) where
 
-import Control.Applicative
 import Data.List
 import Data.Maybe
 import qualified Text.JSON as J

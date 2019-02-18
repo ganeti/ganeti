@@ -69,7 +69,6 @@ module Ganeti.WConfd.Monad
   , DistributionTarget(..)
   ) where
 
-import Control.Applicative
 import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, myThreadId)
 import Control.Exception.Lifted (bracket)
@@ -81,7 +80,8 @@ import Control.Monad.State
 import Control.Monad.Trans.Control
 import Data.Functor.Identity
 import Data.IORef.Lifted
-import Data.Monoid (Any(..), Monoid(..))
+import Data.Monoid (Any(..))
+import qualified Data.Semigroup as Sem
 import qualified Data.Set as S
 import Data.Tuple (swap)
 import System.Posix.Process (getProcessID)
@@ -109,11 +109,14 @@ import Ganeti.WConfd.TempRes
 -- | Data type describing where the configuration has to be distributed to.
 data DistributionTarget = Everywhere | ToGroups (S.Set String) deriving Show
 
+instance Sem.Semigroup DistributionTarget where
+  Everywhere <> _ = Everywhere
+  _ <> Everywhere = Everywhere
+  (ToGroups a) <> (ToGroups b) = ToGroups (a `S.union` b)
+
 instance Monoid DistributionTarget where
   mempty = ToGroups S.empty
-  mappend Everywhere _ = Everywhere
-  mappend _ Everywhere = Everywhere
-  mappend (ToGroups a) (ToGroups b) = ToGroups (a `S.union` b)
+  mappend = (Sem.<>)
 
 -- * Pure data types used in the monad
 
@@ -197,7 +200,7 @@ instance MonadBaseControl IO WConfdMonadInt where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
   type StM WConfdMonadInt b = StM WConfdMonadIntType b
-  liftBaseWith f = WConfdMonadInt . liftBaseWith
+  liftBaseWith f = WConfdMonadInt $ liftBaseWith
                    $ \r -> f (r . getWConfdMonadInt)
   restoreM = WConfdMonadInt . restoreM
 #else

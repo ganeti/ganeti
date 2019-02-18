@@ -48,15 +48,14 @@ module Ganeti.JQScheduler
   , configChangeNeedsRescheduling
   ) where
 
-import Control.Applicative (liftA2, (<$>))
+import Control.Applicative (liftA2)
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Function (on)
-import Data.Functor ((<$))
-import Data.IORef (IORef, atomicModifyIORef, newIORef, readIORef)
+import Data.IORef (IORef, atomicModifyIORef, atomicModifyIORef', newIORef, readIORef)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -280,7 +279,7 @@ jobWatcher state jWS e = do
   let inotify = jINotify jWS
   when (e == Ignored  && isJust inotify) $ do
     qdir <- queueDir
-    let fpath = liveJobFile qdir jid
+    let fpath = toInotifyPath $ liveJobFile qdir jid
     _ <- addWatch (fromJust inotify) [Modify, Delete] fpath
            (jobWatcher state jWS)
     return ()
@@ -298,7 +297,7 @@ attachWatcher state jWS = when (isNothing $ jINotify jWS) $ do
      let fpath = liveJobFile qdir . qjId $ jJob jWS
          jWS' = jWS { jINotify=Just inotify }
      logDebug $ "Attaching queue watcher for " ++ fpath
-     _ <- addWatch inotify [Modify, Delete] fpath $ jobWatcher state jWS'
+     _ <- addWatch inotify [Modify, Delete] (toInotifyPath fpath) $ jobWatcher state jWS'
      modifyJobs state . onRunningJobs $ updateJobStatus jWS'
    else logDebug $ "Not attaching watcher for job "
                    ++ (show . fromJobId . qjId $ jJob jWS)

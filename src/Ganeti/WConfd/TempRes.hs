@@ -73,7 +73,6 @@ module Ganeti.WConfd.TempRes
   , reserved
   ) where
 
-import Control.Applicative
 import Control.Lens.At
 import Control.Monad.Error
 import Control.Monad.State
@@ -85,6 +84,7 @@ import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Monoid
+import qualified Data.Semigroup as Sem
 import qualified Data.Set as S
 import System.Random
 import qualified Text.JSON as J
@@ -160,9 +160,12 @@ instance J.JSON IPv4Reservation where
 newtype TempRes j a = TempRes { getTempRes :: MM.MultiMap j a }
   deriving (Eq, Ord, Show)
 
+instance (Ord j, Ord a) => Sem.Semigroup (TempRes j a) where
+  (TempRes x) <> (TempRes y) = TempRes $ x <> y
+
 instance (Ord j, Ord a) => Monoid (TempRes j a) where
   mempty = TempRes mempty
-  mappend (TempRes x) (TempRes y) = TempRes $ x <> y
+  mappend = (Sem.<>)
 
 instance (J.JSON j, Ord j, J.JSON a, Ord a) => J.JSON (TempRes j a) where
   showJSON = J.showJSON . getTempRes

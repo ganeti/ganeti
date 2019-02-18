@@ -43,7 +43,6 @@ module Ganeti.WConfd.ConfigWriter
   , distSSConfAsyncTask
   ) where
 
-import Control.Applicative
 import Control.Monad.Base
 import Control.Monad.Error
 import qualified Control.Monad.State.Strict as S

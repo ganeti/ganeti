@@ -43,7 +43,6 @@ module Ganeti.WConfd.ConfigState
   , needsFullDist
   ) where
 
-import Control.Applicative
 import Data.Function (on)
 import System.Time (ClockTime(..))
 

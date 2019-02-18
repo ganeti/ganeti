@@ -171,11 +171,12 @@ prop_ListJobIDs = monadicIO $ do
     full_dir <- extractJobIDs $ getJobIDs [tempdir]
     invalid_dir <- getJobIDs [tempdir </> "no-such-dir"]
     return (empty_dir, sortJobIDs full_dir, invalid_dir)
-  stop $ conjoin [ counterexample "empty directory" $ e ==? []
-                 , counterexample "directory with valid names" $
-                   f ==? sortJobIDs jobs
-                 , counterexample "invalid directory" $ isBad g
-                 ]
+  _ <- stop $ conjoin [ counterexample "empty directory" $ e ==? []
+                      , counterexample "directory with valid names" $
+                        f ==? sortJobIDs jobs
+                      , counterexample "invalid directory" $ isBad g
+                      ]
+  return ()
 
 -- | Tests loading jobs from disk.
 prop_LoadJobs :: Property
@@ -207,12 +208,13 @@ prop_LoadJobs = monadicIO $ do
     writeFile live_path "invalid job"
     broken <- load True
     return (missing, current, archived, missing_current, broken)
-  stop $ conjoin [ missing ==? noSuchJob
-                 , current ==? Ganeti.BasicTypes.Ok (job, False)
-                 , archived ==? Ganeti.BasicTypes.Ok (job, True)
-                 , missing_current ==? noSuchJob
-                 , counterexample "broken job" (isBad broken)
-                 ]
+  _ <- stop $ conjoin [ missing ==? noSuchJob
+                      , current ==? Ganeti.BasicTypes.Ok (job, False)
+                      , archived ==? Ganeti.BasicTypes.Ok (job, True)
+                      , missing_current ==? noSuchJob
+                      , counterexample "broken job" (isBad broken)
+                      ]
+  return ()
 
 -- | Tests computing job directories. Creates random directories,
 -- files and stale symlinks in a directory, and checks that we return
@@ -237,10 +239,11 @@ prop_DetermineDirs = monadicIO $ do
     invalid_root <- determineJobDirectories (tempdir </> "no-such-subdir") True
     return (tempdir, non_arch, with_arch, invalid_root)
   let arch_dir = tempdir </> jobQueueArchiveSubDir
-  stop $ conjoin [ non_arch ==? [tempdir]
-                 , sort with_arch ==? sort (tempdir:map (arch_dir </>) valid)
-                 , invalid_root ==? [tempdir </> "no-such-subdir"]
-                 ]
+  _ <- stop $ conjoin [ non_arch ==? [tempdir]
+                      , sort with_arch ==? sort (tempdir:map (arch_dir </>) valid)
+                      , invalid_root ==? [tempdir </> "no-such-subdir"]
+                      ]
+  return ()
 
 -- | Tests the JSON serialisation for 'InputOpCode'.
 prop_InputOpCode :: MetaOpCode -> Int -> Property

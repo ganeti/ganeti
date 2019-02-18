@@ -44,7 +44,6 @@ module Ganeti.Locking.Locks
   , lockLevel
   ) where
 
-import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad ((>=>), liftM)
 import Data.List (stripPrefix)
 import System.Posix.Types (ProcessID)

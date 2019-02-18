@@ -232,6 +232,6 @@ colorDsatur g =
 
 -- | ColorVertMap from VertColorMap.
 colorVertMap :: VertColorMap -> ColorVertMap
-colorVertMap = IntMap.foldWithKey
+colorVertMap = IntMap.foldrWithKey
                  (flip (IntMap.insertWith ((:) . head)) . replicate 1)
                  IntMap.empty

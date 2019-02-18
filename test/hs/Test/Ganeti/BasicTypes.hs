@@ -40,7 +40,6 @@ module Test.Ganeti.BasicTypes (testBasicTypes) where
 import Test.QuickCheck hiding (Result)
 import Test.QuickCheck.Function
 
-import Control.Applicative
 import Control.Monad
 
 import Test.Ganeti.TestHelper

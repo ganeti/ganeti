@@ -149,7 +149,7 @@ prop_colorAllNodes :: (Graph.Graph -> VertColorMap)
                    -> TestableGraph
                    -> Property
 prop_colorAllNodes alg (TestableGraph g) = numvertices ==? numcolored
-    where numcolored = IntMap.fold ((+) . length) 0 vcMap
+    where numcolored = IntMap.foldr ((+) . length) 0 vcMap
           vcMap = colorVertMap $ alg g
           numvertices = length (Graph.vertices g)
 
