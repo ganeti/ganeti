@@ -2,6 +2,54 @@ News
 ====
 
 
+Version 2.16.1
+--------------
+
+*(Unreleased)*
+
+This is a bugfix and compatibility release.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+Ganeti now uses the SHA-256 digest algorithm to sign all generated
+X.509 certificates used to secure the RPC communications between nodes.
+Previously, Ganeti was using SHA-1 which is seen as weak (but not
+broken) and has been deprecated by most vendors; most notably, OpenSSL —
+used by Ganeti on some setups — rejects SHA-1-signed certificates when
+configured to run on security level 2 and above.
+
+Users are advised to re-generate Ganeti's server and node certificates
+after installing 2.16.1 *on all nodes* using the following command:
+
+::
+
+  gnt-cluster renew-crypto --new-cluster-certificate
+
+On setups using RAPI and/or SPICE with Ganeti-generated certificates,
+``--new-rapi-certificate`` and ``--new-spice-certificate`` should be
+appended to the command above.
+
+Misc changes
+~~~~~~~~~~~~
+
+Compatibility fixes:
+ - Fix initscript operation on systems with dpkg >= 1.19.4 (#1322)
+ - Support Sphinx versions later than 1.7 (#1333)
+ - Force KVM to use ``cache=none`` when ``aio=native`` is set; this
+   is mandatory for QEMU versions later than 2.6 (#43)
+
+Bugfixes:
+ - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
+   parameter (#1257)
+ - Fix iproute2 invocation to accept ``dev`` as a valid interface name
+   (#26)
+
+Documentation fixes:
+ - Fix a couple of typos in the gnt-instance man page (#1279)
+ - Fix a typo in doc/install.rst
+
+
 Version 2.16.0
 --------------
 
