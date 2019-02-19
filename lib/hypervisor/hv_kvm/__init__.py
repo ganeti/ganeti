@@ -621,7 +621,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # accept the output even on failure.
   _KVMOPTS_CMDS = {
     _KVMOPT_HELP: (["--help"], False),
-    _KVMOPT_MLIST: (["-M", "?"], False),
+    _KVMOPT_MLIST: (["-machine", "?"], False),
     _KVMOPT_DEVICELIST: (["-device", "?"], True),
   }
 
@@ -1311,7 +1311,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       machinespec = "%s%s" % (mversion, specprop)
       kvm_cmd.extend(["-machine", machinespec])
     else:
-      kvm_cmd.extend(["-M", mversion])
+      kvm_cmd.extend(["-machine", mversion])
       if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
           self._ENABLE_KVM_RE.search(kvmhelp)):
         kvm_cmd.extend(["-enable-kvm"])
