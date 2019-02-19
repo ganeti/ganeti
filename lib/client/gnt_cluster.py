@@ -2227,9 +2227,19 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   # Create the archive in a safe manner, as it contains sensitive
   # information.
   (_, tmp_name) = tempfile.mkstemp(prefix=backuptar, dir=pathutils.BACKUP_DIR)
-  if not _RunCommandAndReport(["tar", "-cf", tmp_name,
-                               "--exclude=queue/archive",
-                               pathutils.DATA_DIR]):
+  tar_cmd = ["tar", "-cf", tmp_name, "--exclude=queue/archive"]
+
+  # Some distributions (e.g. Debian) may set EXPORT_DIR to a subdirectory of
+  # DATA_DIR. Avoid backing up the EXPORT_DIR, as it might contain significant
+  # amounts of data.
+  if IsBelowDir(pathutils.DATA_DIR, pathutils.EXPORT_DIR):
+    tar_cmd.append("--exclude=%s" %
+                   os.path.relpath(pathutils.EXPORT_DIR,
+                                   pathutils.DATA_DIR))
+
+  tar_cmd.append(pathutils.DATA_DIR)
+
+  if not _RunCommandAndReport(tar_cmd):
     return (False, rollback)
 
   os.rename(tmp_name, backuptar)

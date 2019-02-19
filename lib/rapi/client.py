@@ -46,7 +46,11 @@ import logging
 import socket
 import threading
 import time
-import urllib
+
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 import pycurl
 import simplejson
@@ -54,7 +58,7 @@ import simplejson
 try:
   from cStringIO import StringIO
 except ImportError:
-  from StringIO import StringIO
+  from io import StringIO
 
 
 GANETI_RAPI_PORT = 5080
@@ -504,7 +508,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @type path: string
     @param path: HTTP URL path
     @type query: list of two-tuples
-    @param query: query arguments to pass to urllib.urlencode
+    @param query: query arguments to pass to urlencode
     @type content: str or None
     @param content: HTTP body content
 
@@ -528,7 +532,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     urlparts = [self._base_url, path]
     if query:
       urlparts.append("?")
-      urlparts.append(urllib.urlencode(self._EncodeQuery(query)))
+      urlparts.append(urlencode(self._EncodeQuery(query)))
 
     url = "".join(urlparts)
 
@@ -548,7 +552,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       # Send request and wait for response
       try:
         curl.perform()
-      except pycurl.error, err:
+      except pycurl.error as err:
         if err.args[0] in _CURL_SSL_CERT_ERRORS:
           raise CertificateError("SSL certificate error %s" % err,
                                  code=err.args[0])
@@ -601,7 +605,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     try:
       return self._SendRequest(HTTP_GET, "/%s/features" % GANETI_RAPI_VERSION,
                                None, None)
-    except GanetiApiError, err:
+    except GanetiApiError as err:
       # Older RAPI servers don't support this resource
       if err.code == HTTP_NOT_FOUND:
         return []
@@ -797,12 +801,12 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @note: This is an inplace update of base
 
     """
-    conflicts = set(kwargs.iterkeys()) & set(base.iterkeys())
+    conflicts = set(kwargs.keys()) & set(base.keys())
     if conflicts:
       raise GanetiApiError("Required fields can not be specified as"
                            " keywords: %s" % ", ".join(conflicts))
 
-    base.update((key, value) for key, value in kwargs.iteritems()
+    base.update((key, value) for key, value in kwargs.items()
                 if key != "dry_run")
 
   def InstanceAllocation(self, mode, name, disk_template, disks, nics,
