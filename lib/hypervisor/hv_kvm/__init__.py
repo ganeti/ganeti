@@ -1289,7 +1289,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         "%s,id=scsi" % hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]
         ])
 
-    kvm_cmd.extend(["-balloon", "virtio"])
+    kvm_cmd.extend(["-device", "virtio-balloon"])
     kvm_cmd.extend(["-daemonize"])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
