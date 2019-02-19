@@ -381,6 +381,62 @@ def _UpgradeSerializedRuntime(serialized_runtime):
     # We have a (Disk, link, uri) tuple
     update_hvinfo(disk_entry[0], constants.HOTPLUG_TARGET_DISK)
 
+  # Handle KVM command line argument changes
+  try:
+    idx = kvm_cmd.index("-localtime")
+  except ValueError:
+    pass
+  else:
+    kvm_cmd[idx:idx+1] = ["-rtc", "base=localtime"]
+
+  try:
+    idx = kvm_cmd.index("-balloon")
+  except ValueError:
+    pass
+  else:
+    balloon_args = kvm_cmd[idx+1].split(",")[1:]
+    balloon_str = "virtio-balloon"
+    if balloon_args:
+      balloon_str += ",%s" % ",".join(balloon_args)
+
+    kvm_cmd[idx:idx+2] = ["-device", balloon_str]
+
+  try:
+    idx = kvm_cmd.index("-vnc")
+  except ValueError:
+    pass
+  else:
+    # Check to see if TLS is enabled
+    orig_vnc_args = kvm_cmd[idx+1].split(",")
+    vnc_args = []
+    tls_obj = None
+    tls_obj_args = ["id=vnctls0", "endpoint=server"]
+    for arg in orig_vnc_args:
+      if arg == "tls":
+        tls_obj = "tls-creds-anon"
+        vnc_args.append("tls-creds=vnctls0")
+        continue
+
+      elif arg.startswith("x509verify=") or arg.startswith("x509="):
+        pki_path = arg.split("=", 1)[-1]
+        tls_obj = "tls-creds-x509"
+        tls_obj_args.append("dir=%s" % pki_path)
+        if arg.startswith("x509verify="):
+          tls_obj_args.append("verify-peer=yes")
+        else:
+          tls_obj_args.append("verify-peer=no")
+        continue
+
+      vnc_args.append(arg)
+
+    if tls_obj is not None:
+      vnc_cmd = ["-vnc", ",".join(vnc_args)]
+      tls_obj_cmd = ["-object",
+                     "%s,%s" % (tls_obj, ",".join(tls_obj_args))]
+
+      # Replace the original vnc argument with the new ones
+      kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
+
   return kvm_cmd, serialized_nics, hvparams, serialized_disks
 
 
