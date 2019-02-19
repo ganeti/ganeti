@@ -1547,7 +1547,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(["-nographic"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
-      kvm_cmd.extend(["-localtime"])
+      kvm_cmd.extend(["-rtc", "base=localtime"])
 
     if hvp[constants.HV_KVM_USE_CHROOT]:
       kvm_cmd.extend(["-chroot", self._InstanceChrootDir(instance.name)])
