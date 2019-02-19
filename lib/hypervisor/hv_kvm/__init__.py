@@ -1428,13 +1428,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # kvm/qemu gets confused otherwise about the filename to use.
         vnc_append = ""
         if hvp[constants.HV_VNC_TLS]:
-          vnc_append = "%s,tls" % vnc_append
+          vnc_append = "%s,tls-creds=vnctls0" % vnc_append
+          tls_obj = "tls-creds-anon"
+          tls_obj_options = ["id=vnctls0", "endpoint=server"]
           if hvp[constants.HV_VNC_X509_VERIFY]:
-            vnc_append = "%s,x509verify=%s" % (vnc_append,
-                                               hvp[constants.HV_VNC_X509])
+            tls_obj = "tls-creds-x509"
+            tls_obj_options.extend(["dir=%s" %
+                                    hvp[constants.HV_VNC_X509],
+                                    "verify-peer=yes"])
           elif hvp[constants.HV_VNC_X509]:
-            vnc_append = "%s,x509=%s" % (vnc_append,
-                                         hvp[constants.HV_VNC_X509])
+            tls_obj = "tls-creds-x509"
+            tls_obj_options.extend(["dir=%s" %
+                                    hvp[constants.HV_VNC_X509],
+                                    "verify-peer=no"])
+          kvm_cmd.extend(["-object",
+                          "%s,%s" % (tls_obj, ",".join(tls_obj_options))])
         if hvp[constants.HV_VNC_PASSWORD_FILE]:
           vnc_append = "%s,password" % vnc_append
 
