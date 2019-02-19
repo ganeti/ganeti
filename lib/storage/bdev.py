@@ -1064,8 +1064,12 @@ class RADOSBlockDevice(base.BlockDev):
     except ValueError, err:
       base.ThrowError("Unable to parse JSON data: %s" % err)
 
+    # since ceph mimic the json output changed from dict to list
+    if isinstance(devices, dict):
+      devices = devices.values()
+
     rbd_dev = None
-    for d in devices.values(): # pylint: disable=E1103
+    for d in devices:
       try:
         name = d["name"]
       except KeyError:
