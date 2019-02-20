@@ -352,6 +352,7 @@ class TestIP4TcpPing(unittest.TestCase, _BaseTcpPingTest):
     _BaseTcpPingTest.tearDown(self)
 
 
+@testutils.RequiresIPv6()
 class TestIP6TcpPing(unittest.TestCase, _BaseTcpPingTest):
   """Testcase for IPv6 TCP version of ping - against listen(2)ing port"""
   family = socket.AF_INET6
@@ -428,6 +429,7 @@ class TestIP4TcpPingDeaf(unittest.TestCase, _BaseTcpPingDeafTest):
     del self.deaflistenerport
 
 
+@testutils.RequiresIPv6()
 class TestIP6TcpPingDeaf(unittest.TestCase, _BaseTcpPingDeafTest):
   """Testcase for IPv6 TCP version of ping - against non listen(2)ing port"""
   family = socket.AF_INET6
