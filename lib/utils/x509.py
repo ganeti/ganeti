@@ -55,7 +55,6 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
                             (re.escape(constants.X509_CERT_SIGNATURE_HEADER),
                              HEX_CHAR_RE, HEX_CHAR_RE),
                             re.S | re.I)
-X509_CERT_SIGN_DIGEST = "SHA1"
 
 # Certificate verification results
 (CERT_WARNING,
@@ -350,7 +349,7 @@ def GenerateSignedX509Cert(common_name, validity, serial_no,
   req = OpenSSL.crypto.X509Req()
   req.get_subject().CN = common_name
   req.set_pubkey(key_pair)
-  req.sign(key_pair, X509_CERT_SIGN_DIGEST)
+  req.sign(key_pair, constants.X509_CERT_SIGN_DIGEST)
 
   # Load the certificates used for signing.
   signing_key = OpenSSL.crypto.load_privatekey(
@@ -366,7 +365,7 @@ def GenerateSignedX509Cert(common_name, validity, serial_no,
   cert.gmtime_adj_notAfter(validity)
   cert.set_issuer(signing_cert.get_subject())
   cert.set_pubkey(req.get_pubkey())
-  cert.sign(signing_key, X509_CERT_SIGN_DIGEST)
+  cert.sign(signing_key, constants.X509_CERT_SIGN_DIGEST)
 
   # Encode the key and certificate in PEM format.
   key_pem = OpenSSL.crypto.dump_privatekey(
