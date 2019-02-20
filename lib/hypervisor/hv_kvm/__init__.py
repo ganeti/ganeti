@@ -621,7 +621,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
   _VHOST_RE = re.compile(r"^-net\s.*,vhost=on|off", re.M)
-  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-net\s.*,fds=x:y:...:z", re.M)
+  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-net(dev)?\s.*,fds=x:y:...:z", re.M)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
@@ -1811,9 +1811,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           # Check for multiqueue virtio-net support.
           if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
             # As advised at http://www.linux-kvm.org/page/Multiqueue formula
-            # for calculating vector size is: vectors=2*N+1 where N is the
+            # for calculating vector size is: vectors=2*N+2 where N is the
             # number of queues (HV_VIRTIO_NET_QUEUES).
-            nic_extra_str = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+            nic_extra_str = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 2)
             update_features["mq"] = (True, virtio_net_queues)
           else:
             raise errors.HypervisorError("virtio_net_queues is configured"
