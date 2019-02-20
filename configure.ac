@@ -526,13 +526,13 @@ else
   # Sphinx exits with code 1 when it prints its usage
   sphinxver=`{ $SPHINX --version 2>&1 || :; } | head -n 3`
 
-  if ! echo "$sphinxver" | grep -q -w -e '^Sphinx' -e '^Usage:'; then
+  if ! echo "$sphinxver" | grep -q -w -i -e '^Sphinx' -e '^Usage:'; then
     AC_MSG_ERROR([Unable to determine Sphinx version])
 
   # Note: Character classes ([...]) need to be double quoted due to autoconf
   # using m4
   elif ! echo "$sphinxver" | grep -q -E \
-       '^Sphinx([[[:space:]]]+|\(sphinx-build[[1-9]]?\)|v)*[[1-9]]\>'; then
+       '^(Sphinx|sphinx-build[[1-9]]?)([[[:space:]]]+|\(sphinx-build[[1-9]]?\)|v)*[[1-9]]\>'; then
     AC_MSG_ERROR([Sphinx 1.0 or higher is required])
   fi
 fi
