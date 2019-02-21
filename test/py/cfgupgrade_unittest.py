@@ -435,6 +435,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_15(self):
     self._TestUpgradeFromFile("cluster_config_2.15.json", False)
 
+  def testUpgradeFullConfigFrom_2_16(self):
+    self._TestUpgradeFromFile("cluster_config_2.16.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -452,7 +455,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    oldconfname = "cluster_config_2.15.json"
+    oldconfname = "cluster_config_2.16.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
