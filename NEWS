@@ -12,6 +12,9 @@ This is a bugfix and compatibility release.
 Important changes
 ~~~~~~~~~~~~~~~~~
 
+Updated X.509 certificate signing algorithm
++++++++++++++++++++++++++++++++++++++++++++
+
 Ganeti now uses the SHA-256 digest algorithm to sign all generated
 X.509 certificates used to secure the RPC communications between nodes.
 Previously, Ganeti was using SHA-1 which is seen as weak (but not
@@ -30,24 +33,46 @@ On setups using RAPI and/or SPICE with Ganeti-generated certificates,
 ``--new-rapi-certificate`` and ``--new-spice-certificate`` should be
 appended to the command above.
 
+QEMU 3.1 compatibility
+++++++++++++++++++++++
+
+Previous versions of Ganeti used QEMU command line options that were
+removed in QEMU 3.1, leading to an inability to start KVM instances with
+QEMU 3.1. This version restores compatibility with QEMU 3.1 by adapting
+to these changes. This was done in a backwards-compatible way, however
+there is one special case: Users using VNC with X.509 support enabled,
+will need to be running at least QEMU 2.5. See #1342 for details.
+
 Misc changes
 ~~~~~~~~~~~~
 
+*(Contributor names in parentheses where available)*
+
 Compatibility fixes:
  - Fix initscript operation on systems with dpkg >= 1.19.4 (#1322)
- - Support Sphinx versions later than 1.7 (#1333)
+ - Support Sphinx versions later than 1.7 (#1333) (Robin Sonnabend)
  - Force KVM to use ``cache=none`` when ``aio=native`` is set; this
-   is mandatory for QEMU versions later than 2.6 (#43)
+   is mandatory for QEMU versions later than 2.6 (#43) (Alexandros
+   Kosiaris)
+ - Handle the new output format of ``rbd showmapped`` introduced in Ceph
+   Mimic (#1339) (Ansgar Jazdzewski)
 
 Bugfixes:
  - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
-   parameter (#1257)
+   parameter (#1257) (Brian Candler)
  - Fix iproute2 invocation to accept ``dev`` as a valid interface name
-   (#26)
+   (#26) (Arnd Hannemann)
+ - Properly handle OpenVSwitch trunk ports without native VLANs (#1324)
+   (George Diamantopoulos)
+ - Fix virtio-net multiqueue support (#1268) (George
+   Diamantopoulos)
+ - Make the ganeti-kvm-poweroff example script work on systems with
+   systemd/sysv integration (#1288)
 
 Documentation fixes:
- - Fix a couple of typos in the gnt-instance man page (#1279)
- - Fix a typo in doc/install.rst
+ - Fix a couple of typos in the gnt-instance man page (#1279) (Phil
+   Regnauld)
+ - Fix a typo in doc/install.rst (Igor Vuk)
 
 
 Version 2.16.0
