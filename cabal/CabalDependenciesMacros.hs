@@ -8,6 +8,19 @@ import Distribution.Simple.Configure (maybeGetPersistBuildConfig)
 import Distribution.Simple.LocalBuildInfo (externalPackageDeps)
 import Distribution.PackageDescription (packageDescription)
 
+-- MIN_VERSION_* macros are automatically defined by GHC only since 7.11, see
+-- https://ghc.haskell.org/trac/ghc/ticket/10970
+--
+-- For the rest of the source this is fine, because the MIN_VERSION_* macros
+-- are defined by cabal next, but at this stage cabal can not run (yet). So, we
+-- rely on the __GLASGOW_HASKELL__ macro which is always present to define the
+-- MIN_VERSION_* macros which always return false.
+#if __GLASGOW_HASKELL__ < 711
+#ifndef MIN_VERSION_Cabal
+#define MIN_VERSION_Cabal(x,y,z) 0
+#endif
+#endif
+
 -- Common Cabal 2.x dependencies
 #if MIN_VERSION_Cabal(2,0,0)
 import qualified Distribution.Types.LocalBuildInfo as LocalBuildInfo
