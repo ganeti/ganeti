@@ -29,6 +29,10 @@ flag htest
   description: enable tests
   default:     True
 
+flag mcio_xformers
+  description: use MonadCatchIO-transformers (deprecated)
+  default:     True
+
 
 library
   exposed-modules:
@@ -96,6 +100,11 @@ library
     build-depends:
         snap-core                     >= 0.8.1
       , snap-server                   >= 0.8.1
+
+
+  if flag(mcio_xformers)
+    build-depends:
+        MonadCatchIO-transformers
 
   hs-source-dirs:
     src, test/hs
