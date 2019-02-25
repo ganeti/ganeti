@@ -118,15 +118,20 @@ import Numeric
 
 import qualified Ganeti.BasicTypes as BasicTypes
 import Ganeti.JSON (ArrayObject(..))
+import Ganeti.Objects (TagSet)
 import Ganeti.Types
 import Ganeti.Utils.Monad (unfoldrM)
 
 -- * Arbitrary orphan instances
 
+#if !MIN_VERSION_QuickCheck(2,8,0)
 instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (M.Map k a) where
   arbitrary = M.fromList <$> arbitrary
   shrink m = M.fromList <$> shrink (M.toList m)
 
+instance Arbitrary TagSet where
+  arbitrary = Set.fromList <$> genTags
+#endif
 
 -- * Constants
 
