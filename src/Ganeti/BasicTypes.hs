@@ -233,7 +233,7 @@ instance (Error a, MonadBaseControl IO m)
   {-# INLINE liftBaseWith #-}
   {-# INLINE restoreM #-}
 
-instance (Monad m, Error a, Monoid a)
+instance (Monad m, Applicative m, Error a, Monoid a)
          => Alternative (ResultT a m) where
   empty = ResultT $ return mzero
   -- Ensure that 'y' isn't run if 'x' contains a value. This makes it a bit
@@ -241,7 +241,7 @@ instance (Monad m, Error a, Monoid a)
   x <|> y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
-instance (Monad m, Error a, Monoid a)
+instance (Monad m, Applicative m, Error a, Monoid a)
          => MonadPlus (ResultT a m) where
   mzero = empty
   mplus = (<|>)
