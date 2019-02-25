@@ -111,9 +111,6 @@ import Ganeti.PyValue
 import Ganeti.THH.PyType
 import Ganeti.THH.Compat
 
-myNotStrict :: Bang
-myNotStrict = Bang NoSourceUnpackedness NoSourceStrictness
-
 -- * Exported types
 
 -- | Optional field information.
@@ -435,7 +432,7 @@ buildSimpleCons tname cons = do
   decl_d <- mapM (\(cname, fields) -> do
                     fields' <- mapM (buildConsField . snd) fields
                     return $ NormalC (mkName cname) fields') cons
-  return $ DataD [] tname [] Nothing decl_d $ derivesFromNames [''Show, ''Eq]
+  return $ gntDataD [] tname [] decl_d [''Show, ''Eq]
 
 -- | Generate the save function for a given type.
 genSaveSimpleObj :: Name                            -- ^ Object type
@@ -456,9 +453,9 @@ genSaveSimpleObj tname sname opdefs fn = do
 -- The type will have a fixed list of instances.
 strADTDecl :: Name -> [String] -> Dec
 strADTDecl name constructors =
-  DataD [] name [] Nothing
+  gntDataD [] name []
           (map (flip NormalC [] . mkName) constructors)
-          $ derivesFromNames [''Show, ''Eq, ''Enum, ''Bounded, ''Ord]
+          [''Show, ''Eq, ''Enum, ''Bounded, ''Ord]
 
 -- | Generates a toRaw function.
 --
@@ -602,7 +599,7 @@ makeJSONInstance name = do
   let base = nameBase name
   showJ <- genShowJSON base
   readJ <- genReadJSON base
-  return [InstanceD Nothing [] (AppT (ConT ''JSON.JSON) (ConT name)) [readJ,showJ]]
+  return [gntInstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) [readJ,showJ]]
 
 -- * Template code for opcodes
 
@@ -626,10 +623,10 @@ constructorName x                = fail $ "Unhandled constructor " ++ show x
 reifyConsNames :: Name -> Q [String]
 reifyConsNames name = do
   reify_result <- reify name
-  case reify_result of
-    TyConI (DataD _ _ _ Nothing cons _) -> mapM (liftM nameBase . constructorName) cons
-    o -> fail $ "Unhandled name passed to reifyConsNames, expected\
-                \ type constructor but got '" ++ show o ++ "'"
+  case extractDataDConstructors reify_result of
+    Just cons -> mapM (liftM nameBase . constructorName) cons
+    _ -> fail $ "Unhandled name passed to reifyConsNames, expected\
+                \ type constructor but got '" ++ show reify_result ++ "'"
 
 -- | Builds the generic constructor-to-string function.
 --
@@ -776,7 +773,7 @@ genOpCodeDictObject :: Name                -- ^ Type name to use
 genOpCodeDictObject tname savefn loadfn cons = do
   tdclauses <- genSaveOpCode cons savefn
   fdclauses <- genLoadOpCode cons loadfn
-  return [ InstanceD Nothing [] (AppT (ConT ''DictObject) (ConT tname))
+  return [ gntInstanceD [] (AppT (ConT ''DictObject) (ConT tname))
            [ FunD 'toDict tdclauses
            , FunD 'fromDictWKeys fdclauses
            ]]
@@ -797,7 +794,7 @@ genOpCode name cons = do
                     fields' <- mapM (fieldTypeInfo "op") fields
                     return $ RecC (mkName cname) fields')
             cons
-  let declD = DataD [] tname [] Nothing decl_d $ derivesFromNames [''Show, ''Eq]
+  let declD = gntDataD [] tname [] decl_d [''Show, ''Eq]
   let (allfsig, allffn) = genAllOpFields "allOpFields" cons
   -- DictObject
   let luxiCons = map opcodeConsToLuxiCons cons
@@ -924,7 +921,7 @@ genLuxiOp name cons = do
                     let fields'' = zip (repeat myNotStrict) fields'
                     return $ NormalC (mkName cname) fields'')
             cons
-  let declD = DataD [] (mkName name) [] Nothing decl_d $ derivesFromNames [''Show, ''Eq]
+  let declD = gntDataD [] (mkName name) [] decl_d [''Show, ''Eq]
   -- generate DictObject instance
   dictObjInst <- genOpCodeDictObject tname saveLuxiConstructor
                                      loadOpConstructor cons
@@ -971,7 +968,7 @@ buildObject sname field_pfx fields = do
   let name = mkName sname
   fields_d <- mapM (fieldTypeInfo field_pfx) fields
   let decl_d = RecC name fields_d
-  let declD = DataD [] name [] Nothing [decl_d] $ derivesFromNames [''Show, ''Eq]
+  let declD = gntDataD [] name [] [decl_d] [''Show, ''Eq]
   ser_decls <- buildObjectSerialisation sname fields
   return $ declD:ser_decls
 
@@ -1089,7 +1086,7 @@ buildObjectWithForthcoming sname field_pfx fields = do
                  [(myNotStrict, ConT (mkName real_data_nm))]
       forth_d = NormalC (mkName forth_nm)
                   [(myNotStrict, ConT (mkName forth_data_nm))]
-  let declD = DataD [] name [] Nothing [real_d, forth_d] $ derivesFromNames [''Show, ''Eq]
+  let declD = gntDataD [] name [] [real_d, forth_d] [''Show, ''Eq]
 
   read_body <- [| branchOnField "forthcoming"
                   (liftM $(conE $ mkName forth_nm) . JSON.readJSON)
@@ -1105,7 +1102,7 @@ buildObjectWithForthcoming sname field_pfx fields = do
                  , Clause [ConP (mkName forth_nm) [VarP x]]
                     (NormalB show_forth_body) []
                  ]
-      instJSONdecl = InstanceD Nothing [] (AppT (ConT ''JSON.JSON) (ConT name))
+      instJSONdecl = gntInstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
                      [rdjson, shjson]
   accessors <- liftM concat . flip mapM fields
                  $ buildAccessor (mkName forth_nm) forth_pfx
@@ -1130,7 +1127,7 @@ buildObjectWithForthcoming sname field_pfx fields = do
                             ]
       fromdict = FunD 'fromDictWKeys [ Clause [VarP xs]
                                        (NormalB fromDictWKeysbody) [] ]
-      instDict = InstanceD Nothing [] (AppT (ConT ''DictObject) (ConT name))
+      instDict = gntInstanceD [] (AppT (ConT ''DictObject) (ConT name))
                  [todict, fromdict]
   instArray <- genArrayObjectInstance name
                  (simpleField "forthcoming" [t| Bool |] : fields)
@@ -1157,7 +1154,7 @@ buildObjectSerialisation sname fields = do
   (loadsig, loadfn) <- genLoadObject sname
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
-  let instdecl = InstanceD Nothing [] (AppT (ConT ''JSON.JSON) (ConT name))
+  let instdecl = gntInstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
                  [rdjson, shjson]
   return $ dictdecls ++ savedecls ++ [loadsig, loadfn, instdecl]
 
@@ -1223,7 +1220,7 @@ genDictObject save_fn load_fn sname fields = do
   -- the ArrayObject instance generated from DictObject
   arrdec <- genArrayObjectInstance name fields
   -- the final instance
-  return $ [InstanceD Nothing [] (AppT (ConT ''DictObject) (ConT name))
+  return $ [gntInstanceD [] (AppT (ConT ''DictObject) (ConT name))
              [ FunD 'toDict [tdclause]
              , FunD 'fromDictWKeys [fdclause]
              ]]
@@ -1376,8 +1373,8 @@ buildParam sname field_pfx fields = do
   fields_p <- mapM (paramFieldTypeInfo field_pfx) fields
   let decl_f = RecC name_f fields_f
       decl_p = RecC name_p fields_p
-  let declF = DataD [] name_f [] Nothing [decl_f] $ derivesFromNames [''Show, ''Eq]
-  let declP = DataD [] name_p [] Nothing [decl_p] $ derivesFromNames [''Show, ''Eq]
+  let declF = gntDataD [] name_f [] [decl_f] [''Show, ''Eq]
+  let declP = gntDataD [] name_p [] [decl_p] [''Show, ''Eq]
   ser_decls_f <- buildObjectSerialisation sname_f fields
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields
@@ -1401,7 +1398,7 @@ buildPParamSerialisation sname fields = do
   (loadsig, loadfn) <- genLoadObject sname
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
-  let instdecl = InstanceD Nothing [] (AppT (ConT ''JSON.JSON) (ConT name))
+  let instdecl = gntInstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
                  [rdjson, shjson]
   return $ dictdecls ++ savedecls ++ [loadsig, loadfn, instdecl]
 
@@ -1473,15 +1470,15 @@ fillParam sname field_pfx fields = do
   let monoidType = AppT (ConT ''Monoid) (ConT name_p)
   let semigroupType = AppT (ConT ''Sem.Semigroup) (ConT name_p)
   -- the instances combined
-  return [ InstanceD Nothing [] instType
+  return [ gntInstanceD [] instType
                      [ FunD 'fillParams [fclause]
                      , FunD 'toPartial [tpclause]
                      , FunD 'toFilled [tfclause]
                      ]
-         , InstanceD Nothing [] semigroupType
+         , gntInstanceD [] semigroupType
                      [ FunD '(Sem.<>) [mappendClause]
                      ]
-         , InstanceD Nothing [] monoidType
+         , gntInstanceD [] monoidType
                      [ FunD 'mempty [memptyClause]
                      , FunD 'mappend [mappendAlias]
                      ]]

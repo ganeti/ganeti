@@ -35,7 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.THH.Compat
-  ( derivesFromNames
+  ( gntInstanceD
+  , gntDataD
+  , extractDataDConstructors
+  , myNotStrict
   ) where
 
 import Language.Haskell.TH
@@ -48,7 +51,53 @@ import Language.Haskell.TH
 #if MIN_VERSION_template_haskell(2,12,0)
 derivesFromNames :: [Name] -> [DerivClause]
 derivesFromNames names = [DerivClause Nothing $ map ConT names]
+#endif
+
+-- | DataD "constructor" function
+--
+-- Handle TH 2.11 and 2.12 changes in a transparent manner using the pre-2.11
+-- API.
+gntDataD :: Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Dec
+gntDataD x y z a b =
+#if MIN_VERSION_template_haskell(2,12,0)
+    DataD x y z Nothing a $ derivesFromNames b
+#elif MIN_VERSION_template_haskell(2,11,0)
+    DataD x y z Nothing a $ map ConT b
 #else
-derivesFromNames :: [Name] -> Cxt
-derivesFromNames names = map ConT names
+    DataD x y z a b
+#endif
+
+-- | InstanceD "constructor" function
+--
+-- Handle TH 2.11 and 2.12 changes in a transparent manner using the pre-2.11
+-- API.
+gntInstanceD :: Cxt -> Type -> [Dec] -> Dec
+gntInstanceD x y =
+#if MIN_VERSION_template_haskell(2,11,0)
+    InstanceD Nothing x y
+#else
+    InstanceD x y
+#endif
+
+-- | Extract constructors from a DataD instance
+--
+-- Handle TH 2.11 changes by abstracting pattern matching against DataD.
+extractDataDConstructors :: Info -> Maybe [Con]
+extractDataDConstructors info =
+    case info of
+#if MIN_VERSION_template_haskell(2,11,0)
+    TyConI (DataD _ _ _ Nothing cons _) -> Just cons
+#else
+    TyConI (DataD _ _ _ cons _) -> Just cons
+#endif
+    _ -> Nothing
+
+-- | Strict has been replaced by Bang, so redefine NotStrict in terms of the
+-- latter.
+
+#if MIN_VERSION_template_haskell(2,11,0)
+myNotStrict :: Bang
+myNotStrict = Bang NoSourceUnpackedness NoSourceStrictness
+#else
+myNotStrict = NotStrict
 #endif

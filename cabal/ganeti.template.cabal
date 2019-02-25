@@ -49,7 +49,7 @@ library
     , pretty                        >= 1.1.1.0
     , process                       >= 1.1.0.1
     , random                        >= 1.0.1.1
-    , template-haskell              >= 2.11.0.0
+    , template-haskell              >= 2.7.0.0
     , text                          >= 0.11.1.13
     , transformers                  >= 0.3.0.0
     , unix                          >= 2.5.1.0

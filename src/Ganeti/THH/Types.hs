@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell, DeriveFunctor, CPP #-}
 
 {-| Utility Template Haskell functions for working with types.
 
@@ -68,7 +68,11 @@ typeOfFun :: Name -> Q Type
 typeOfFun name = reify name >>= args
   where
     args :: Info -> Q Type
+#if MIN_VERSION_template_haskell(2,11,0)
     args (VarI _ tp _) = return tp
+#else
+    args (VarI _ tp _ _) = return tp
+#endif
     args _               = fail $ "Not a function: " ++ show name
 
 -- | Splits a function type into the types of its arguments and the result.

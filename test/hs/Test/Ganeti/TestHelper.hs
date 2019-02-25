@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, CPP #-}
 
 {-| Unittest helpers for TemplateHaskell components.
 
@@ -48,6 +48,7 @@ import Test.Framework.Providers.QuickCheck2
 import Test.HUnit (Assertion)
 import Test.QuickCheck
 import Language.Haskell.TH
+import Ganeti.THH.Compat
 
 -- | Test property prefix.
 propPrefix :: String
@@ -127,7 +128,7 @@ mkRegularArbitrary name cons = do
             [x] -> return $ mkConsArbitrary (conInfo x)
             xs -> appE (varE 'oneof) $
                   listE (map (return . mkConsArbitrary . conInfo) xs)
-  return [InstanceD Nothing [] (AppT (ConT ''Arbitrary) (ConT name))
+  return [gntInstanceD [] (AppT (ConT ''Arbitrary) (ConT name))
           [ValD (VarP 'arbitrary) (NormalB expr) []]]
 
 -- | Builds a default Arbitrary instance for a type. This requires
@@ -140,10 +141,17 @@ genArbitrary :: Name -> Q [Dec]
 genArbitrary name = do
   r <- reify name
   case r of
+#if MIN_VERSION_template_haskell(2,11,0)
     TyConI (DataD _ _ _ _ cons _) ->
       mkRegularArbitrary name cons
     TyConI (NewtypeD _ _ _ _ con _) ->
       mkRegularArbitrary name [con]
+#else
+    TyConI (DataD _ _ _ cons _) ->
+      mkRegularArbitrary name cons
+    TyConI (NewtypeD _ _ _ con _) ->
+      mkRegularArbitrary name [con]
+#endif
     TyConI (TySynD _ _ (ConT tn)) -> genArbitrary tn
     _ -> fail $ "Invalid type in call to genArbitrary for " ++ show name
          ++ ", type " ++ show r
