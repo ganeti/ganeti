@@ -43,6 +43,19 @@ to these changes. This was done in a backwards-compatible way, however
 there is one special case: Users using VNC with X.509 support enabled,
 will need to be running at least QEMU 2.5. See #1342 for details.
 
+Newer GHC support
++++++++++++++++++
+
+Ganeti 2.16.0 could only be built using GHC versions prior to 7.10,
+as GHC 7.10 and later versions introduced breaking API changes that made
+the build fail.
+
+This release introduces support for building with newer GHC versions:
+Ganeti is now known to build with GHC 8.0, 8.2 and 8.4. Furthermore,
+Ganeti can now be built with snap-server 1.0 as well as hinotify 0.3.10
+and later. Previously supported versions of GHC and of these libraries
+remain supported.
+
 Misc changes
 ~~~~~~~~~~~~
 
