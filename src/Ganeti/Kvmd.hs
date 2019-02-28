@@ -76,6 +76,7 @@ import System.INotify
 
 import qualified AutoConf
 import qualified Ganeti.BasicTypes as BasicTypes
+import Ganeti.Compat
 import qualified Ganeti.Constants as Constants
 import qualified Ganeti.Daemon as Daemon (getFQDN)
 import qualified Ganeti.Logging as Logging
@@ -222,7 +223,7 @@ ensureMonitor monitors monitorFile =
 handleGenericEvent :: Lock -> String -> String -> Event -> IO ()
 handleGenericEvent lock curDir tarDir ev@Created {}
   | isDirectory ev && curDir /= tarDir &&
-    (curDir </> filePath ev) `isPrefixPath` tarDir = putMVar lock ()
+    (curDir </> filePath' ev) `isPrefixPath` tarDir = putMVar lock ()
 handleGenericEvent lock _ _ event
   | event == DeletedSelf || event == Unmounted = putMVar lock ()
 handleGenericEvent _ _ _ _ = return ()
@@ -233,23 +234,23 @@ handleGenericEvent _ _ _ _ = return ()
 -- ensures that there is a monitor running for the new Qmp socket.
 handleTargetEvent :: Lock -> Monitors -> String -> Event -> IO ()
 handleTargetEvent _ monitors tarDir ev@Created {}
-  | not (isDirectory ev) && isMonitorPath (filePath ev) =
-    ensureMonitor monitors $ tarDir </> filePath ev
+  | not (isDirectory ev) && isMonitorPath (filePath' ev) =
+    ensureMonitor monitors $ tarDir </> filePath' ev
 handleTargetEvent lock monitors tarDir ev@Opened {}
   | not (isDirectory ev) =
-    case maybeFilePath ev of
+    case maybeFilePath' ev of
       Just p | isMonitorPath p ->
-        ensureMonitor monitors $ tarDir </> filePath ev
+        ensureMonitor monitors $ tarDir </> filePath' ev
       _ ->
         handleGenericEvent lock tarDir tarDir ev
 handleTargetEvent _ _ tarDir ev@Created {}
-  | not (isDirectory ev) && takeExtension (filePath ev) == shutdownExtension =
+  | not (isDirectory ev) && takeExtension (filePath' ev) == shutdownExtension =
     Logging.logInfo $ "User shutdown file opened " ++
-      show (tarDir </> filePath ev)
+      show (tarDir </> filePath' ev)
 handleTargetEvent _ _ tarDir ev@Deleted {}
-  | not (isDirectory ev) && takeExtension (filePath ev) == shutdownExtension =
+  | not (isDirectory ev) && takeExtension (filePath' ev) == shutdownExtension =
     Logging.logInfo $ "User shutdown file deleted " ++
-      show (tarDir </> filePath ev)
+      show (tarDir </> filePath' ev)
 handleTargetEvent lock _ tarDir ev =
   handleGenericEvent lock tarDir tarDir ev
 
@@ -266,7 +267,7 @@ handleDir lock monitors curDir tarDir event =
 recapDir :: Lock -> Monitors -> FilePath -> IO ()
 recapDir lock monitors dir =
   do files <- getDirectoryContents dir
-     let files' = filter isMonitorPath files
+     let files' = map toInotifyPath $ filter isMonitorPath files
      mapM_ sendEvent files'
   where sendEvent file =
           handleTargetEvent lock monitors dir Created { isDirectory = False
@@ -290,7 +291,7 @@ watchDir lock tarDir inotify = watchDir' tarDir
                  let events = watchDirEvents dir
                  Logging.logInfo $ "Watch directory " ++ show dir
                  monitors <- newMVar Set.empty
-                 wd <- addWatch inotify events dir
+                 wd <- addWatch inotify events (toInotifyPath dir)
                        (handleDir lock monitors dir tarDir)
                  when (dir == tarDir) $ recapDir lock monitors dir
                  () <- takeMVar lock

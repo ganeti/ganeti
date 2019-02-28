@@ -149,7 +149,8 @@ prop_ClientServer dnschars = monadicIO $ do
       (Luxi.getLuxiClient fpath)
       Luxi.closeClient
       (`luxiClientPong` msgs)
-  stop $ replies ==? msgs
+  _ <- stop $ replies ==? msgs
+  return ()
 
 -- | Check that Python and Haskell define the same Luxi requests list.
 case_AllDefined :: Assertion

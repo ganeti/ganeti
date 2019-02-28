@@ -812,9 +812,6 @@ HFLAGS = \
 	-hide-all-packages \
 	`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 	$(GHC_BYVERSION_FLAGS)
-if DEVELOPER_MODE
-HFLAGS += -Werror
-endif
 
 HTEST_SUFFIX = hpc
 HPROF_SUFFIX = prof
@@ -1024,6 +1021,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Lvm/Types.hs \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
+	src/Ganeti/THH/Compat.hs \
 	src/Ganeti/THH/Field.hs \
 	src/Ganeti/THH/HsRPC.hs \
 	src/Ganeti/THH/PyRPC.hs \

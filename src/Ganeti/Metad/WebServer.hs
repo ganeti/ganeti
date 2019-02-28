@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
+{-# LANGUAGE CPP, FlexibleContexts, OverloadedStrings, ConstraintKinds, DeriveDataTypeable #-}
 {-| Web server for the metadata daemon.
 
 -}
@@ -37,9 +37,20 @@ module Ganeti.Metad.WebServer (start) where
 
 import Control.Applicative
 import Control.Concurrent (MVar, readMVar)
+#if MIN_VERSION_snap_server(1,0,0)
+import Control.Monad.Base (MonadBase)
+#else
 import Control.Monad.Error.Class (MonadError, catchError, throwError)
+#endif
 import Control.Monad.IO.Class (liftIO)
-import qualified Control.Monad.CatchIO as CatchIO (catch)
+#ifdef VERSION_MonadCatchIO_transformers
+import Control.Monad.CatchIO (catch)
+#else
+import Control.Exception.Lifted (catch)
+#endif
+import Control.Exception.Lifted (throwIO)
+import Control.Exception.Base (Exception)
+import Data.Typeable (Typeable)
 import qualified Data.CaseInsensitive as CI
 import Data.List (intercalate)
 import Data.Map (Map)
@@ -63,13 +74,27 @@ import Ganeti.Metad.Types (InstanceParams)
 
 type MetaM = Snap ()
 
+data MetaMExc = MetaMExc String deriving (Show, Typeable)
+instance Exception MetaMExc
+
+#if MIN_VERSION_snap_server(1,0,0)
+catchError = catch
+
+throwError :: MonadBase IO m => String -> m a
+throwError = throwIO . MetaMExc
+
+type MetaMBase = MonadBase IO
+#else
+type MetaMBase = MonadError String
+#endif
+
 split :: String -> [String]
 split str =
   case span (/= '/') str of
     (x, []) -> [x]
     (x, _:xs) -> x:split xs
 
-lookupInstanceParams :: MonadError String m => String -> Map String b -> m b
+lookupInstanceParams :: MetaMBase m => String -> Map String b -> m b
 lookupInstanceParams inst params =
   case Map.lookup inst params of
     Nothing -> throwError $ "Could not get instance params for " ++ show inst
@@ -87,7 +112,7 @@ error405 ms = modifyResponse $
   addHeader (CI.mk "Allow") (ByteString.pack . intercalate ", " $ map show ms)
   . setResponseStatus 405 "Method not allowed"
 
-maybeResult :: MonadError String m => Result t -> (t -> m a) -> m a
+maybeResult :: MetaMBase m => Result t -> (t -> m a) -> m a
 maybeResult (Error err) _ = throwError err
 maybeResult (Ok x) f = f x
 
@@ -105,7 +130,7 @@ serveOsPackage inst params key =
      maybeResult (JSON.readJSON instParams >>=
                   Config.getPublicOsParams >>=
                   getOsPackage) $ \package ->
-       serveFile package `CatchIO.catch` \err ->
+       serveFile package `catch` \err ->
          throwError $ "Could not serve OS package: " ++ show (err :: IOError)
   where getOsPackage osParams =
           case lookup key (JSON.fromJSObject osParams) of
@@ -130,7 +155,7 @@ serveOsScript inst params script =
           throwError $ "Could not find OS script " ++ show (os </> script)
         serveScript os (d:ds) =
           serveFile (d </> os </> script)
-          `CatchIO.catch`
+          `catch`
           \err -> do let _ = err :: IOError
                      serveScript os ds
 
@@ -146,8 +171,13 @@ handleMetadata params GET  "ganeti" "latest" "os/os-install-package" =
      serveOsPackage remoteAddr instanceParams "os-install-package"
        `catchError`
        \err -> do
+#if MIN_VERSION_snap_server(1,0,0)
+         let MetaMExc e = err
+#else
+         let e = err
+#endif
          liftIO .
-           Logging.logWarning $ "Could not serve OS install package: " ++ err
+           Logging.logWarning $ "Could not serve OS install package: " ++ e
          error404
 handleMetadata params GET  "ganeti" "latest" "os/package" =
   do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
@@ -162,7 +192,12 @@ handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
        readMVar params
      serveOsParams remoteAddr instanceParams `catchError`
        \err -> do
-         liftIO . Logging.logWarning $ "Could not serve OS parameters: " ++ err
+#if MIN_VERSION_snap_server(1,0,0)
+         let MetaMExc e = err
+#else
+         let e = err
+#endif
+         liftIO . Logging.logWarning $ "Could not serve OS parameters: " ++ e
          error404
 handleMetadata params GET  "ganeti" "latest" script | isScript script =
   do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
@@ -171,7 +206,12 @@ handleMetadata params GET  "ganeti" "latest" script | isScript script =
        readMVar params
      serveOsScript remoteAddr instanceParams (last $ split script) `catchError`
        \err -> do
-         liftIO . Logging.logWarning $ "Could not serve OS scripts: " ++ err
+#if MIN_VERSION_snap_server(1,0,0)
+         let MetaMExc e = err
+#else
+         let e = err
+#endif
+         liftIO . Logging.logWarning $ "Could not serve OS scripts: " ++ e
          error404
   where isScript =
           (`elem` [ "os/scripts/create"
