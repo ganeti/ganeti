@@ -102,7 +102,7 @@ instance Arbitrary Node where
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> fmap UTF8.fromString genUUID <*> arbitrary
-              <*> (Set.fromList <$> genTags)
+              <*> arbitrary
 
 $(genArbitrary ''BlockDriver)
 
@@ -193,7 +193,7 @@ instance Arbitrary ForthcomingInstanceData where
       -- serial
       <*> arbitrary
       -- tags
-      <*> (Set.fromList <$> genTags)
+      <*> arbitrary
 
 instance Arbitrary RealInstanceData where
   arbitrary =
@@ -234,7 +234,7 @@ instance Arbitrary RealInstanceData where
       -- serial
       <*> arbitrary
       -- tags
-      <*> (Set.fromList <$> genTags)
+      <*> arbitrary
 
 instance Arbitrary Instance where
   arbitrary = frequency [ (1, ForthcomingInstance <$> arbitrary)
@@ -648,7 +648,7 @@ genNodeGroup = do
   mtime <- arbitrary
   uuid <- genFQDN `suchThat` (/= name)
   serial <- arbitrary
-  tags <- Set.fromList <$> genTags
+  tags <- arbitrary
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
               net_map hv_state disk_state ctime mtime (UTF8.fromString uuid)
               serial tags

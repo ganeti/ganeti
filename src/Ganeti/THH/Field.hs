@@ -43,7 +43,7 @@ module Ganeti.THH.Field
   , timeStampFields
   , uuidFields
   , serialFields
-  , TagSet
+  , TagSet(..)
   , emptyTagSet
   , tagsFields
   , fileModeAsIntField
@@ -122,12 +122,17 @@ serialFields =
 uuidFields :: [Field]
 uuidFields = [ presentInForthcoming $ simpleField "uuid" [t| BS.ByteString |] ]
 
--- | Tag set type alias.
-type TagSet = Set.Set String
+-- | Tag set type.
+newtype TagSet = TagSet { unTagSet :: Set.Set String }
+  deriving (Eq, Show)
+
+instance JSON.JSON TagSet where
+  showJSON = JSON.showJSON . unTagSet
+  readJSON = (TagSet <$>) . JSON.readJSON
 
 -- | Empty tag set value.
 emptyTagSet :: TagSet
-emptyTagSet = Set.empty
+emptyTagSet = TagSet Set.empty
 
 -- | Tag field description.
 tagsFields :: [Field]
