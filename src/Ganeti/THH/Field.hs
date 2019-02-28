@@ -44,6 +44,7 @@ module Ganeti.THH.Field
   , uuidFields
   , serialFields
   , TagSet
+  , emptyTagSet
   , tagsFields
   , fileModeAsIntField
   , processIdField
@@ -124,9 +125,13 @@ uuidFields = [ presentInForthcoming $ simpleField "uuid" [t| BS.ByteString |] ]
 -- | Tag set type alias.
 type TagSet = Set.Set String
 
+-- | Empty tag set value.
+emptyTagSet :: TagSet
+emptyTagSet = Set.empty
+
 -- | Tag field description.
 tagsFields :: [Field]
-tagsFields = [ defaultField [| Set.empty |] $
+tagsFields = [ defaultField [| emptyTagSet |] $
                simpleField "tags" [t| TagSet |] ]
 
 -- ** Fields related to POSIX data types

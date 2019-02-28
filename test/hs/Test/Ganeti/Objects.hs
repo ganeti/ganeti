@@ -405,7 +405,7 @@ genValidNetwork = do
   ctime <- arbitrary
   mtime <- arbitrary
   let n = Network name mac_prefix (mkIp4Network net netmask) net6 gateway
-          gateway6 res ext_res uuid ctime mtime 0 Set.empty
+          gateway6 res ext_res uuid ctime mtime 0 emptyTagSet
   return n
 
 -- | Generate an arbitrary string consisting of '0' and '1' of the given length.
