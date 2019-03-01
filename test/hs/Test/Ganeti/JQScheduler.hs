@@ -539,6 +539,8 @@ prop_jobFiltering =
                  . filter ((frUuid fr ==) . frUuid)
                  . mapMaybe (applyingFilter filters)
                  $ map jJob jobs)
+          {- TODO(#1318): restore coverage checks after a way to do it nicely has
+                          been found.
 
           -- Helpers for ensuring sensible coverage.
 
@@ -554,11 +556,11 @@ prop_jobFiltering =
             foldr (.) id
               [ stableCover (a `elem` applyingActions) perc ("is " ++ a)
               | a <- allActions ]
+         -}
 
-      -- `covers` should be after `==>` and before `conjoin` (see QuickCheck
-      -- bugs 25 and 27).
-      in (enqueued /= []) ==> actionCovers $ conjoin
-
+      -- Note: if using `covers`, it should be after `==>` and before
+      -- `conjoin` (see QuickCheck bugs 25 and 27).
+      in (enqueued /= []) ==> conjoin
            [ counterexample "scheduled jobs must be subsequence" $
                toRun `isSubsequenceOf` enqueued
 
