@@ -64,7 +64,7 @@ class SerialNoObject a => SerialNoObjectL a where
 
 -- | Class of objects that have tags.
 class TagsObject a => TagsObjectL a where
-  tagsL :: Lens' a (Set.Set String)
+  tagsL :: Lens' a TagSet
 
 $(makeCustomLenses ''AddressPool)
 

@@ -88,7 +88,7 @@ mkSSConfHvparams cluster = map (id &&& hvparams) [minBound..maxBound]
 mkSSConf :: ConfigData -> SSConf
 mkSSConf cdata = SSConf . M.fromList $
     [ (SSClusterName, return $ clusterClusterName cluster)
-    , (SSClusterTags, toList $ tagsOf cluster)
+    , (SSClusterTags, toList . unTagSet $ tagsOf cluster)
     , (SSFileStorageDir, return $ clusterFileStorageDir cluster)
     , (SSSharedFileStorageDir, return $ clusterSharedFileStorageDir cluster)
     , (SSGlusterStorageDir, return $ clusterGlusterStorageDir cluster)
