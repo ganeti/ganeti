@@ -47,10 +47,7 @@ try:
   import psutil   # pylint: disable=F0401
   if psutil.version_info < (2, 0, 0):
     # The psutil version seems too old, we ignore it
-    psutil_err = "too old (2.x.x needed, %s found)" % psutil.__version__
-    psutil = None
-  elif psutil.version_info >= (3,):
-    psutil_err = "too new (2.x.x needed, %s found)" % psutil.__version__
+    psutil_err = "too old (2.x.x or newer needed, %s found)" % psutil.__version__
     psutil = None
   else:
     psutil_err = "<no error>"
