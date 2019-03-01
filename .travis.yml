@@ -80,7 +80,9 @@ matrix:
 install:
   - ghc --version
   - cabal --version
+  - ghc-pkg list
   - cabal update && cabal install --only-dependencies --enable-tests cabal/ganeti.template.cabal
+  - ghc-pkg list
 
 script:
   - ./autogen.sh && ./configure --enable-haskell-tests && make
