@@ -1,4 +1,6 @@
 language: haskell
+ghc:
+  - "8.4"
 
 sudo: false
 
@@ -44,7 +46,7 @@ addons:
 matrix:
   include:
     - os: linux
-      dist: trusty
+      dist: xenial
       addons:
         apt:
           packages:
@@ -56,7 +58,6 @@ install:
   - cabal --version
   - ghc-pkg list
   - cabal update 
-  - cabal install Cabal
   - cabal install --flag "htest mond metad" --only-dependencies --enable-tests cabal/ganeti.template.cabal
   - ghc-pkg list
 
