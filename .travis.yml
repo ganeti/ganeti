@@ -59,6 +59,8 @@ install:
   - ghc-pkg list
 
 script:
-  - ./autogen.sh && ./configure --enable-haskell-tests && make
+  - ./autogen.sh
+  - ./configure --enable-haskell-tests
+  - make
   - make hs-tests
   - make py-tests
