@@ -55,7 +55,9 @@ install:
   - ghc --version
   - cabal --version
   - ghc-pkg list
-  - cabal update && cabal install --flag "htest mond metad" --only-dependencies --enable-tests cabal/ganeti.template.cabal
+  - cabal update 
+  - cabal install Cabal
+  - cabal install --flag "htest mond metad" --only-dependencies --enable-tests cabal/ganeti.template.cabal
   - ghc-pkg list
 
 script:
