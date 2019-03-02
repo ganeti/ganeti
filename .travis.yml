@@ -61,6 +61,9 @@ install:
 script:
   - ./autogen.sh
   - ./configure --enable-haskell-tests
+  - make Makefile.ghc
+  - make ganeti.cabal
+  - ls -l dist/
   - make
   - make hs-tests
   - make py-tests
