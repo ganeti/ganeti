@@ -4,7 +4,7 @@ module Main where
 import Control.Applicative
 import qualified Data.Set as Set
 import qualified Distribution.Simple.Build.Macros as Macros
-import Distribution.Simple.Configure (maybeGetPersistBuildConfig)
+import Distribution.Simple.Configure (getPersistBuildConfig)
 import Distribution.Simple.LocalBuildInfo (externalPackageDeps)
 import Distribution.PackageDescription (packageDescription)
 
@@ -56,23 +56,20 @@ main = do
   pkgDesc <- packageDescription <$> readGenericPackageDescription normal cabalPath
 
   -- Read the setup-config.
-  m'conf <- maybeGetPersistBuildConfig "dist"
-  case m'conf of
-    Nothing -> error "could not read dist/setup-config"
-    Just conf -> do
+  conf <- getPersistBuildConfig "dist"
 
-      -- Write package dependencies.
-      let deps = map (display . fst) $ externalPackageDeps conf
-      writeFile depsPath (unwords $ map ("-package-id " ++) deps)
+  -- Write package dependencies.
+  let deps = map (display . fst) $ externalPackageDeps conf
+  writeFile depsPath (unwords $ map ("-package-id " ++) deps)
 
-      -- Write package MIN_VERSION_* macros.
+  -- Write package MIN_VERSION_* macros.
 #if MIN_VERSION_Cabal(2,0,0)
-      let cid = LocalBuildInfo.localUnitId conf
-      let clbi' = Graph.lookup cid $ LocalBuildInfo.componentGraph conf
-      case clbi' of
-        Nothing -> error "Unable to read componentLocalBuildInfo for the library"
-        Just clbi -> do
-          writeFile macrosPath $ Macros.generate pkgDesc conf clbi
+  let cid = LocalBuildInfo.localUnitId conf
+  let clbi' = Graph.lookup cid $ LocalBuildInfo.componentGraph conf
+  case clbi' of
+     Nothing -> error "Unable to read componentLocalBuildInfo for the library"
+     Just clbi -> do
+      writeFile macrosPath $ Macros.generate pkgDesc conf clbi
 #else
-      writeFile macrosPath $ Macros.generate pkgDesc conf
+  writeFile macrosPath $ Macros.generate pkgDesc conf
 #endif
