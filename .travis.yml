@@ -57,7 +57,11 @@ install:
   - ghc --version
   - cabal --version
   - ghc-pkg list
-  - cabal update 
+  - cabal update
+  - mkdir -p $HOME/bin
+  - cabal install --symlink-bindir="$HOME/bin" cabal-install
+  - export PATH="$HOME/bin:$PATH"
+  - cabal --version
   - cabal install --flag "htest mond metad" --only-dependencies --enable-tests cabal/ganeti.template.cabal
   - ghc-pkg list
 
