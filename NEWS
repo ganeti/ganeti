@@ -69,6 +69,7 @@ Compatibility fixes:
    Kosiaris)
  - Handle the new output format of ``rbd showmapped`` introduced in Ceph
    Mimic (#1339) (Ansgar Jazdzewski)
+ - Support current versions of python-psutil (George Diamantopoulos)
 
 Bugfixes:
  - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
@@ -81,11 +82,22 @@ Bugfixes:
    Diamantopoulos)
  - Make the ganeti-kvm-poweroff example script work on systems with
    systemd/sysv integration (#1288)
+ - Avoid triggering the CPU affinity code when the instance's CPU mask
+   is set to ``all``, relaxing the runtime dependency on python-psutil
+   (Calum Calder)
+
+Performance improvements:
+ - Speed up Haskell test execution (Iustin Pop)
+ - Speed up Python test execution (Apollon Oikonomopoulos)
 
 Documentation fixes:
  - Fix a couple of typos in the gnt-instance man page (#1279) (Phil
    Regnauld)
  - Fix a typo in doc/install.rst (Igor Vuk)
+
+Enhancements:
+ - KVM process logs are now obtained and saved under /var/log/ganeti/kvm
+   (Yiannis Tsiouris)
 
 
 Version 2.16.0
