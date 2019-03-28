@@ -270,6 +270,7 @@ BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
 	apps \
 	dist \
+	dist/build \
 	doc/html \
 	doc/man-html
 
