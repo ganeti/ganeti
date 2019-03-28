@@ -72,6 +72,8 @@ Compatibility fixes:
  - Support current versions of python-psutil (George Diamantopoulos)
  - Fix distcheck-hook with automake versions >= 1.15 (Apollon
    Oikonomopoulos)
+ - Fix cli tests with shelltestrunner versions >= 1.9 (Apollon
+   Oikonomopoulos)
 
 Bugfixes:
  - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
