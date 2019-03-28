@@ -2812,7 +2812,7 @@ distcheck-hook:
 # unnecessary warnings for packagers. Directories used by automake during
 # distcheck must be excluded.
 	if find $(top_distdir) -empty -and -not \( \
-	    -path $(top_distdir)/_build -or \
+	    -regex '$(top_distdir)/_build\(/.*\)?' -or \
 	    -path $(top_distdir)/_inst \) | grep .; then \
 	  echo "Found empty files or directories in final archive." 1>&2; \
 	  exit 1; \
