@@ -303,7 +303,9 @@ maintainer-clean-local:
 CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
 	$(addsuffix /*.hi,$(HS_DIRS)) \
+	$(addsuffix /*.dyn_hi,$(HS_DIRS)) \
 	$(addsuffix /*.o,$(HS_DIRS)) \
+	$(addsuffix /*.dyn_o,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
