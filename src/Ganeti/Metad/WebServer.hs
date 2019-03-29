@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, FlexibleContexts, OverloadedStrings, ConstraintKinds, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, FlexibleContexts, OverloadedStrings #-}
+{-# LANGUAGE ConstraintKinds, DeriveDataTypeable #-}
 {-| Web server for the metadata daemon.
 
 -}

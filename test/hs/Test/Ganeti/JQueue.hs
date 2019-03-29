@@ -240,7 +240,8 @@ prop_DetermineDirs = monadicIO $ do
     return (tempdir, non_arch, with_arch, invalid_root)
   let arch_dir = tempdir </> jobQueueArchiveSubDir
   _ <- stop $ conjoin [ non_arch ==? [tempdir]
-                      , sort with_arch ==? sort (tempdir:map (arch_dir </>) valid)
+                      , sort with_arch ==?
+                          sort (tempdir:map (arch_dir </>) valid)
                       , invalid_root ==? [tempdir </> "no-such-subdir"]
                       ]
   return ()

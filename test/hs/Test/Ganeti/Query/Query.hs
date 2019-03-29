@@ -110,17 +110,17 @@ prop_queryNode_Unknown =
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields (ItemTypeOpCode QRNode) [field])
   _ <- stop $ conjoin
-              [ counterexample ("Got known fields via query (" ++ show fdefs ++ ")")
-                (not $ hasUnknownFields fdefs)
-              , counterexample ("Got /= ResultUnknown result status via query (" ++
-                                show fdata ++ ")")
-                (all (all ((== RSUnknown) . rentryStatus)) fdata)
-              , counterexample ("Got a Just in a result value (" ++
-                                show fdata ++ ")")
-                (all (all (isNothing . rentryValue)) fdata)
-              , counterexample ("Got known fields via query fields (" ++ show fdefs'
-                                ++ ")") (not $ hasUnknownFields fdefs')
-              ]
+          [ counterexample ("Got known fields via query (" ++ show fdefs ++ ")")
+            (not $ hasUnknownFields fdefs)
+          , counterexample ("Got /= ResultUnknown result status via query (" ++
+                            show fdata ++ ")")
+            (all (all ((== RSUnknown) . rentryStatus)) fdata)
+          , counterexample ("Got a Just in a result value (" ++
+                            show fdata ++ ")")
+            (all (all (isNothing . rentryValue)) fdata)
+          , counterexample ("Got known fields via query fields (" ++ show fdefs'
+                            ++ ")") (not $ hasUnknownFields fdefs')
+          ]
   return ()
 
 -- | Checks that a result type is conforming to a field definition.
@@ -157,15 +157,15 @@ prop_queryNode_types =
     run (query cfg False (Query (ItemTypeOpCode QRNode)
                           [field] EmptyFilter)) >>= resultProp
   _ <- stop $ conjoin
-              [ counterexample ("Inconsistent result entries (" ++ show fdata ++ ")")
-                (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
-              , counterexample "Wrong field definitions length"
-                (length fdefs ==? 1)
-              , counterexample "Wrong field result rows length"
-                (all ((== 1) . length) fdata)
-              , counterexample "Wrong number of result rows"
-                (length fdata ==? numnodes)
-              ]
+         [ counterexample ("Inconsistent result entries (" ++ show fdata ++ ")")
+           (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
+         , counterexample "Wrong field definitions length"
+           (length fdefs ==? 1)
+         , counterexample "Wrong field result rows length"
+           (all ((== 1) . length) fdata)
+         , counterexample "Wrong number of result rows"
+           (length fdata ==? numnodes)
+         ]
   return ()
 
 -- | Test that queryFields with empty fields list returns all node fields.
@@ -204,9 +204,9 @@ prop_queryNode_filter =
       run (query cluster False (Query (ItemTypeOpCode QRNode)
                                 ["name"] flt)) >>= resultProp
     _ <- stop $ conjoin
-           [ counterexample "Invalid node names" $
-             map (map rentryValue) fdata ==? map (\f -> [Just (showJSON f)]) fqdns
-           ]
+         [ counterexample "Invalid node names" $
+           map (map rentryValue) fdata ==? map (\f -> [Just (showJSON f)]) fqdns
+         ]
     return ()
 
 -- ** Group queries
