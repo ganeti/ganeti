@@ -1354,7 +1354,8 @@ paramFieldNames field_pfx fd =
 paramFieldTypeInfo :: String -> Field -> VarStrictTypeQ
 paramFieldTypeInfo field_pfx fd = do
   t <- actualFieldType fd
-  return (snd $ paramFieldNames field_pfx fd, myNotStrict, AppT (ConT ''Maybe) t)
+  return (snd $ paramFieldNames field_pfx fd,
+          myNotStrict, AppT (ConT ''Maybe) t)
 
 -- | Build a parameter declaration.
 --

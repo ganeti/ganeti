@@ -381,7 +381,8 @@ prop_applyingFilter :: Property
 prop_applyingFilter =
   forAllShrink arbitrary shrink $ \job ->
   forAllShrink (arbitrary `suchThat`
-                (isJust . flip applyingFilter job . Set.fromList)) shrink $ \filters ->
+                (isJust . flip applyingFilter job . Set.fromList)) shrink
+                $ \filters ->
 
     let applying = applyingFilter (Set.fromList filters) job
 
@@ -541,8 +542,8 @@ prop_jobFiltering =
                  . filter ((frUuid fr ==) . frUuid)
                  . mapMaybe (applyingFilter filters)
                  $ map jJob jobs)
-          {- TODO(#1318): restore coverage checks after a way to do it nicely has
-                          been found.
+          {- TODO(#1318): restore coverage checks after a way to do it nicely
+                          has been found.
 
           -- Helpers for ensuring sensible coverage.
 

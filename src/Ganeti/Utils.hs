@@ -726,8 +726,8 @@ watchFileBy fpath timeout check read_fn = do
                        logDebug $ "Notified of change in " ++ fpath
                                     ++ "; event: " ++ show e
                        when (e == Ignored)
-                         (addWatch inotify [Modify, Delete] (toInotifyPath fpath) do_watch
-                            >> return ())
+                         (addWatch inotify [Modify, Delete]
+                           (toInotifyPath fpath) do_watch >> return ())
                        fstat' <- getFStatSafe fpath
                        writeIORef ref fstat'
     _ <- addWatch inotify [Modify, Delete] (toInotifyPath fpath) do_watch

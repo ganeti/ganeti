@@ -70,6 +70,10 @@ Compatibility fixes:
  - Handle the new output format of ``rbd showmapped`` introduced in Ceph
    Mimic (#1339) (Ansgar Jazdzewski)
  - Support current versions of python-psutil (George Diamantopoulos)
+ - Fix distcheck-hook with automake versions >= 1.15 (Apollon
+   Oikonomopoulos)
+ - Fix cli tests with shelltestrunner versions >= 1.9 (Apollon
+   Oikonomopoulos)
 
 Bugfixes:
  - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
