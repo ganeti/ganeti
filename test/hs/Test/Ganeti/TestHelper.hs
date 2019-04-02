@@ -47,6 +47,7 @@ import Test.Framework.Providers.QuickCheck2
 import Test.HUnit (Assertion)
 import Test.QuickCheck
 import Language.Haskell.TH
+import Ganeti.THH.Compat
 
 -- | Test property prefix.
 propPrefix :: String
@@ -126,7 +127,7 @@ mkRegularArbitrary name cons = do
             [x] -> return $ mkConsArbitrary (conInfo x)
             xs -> appE (varE 'oneof) $
                   listE (map (return . mkConsArbitrary . conInfo) xs)
-  return [InstanceD Nothing [] (AppT (ConT ''Arbitrary) (ConT name))
+  return [gntInstanceD [] (AppT (ConT ''Arbitrary) (ConT name))
           [ValD (VarP 'arbitrary) (NormalB expr) []]]
 
 -- | Builds a default Arbitrary instance for a type. This requires

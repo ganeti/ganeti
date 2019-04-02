@@ -114,8 +114,14 @@ import Numeric
 
 import qualified Ganeti.BasicTypes as BasicTypes
 import Ganeti.JSON (ArrayObject(..))
+import Ganeti.Objects (TagSet(..))
 import Ganeti.Types
 import Ganeti.Utils.Monad (unfoldrM)
+
+-- * Arbitrary orphan instances
+
+instance Arbitrary TagSet where
+  arbitrary = (TagSet . Set.fromList) <$> genTags
 
 -- * Constants
 

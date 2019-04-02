@@ -40,7 +40,6 @@ module Test.Ganeti.Query.Instance
 
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import System.Time (ClockTime(..))
 
 import Ganeti.JSON
@@ -64,7 +63,7 @@ createInstance name pnodeUuid adminState adminStateSource =
     (PartialBeParams Nothing Nothing Nothing Nothing Nothing Nothing)
     (GenericContainer Map.empty) (GenericContainer Map.empty)
     adminState adminStateSource [] [] False Nothing epochTime epochTime
-    (UTF8.fromString "") 0 Set.empty
+    (UTF8.fromString "") 0 emptyTagSet
   where epochTime = TOD 0 0
 
 -- | A fake InstanceInfo to be used to check values.

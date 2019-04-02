@@ -84,7 +84,8 @@ module Ganeti.Objects
   , SerialNoObject(..) -- re-exported from Types
   , TagsObject(..) -- re-exported from Types
   , DictObject(..) -- re-exported from THH
-  , TagSet -- re-exported from THH
+  , TagSet(..) -- re-exported from THH
+  , emptyTagSet -- re-exported from THH
   , Network(..)
   , AddressPool(..)
   , Ip4Address()
@@ -733,4 +734,3 @@ $(buildObject "MasterNetworkParameters" "masterNetworkParameters"
   , simpleField "netdev"    [t| String   |]
   , simpleField "ip_family" [t| IpFamily |]
   ])
-

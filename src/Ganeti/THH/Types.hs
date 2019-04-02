@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell, DeriveFunctor, CPP #-}
 
 {-| Utility Template Haskell functions for working with types.
 

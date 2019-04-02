@@ -47,10 +47,8 @@ try:
   import psutil   # pylint: disable=F0401
   if psutil.version_info < (2, 0, 0):
     # The psutil version seems too old, we ignore it
-    psutil_err = "too old (2.x.x needed, %s found)" % psutil.__version__
-    psutil = None
-  elif psutil.version_info >= (3,):
-    psutil_err = "too new (2.x.x needed, %s found)" % psutil.__version__
+    psutil_err = \
+        "too old (2.x.x or newer needed, %s found)" % psutil.__version__
     psutil = None
   else:
     psutil_err = "<no error>"
@@ -381,6 +379,62 @@ def _UpgradeSerializedRuntime(serialized_runtime):
     # We have a (Disk, link, uri) tuple
     update_hvinfo(disk_entry[0], constants.HOTPLUG_TARGET_DISK)
 
+  # Handle KVM command line argument changes
+  try:
+    idx = kvm_cmd.index("-localtime")
+  except ValueError:
+    pass
+  else:
+    kvm_cmd[idx:idx+1] = ["-rtc", "base=localtime"]
+
+  try:
+    idx = kvm_cmd.index("-balloon")
+  except ValueError:
+    pass
+  else:
+    balloon_args = kvm_cmd[idx+1].split(",")[1:]
+    balloon_str = "virtio-balloon"
+    if balloon_args:
+      balloon_str += ",%s" % ",".join(balloon_args)
+
+    kvm_cmd[idx:idx+2] = ["-device", balloon_str]
+
+  try:
+    idx = kvm_cmd.index("-vnc")
+  except ValueError:
+    pass
+  else:
+    # Check to see if TLS is enabled
+    orig_vnc_args = kvm_cmd[idx+1].split(",")
+    vnc_args = []
+    tls_obj = None
+    tls_obj_args = ["id=vnctls0", "endpoint=server"]
+    for arg in orig_vnc_args:
+      if arg == "tls":
+        tls_obj = "tls-creds-anon"
+        vnc_args.append("tls-creds=vnctls0")
+        continue
+
+      elif arg.startswith("x509verify=") or arg.startswith("x509="):
+        pki_path = arg.split("=", 1)[-1]
+        tls_obj = "tls-creds-x509"
+        tls_obj_args.append("dir=%s" % pki_path)
+        if arg.startswith("x509verify="):
+          tls_obj_args.append("verify-peer=yes")
+        else:
+          tls_obj_args.append("verify-peer=no")
+        continue
+
+      vnc_args.append(arg)
+
+    if tls_obj is not None:
+      vnc_cmd = ["-vnc", ",".join(vnc_args)]
+      tls_obj_cmd = ["-object",
+                     "%s,%s" % (tls_obj, ",".join(tls_obj_args))]
+
+      # Replace the original vnc argument with the new ones
+      kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
+
   return kvm_cmd, serialized_nics, hvparams, serialized_disks
 
 
@@ -565,7 +619,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
   _VHOST_RE = re.compile(r"^-net\s.*,vhost=on|off", re.M)
-  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-net\s.*,fds=x:y:...:z", re.M)
+  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-net(dev)?\s.*,fds=x:y:...:z", re.M)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
@@ -621,7 +675,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # accept the output even on failure.
   _KVMOPTS_CMDS = {
     _KVMOPT_HELP: (["--help"], False),
-    _KVMOPT_MLIST: (["-M", "?"], False),
+    _KVMOPT_MLIST: (["-machine", "?"], False),
     _KVMOPT_DEVICELIST: (["-device", "?"], True),
   }
 
@@ -1132,6 +1186,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                           " to prevent shared storage corruption on migration",
                           disk_cache)
         cache_val = ",cache=none"
+      elif aio_mode == constants.HT_KVM_AIO_NATIVE and disk_cache != "none":
+        # TODO: make this a hard error, instead of a silent overwrite
+        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                        " to prevent QEMU failures in version 2.6+",
+                        disk_cache)
+        cache_val = ",cache=none"
       elif disk_cache != constants.HT_CACHE_DEFAULT:
         cache_val = ",cache=%s" % disk_cache
       else:
@@ -1283,8 +1343,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         "%s,id=scsi" % hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]
         ])
 
-    kvm_cmd.extend(["-balloon", "virtio"])
+    kvm_cmd.extend(["-device", "virtio-balloon"])
     kvm_cmd.extend(["-daemonize"])
+    # logfile for qemu
+    qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
+                                  "%s.log" % instance.name)
+    kvm_cmd.extend(["-D", qemu_logfile])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
@@ -1305,7 +1369,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       machinespec = "%s%s" % (mversion, specprop)
       kvm_cmd.extend(["-machine", machinespec])
     else:
-      kvm_cmd.extend(["-M", mversion])
+      kvm_cmd.extend(["-machine", mversion])
       if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
           self._ENABLE_KVM_RE.search(kvmhelp)):
         kvm_cmd.extend(["-enable-kvm"])
@@ -1402,11 +1466,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         vnc_bind_address)
         else:
           vnc_bind_address = if_ip4_addresses[0]
-      if netutils.IP4Address.IsValid(vnc_bind_address):
+      if (netutils.IP4Address.IsValid(vnc_bind_address) or
+          netutils.IP6Address.IsValid(vnc_bind_address)):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:
             vnc_arg = ":%d" % (display)
+          elif netutils.IP6Address.IsValid(vnc_bind_address):
+            vnc_arg = "[%s]:%d" % (vnc_bind_address, display)
           else:
             vnc_arg = "%s:%d" % (vnc_bind_address, display)
         else:
@@ -1419,13 +1486,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # kvm/qemu gets confused otherwise about the filename to use.
         vnc_append = ""
         if hvp[constants.HV_VNC_TLS]:
-          vnc_append = "%s,tls" % vnc_append
+          vnc_append = "%s,tls-creds=vnctls0" % vnc_append
+          tls_obj = "tls-creds-anon"
+          tls_obj_options = ["id=vnctls0", "endpoint=server"]
           if hvp[constants.HV_VNC_X509_VERIFY]:
-            vnc_append = "%s,x509verify=%s" % (vnc_append,
-                                               hvp[constants.HV_VNC_X509])
+            tls_obj = "tls-creds-x509"
+            tls_obj_options.extend(["dir=%s" %
+                                    hvp[constants.HV_VNC_X509],
+                                    "verify-peer=yes"])
           elif hvp[constants.HV_VNC_X509]:
-            vnc_append = "%s,x509=%s" % (vnc_append,
-                                         hvp[constants.HV_VNC_X509])
+            tls_obj = "tls-creds-x509"
+            tls_obj_options.extend(["dir=%s" %
+                                    hvp[constants.HV_VNC_X509],
+                                    "verify-peer=no"])
+          kvm_cmd.extend(["-object",
+                          "%s,%s" % (tls_obj, ",".join(tls_obj_options))])
         if hvp[constants.HV_VNC_PASSWORD_FILE]:
           vnc_append = "%s,password" % vnc_append
 
@@ -1538,7 +1613,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(["-nographic"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
-      kvm_cmd.extend(["-localtime"])
+      kvm_cmd.extend(["-rtc", "base=localtime"])
 
     if hvp[constants.HV_KVM_USE_CHROOT]:
       kvm_cmd.extend(["-chroot", self._InstanceChrootDir(instance.name)])
@@ -1738,9 +1813,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           # Check for multiqueue virtio-net support.
           if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
             # As advised at http://www.linux-kvm.org/page/Multiqueue formula
-            # for calculating vector size is: vectors=2*N+1 where N is the
+            # for calculating vector size is: vectors=2*N+2 where N is the
             # number of queues (HV_VIRTIO_NET_QUEUES).
-            nic_extra_str = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+            nic_extra_str = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 2)
             update_features["mq"] = (True, virtio_net_queues)
           else:
             raise errors.HypervisorError("virtio_net_queues is configured"
@@ -1910,7 +1985,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # during instance startup anyway, and to avoid problems when soft
     # rebooting the instance.
     cpu_pinning = False
-    if up_hvp.get(constants.HV_CPU_MASK, None):
+    if up_hvp.get(constants.HV_CPU_MASK, None) \
+        and up_hvp[constants.HV_CPU_MASK] != constants.CPU_PINNING_ALL:
       cpu_pinning = True
 
     if security_model == constants.HT_SM_POOL:
@@ -2752,14 +2828,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      % username)
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      bound_to_addr = netutils.IP4Address.IsValid(vnc_bind_address)
+      bound_to_addr = (netutils.IP4Address.IsValid(vnc_bind_address) or
+                       netutils.IP6Address.IsValid(vnc_bind_address))
       is_interface = netutils.IsValidInterface(vnc_bind_address)
       is_path = utils.IsNormAbsPath(vnc_bind_address)
       if not bound_to_addr and not is_interface and not is_path:
         raise errors.HypervisorError("VNC: The %s parameter must be either"
                                      " a valid IP address, an interface name,"
                                      " or an absolute path" %
-                                     constants.HV_KVM_SPICE_BIND)
+                                     constants.HV_VNC_BIND_ADDRESS)
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     if spice_bind:

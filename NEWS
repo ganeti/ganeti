@@ -2,6 +2,108 @@ News
 ====
 
 
+Version 2.16.1
+--------------
+
+*(Released Mon, 1 Apr 2019)*
+
+This is a bugfix and compatibility release.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+Updated X.509 certificate signing algorithm
++++++++++++++++++++++++++++++++++++++++++++
+
+Ganeti now uses the SHA-256 digest algorithm to sign all generated
+X.509 certificates used to secure the RPC communications between nodes.
+Previously, Ganeti was using SHA-1 which is seen as weak (but not
+broken) and has been deprecated by most vendors; most notably, OpenSSL —
+used by Ganeti on some setups — rejects SHA-1-signed certificates when
+configured to run on security level 2 and above.
+
+Users are advised to re-generate Ganeti's server and node certificates
+after installing 2.16.1 *on all nodes* using the following command:
+
+::
+
+  gnt-cluster renew-crypto --new-cluster-certificate
+
+On setups using RAPI and/or SPICE with Ganeti-generated certificates,
+``--new-rapi-certificate`` and ``--new-spice-certificate`` should be
+appended to the command above.
+
+QEMU 3.1 compatibility
+++++++++++++++++++++++
+
+Previous versions of Ganeti used QEMU command line options that were
+removed in QEMU 3.1, leading to an inability to start KVM instances with
+QEMU 3.1. This version restores compatibility with QEMU 3.1 by adapting
+to these changes. This was done in a backwards-compatible way, however
+there is one special case: Users using VNC with X.509 support enabled,
+will need to be running at least QEMU 2.5. See #1342 for details.
+
+Newer GHC support
++++++++++++++++++
+
+Ganeti 2.16.0 could only be built using GHC versions prior to 7.10,
+as GHC 7.10 and later versions introduced breaking API changes that made
+the build fail.
+
+This release introduces support for building with newer GHC versions:
+Ganeti is now known to build with GHC 8.0, 8.2 and 8.4. Furthermore,
+Ganeti can now be built with snap-server 1.0 as well as hinotify 0.3.10
+and later. Previously supported versions of GHC and of these libraries
+remain supported.
+
+Misc changes
+~~~~~~~~~~~~
+
+*(Contributor names in parentheses where available)*
+
+Compatibility fixes:
+ - Fix initscript operation on systems with dpkg >= 1.19.4 (#1322)
+ - Support Sphinx versions later than 1.7 (#1333) (Robin Sonnabend)
+ - Force KVM to use ``cache=none`` when ``aio=native`` is set; this
+   is mandatory for QEMU versions later than 2.6 (#43) (Alexandros
+   Kosiaris)
+ - Handle the new output format of ``rbd showmapped`` introduced in Ceph
+   Mimic (#1339) (Ansgar Jazdzewski)
+ - Support current versions of python-psutil (George Diamantopoulos)
+ - Fix distcheck-hook with automake versions >= 1.15 (Apollon
+   Oikonomopoulos)
+ - Fix cli tests with shelltestrunner versions >= 1.9 (Apollon
+   Oikonomopoulos)
+
+Bugfixes:
+ - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
+   parameter (#1257) (Brian Candler)
+ - Fix iproute2 invocation to accept ``dev`` as a valid interface name
+   (#26) (Arnd Hannemann)
+ - Properly handle OpenVSwitch trunk ports without native VLANs (#1324)
+   (George Diamantopoulos)
+ - Fix virtio-net multiqueue support (#1268) (George
+   Diamantopoulos)
+ - Make the ganeti-kvm-poweroff example script work on systems with
+   systemd/sysv integration (#1288)
+ - Avoid triggering the CPU affinity code when the instance's CPU mask
+   is set to ``all``, relaxing the runtime dependency on python-psutil
+   (Calum Calder)
+
+Performance improvements:
+ - Speed up Haskell test execution (Iustin Pop)
+ - Speed up Python test execution (Apollon Oikonomopoulos)
+
+Documentation fixes:
+ - Fix a couple of typos in the gnt-instance man page (#1279) (Phil
+   Regnauld)
+ - Fix a typo in doc/install.rst (Igor Vuk)
+
+Enhancements:
+ - KVM process logs are now obtained and saved under /var/log/ganeti/kvm
+   (Yiannis Tsiouris)
+
+
 Version 2.16.0
 --------------
 

@@ -1,104 +1,104 @@
 # test the various gnt-commands for common options
-$SCRIPTS/gnt-node --help
+sh -c "$SCRIPTS/gnt-node --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-node UNKNOWN
+sh -c "$SCRIPTS/gnt-node UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-node --version
+sh -c "$SCRIPTS/gnt-node --version"
 >>>/^gnt-/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-instance --help
+sh -c "$SCRIPTS/gnt-instance --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-instance UNKNOWN
+sh -c "$SCRIPTS/gnt-instance UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-instance --version
+sh -c "$SCRIPTS/gnt-instance --version"
 >>>/^gnt-instance/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-os --help
+sh -c "$SCRIPTS/gnt-os --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-os UNKNOWN
+sh -c "$SCRIPTS/gnt-os UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-os --version
+sh -c "$SCRIPTS/gnt-os --version"
 >>>/^gnt-/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-group --help
+sh -c "$SCRIPTS/gnt-group --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-group UNKNOWN
+sh -c "$SCRIPTS/gnt-group UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-group --version
+sh -c "$SCRIPTS/gnt-group --version"
 >>>/^gnt-/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-job --help
+sh -c "$SCRIPTS/gnt-job --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-job UNKNOWN
+sh -c "$SCRIPTS/gnt-job UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-job --version
+sh -c "$SCRIPTS/gnt-job --version"
 >>>/^gnt-/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-cluster --help
+sh -c "$SCRIPTS/gnt-cluster --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-cluster UNKNOWN
+sh -c "$SCRIPTS/gnt-cluster UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-cluster --version
+sh -c "$SCRIPTS/gnt-cluster --version"
 >>>/^gnt-/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-backup --help
+sh -c "$SCRIPTS/gnt-backup --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-backup UNKNOWN
+sh -c "$SCRIPTS/gnt-backup UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-backup --version
+sh -c "$SCRIPTS/gnt-backup --version"
 >>>/^gnt-/
 >>>2
 >>>= 0
 
-$SCRIPTS/gnt-debug --help
+sh -c "$SCRIPTS/gnt-debug --help"
 >>>/Usage:/
 >>>2
 >>>= 0
-$SCRIPTS/gnt-debug UNKNOWN
+sh -c "$SCRIPTS/gnt-debug UNKNOWN"
 >>>/Usage:/
 >>>2
 >>>= 1
-$SCRIPTS/gnt-debug --version
+sh -c "$SCRIPTS/gnt-debug --version"
 >>>/^gnt-/
 >>>2
 >>>= 0

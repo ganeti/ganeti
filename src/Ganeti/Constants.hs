@@ -617,9 +617,9 @@ x509CertDefaultValidity = 365 * 5
 x509CertSignatureHeader :: String
 x509CertSignatureHeader = "X-Ganeti-Signature"
 
--- | Digest used to sign certificates ("openssl x509" uses SHA1 by default)
+-- | Digest used to sign certificates
 x509CertSignDigest :: String
-x509CertSignDigest = "SHA1"
+x509CertSignDigest = "SHA256"
 
 -- * Import/export daemon mode
 
