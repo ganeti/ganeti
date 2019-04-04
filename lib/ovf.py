@@ -121,8 +121,8 @@ ALLOCATION_UNITS = {
   "gb": ["gigabytes", "gb", "byte * 2^30", "gibibytes", "gib"],
 }
 CONVERT_UNITS_TO_MB = {
-  "b": lambda x: x / (1024 * 1024),
-  "kb": lambda x: x / 1024,
+  "b": lambda x: x // (1024 * 1024),
+  "kb": lambda x: x // 1024,
   "mb": lambda x: x,
   "gb": lambda x: x * 1024,
 }
@@ -1425,7 +1425,7 @@ class OVFImporter(Converter):
       final_disk_path = LinkFile(new_disk_path, prefix=disk, suffix=ext,
                                  directory=self.output_dir)
       final_name = os.path.basename(final_disk_path)
-      disk_size = os.path.getsize(final_disk_path) / (1024 * 1024)
+      disk_size = os.path.getsize(final_disk_path) // (1024 * 1024)
       results["disk%s_dump" % counter] = final_name
       results["disk%s_size" % counter] = str(disk_size)
       results["disk%s_ivname" % counter] = "disk/%s" % str(counter)

@@ -1095,7 +1095,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # Will fail if ballooning is not enabled, but we can then just resort to
       # the value above.
       mem_bytes = qmp.Execute("query-balloon")[qmp.ACTUAL_KEY]
-      memory = mem_bytes / 1048576
+      memory = mem_bytes // 1048576
     except errors.HypervisorError:
       pass
 

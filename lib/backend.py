@@ -2343,7 +2343,7 @@ def GetBlockDevSizes(devices):
         logging.warning("Cannot get size for block device %s", devpath)
         continue
 
-      size = int(result.stdout) / (1024 * 1024)
+      size = int(result.stdout) // (1024 * 1024)
       blockdevs[devpath] = size
   return blockdevs
 

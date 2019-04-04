@@ -222,7 +222,7 @@ def GetArchiveDirectory(job_id):
   @return: Directory name
 
   """
-  return str(ParseJobId(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
+  return str(ParseJobId(job_id) // JOBS_PER_ARCHIVE_DIRECTORY)
 
 
 def ParseJobId(job_id):

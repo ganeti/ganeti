@@ -1212,7 +1212,7 @@ def TestInstanceCreationRestrictedByDiskTemplates():
   if (len(enabled_disk_templates) > 1):
     # Partition the disk templates, enable them separately and check if the
     # disabled ones cannot be used by instances.
-    middle = len(enabled_disk_templates) / 2
+    middle = len(enabled_disk_templates) // 2
     templates1 = enabled_disk_templates[:middle]
     templates2 = enabled_disk_templates[middle:]
 

@@ -375,7 +375,7 @@ class TestSsconfResolver(unittest.TestCase):
   def testBothLookups(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
-    n = len(addr_list) / 2
+    n = len(addr_list) // 2
     node_addr_list = [" ".join(t) for t in zip(node_list[n:], addr_list[n:])]
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     node_addr_map = dict(zip(node_list[:n], addr_list[:n]))

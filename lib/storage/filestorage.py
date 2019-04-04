@@ -322,8 +322,8 @@ def GetFileStorageSpaceInfo(path):
   """
   try:
     result = os.statvfs(path)
-    free = (result.f_frsize * result.f_bavail) / (1024 * 1024)
-    size = (result.f_frsize * result.f_blocks) / (1024 * 1024)
+    free = (result.f_frsize * result.f_bavail) // (1024 * 1024)
+    size = (result.f_frsize * result.f_blocks) // (1024 * 1024)
     return {"type": constants.ST_FILE,
             "name": path,
             "storage_size": size,

@@ -113,7 +113,7 @@ class LogicalVolume(base.BlockDev):
     """
     assert len(pvs_info) > 0
     smallest = min([pv.size for pv in pvs_info])
-    return smallest / (1 + constants.PART_MARGIN + constants.PART_RESERVED)
+    return smallest // (1 + constants.PART_MARGIN + constants.PART_RESERVED)
 
   @staticmethod
   def _ComputeNumPvs(size, pvs_info):
@@ -712,7 +712,7 @@ class LogicalVolume(base.BlockDev):
       # amount is in KiB, free_space in MiB
       if amount > free_space * 1024:
         base.ThrowError("Not enough free space to grow %s: %d MiB required,"
-                        " %d available", self.dev_path, amount / 1024,
+                        " %d available", self.dev_path, amount // 1024,
                         free_space)
       # Disk growth doesn't grow the number of spindles, so we must stay within
       # our assigned volumes

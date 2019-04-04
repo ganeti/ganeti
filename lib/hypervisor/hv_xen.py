@@ -390,7 +390,7 @@ def _ParseNodeInfo(info):
       xen_minor = int(val)
 
   if None not in [cores_per_socket, threads_per_core, nr_cpus]:
-    result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
+    result["cpu_sockets"] = nr_cpus // (cores_per_socket * threads_per_core)
 
   if memory_free is not None:
     result["memory_free"] = memory_free

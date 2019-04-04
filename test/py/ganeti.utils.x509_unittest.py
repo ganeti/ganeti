@@ -196,7 +196,7 @@ class TestCertVerification(testutils.GanetiTestCase):
     # skew small enough, accepting cert; note that this is a timed
     # test, and could fail if the machine is so loaded that the next
     # few lines take more than NODE_MAX_CLOCK_SKEW / 2
-    for before in [-1, 0, SKEW / 4, SKEW / 2]:
+    for before in [-1, 0, SKEW // 4, SKEW // 2]:
       cert = self._GenCert(key, before, validity)
       result = utils.VerifyX509Certificate(cert, 1, 2)
       self.assertEqual(result, (None, None))

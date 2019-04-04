@@ -529,7 +529,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
 
     cpu_list = self._GetCgroupCpuList(instance_name)
-    memory = self._GetCgroupMemoryLimit(instance_name) / (1024 ** 2)
+    memory = self._GetCgroupMemoryLimit(instance_name) // (1024 ** 2)
     cputime = self._GetCgroupCpuUsage(instance_name)
     return (instance_name, 0, memory, len(cpu_list),
             hv_base.HvInstanceState.RUNNING, cputime)

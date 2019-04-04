@@ -408,7 +408,7 @@ class TestQaConfig(unittest.TestCase):
       for i in range(iterations):
         node = qa_config.AcquireNode(_cfg=self.config)
         self.assertTrue(node.use_count > 0)
-        self.assertEqual(node.use_count, (i / nodecount + 1))
+        self.assertEqual(node.use_count, (i // nodecount + 1))
         acquired.append((node.use_count, node.primary, node))
 
       # Check if returned nodes were in correct order

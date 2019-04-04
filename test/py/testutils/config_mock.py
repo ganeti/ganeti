@@ -579,7 +579,7 @@ class ConfigMock(config.ConfigWriter):
     if name is None:
       name = "mock_nic_%d" % nic_id
     if mac is None:
-      mac = "aa:00:00:aa:%02x:%02x" % (nic_id / 0xff, nic_id % 0xff)
+      mac = "aa:00:00:aa:%02x:%02x" % (nic_id // 0xff, nic_id % 0xff)
     if isinstance(network, objects.Network):
       if ip:
         pool = AddressPool(network)
