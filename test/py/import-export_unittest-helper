@@ -102,7 +102,7 @@ def main():
   Log("Running helper for %s %s", filename, what)
 
   if what == "listen-port":
-    print WaitForListenPort(filename)
+    print(WaitForListenPort(filename))
   elif what == "connected":
     WaitForConnected(filename)
   elif what == "gencert":

@@ -185,7 +185,7 @@ def main():
 
   if errors:
     for msg in errors:
-      print >> sys.stderr, msg
+      print(msg, file=sys.stderr)
     sys.exit(1)
   else:
     sys.exit(0)

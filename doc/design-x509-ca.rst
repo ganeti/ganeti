@@ -145,10 +145,10 @@ Request (CSR)::
   req.sign(key, "sha1")
 
   # Write private key
-  print OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key)
+  print(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
 
   # Write request
-  print OpenSSL.crypto.dump_certificate_request(OpenSSL.crypto.FILETYPE_PEM, req)
+  print(OpenSSL.crypto.dump_certificate_request(OpenSSL.crypto.FILETYPE_PEM, req))
 
 
 X509 certificate from Certificate Signing Request
@@ -175,7 +175,7 @@ Certificate Signing Request and sign it with a CA::
   cert.set_pubkey(req.get_pubkey())
   cert.sign(ca_key, "sha1")
 
-  print OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+  print(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
 
 
 Verify whether X509 certificate matches private key
@@ -195,9 +195,9 @@ with a certain private key. OpenSSL has a function for this,
   try:
     ctx.check_privatekey()
   except OpenSSL.SSL.Error:
-    print "Incorrect key"
+    print("Incorrect key")
   else:
-    print "Key matches certificate"
+    print("Key matches certificate")
 
 
 .. vim: set textwidth=72 :

@@ -658,7 +658,7 @@ def Metad(opts, args): # pylint: disable=W0613
       ToStderr("Command 'echo' takes only precisely argument.")
       return 1
     result = metad.Client().Echo(args[1])
-    print "Answer: %s" % (result,)
+    print("Answer: %s" % (result,))
   else:
     ToStderr("Command '%s' not supported", args[0])
     return 1
@@ -681,13 +681,13 @@ def Wconfd(opts, args): # pylint: disable=W0613
       ToStderr("Command 'echo' takes only precisely argument.")
       return 1
     result = wconfd.Client().Echo(args[1])
-    print "Answer: %s" % (result,)
+    print("Answer: %s" % (result,))
   elif args[0] == "cleanuplocks":
     if len(args) != 1:
       ToStderr("Command 'cleanuplocks' takes no arguments.")
       return 1
     wconfd.Client().CleanupLocks()
-    print "Stale locks cleaned up."
+    print("Stale locks cleaned up.")
   elif args[0] == "listlocks":
     if len(args) != 2:
       ToStderr("Command 'listlocks' takes precisely one argument.")
@@ -695,25 +695,25 @@ def Wconfd(opts, args): # pylint: disable=W0613
     wconfdcontext = (int(args[1]),
                      utils.livelock.GuessLockfileFor("masterd_1"))
     result = wconfd.Client().ListLocks(wconfdcontext)
-    print "Answer: %s" % (result,)
+    print("Answer: %s" % (result,))
   elif args[0] == "listalllocks":
     if len(args) != 1:
       ToStderr("Command 'listalllocks' takes no arguments.")
       return 1
     result = wconfd.Client().ListAllLocks()
-    print "Answer: %s" % (result,)
+    print("Answer: %s" % (result,))
   elif args[0] == "listalllocksowners":
     if len(args) != 1:
       ToStderr("Command 'listalllocks' takes no arguments.")
       return 1
     result = wconfd.Client().ListAllLocksOwners()
-    print "Answer: %s" % (result,)
+    print("Answer: %s" % (result,))
   elif args[0] == "flushconfig":
     if len(args) != 1:
       ToStderr("Command 'flushconfig' takes no arguments.")
       return 1
     wconfd.Client().FlushConfig()
-    print "Configuration flushed."
+    print("Configuration flushed.")
   else:
     ToStderr("Command '%s' not supported", args[0])
     return 1

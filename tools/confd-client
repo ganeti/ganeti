@@ -102,8 +102,8 @@ def Err(msg, exit_code=1):
 def Usage():
   """Shows program usage information and exits the program."""
 
-  print >> sys.stderr, "Usage:"
-  print >> sys.stderr, USAGE
+  print("Usage:", file=sys.stderr)
+  print(USAGE, file=sys.stderr)
   sys.exit(2)
 
 
@@ -204,7 +204,7 @@ class TestClient(object):
         self._ProcessMapping(answer)
       else:
         Log("Unhandled reply %s, please fix the client", reqtype)
-        print answer
+        print(answer)
 
   def DoConfdRequestReply(self, req):
     self.confd_counting_callback.RegisterQuery(req.rsalt)

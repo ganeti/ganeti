@@ -234,9 +234,9 @@ class Private(object):
   """Wrap a value so it is hard to leak it accidentally.
 
   >>> x = Private("foo")
-  >>> print "Value: %s" % x
+  >>> print("Value: %s" % x)
   Value: <redacted>
-  >>> print "Value: {0}".format(x)
+  >>> print("Value: {0}".format(x))
   Value: <redacted>
   >>> x.upper() == "FOO"
   True
@@ -302,7 +302,7 @@ class PrivateDict(dict):
   >>> PrivateDict()
   {}
   >>> supersekkrit = PrivateDict({"password": "foobar"})
-  >>> print supersekkrit["password"]
+  >>> print(supersekkrit["password"])
   <password>
   >>> supersekkrit["password"].Get()
   'foobar'

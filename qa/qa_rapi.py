@@ -94,9 +94,9 @@ def _EnsureRapiFilesPresence():
     # No files to be had
     return
 
-  print qa_logging.FormatWarning("Replacing the certificate and users file on"
+  print(qa_logging.FormatWarning("Replacing the certificate and users file on"
                                  " the node with the ones provided in %s"
-                                 % rapi_files_location)
+                                 % rapi_files_location))
 
   # The RAPI files
   AssertCommand(["mkdir", "-p", pathutils.RAPI_DATA_DIR])
@@ -149,8 +149,8 @@ def ReloadCertificates(ensure_presence=True):
 
   if qa_config.UseVirtualCluster():
     # TODO: Implement full support for RAPI on virtual clusters
-    print qa_logging.FormatWarning("RAPI tests are not yet supported on"
-                                   " virtual clusters and will be disabled")
+    print(qa_logging.FormatWarning("RAPI tests are not yet supported on"
+                                   " virtual clusters and will be disabled"))
 
     assert _rapi_client is None
   else:
@@ -159,7 +159,7 @@ def ReloadCertificates(ensure_presence=True):
                                                 password=_rapi_password,
                                                 curl_config_fn=cfg_curl)
 
-    print "RAPI protocol version: %s" % _rapi_client.GetVersion()
+    print("RAPI protocol version: %s" % _rapi_client.GetVersion())
 
 
 #TODO(riba): Remove in 2.13, used just by rapi-workload which disappears there
@@ -342,7 +342,7 @@ def _DoTests(uris):
   for uri, verify, method, body in uris:
     assert uri.startswith("/")
 
-    print "%s %s" % (method, uri)
+    print("%s %s" % (method, uri))
     data = _rapi_client._SendRequest(method, uri, None, body)
 
     if verify is not None:
@@ -392,7 +392,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
   if set_exceptions is None:
     set_exceptions = []
 
-  print "Testing get/modify symmetry of %s and %s" % (get_uri, modify_uri)
+  print("Testing get/modify symmetry of %s and %s" % (get_uri, modify_uri))
 
   # First we see if all parameters of the opcode are returned through RAPI
   params_of_interest = map(lambda x: x[0], opcode_params)
@@ -410,7 +410,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
                          "appropriate opcode are not present in the response "
                          "from %s" % (','.join(missing_params), get_uri))
 
-  print "GET successful at %s" % get_uri
+  print("GET successful at %s" % get_uri)
 
   # Then if we can perform a set with the same values as received
   put_payload = {}
@@ -420,7 +420,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
 
   _rapi_client._SendRequest(modify_method, modify_uri, None, put_payload)
 
-  print "%s successful at %s" % (modify_method, modify_uri)
+  print("%s successful at %s" % (modify_method, modify_uri))
 # pylint: enable=W0212
 
 
@@ -1032,8 +1032,8 @@ def TestRapiInstanceRemove(instance, use_client):
 def TestRapiInstanceMigrate(instance):
   """Test migrating instance via RAPI"""
   if not IsMigrationSupported(instance):
-    print qa_logging.FormatInfo("Instance doesn't support migration, skipping"
-                                " test")
+    print(qa_logging.FormatInfo("Instance doesn't support migration, skipping"
+                                " test"))
     return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance.name))
@@ -1046,8 +1046,8 @@ def TestRapiInstanceMigrate(instance):
 def TestRapiInstanceFailover(instance):
   """Test failing over instance via RAPI"""
   if not IsFailoverSupported(instance):
-    print qa_logging.FormatInfo("Instance doesn't support failover, skipping"
-                                " test")
+    print(qa_logging.FormatInfo("Instance doesn't support failover, skipping"
+                                " test"))
     return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance.name))
@@ -1087,7 +1087,7 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
   if instance.disk_template == constants.DT_DISKLESS:
-    print qa_logging.FormatInfo("Test not supported for diskless instances")
+    print(qa_logging.FormatInfo("Test not supported for diskless instances"))
     return
 
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance.name))
@@ -1103,8 +1103,8 @@ def TestRapiInstanceReinstall(instance):
 def TestRapiInstanceReplaceDisks(instance):
   """Test replacing instance disks via RAPI"""
   if not IsDiskReplacingSupported(instance):
-    print qa_logging.FormatInfo("Instance doesn't support disk replacing,"
-                                " skipping test")
+    print(qa_logging.FormatInfo("Instance doesn't support disk replacing,"
+                                " skipping test"))
     return
   fn = _rapi_client.ReplaceInstanceDisks
   _WaitForRapiJob(fn(instance.name,
@@ -1342,8 +1342,8 @@ def TestInstanceDataCensorship(instance, inodes):
   """Test protection of sensitive instance data."""
 
   if instance.disk_template != constants.DT_DRBD8:
-    print qa_utils.FormatInfo("Only the DRBD secret is a sensitive parameter"
-                              " right now, skipping for non-DRBD instance.")
+    print(qa_utils.FormatInfo("Only the DRBD secret is a sensitive parameter"
+                              " right now, skipping for non-DRBD instance."))
     return
 
   drbd_secret = _RetrieveSecret(instance, inodes[0])
@@ -1355,7 +1355,7 @@ def TestInstanceDataCensorship(instance, inodes):
   info_dict = _rapi_client.GetJobStatus(job_id)
 
   if drbd_secret in str(info_dict):
-    print qa_utils.FormatInfo("DRBD secret: %s" % drbd_secret)
-    print qa_utils.FormatInfo("Retrieved data\n%s" % str(info_dict))
+    print(qa_utils.FormatInfo("DRBD secret: %s" % drbd_secret))
+    print(qa_utils.FormatInfo("Retrieved data\n%s" % str(info_dict)))
     raise qa_error.Error("Found DRBD secret in contents of RAPI instance info"
                          " call; see above.")

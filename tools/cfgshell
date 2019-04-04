@@ -129,7 +129,7 @@ class ConfigShell(cmd.Cmd):
     if line.startswith("load") or line == "EOF" or line == "quit":
       return line
     if not self.parents or self.cfg is None:
-      print "No config data loaded"
+      print("No config data loaded")
       return ""
     return line
 
@@ -166,7 +166,7 @@ class ConfigShell(cmd.Cmd):
       self.parents = [self.cfg._config_data] # pylint: disable=W0212
       self.path = []
     except errors.ConfigurationError as err:
-      print "Error: %s" % str(err)
+      print("Error: %s" % str(err))
     return False
 
   def do_ls(self, line):
@@ -178,9 +178,9 @@ class ConfigShell(cmd.Cmd):
     """
     dirs, entries = self._get_entries(self.parents[-1])
     for i in dirs:
-      print i + "/"
+      print(i + "/")
     for i in entries:
-      print i
+      print(i)
     return False
 
   def complete_cd(self, text, line, begidx, endidx):
@@ -205,7 +205,7 @@ class ConfigShell(cmd.Cmd):
         self.parents.pop()
         return False
       else:
-        print "Already at top level"
+        print("Already at top level")
         return False
     elif len(line) == 0 or line == "/":
       self.parents = self.parents[0:1]
@@ -216,7 +216,7 @@ class ConfigShell(cmd.Cmd):
     dirs, _ = self._get_entries(pointer)
 
     if line not in dirs:
-      print "No such child"
+      print("No such child")
       return False
     if isinstance(pointer, (dict, list, tuple)):
       if isinstance(pointer, (list, tuple)):
@@ -235,7 +235,7 @@ class ConfigShell(cmd.Cmd):
     have.
 
     """
-    print "/" + "/".join(self.path)
+    print("/" + "/".join(self.path))
     return False
 
   def complete_cat(self, text, line, begidx, endidx):
@@ -257,7 +257,7 @@ class ConfigShell(cmd.Cmd):
     pointer = self.parents[-1]
     _, entries = self._get_entries(pointer)
     if line not in entries:
-      print "No such entry"
+      print("No such entry")
       return False
 
     if isinstance(pointer, (dict, list, tuple)):
@@ -266,7 +266,7 @@ class ConfigShell(cmd.Cmd):
       val = pointer[line]
     else:
       val = getattr(pointer, line)
-    print val
+    print(val)
     return False
 
   def do_verify(self, line):
@@ -279,9 +279,9 @@ class ConfigShell(cmd.Cmd):
     """
     vdata = self.cfg.VerifyConfig()
     if vdata:
-      print "Validation failed. Errors:"
+      print("Validation failed. Errors:")
       for text in vdata:
-        print text
+        print(text)
     return False
 
   def do_save(self, line):
@@ -293,7 +293,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     if self.cfg.VerifyConfig():
-      print "Config data does not validate, refusing to save."
+      print("Config data does not validate, refusing to save.")
       return False
     self.cfg._WriteConfig() # pylint: disable=W0212
 
@@ -307,25 +307,25 @@ class ConfigShell(cmd.Cmd):
     pointer = self.parents[-1]
     data = self.cfg._config_data  # pylint: disable=W0212
     if pointer not in (data.instances, data.nodes):
-      print "Can only delete instances and nodes"
+      print("Can only delete instances and nodes")
       return False
     if pointer == data.instances:
       if line in data.instances:
         self.cfg.RemoveInstance(line)
       else:
-        print "Invalid instance name"
+        print("Invalid instance name")
     else:
       if line in data.nodes:
         self.cfg.RemoveNode(line)
       else:
-        print "Invalid node name"
+        print("Invalid node name")
 
   @staticmethod
   def do_EOF(line):
     """Exit the application.
 
     """
-    print
+    print()
     return True
 
   @staticmethod
@@ -333,7 +333,7 @@ class ConfigShell(cmd.Cmd):
     """Exit the application.
 
     """
-    print
+    print()
     return True
 
 

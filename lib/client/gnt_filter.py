@@ -65,7 +65,7 @@ def AddFilter(opts, args):
   result = cl.ReplaceFilter(None, opts.priority, opts.predicates, opts.action,
                             reason)
 
-  print result  # Prints the UUID of the replaced/created filter
+  print(result)  # Prints the UUID of the replaced/created filter
 
 
 def ListFilters(opts, args):
@@ -127,7 +127,7 @@ def ReplaceFilter(opts, args):
                             action=opts.action,
                             reason=reason)
 
-  print result  # Prints the UUID of the replaced/created filter
+  print(result)  # Prints the UUID of the replaced/created filter
   return 0
 
 

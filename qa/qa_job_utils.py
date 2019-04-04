@@ -328,8 +328,8 @@ class PausedWatcher(object):
       if ex_value is None:
         raise
       else:
-        print qa_logging.FormatError('Re-enabling watcher failed: %s' %
-                                     (err, ))
+        print(qa_logging.FormatError('Re-enabling watcher failed: %s' %
+                                     (err, )))
 
 
 # TODO: Can this be done as a decorator? Implement as needed.

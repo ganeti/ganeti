@@ -107,8 +107,8 @@ class BurninFailure(Exception):
 def Usage():
   """Shows program usage information and exits the program."""
 
-  print >> sys.stderr, "Usage:"
-  print >> sys.stderr, USAGE
+  print("Usage:", file=sys.stderr)
+  print(USAGE, file=sys.stderr)
   sys.exit(2)
 
 

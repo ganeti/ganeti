@@ -314,13 +314,13 @@ def CheckRapi(options, args):
 
   """
   if args: # rapi doesn't take any arguments
-    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
-                          sys.argv[0])
+    print("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   if options.max_clients < 1:
-    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
-                          sys.argv[0])
+    print("%s --max-clients argument must be >= 1" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   ssconf.CheckMaster(options.debug)

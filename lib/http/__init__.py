@@ -499,7 +499,7 @@ def ShutdownConnection(sock, close_timeout, write_timeout, msgreader, force):
       waiting for peer
 
   """
-  #print msgreader.peer_will_close, force
+  #print(msgreader.peer_will_close, force)
   if msgreader and msgreader.peer_will_close and not force:
     # Wait for peer to close
     try:

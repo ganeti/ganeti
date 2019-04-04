@@ -476,7 +476,7 @@ def CheckMaster(debug, ss=None):
   try:
     master_name, myself = GetMasterAndMyself(ss)
   except errors.ConfigurationError as err:
-    print "Cluster configuration incomplete: '%s'" % str(err)
+    print("Cluster configuration incomplete: '%s'" % str(err))
     sys.exit(constants.EXIT_NODESETUP_ERROR)
   except errors.ResolverError as err:
     sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])

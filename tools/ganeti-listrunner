@@ -76,10 +76,9 @@ import traceback
 try:
   import paramiko
 except ImportError:
-  print >> sys.stderr, \
-    ("The \"paramiko\" module could not be imported. Install it from your"
+  print("The \"paramiko\" module could not be imported. Install it from your"
      " distribution's repository. The package is usually named"
-     " \"python-paramiko\".")
+     " \"python-paramiko\".", file=sys.stderr)
   sys.exit(1)
 
 
@@ -171,7 +170,7 @@ def GetHosts(hostsfile):
   try:
     datafile = open(hostsfile, "r")
   except IOError as msg:
-    print "Failed to open hosts file %s: %s" % (hostsfile, msg)
+    print("Failed to open hosts file %s: %s" % (hostsfile, msg))
     sys.exit(2)
 
   hosts = datafile.readlines()
@@ -185,16 +184,16 @@ def WriteLog(message, logfile):
   try:
     logfile = open(logfile, "a+")
   except IOError as msg:
-    print "failed to open log file %s: %s" % (logfile, msg)
-    print "log message was: %s" % message
+    print("failed to open log file %s: %s" % (logfile, msg))
+    print("log message was: %s" % message)
     sys.exit(1)  # no being able to log is critical
   try:
     timestamp = GetTimeStamp()
     logfile.writelines("%s %s\n" % (timestamp, message))
     logfile.close()
   except IOError as msg:
-    print "failed to write to logfile %s: %s" % (logfile, msg)
-    print "log message was: %s" % message
+    print("failed to write to logfile %s: %s" % (logfile, msg))
+    print("log message was: %s" % message)
     sys.exit(1)  # no being able to log is critical
 
 
@@ -220,7 +219,7 @@ def SetupSshConnection(host, username, password, use_agent, logfile):
   # check if target is willing to talk to us at all
   if not PingByTcp(host, 22, live_port_needed=True):
     WriteLog("ERROR: FAILURE_NOT_REACHABLE", logfile)
-    print "  - ERROR: host not reachable on 22/tcp"
+    print("  - ERROR: host not reachable on 22/tcp")
     return False
 
   if use_agent:
@@ -261,7 +260,7 @@ def SetupSshConnection(host, username, password, use_agent, logfile):
   methods = ", ".join(all_desc)
   WriteLog("ERROR: FAILURE_CONNECTION_SETUP (tried %s) " % methods, logfile)
   WriteLog("aborted", logfile)
-  print "  - ERROR: connection setup failed (tried %s)" % methods
+  print("  - ERROR: connection setup failed (tried %s)" % methods)
 
   return False
 
@@ -382,42 +381,42 @@ def HostWorker(logdir, username, password, use_agent, hostname,
   """
   # in the child/worker process
   logfile = "%s/%s.log" % (logdir, hostname)
-  print "%s - starting" % hostname
+  print("%s - starting" % hostname)
   result = 0  # optimism, I know
   try:
     connection = SetupSshConnection(hostname, username,
                                     password, use_agent, logfile)
     if connection is not False:
       if executable is not None:
-        print "  %s: uploading files" % hostname
+        print("  %s: uploading files" % hostname)
         upload_dir = UploadFiles(connection, executable,
                                  filelist, logfile)
         command = ("cd %s && ./%s" %
                    (upload_dir, os.path.basename(executable)))
         if exec_args:
           command += " %s" % exec_args
-      print "  %s: executing remote command" % hostname
+      print("  %s: executing remote command" % hostname)
       cmd_result = RunRemoteCommand(connection, command, logfile)
       if cmd_result is True:
-        print "  %s: remote command execution successful" % hostname
+        print("  %s: remote command execution successful" % hostname)
       else:
-        print ("  %s: remote command execution failed,"
-               " check log for details" % hostname)
+        print("  %s: remote command execution failed,"
+              " check log for details" % hostname)
         result = 1
       if executable is not None:
-        print "  %s: cleaning up remote work dir" % hostname
+        print("  %s: cleaning up remote work dir" % hostname)
         cln_result = CleanupRemoteDir(connection, upload_dir,
                                       filelist, logfile)
         if cln_result is False:
-          print ("  %s: remote work dir cleanup failed, check"
-                 " log for details" % hostname)
+          print("  %s: remote work dir cleanup failed, check"
+                " log for details" % hostname)
           result = 1
       connection.close()
     else:
-      print "  %s: connection setup failed, skipping" % hostname
+      print("  %s: connection setup failed, skipping" % hostname)
       result = 1
   except KeyboardInterrupt:
-    print "  %s: received KeyboardInterrupt, aborting" % hostname
+    print("  %s: received KeyboardInterrupt, aborting" % hostname)
     WriteLog("ERROR: ABORT_KEYBOARD_INTERRUPT", logfile)
     result = 1
   except Exception as err: # pylint: disable=W0703
@@ -425,7 +424,7 @@ def HostWorker(logdir, username, password, use_agent, hostname,
     trace = traceback.format_exc()
     msg = "ERROR: UNHANDLED_EXECPTION_ERROR: %s\nTrace: %s" % (err, trace)
     WriteLog(msg, logfile)
-    print "  %s: %s" % (hostname, msg)
+    print("  %s: %s" % (hostname, msg))
   # and exit with exit code 0 or 1, so the parent can compute statistics
   sys.exit(result)
 
@@ -522,7 +521,7 @@ def _GetPassword(use_agent, password, username):
       pwvalue = fh.readline().strip()
       fh.close()
     except IOError as e:
-      print "error: can not read in from password file %s: %s" % (password, e)
+      print("error: can not read in from password file %s: %s" % (password, e))
       sys.exit(1)
     password = pwvalue
   else:
@@ -552,7 +551,7 @@ def main():
   sys.stdout = os.fdopen(1, "w", 0)
 
   if LogDirUseable(logdir) is False:
-    print "ERROR: cannot create logfiles in dir %s, aborting" % logdir
+    print("ERROR: cannot create logfiles in dir %s, aborting" % logdir)
     sys.exit(1)
 
   password = _GetPassword(use_agent, password, username)
@@ -574,7 +573,7 @@ def main():
   while child_pids:
     pid, status = os.wait()
     hostname = child_pids.pop(pid, "<unknown host>")
-    print "  %s: done (in parent)" % hostname
+    print("  %s: done (in parent)" % hostname)
     if os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0:
       successes += 1
     else:
@@ -583,8 +582,8 @@ def main():
       LaunchWorker(child_pids, logdir, username, password, use_agent,
                    hosts.pop(0), executable, exec_args, command, filelist)
 
-  print
-  print "All done, %s successful and %s failed hosts" % (successes, failures)
+  print()
+  print("All done, %s successful and %s failed hosts" % (successes, failures))
 
   sys.exit(0)
 
@@ -593,5 +592,5 @@ if __name__ == "__main__":
   try:
     main()
   except KeyboardInterrupt:
-    print "Received KeyboardInterrupt, aborting"
+    print("Received KeyboardInterrupt, aborting")
     sys.exit(1)

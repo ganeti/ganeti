@@ -383,14 +383,14 @@ def TestInstanceReboot(instance):
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
   if instance.disk_template == constants.DT_DISKLESS:
-    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    print(qa_utils.FormatInfo("Test not supported for diskless instances"))
     return
 
   qa_storage = qa_config.get("qa-storage")
 
   if qa_storage is None:
-    print qa_utils.FormatInfo("Test not supported because the additional QA"
-                              " storage is not available")
+    print(qa_utils.FormatInfo("Test not supported because the additional QA"
+                              " storage is not available"))
   else:
     # Reinstall with OS image from QA storage
     url = "%s/busybox.img" % qa_storage
@@ -505,8 +505,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
 def TestInstanceFailover(instance):
   """gnt-instance failover"""
   if not IsFailoverSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support failover, skipping"
-                              " test")
+    print(qa_utils.FormatInfo("Instance doesn't support failover, skipping"
+                              " test"))
     return
 
   cmd = ["gnt-instance", "failover", "--force", instance.name]
@@ -523,8 +523,8 @@ def TestInstanceFailover(instance):
 def TestInstanceMigrate(instance, toggle_always_failover=True):
   """gnt-instance migrate"""
   if not IsMigrationSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support migration, skipping"
-                              " test")
+    print(qa_utils.FormatInfo("Instance doesn't support migration, skipping"
+                              " test"))
     return
 
   cmd = ["gnt-instance", "migrate", "--force", instance.name]
@@ -692,7 +692,7 @@ def TestInstanceModifyPrimaryAndBack(instance, currentnode, othernode):
 
   """
   if instance.disk_template != constants.DT_FILE:
-    print qa_utils.FormatInfo("Test only supported for the file disk template")
+    print(qa_utils.FormatInfo("Test only supported for the file disk template"))
     return
 
   cluster_name = qa_config.get("name")
@@ -759,17 +759,17 @@ def TestInstanceConvertDiskTemplate(instance, requested_conversions):
     return cmd
 
   if len(requested_conversions) < 2:
-    print qa_utils.FormatInfo("You must specify more than one convertible"
+    print(qa_utils.FormatInfo("You must specify more than one convertible"
                               " disk templates in order to test the conversion"
-                              " feature")
+                              " feature"))
     return
 
   name = instance.name
 
   template = instance.disk_template
   if template in constants.DTS_NOT_CONVERTIBLE_FROM:
-    print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
-                              " test" % template)
+    print(qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
+                              " test" % template))
     return
 
   inodes = qa_config.AcquireManyNodes(2)
@@ -796,7 +796,7 @@ def TestInstanceConvertDiskTemplate(instance, requested_conversions):
 def TestInstanceModifyDisks(instance):
   """gnt-instance modify --disk"""
   if not IsDiskSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support disks, skipping test")
+    print(qa_utils.FormatInfo("Instance doesn't support disks, skipping test"))
     return
 
   disk_conf = qa_config.GetDiskOptions()[-1]
@@ -822,7 +822,7 @@ def TestInstanceModifyDisks(instance):
 def TestInstanceGrowDisk(instance):
   """gnt-instance grow-disk"""
   if instance.disk_template == constants.DT_DISKLESS:
-    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    print(qa_utils.FormatInfo("Test not supported for diskless instances"))
     return
 
   name = instance.name
@@ -851,7 +851,7 @@ def TestInstanceGrowDisk(instance):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceDeviceNames(instance):
   if instance.disk_template == constants.DT_DISKLESS:
-    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    print(qa_utils.FormatInfo("Test not supported for diskless instances"))
     return
 
   name = instance.name
@@ -925,8 +925,8 @@ def TestReplaceDisks(instance, curr_nodes, other_nodes):
     return cmd
 
   if not IsDiskReplacingSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support disk replacing,"
-                              " skipping test")
+    print(qa_utils.FormatInfo("Instance doesn't support disk replacing,"
+                              " skipping test"))
     return
 
   # Currently all supported templates have one primary and one secondary node
@@ -1409,8 +1409,8 @@ def TestInstanceUserDown(instance):
       fn(instance)
       qa_daemon.TestResumeWatcher()
     else:
-      print "%s hypervisor is not enabled, skipping test for this hypervisor" \
-          % hv
+      print("%s hypervisor is not enabled, skipping test for this hypervisor" \
+          % hv)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -1424,7 +1424,7 @@ def TestInstanceCommunication(instance, master):
          "--instance-communication-network=%s" % network_name]
   result_output = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
-  print result_output
+  print(result_output)
 
   # Enable instance communication mechanism for this instance
   AssertCommand(["gnt-instance", "modify", "-c", "yes", instance.name])
@@ -1517,7 +1517,7 @@ def TestInstanceCommunication(instance, master):
          "--instance-communication-network=%s" % network_name]
   result_output = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
-  print result_output
+  print(result_output)
 
 
 def _TestRedactionOfSecretOsParams(node, cmd, secret_keys):

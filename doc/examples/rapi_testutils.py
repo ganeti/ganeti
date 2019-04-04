@@ -43,24 +43,24 @@ def main():
 
   cl = rapi.testutils.InputTestClient()
 
-  print "Testing features ..."
+  print("Testing features ...")
   assert isinstance(cl.GetFeatures(), list)
 
-  print "Testing node evacuation ..."
+  print("Testing node evacuation ...")
   result = cl.EvacuateNode("inst1.example.com",
                            mode=rapi.client.NODE_EVAC_PRI)
   assert result is NotImplemented
 
-  print "Testing listing instances ..."
+  print("Testing listing instances ...")
   for bulk in [False, True]:
     result = cl.GetInstances(bulk=bulk)
     assert result is NotImplemented
 
-  print "Testing renaming instance ..."
+  print("Testing renaming instance ...")
   result = cl.RenameInstance("inst1.example.com", "inst2.example.com")
   assert result is NotImplemented
 
-  print "Testing renaming instance with error ..."
+  print("Testing renaming instance with error ...")
   try:
     # This test deliberately uses an invalid value for the boolean parameter
     # "ip_check"
@@ -72,7 +72,7 @@ def main():
   else:
     raise Exception("This test should have failed")
 
-  print "Success!"
+  print("Success!")
 
 
 if __name__ == "__main__":

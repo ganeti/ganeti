@@ -117,9 +117,9 @@ def _SetupTempOs(node, dirname, variant, valid):
 
   cmd = " && ".join(parts)
 
-  print qa_utils.FormatInfo("Setting up %s with %s OS definition" %
+  print(qa_utils.FormatInfo("Setting up %s with %s OS definition" %
                             (node.primary,
-                             ["an invalid", "a valid"][int(valid)]))
+                             ["an invalid", "a valid"][int(valid)])))
 
   AssertCommand(cmd, node=node)
 

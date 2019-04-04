@@ -155,7 +155,7 @@ def AssertClusterVerify(fail=False, errors=None,
     with CheckFileUnmodified(mnode.primary, pathutils.CLUSTER_CONF_FILE):
       cvout = GetCommandOutput(mnode.primary, cvcmd + " --error-codes",
                                fail=(fail or errors))
-    print cvout
+    print(cvout)
     (act_errs, act_warns) = _GetCVErrorCodes(cvout)
     if errors:
       _CheckVerifyErrors(act_errs, errors, "error")
@@ -318,7 +318,7 @@ def TestClusterRename():
   original_name = qa_config.get("name")
   rename_target = qa_config.get("rename", None)
   if rename_target is None:
-    print qa_logging.FormatError('"rename" entry is missing')
+    print(qa_logging.FormatError('"rename" entry is missing'))
     return
 
   for data in [
@@ -1139,8 +1139,8 @@ def TestClusterModifyUserShutdown():
       fn(nodes)
       qa_daemon.TestResumeWatcher()
     else:
-      print "%s hypervisor is not enabled, skipping test for this hypervisor" \
-          % hv
+      print("%s hypervisor is not enabled, skipping test for this hypervisor" \
+          % hv)
 
 
 def TestClusterInfo():
@@ -1169,14 +1169,14 @@ def _AssertSsconfCertFiles():
   """
   (vcluster_master, _) = qa_config.GetVclusterSettings()
   if vcluster_master:
-    print "Skipping asserting SsconfCertFiles for Vcluster"
+    print("Skipping asserting SsconfCertFiles for Vcluster")
     return
   nodes = qa_config.get("nodes")
   ssconf_file = "/var/lib/ganeti/ssconf_master_candidates_certs"
   ssconf_content = {}
   for node in nodes:
     cmd = ["cat", ssconf_file]
-    print "Ssconf Master Certificates of node '%s'." % node.primary
+    print("Ssconf Master Certificates of node '%s'." % node.primary)
     result_output = GetCommandOutput(node.primary, utils.ShellQuoteArgs(cmd))
     ssconf_content[node] = result_output
 
@@ -1215,7 +1215,7 @@ def _TestSSHKeyChanges(master_node):
   # And stop here if vcluster
   (vcluster_master, _) = qa_config.GetVclusterSettings()
   if vcluster_master:
-    print "Skipping further SSH key replacement checks for vcluster"
+    print("Skipping further SSH key replacement checks for vcluster")
     return
 
   # And the actual tests
@@ -1359,7 +1359,7 @@ def TestClusterBurnin():
       for _ in range(0, num):
         instances.append(qa_config.AcquireInstance())
     except qa_error.OutOfInstancesError:
-      print "Not enough instances, continuing anyway."
+      print("Not enough instances, continuing anyway.")
 
     if len(instances) < 1:
       raise qa_error.Error("Burnin needs at least one instance")
@@ -1407,7 +1407,7 @@ def TestClusterMasterFailover():
 
   # Flush the configuration to prevent race conditions when loading it
   # on another node
-  print qa_logging.FormatInfo("Flushing the configuration on the master node")
+  print(qa_logging.FormatInfo("Flushing the configuration on the master node"))
   AssertCommand(["gnt-debug", "wconfd", "flushconfig"])
 
   cmd = ["gnt-cluster", "master-failover"]
@@ -1434,7 +1434,7 @@ def TestUpgrade():
   this_version = qa_config.get("dir-version")
   other_version = qa_config.get("other-dir-version")
   if this_version is None or other_version is None:
-    print qa_utils.FormatInfo("Test not run, as versions not specified")
+    print(qa_utils.FormatInfo("Test not run, as versions not specified"))
     return
 
   inst_creates = []
@@ -1630,7 +1630,7 @@ def TestInstanceCommunication():
 
   cmd = "gnt-cluster modify --instance-communication-network=%s" % network_name
   result_output = qa_utils.GetCommandOutput(master.primary, cmd)
-  print result_output
+  print(result_output)
 
   cmd = ["gnt-network", "list", "--no-headers", "-o", "name", network_name]
   result_output = qa_utils.GetCommandOutput(master.primary,
@@ -1684,7 +1684,7 @@ def TestInstanceCommunication():
   cmd = ["gnt-group", "add", group]
   result_output = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
-  print result_output
+  print(result_output)
 
   cmd = ["gnt-network", "list", "--no-headers", "-o", "group_list",
          network_name]
@@ -1706,13 +1706,13 @@ def TestInstanceCommunication():
   # same value and check that nothing happens.
   cmd = "gnt-cluster modify --instance-communication-network=%s" % network_name
   result_output = qa_utils.GetCommandOutput(master.primary, cmd)
-  print result_output
+  print(result_output)
 
   # Disable instance communication network, disconnect the instance
   # communication network and remove it, and remove the group
   cmd = "gnt-cluster modify --instance-communication-network="
   result_output = qa_utils.GetCommandOutput(master.primary, cmd)
-  print result_output
+  print(result_output)
 
   cmd = ["gnt-network", "disconnect", network_name]
   AssertCommand(utils.ShellQuoteArgs(cmd))

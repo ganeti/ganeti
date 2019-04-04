@@ -54,9 +54,9 @@ def main():
       fields_dict, builder = _DOC_CLASSES_DATA[m.group("class")]
       fields = fields_dict[m.group("kind").lower()]
       for i in builder(fields):
-        print i
+        print(i)
     else:
-      print line,
+      print(line)
 
 
 if __name__ == "__main__":

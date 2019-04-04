@@ -199,7 +199,7 @@ clean_ipsec_conf() {
 
 generate_secret() {
   # Generate a random HEX string (length specified by global variable KEYSIZE)
-  python -c "from ganeti import utils; print utils.GenerateSecret($KEYSIZE)"
+  python -c "from ganeti import utils; print(utils.GenerateSecret($KEYSIZE))"
 }
 
 gen_key() {

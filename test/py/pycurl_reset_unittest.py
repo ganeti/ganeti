@@ -72,10 +72,10 @@ class TestPyCurlReset(unittest.TestCase):
         # The bug can be detected if calling "reset" several times continously
         # reduces the number of references
         if sys.getrefcount(None) < abort_refcount:
-          print >>sys.stderr, "#" * 78
+          print("#" * 78, file=sys.stderr)
           for line in DETAILS:
-            print >>sys.stderr, textwrap.fill(line, width=78)
-          print >>sys.stderr, "#" * 78
+            print(textwrap.fill(line, width=78), file=sys.stderr)
+          print("#" * 78, file=sys.stderr)
           break
 
 

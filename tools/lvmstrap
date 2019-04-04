@@ -163,8 +163,8 @@ def Usage():
   """Shows program usage information and exits the program.
 
   """
-  print >> sys.stderr, "Usage:"
-  print >> sys.stderr, USAGE
+  print("Usage:", file=sys.stderr)
+  print(USAGE, file=sys.stderr)
   sys.exit(2)
 
 
@@ -259,10 +259,10 @@ def ExecCommand(command):
 
   """
   if verbose_flag:
-    print command
+    print(command)
   result = RunCmd(command)
   if verbose_flag:
-    print result.output
+    print(result.output)
   return result
 
 
@@ -516,9 +516,9 @@ def GetMountInfo():
       # network filesystems; with this in mind, we'll ignore it,
       # since the rereadpt check catches in-use filesystems,
       # and this is used for disk information only
-      print >> sys.stderr, ("Can't stat mountpoint '%s': %s" %
-                            (mountpoint, err))
-      print >> sys.stderr, "Ignoring."
+      print("Can't stat mountpoint '%s': %s" %
+                            (mountpoint, err), file=sys.stderr)
+      print("Ignoring.", file=sys.stderr)
       continue
     mounts[dev] = mountpoint
   return mounts
@@ -575,7 +575,7 @@ def ShowDiskInfo(opts):
   mounts = GetMountInfo()
   dlist = GetDiskList(opts)
 
-  print "------- Disk information -------"
+  print("------- Disk information -------")
   headers = {
     "name": "Name",
     "size": "Size[M]",
@@ -616,7 +616,7 @@ def ShowDiskInfo(opts):
                            strlist, numfields=["size"])
 
   for line in data:
-    print line
+    print(line)
 
 
 def CheckSysfsHolders(name):
@@ -756,8 +756,8 @@ def PartitionDisk(name, use_sfdisk):
   result = ExecCommand("parted --help")
   if result.failed:
     use_sfdisk = True
-    print >> sys.stderr, ("Unable to execute \"parted --help\","
-                          " falling back to sfdisk.")
+    print("Unable to execute \"parted --help\","
+                          " falling back to sfdisk.", file=sys.stderr)
 
   # Check disk size - over 2TB means we need to use GPT
   size = ReadSize("/sys/block/%s" % name)
@@ -921,8 +921,8 @@ def BootStrap():
 
   status, lv_count, size, _ = CheckVGExists(vgname)
   if status:
-    print "Done! %s: size %s GiB, disks: %s" % (vgname, size,
-                                                ",".join(disklist))
+    print("Done! %s: size %s GiB, disks: %s" % (vgname, size,
+                                                ",".join(disklist)))
   else:
     raise OperationalError("Although everything seemed ok, the volume"
                            " group did not get created.")
@@ -937,43 +937,44 @@ def main():
   try:
     BootStrap()
   except PrereqError as err:
-    print >> sys.stderr, "The prerequisites for running this tool are not met."
-    print >> sys.stderr, ("Please make sure you followed all the steps in"
-                          " the build document.")
-    print >> sys.stderr, "Description: %s" % str(err)
+    print("The prerequisites for running this tool are not met.",
+          file=sys.stderr)
+    print("Please make sure you followed all the steps in"
+                          " the build document.", file=sys.stderr)
+    print("Description: %s" % str(err), file=sys.stderr)
     sys.exit(1)
   except SysconfigError as err:
-    print >> sys.stderr, ("This system's configuration seems wrong, at"
-                          " least is not what I expect.")
-    print >> sys.stderr, ("Please check that the installation didn't fail"
-                          " at some step.")
-    print >> sys.stderr, "Description: %s" % str(err)
+    print("This system's configuration seems wrong, at"
+                          " least is not what I expect.", file=sys.stderr)
+    print("Please check that the installation didn't fail"
+                          " at some step.", file=sys.stderr)
+    print("Description: %s" % str(err), file=sys.stderr)
     sys.exit(1)
   except ParameterError as err:
-    print >> sys.stderr, ("Some parameters you gave to the program or the"
-                          " invocation is wrong. ")
-    print >> sys.stderr, "Description: %s" % str(err)
+    print("Some parameters you gave to the program or the"
+                          " invocation is wrong. ", file=sys.stderr)
+    print("Description: %s" % str(err), file=sys.stderr)
     Usage()
   except OperationalError as err:
-    print >> sys.stderr, ("A serious error has happened while modifying"
-                          " the system's configuration.")
-    print >> sys.stderr, ("Please review the error message below and make"
-                          " sure you clean up yourself.")
-    print >> sys.stderr, ("It is most likely that the system configuration"
-                          " has been partially altered.")
-    print >> sys.stderr, str(err)
+    print("A serious error has happened while modifying"
+                          " the system's configuration.", file=sys.stderr)
+    print("Please review the error message below and make"
+                          " sure you clean up yourself.", file=sys.stderr)
+    print("It is most likely that the system configuration"
+                          " has been partially altered.", file=sys.stderr)
+    print(str(err), file=sys.stderr)
     sys.exit(1)
   except ProgrammingError as err:
-    print >> sys.stderr, ("Internal application error. Please report this"
-                          " to the Ganeti developer list.")
-    print >> sys.stderr, "Error description: %s" % str(err)
+    print("Internal application error. Please report this"
+                          " to the Ganeti developer list.", file=sys.stderr)
+    print("Error description: %s" % str(err), file=sys.stderr)
     sys.exit(1)
   except Error as err:
-    print >> sys.stderr, "Unhandled application error: %s" % err
+    print("Unhandled application error: %s" % err, file=sys.stderr)
     sys.exit(1)
   except (IOError, OSError) as err:
-    print >> sys.stderr, "I/O error detected, please report."
-    print >> sys.stderr, "Description: %s" % str(err)
+    print("I/O error detected, please report.", file=sys.stderr)
+    print("Description: %s" % str(err), file=sys.stderr)
     sys.exit(1)
 
 

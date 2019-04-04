@@ -94,7 +94,7 @@ def _Counter(lock, state, me):
         sys.stdout.flush()
 
       if sum(verify) != 1:
-        print "Inconsistent state!"
+        print("Inconsistent state!")
         os._exit(1) # pylint: disable=W0212
 
       verify[me] = 0
@@ -132,19 +132,19 @@ def main():
 
   res = resource.getrusage(resource.RUSAGE_SELF)
 
-  print "Total number of acquisitions: %s" % state.total_count
-  print "Per-thread acquisitions:"
+  print("Total number of acquisitions: %s" % state.total_count)
+  print("Per-thread acquisitions:")
   for (i, count) in enumerate(state.counts):
-    print ("  Thread %s: %d (%0.1f%%)" %
-           (i, count, (100.0 * count / state.total_count)))
+    print("  Thread %s: %d (%0.1f%%)" %
+          (i, count, (100.0 * count / state.total_count)))
 
-  print "Benchmark CPU time: %0.3fs" % lock_cputime
-  print ("Average time per lock acquisition: %0.5fms" %
-         (1000.0 * lock_cputime / state.total_count))
-  print "Process:"
-  print "  User time: %0.3fs" % res.ru_utime
-  print "  System time: %0.3fs" % res.ru_stime
-  print "  Total time: %0.3fs" % (res.ru_utime + res.ru_stime)
+  print("Benchmark CPU time: %0.3fs" % lock_cputime)
+  print("Average time per lock acquisition: %0.5fms" %
+        (1000.0 * lock_cputime / state.total_count))
+  print("Process:")
+  print("  User time: %0.3fs" % res.ru_utime)
+  print("  System time: %0.3fs" % res.ru_stime)
+  print("  Total time: %0.3fs" % (res.ru_utime + res.ru_stime))
 
   # Exit directly without attempting to clean up threads
   os._exit(0) # pylint: disable=W0212

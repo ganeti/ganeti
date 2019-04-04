@@ -166,13 +166,13 @@ def _PrintCommandOutput(stdout, stderr):
   if stdout:
     stdout_clean = stdout.rstrip('\n')
     if stderr:
-      print "Stdout was:\n%s" % stdout_clean
+      print("Stdout was:\n%s" % stdout_clean)
     else:
-      print stdout_clean
+      print(stdout_clean)
 
   if stderr:
-    print "Stderr was:"
-    print >> sys.stderr, stderr.rstrip('\n')
+    print("Stderr was:")
+    print(stderr.rstrip('\n'), file=sys.stderr)
 
 
 def AssertCommand(cmd, fail=False, node=None, log_cmd=True, forward_agent=True,
@@ -343,8 +343,8 @@ def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
       pcmd = [i for i in cmd if not i.startswith("-")]
     else:
       pcmd = cmd
-    print "%s %s" % (colors.colorize("Command:", colors.CYAN),
-                     utils.ShellQuoteArgs(pcmd))
+    print("%s %s" % (colors.colorize("Command:", colors.CYAN),
+                     utils.ShellQuoteArgs(pcmd)))
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
@@ -371,7 +371,7 @@ def StartMultiplexer(node):
   sname = tempfile.mktemp(prefix="ganeti-qa-multiplexer.")
   utils.RemoveFile(sname)
   opts = ["-N", "-oControlPath=%s" % sname, "-oControlMaster=yes"]
-  print "Created socket at %s" % sname
+  print("Created socket at %s" % sname)
   child = StartLocalCommand(GetSSHCommand(node, None, opts=opts))
   _MULTIPLEXERS[node] = (sname, child)
 
@@ -523,7 +523,7 @@ def BackupFile(node, path):
   # Return temporary filename
   result = GetCommandOutput(node, cmd).strip()
 
-  print "Backup filename: %s" % result
+  print("Backup filename: %s" % result)
 
   return result
 
@@ -763,8 +763,8 @@ def RunInstanceCheck(instance, running):
     running_shellval = ""
     running_text = "not "
 
-  print FormatInfo("Checking if instance '%s' is %srunning" %
-                   (instance_name, running_text))
+  print(FormatInfo("Checking if instance '%s' is %srunning" %
+                   (instance_name, running_text)))
 
   args = [script, instance_name]
   env = {

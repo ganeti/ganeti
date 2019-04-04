@@ -321,10 +321,10 @@ class _QaConfig(object):
 
     """
     patch_content = patches[patch_path]
-    print qa_logging.FormatInfo("Applying patch %s" % patch_path)
+    print(qa_logging.FormatInfo("Applying patch %s" % patch_path))
     if not patch_content and patch_path != _QA_DEFAULT_PATCH:
-      print qa_logging.FormatWarning("The patch %s added by the user is empty" %
-                                     patch_path)
+      print(qa_logging.FormatWarning("The patch %s added by the user is empty" %
+                                     patch_path))
     patch_module.apply_patch(data, patch_content, in_place=True)
 
   @staticmethod

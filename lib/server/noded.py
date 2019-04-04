@@ -1285,21 +1285,21 @@ def CheckNoded(options, args):
 
   """
   if args: # noded doesn't take any arguments
-    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
-                          sys.argv[0])
+    print("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   if options.max_clients < 1:
-    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
-                          sys.argv[0])
+    print("%s --max-clients argument must be >= 1" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   try:
     codecs.lookup("string-escape")
   except LookupError:
-    print >> sys.stderr, ("Can't load the string-escape code which is part"
+    print("Can't load the string-escape code which is part"
                           " of the Python installation. Is your installation"
-                          " complete/correct? Aborting.")
+                          " complete/correct? Aborting.", file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
 
