@@ -2766,7 +2766,7 @@ class TLReplaceDisks(Tasklet):
     cstep = itertools.count(5)
 
     if self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
       # TODO: Check if releasing locks early still makes sense
       ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
@@ -2784,7 +2784,7 @@ class TLReplaceDisks(Tasklet):
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(cstep.next(), steps_total, "Sync devices")
+    self.lu.LogStep(next(cstep), steps_total, "Sync devices")
     WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
@@ -2792,7 +2792,7 @@ class TLReplaceDisks(Tasklet):
 
     # Step: remove old storage
     if not self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
   def _UpdateDisksSecondary(self, iv_names, feedback_fn):
@@ -2987,7 +2987,7 @@ class TLReplaceDisks(Tasklet):
     cstep = itertools.count(5)
 
     if self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
       # TODO: Check if releasing locks early still makes sense
       ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
@@ -3002,7 +3002,7 @@ class TLReplaceDisks(Tasklet):
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(cstep.next(), steps_total, "Sync devices")
+    self.lu.LogStep(next(cstep), steps_total, "Sync devices")
     WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
@@ -3010,7 +3010,7 @@ class TLReplaceDisks(Tasklet):
 
     # Step: remove old storage
     if not self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
 

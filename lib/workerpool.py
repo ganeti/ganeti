@@ -326,7 +326,7 @@ class WorkerPool(object):
     assert task_id is None or isinstance(task_id, (int, long)), \
       "Task ID must be numeric or None"
 
-    task = [priority, self._counter.next(), task_id, args]
+    task = [priority, next(self._counter), task_id, args]
 
     if task_id is not None:
       assert task_id not in self._taskdata

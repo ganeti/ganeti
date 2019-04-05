@@ -2453,13 +2453,13 @@ class JobExecutor(object):
 
     """
     SetGenericOpcodeOpts(ops, self.opts)
-    self.queue.append((self._counter.next(), name, ops))
+    self.queue.append((next(self._counter), name, ops))
 
   def AddJobId(self, name, status, job_id):
     """Adds a job ID to the internal queue.
 
     """
-    self.jobs.append((self._counter.next(), status, job_id, name))
+    self.jobs.append((next(self._counter), status, job_id, name))
 
   def SubmitPending(self, each=False):
     """Submit all pending jobs.

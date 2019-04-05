@@ -800,7 +800,7 @@ class _JobProcessor(object):
     # Find next opcode to run
     while True:
       try:
-        (idx, op) = job.ops_iter.next()
+        (idx, op) = next(job.ops_iter)
       except StopIteration:
         raise errors.ProgrammerError("Called for a finished job")
 

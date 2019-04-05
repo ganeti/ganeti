@@ -900,7 +900,7 @@ class TestSharedLock(_ThreadedTestCase):
         rnd.shuffle(modes)
         for shared in modes:
           # Unique name
-          acqname = "%s/shr=%s/prio=%s" % (counter.next(), shared, priority)
+          acqname = "%s/shr=%s/prio=%s" % (next(counter), shared, priority)
 
           ev = threading.Event()
           thread = self._addThread(target=_Acquire,

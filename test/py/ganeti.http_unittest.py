@@ -567,7 +567,7 @@ class TestProcessCurlRequests(unittest.TestCase):
     def add_handle(self, curl):
       assert curl not in self.handles
       self.handles.append(curl)
-      if self._counter.next() % 3 == 0:
+      if next(self._counter) % 3 == 0:
         self.will_fail.append(curl)
 
     def remove_handle(self, curl):
@@ -576,7 +576,7 @@ class TestProcessCurlRequests(unittest.TestCase):
     def perform(self):
       assert self._expect.pop(0) == "perform"
 
-      if self._counter.next() % 2 == 0:
+      if next(self._counter) % 2 == 0:
         self._expect.append("perform")
         return (pycurl.E_CALL_MULTI_PERFORM, None)
 
@@ -589,7 +589,7 @@ class TestProcessCurlRequests(unittest.TestCase):
       successful = []
       failed = []
       if self.handles:
-        if self._counter.next() % 17 == 0:
+        if next(self._counter) % 17 == 0:
           curl = self.handles[0]
           if curl in self.will_fail:
             failed.append((curl, -1, "test error"))

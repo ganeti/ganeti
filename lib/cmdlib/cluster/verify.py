@@ -1778,7 +1778,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     sel = cls._SshNodeSelector(group_uuid, all_nodes)
 
     return (online_nodes,
-            dict((name, sorted([i.next() for i in sel]))
+            dict((name, sorted([next(i) for i in sel]))
                  for name in online_nodes),
             online_mcs)
 

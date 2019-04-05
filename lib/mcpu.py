@@ -123,7 +123,7 @@ class LockAttemptTimeoutStrategy(object):
 
     """
     try:
-      timeout = self._timeouts.next()
+      timeout = next(self._timeouts)
     except StopIteration:
       # No more timeouts, do blocking acquire
       timeout = None

@@ -1260,17 +1260,17 @@ class _FakeConfigForGenDiskTemplate(ConfigMock):
     self._secret = itertools.count()
 
   def GenerateUniqueID(self, ec_id):
-    return "ec%s-uq%s" % (ec_id, self._unique_id.next())
+    return "ec%s-uq%s" % (ec_id, next(self._unique_id))
 
   def AllocateDRBDMinor(self, nodes, disk):
-    return [self._drbd_minor.next()
+    return [next(self._drbd_minor)
             for _ in nodes]
 
   def AllocatePort(self):
-    return self._port.next()
+    return next(self._port)
 
   def GenerateDRBDSecret(self, ec_id):
-    return "ec%s-secret%s" % (ec_id, self._secret.next())
+    return "ec%s-secret%s" % (ec_id, next(self._secret))
 
 
 class TestGenerateDiskTemplate(CmdlibTestCase):
