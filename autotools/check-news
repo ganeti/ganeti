@@ -35,6 +35,8 @@
 # pylint: disable=C0103
 # [C0103] Invalid name
 
+from __future__ import print_function
+
 import sys
 import time
 import datetime

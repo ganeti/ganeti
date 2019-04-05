@@ -35,6 +35,8 @@
 # C0103: Functions in this module need to have a given name structure,
 # and the name of the daemon doesn't match
 
+from __future__ import print_function
+
 import os
 import sys
 import logging

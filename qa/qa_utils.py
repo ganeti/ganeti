@@ -32,6 +32,8 @@
 
 """
 
+from __future__ import print_function
+
 import contextlib
 import copy
 import datetime

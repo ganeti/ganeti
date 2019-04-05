@@ -30,6 +30,8 @@
 
 """Script for testing for an issue in PycURL"""
 
+from __future__ import print_function
+
 import sys
 import warnings
 import unittest

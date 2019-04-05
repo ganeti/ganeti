@@ -35,6 +35,8 @@
 
 # C0103: Invalid name ganeti-watcher
 
+from __future__ import print_function
+
 import logging
 import optparse
 import sys

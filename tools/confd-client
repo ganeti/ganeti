@@ -35,6 +35,8 @@ This is can be used to test and debug confd daemon functionality.
 
 """
 
+from __future__ import print_function
+
 import sys
 import optparse
 import time

@@ -48,6 +48,7 @@ them.
 
 """
 
+from __future__ import print_function
 
 import os
 import sys
@@ -60,6 +61,7 @@ from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
 from ganeti import cli
 from ganeti import compat
+
 
 USAGE = ("\tlvmstrap diskinfo\n"
          "\tlvmstrap [--vg-name=NAME] [--allow-removable]"

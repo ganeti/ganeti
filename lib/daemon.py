@@ -30,6 +30,7 @@
 
 """Module with helper classes and functions for daemons"""
 
+from __future__  import print_function
 
 import asyncore
 import asynchat

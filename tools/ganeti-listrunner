@@ -61,6 +61,8 @@ Security considerations:
 # pylint: disable=C0103
 # C0103: Invalid name ganeti-listrunner
 
+from __future__ import print_function
+
 import errno
 import optparse
 import getpass
