@@ -2027,7 +2027,7 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
 
     expected_msgs = [
       "Extra OS only_on_test not present on reference node",
-      "OSes present on reference node .* but missing on this node:" +
+      "OSes present on reference node .* but missing on this node:.*" +
         " only_on_root",
       "OS API version for diffing_os differs",
       "OS variants list for diffing_os differs",
