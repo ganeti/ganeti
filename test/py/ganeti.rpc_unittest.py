@@ -521,7 +521,8 @@ class TestRpcClientBase(unittest.TestCase):
                       cdef, [], [0, 1, 2])
 
   def testTimeout(self):
-    def _CalcTimeout((arg1, arg2)):
+    def _CalcTimeout(args):
+      (arg1, arg2) = args
       return arg1 + arg2
 
     def _VerifyRequest(exp_timeout, req):
@@ -691,7 +692,8 @@ class TestRpcClientBase(unittest.TestCase):
       self.assertEqual(options, expected)
       return zip(hosts, nodes, hosts)
 
-    def _DynamicResolverOptions((arg0, )):
+    def _DynamicResolverOptions(args):
+      (arg0, ) = args
       return sum(arg0)
 
     tests = [

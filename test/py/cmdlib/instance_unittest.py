@@ -1537,7 +1537,8 @@ class _DiskPauseTracker:
   def __init__(self):
     self.history = []
 
-  def __call__(self, (disks, instance), pause):
+  def __call__(self, instance_disks, pause):
+    (disks, instance) = instance_disks
     disk_uuids = [d.uuid for d in disks]
     assert not (set(disk_uuids) - set(instance.disks))
 
@@ -1580,7 +1581,8 @@ class _DiskWipeProgressTracker:
     self._start_offset = start_offset
     self.progress = {}
 
-  def __call__(self, (disk, _), offset, size):
+  def __call__(self, disk_info, offset, size):
+    (disk, _) = disk_info
     assert isinstance(offset, (long, int))
     assert isinstance(size, (long, int))
 
@@ -1607,7 +1609,8 @@ class _DiskWipeProgressTracker:
 
 
 class TestWipeDisks(unittest.TestCase):
-  def _FailingPauseCb(self, (disks, _), pause):
+  def _FailingPauseCb(self, disks_info, pause):
+    (disks, _) = disks_info
     self.assertEqual(len(disks), 3)
     self.assertTrue(pause)
     # Simulate an RPC error
@@ -1633,8 +1636,9 @@ class TestWipeDisks(unittest.TestCase):
 
     self.assertRaises(errors.OpExecError, instance_create.WipeDisks, lu, inst)
 
-  def _FailingWipeCb(self, (disk, _), offset, size):
+  def _FailingWipeCb(self, disk_info, offset, size):
     # This should only ever be called for the first disk
+    (disk, _) = disk_info
     self.assertEqual(disk.logical_id, "disk0")
     return (False, None)
 

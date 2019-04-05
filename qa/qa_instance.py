@@ -1006,9 +1006,9 @@ def _BuildRecreateDisksOpts(en_disks, with_spindles, with_growth,
                                    utils.ParseUnit(disk["growth"])))
   else:
     build_size_opt = (lambda disk: "size=%s" % disk["size"])
-  build_disk_opt = (lambda (idx, disk):
-                    "--disk=%s:%s%s" % (idx, build_size_opt(disk),
-                                        build_spindles_opt(disk)))
+  build_disk_opt = (lambda idx_dsk:
+                    "--disk=%s:%s%s" % (idx_dsk[0], build_size_opt(idx_dsk[1]),
+                                        build_spindles_opt(idx_dsk[1])))
   return map(build_disk_opt, en_disks)
 
 

@@ -110,7 +110,7 @@ _FIND_RUNTIME_ENTRY = {
   }
 _RUNTIME_DEVICE = {
   constants.HOTPLUG_TARGET_NIC: lambda d: d,
-  constants.HOTPLUG_TARGET_DISK: lambda (d, e, _): d
+  constants.HOTPLUG_TARGET_DISK: lambda d_e_x: d_e_x[0]
   }
 _RUNTIME_ENTRY = {
   constants.HOTPLUG_TARGET_NIC: lambda d, e: d,

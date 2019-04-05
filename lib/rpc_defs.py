@@ -175,11 +175,12 @@ def _ImpExpStatusPostProc(result):
   return result
 
 
-def _TestDelayTimeout((duration, )):
+def _TestDelayTimeout(duration):
   """Calculate timeout for "test_delay" RPC.
 
   """
-  return int(duration + 5)
+  _duration = duration[0]
+  return int(_duration + 5)
 
 
 _FILE_STORAGE_CALLS = [

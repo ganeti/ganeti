@@ -337,7 +337,7 @@ class TestSequenceToDict(unittest.TestCase):
       dict((hex(i), (i, hex(i), "test%s" % i))
            for i in range(100)))
     self.assertEqual(algo.SequenceToDict(data,
-                                         key=lambda (a, b, val): hash(val)),
+                                         key=lambda a_b_val: hash(a_b_val[2])),
       dict((hash("test%s" % i), (i, hex(i), "test%s" % i))
            for i in range(100)))
 

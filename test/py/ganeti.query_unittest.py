@@ -1053,7 +1053,8 @@ class TestInstanceQuery(unittest.TestCase):
     # Ensure all possible status' have been tested
     self.assertEqual(tested_status, set(constants.INSTST_ALL))
 
-  def _CheckInstanceConsole(self, instance, (status, consdata)):
+  def _CheckInstanceConsole(self, instance, console_info):
+    (status, consdata) = console_info
     if instance.name == "inst7":
       self.assertEqual(status, constants.RS_NORMAL)
       console = objects.InstanceConsole.FromDict(consdata)

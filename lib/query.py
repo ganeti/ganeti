@@ -844,10 +844,11 @@ def _VerifyResultRow(fields, row):
                     (utils.CommaJoin(errs), row))
 
 
-def _FieldDictKey((fdef, _, flags, fn)):
+def _FieldDictKey(field):
   """Generates key for field dictionary.
 
   """
+  (fdef, _, flags, fn) = field
   assert fdef.name and fdef.title, "Name and title are required"
   assert FIELD_NAME_RE.match(fdef.name)
   assert TITLE_RE.match(fdef.title)
@@ -2341,11 +2342,11 @@ def _BuildLockFields():
   return _PrepareFieldList([
     # TODO: Lock names are not always hostnames. Should QFF_HOSTNAME be used?
     (_MakeField("name", "Name", QFT_TEXT, "Lock name"), None, 0,
-     lambda ctx, (name, mode, owners, pending): name),
+     lambda ctx, lock_info: lock_info[0]),
     (_MakeField("mode", "Mode", QFT_OTHER,
                 "Mode in which the lock is currently acquired"
                 " (exclusive or shared)"),
-     LQ_MODE, 0, lambda ctx, (name, mode, owners, pending): mode),
+     LQ_MODE, 0, lambda ctx, lock_info: lock_info[1]),
     (_MakeField("owner", "Owner", QFT_OTHER, "Current lock owner(s)"),
      LQ_OWNER, 0, _GetLockOwners),
     (_MakeField("pending", "Pending", QFT_OTHER,
@@ -2565,13 +2566,14 @@ def _BuildExtStorageFields():
   return _PrepareFieldList(fields, [])
 
 
-def _JobUnavailInner(fn, ctx, (job_id, job)): # pylint: disable=W0613
+def _JobUnavailInner(fn, ctx, jid_job): # pylint: disable=W0613
   """Return L{_FS_UNAVAIL} if job is None.
 
   When listing specifc jobs (e.g. "gnt-job list 1 2 3"), a job may not be
   found, in which case this function converts it to L{_FS_UNAVAIL}.
 
   """
+  job = jid_job[1]
   if job is None:
     return _FS_UNAVAIL
   else:
@@ -2624,7 +2626,7 @@ def _BuildJobFields():
   """
   fields = [
     (_MakeField("id", "ID", QFT_NUMBER, "Job ID"),
-     None, QFF_JOB_ID, lambda _, (job_id, job): job_id),
+     None, QFF_JOB_ID, lambda _, jid_job: jid_job[0]),
     (_MakeField("status", "Status", QFT_TEXT, "Job status"),
      None, 0, _JobUnavail(lambda job: job.CalcStatus())),
     (_MakeField("priority", "Priority", QFT_NUMBER,
@@ -2632,7 +2634,7 @@ def _BuildJobFields():
                  (constants.OP_PRIO_LOWEST, constants.OP_PRIO_HIGHEST))),
      None, 0, _JobUnavail(lambda job: job.CalcPriority())),
     (_MakeField("archived", "Archived", QFT_BOOL, "Whether job is archived"),
-     JQ_ARCHIVED, 0, lambda _, (job_id, job): job.archived),
+     JQ_ARCHIVED, 0, lambda _, jid_job: jid_job[1].archived),
     (_MakeField("ops", "OpCodes", QFT_OTHER, "List of all opcodes"),
      None, 0, _PerJobOp(lambda op: op.input.__getstate__())),
     (_MakeField("opresult", "OpCode_result", QFT_OTHER,
@@ -2679,10 +2681,11 @@ def _BuildJobFields():
   return _PrepareFieldList(fields, [])
 
 
-def _GetExportName(_, (node_name, expname)): # pylint: disable=W0613
+def _GetExportName(_, node_export_name): # pylint: disable=W0613
   """Returns an export name if available.
 
   """
+  expname = node_export_name[1]
   if expname is None:
     return _FS_NODATA
   else:
@@ -2695,7 +2698,7 @@ def _BuildExportFields():
   """
   fields = [
     (_MakeField("node", "Node", QFT_TEXT, "Node name"),
-     None, QFF_HOSTNAME, lambda _, (node_name, expname): node_name),
+     None, QFF_HOSTNAME, lambda _, node_expname: node_expname[0]),
     (_MakeField("export", "Export", QFT_TEXT, "Export name"),
      None, 0, _GetExportName),
     ]

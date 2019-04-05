@@ -251,10 +251,11 @@ _RESOURCE_CONVERTER = {
   }
 
 
-def _ConvertResources((key, value)):
+def _ConvertResources(key_value):
   """Converts cluster resources in configuration to Python objects.
 
   """
+  (key, value) = key_value
   fn = _RESOURCE_CONVERTER.get(key, None)
   if fn:
     return (key, map(fn, value))

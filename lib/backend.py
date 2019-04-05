@@ -761,8 +761,10 @@ def GetNodeInfo(storage_units, hv_specs):
   bootid = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
   storage_info = _GetNamedNodeInfo(
     storage_units,
-    (lambda (storage_type, storage_key, storage_params):
-        _ApplyStorageInfoFunction(storage_type, storage_key, storage_params)))
+    (lambda type_key_params:
+        _ApplyStorageInfoFunction(type_key_params[0],
+                                  type_key_params[1],
+                                  type_key_params[2])))
   hv_info = _GetHvInfoAll(hv_specs)
   return (bootid, storage_info, hv_info)
 

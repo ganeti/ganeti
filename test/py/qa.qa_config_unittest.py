@@ -412,7 +412,7 @@ class TestQaConfig(unittest.TestCase):
         acquired.append((node.use_count, node.primary, node))
 
       # Check if returned nodes were in correct order
-      key_fn = lambda (a, b, c): (a, utils.NiceSortKey(b), c)
+      key_fn = lambda a_b_c: (a_b_c[0], utils.NiceSortKey(a_b_c[1]), a_b_c[2])
       self.assertEqual(acquired, sorted(acquired, key=key_fn))
 
       # Release previously acquired nodes

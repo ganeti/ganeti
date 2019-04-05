@@ -956,7 +956,8 @@ class TestSharedLock(_ThreadedTestCase):
 
     self.assertRaises(Queue.Empty, self.done.get_nowait)
 
-  def _VerifyPrioPending(self, ((name, mode, owner, pending), ), perprio):
+  def _VerifyPrioPending(self, lockinfo, perprio):
+    ((name, mode, owner, pending), ) = lockinfo
     self.assertEqual(name, self.sl.name)
     self.assert_(mode is None)
     self.assert_(owner is None)
