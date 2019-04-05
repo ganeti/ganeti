@@ -3964,7 +3964,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   raw_data = _Decompress(data)
 
-  if not (isinstance(uid, basestring) and isinstance(gid, basestring)):
+  if not (isinstance(uid, str) and isinstance(gid, str)):
     _Fail("Invalid username/groupname type")
 
   getents = runtime.GetEnts()

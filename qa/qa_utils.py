@@ -135,7 +135,7 @@ def _GetName(entity, fn):
   @param fn: Function retrieving name from entity
 
   """
-  if isinstance(entity, basestring):
+  if isinstance(entity, str):
     result = entity
   else:
     result = fn(entity)
@@ -207,7 +207,7 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, forward_agent=True,
 
   nodename = _GetName(node, operator.attrgetter("primary"))
 
-  if isinstance(cmd, basestring):
+  if isinstance(cmd, str):
     cmdstr = cmd
   else:
     cmdstr = utils.ShellQuoteArgs(cmd)
@@ -878,7 +878,7 @@ def MakeNodePath(node, path):
   """
   (_, basedir) = qa_config.GetVclusterSettings()
 
-  if isinstance(node, basestring):
+  if isinstance(node, str):
     name = node
   else:
     name = node.primary

@@ -324,7 +324,7 @@ class TaggableObject(ConfigObject):
     function has no return value.
 
     """
-    if not isinstance(tag, basestring):
+    if not isinstance(tag, str):
       raise errors.TagError("Invalid tag type (not a string)")
     if len(tag) > constants.MAX_TAG_LEN:
       raise errors.TagError("Tag too long (>%d characters)" %

@@ -1170,7 +1170,7 @@ class TestFormatPolicyInfo(unittest.TestCase):
       for (cval, gval) in zip(cluster, group):
         self._CompareClusterGroupItems(cval, gval)
     else:
-      self.assertTrue(isinstance(group, basestring))
+      self.assertTrue(isinstance(group, str))
       self.assertEqual("default (%s)" % cluster, group)
 
   def _TestClusterVsGroup(self, policy):

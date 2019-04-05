@@ -239,7 +239,7 @@ def TString(val):
   """Checks if the given value is a string.
 
   """
-  return isinstance(val, basestring)
+  return isinstance(val, str)
 
 
 @WithDesc("EvalToTrue")

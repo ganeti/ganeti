@@ -157,7 +157,7 @@ def AddAuthorizedKeys(file_obj, keys):
   """
   key_field_list = [(key, _SplitSshKey(key)) for key in keys]
 
-  if isinstance(file_obj, basestring):
+  if isinstance(file_obj, str):
     f = open(file_obj, "a+")
   else:
     f = file_obj
@@ -193,7 +193,7 @@ def HasAuthorizedKey(file_obj, key):
   """
   key_fields = _SplitSshKey(key)
 
-  if isinstance(file_obj, basestring):
+  if isinstance(file_obj, str):
     f = open(file_obj, "r")
   else:
     f = file_obj
@@ -221,7 +221,7 @@ def CheckForMultipleKeys(file_obj, node_names):
 
   """
 
-  if isinstance(file_obj, basestring):
+  if isinstance(file_obj, str):
     f = open(file_obj, "r")
   else:
     f = file_obj

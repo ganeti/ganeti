@@ -503,7 +503,7 @@ def ProduceForbiddenParamDict(class_name, method_name, param_list):
 
   param_dict = {}
   for value in param_list:
-    if isinstance(value, basestring):
+    if isinstance(value, str):
       param_dict[value] = ALL_VALUES_FORBIDDEN
     elif isinstance(value, tuple):
       if len(value) != 2:

@@ -648,7 +648,7 @@ class R_2_nodes_name_role(baserlib.OpcodeResource):
     """Sets the node role.
 
     """
-    baserlib.CheckType(self.request_body, basestring, "Body contents")
+    baserlib.CheckType(self.request_body, str, "Body contents")
 
     role = self.request_body
 

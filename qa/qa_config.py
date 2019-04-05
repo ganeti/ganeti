@@ -577,7 +577,7 @@ class _QaConfig(object):
     else:
       if value is None:
         return []
-      elif isinstance(value, basestring):
+      elif isinstance(value, str):
         return value.split(",")
       else:
         return value

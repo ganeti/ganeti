@@ -56,7 +56,7 @@ def GetOutputFromMaster(cmd, use_multiplexer=True, log_cmd=True):
   """ Gets the output of a command executed on master.
 
   """
-  if isinstance(cmd, basestring):
+  if isinstance(cmd, str):
     cmdstr = cmd
   else:
     cmdstr = utils.ShellQuoteArgs(cmd)

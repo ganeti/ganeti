@@ -113,14 +113,14 @@ def ForceDictType(target, key_types, allowed_values=None):
     if ktype in (constants.VTYPE_STRING, constants.VTYPE_MAYBE_STRING):
       if target[key] is None and ktype == constants.VTYPE_MAYBE_STRING:
         pass
-      elif not isinstance(target[key], basestring):
+      elif not isinstance(target[key], str):
         if isinstance(target[key], bool) and not target[key]:
           target[key] = ""
         else:
           msg = "'%s' (value %s) is not a valid string" % (key, target[key])
           raise errors.TypeEnforcementError(msg)
     elif ktype == constants.VTYPE_BOOL:
-      if isinstance(target[key], basestring) and target[key]:
+      if isinstance(target[key], str) and target[key]:
         if target[key].lower() == constants.VALUE_FALSE:
           target[key] = False
         elif target[key].lower() == constants.VALUE_TRUE:
@@ -353,7 +353,7 @@ def GetHomeDir(user, default=None):
 
   """
   try:
-    if isinstance(user, basestring):
+    if isinstance(user, str):
       result = pwd.getpwnam(user)
     elif isinstance(user, (int, long)):
       result = pwd.getpwuid(user)

@@ -667,7 +667,7 @@ def Truncate(text, length):
   assert length > len(_ASCII_ELLIPSIS)
 
   # Serialize if necessary
-  if not isinstance(text, basestring):
+  if not isinstance(text, str):
     text = str(text)
 
   if len(text) <= length:

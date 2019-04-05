@@ -1560,7 +1560,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
     if vg_name is None:
       pass
-    elif isinstance(lvdata, basestring):
+    elif isinstance(lvdata, str):
       self._ErrorIf(True, constants.CV_ENODELVM, ninfo.name,
                     "LVM problem on node: %s", utils.SafeEncode(lvdata))
     elif not isinstance(lvdata, dict):

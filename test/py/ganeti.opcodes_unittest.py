@@ -194,7 +194,7 @@ class TestOpcodes(unittest.TestCase):
         self.assertTrue(callable(test),
                      msg=("Invalid type check for %s.%s" %
                           (cls.OP_ID, attr_name)))
-        self.assertTrue(doc is None or isinstance(doc, basestring))
+        self.assertTrue(doc is None or isinstance(doc, str))
 
         if callable(aval):
           default_value = aval()

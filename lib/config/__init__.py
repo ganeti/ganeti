@@ -1127,7 +1127,7 @@ class ConfigWriter(object):
     @return: A list of minors in the same order as the passed nodes
 
     """
-    assert isinstance(disk_uuid, basestring), \
+    assert isinstance(disk_uuid, str), \
            "Invalid argument '%s' passed to AllocateDRBDMinor" % disk_uuid
 
     if self._offline:
@@ -1148,7 +1148,7 @@ class ConfigWriter(object):
     @param disk_uuid: the disk for which temporary minors should be released
 
     """
-    assert isinstance(disk_uuid, basestring), \
+    assert isinstance(disk_uuid, str), \
            "Invalid argument passed to ReleaseDRBDMinors"
     # in offline mode we allow the calls to release DRBD minors,
     # because then nothing can be allocated anyway;
@@ -2318,7 +2318,7 @@ class ConfigWriter(object):
   def _UnlockedGetNodeName(self, node_spec):
     if isinstance(node_spec, objects.Node):
       return node_spec.name
-    elif isinstance(node_spec, basestring):
+    elif isinstance(node_spec, str):
       node_info = self._UnlockedGetNodeInfo(node_spec)
       if node_info is None:
         raise errors.OpExecError("Unknown node: %s" % node_spec)
@@ -2919,7 +2919,7 @@ class ConfigWriter(object):
     ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
                                                      all_hvparams)
     bad_values = [(k, v) for k, v in ssconf_values.items()
-                  if not isinstance(v, (str, basestring))]
+                  if not isinstance(v, str)]
     if bad_values:
       err = utils.CommaJoin("%s=%s" % (k, v) for k, v in bad_values)
       raise errors.ConfigurationError("Some ssconf key(s) have non-string"
