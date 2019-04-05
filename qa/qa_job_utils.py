@@ -283,7 +283,7 @@ class QAThread(threading.Thread):
 
     """
     if self._exc_info is not None:
-      raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+      raise self._exc_info[0](self._exc_info[1]).with_traceback(self._exc_info[2])
 
 
 class QAThreadGroup(object):

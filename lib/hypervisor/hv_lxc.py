@@ -831,7 +831,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       except HypervisorError as err:
         logging.warn("Cleanup for instance %s incomplete: %s",
                      instance.name, err)
-      raise exc_info[0], exc_info[1], exc_info[2]
+      raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
 
     self._SaveInstanceStash(instance.name, stash)
 
