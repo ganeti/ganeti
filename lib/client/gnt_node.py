@@ -1126,7 +1126,7 @@ def ListDrbd(opts, args):
 
   def DoConfdRequestReply(req):
     counting_callback.RegisterQuery(req.rsalt)
-    cf_client.SendRequest(req, async=False)
+    cf_client.SendRequest(req, async_=False)
     while not counting_callback.AllAnswered():
       if not cf_client.ReceiveReply():
         ToStderr("Did not receive all expected confd replies")

@@ -141,7 +141,7 @@ class QueryClient(object):
     """Send request to Confd and await all responses.
 
     """
-    self.confd_client.SendRequest(req, async=False)
+    self.confd_client.SendRequest(req, async_=False)
     if not self.confd_client.ReceiveReply():
       Err("Did not receive all expected confd replies")
     return self.store_callback.GetResponse(req.rsalt)

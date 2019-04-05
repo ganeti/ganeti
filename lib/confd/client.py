@@ -207,7 +207,7 @@ class ConfdClient(object):
                                           )
         self._callback(client_reply)
 
-  def SendRequest(self, request, args=None, coverage=0, async=True):
+  def SendRequest(self, request, args=None, coverage=0, async_=True):
     """Send a confd request to some MCs
 
     @type request: L{objects.ConfdRequest}
@@ -220,8 +220,8 @@ class ConfdClient(object):
         (L{ganeti.constants.CONFD_DEFAULT_REQ_COVERAGE}), if -1 is
         passed, it will use the maximum number of peers, otherwise the
         number passed in will be used
-    @type async: boolean
-    @param async: handle the write asynchronously
+    @type async_: boolean
+    @param async_: handle the write asynchronously
 
     """
     if coverage == 0:
@@ -259,7 +259,7 @@ class ConfdClient(object):
     self._requests[request.rsalt] = _Request(request, args, expire_time,
                                              targets)
 
-    if not async:
+    if not async_:
       self.FlushSendQueue()
 
   def HandleResponse(self, payload, ip, port):

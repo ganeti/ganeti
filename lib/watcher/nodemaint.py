@@ -141,7 +141,7 @@ class NodeMaintenance(object):
     req = \
       confd.client.ConfdClientRequest(type=constants.CONFD_REQ_NODE_ROLE_BYNAME,
                                       query=my_name)
-    self.confd_client.SendRequest(req, async=False, coverage=-1)
+    self.confd_client.SendRequest(req, async_=False, coverage=-1)
     timed_out, _, _ = self.confd_client.WaitForReply(req.rsalt)
     if not timed_out:
       # should have a valid response

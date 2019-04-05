@@ -1022,7 +1022,7 @@ class Burner(JobHandler):
 
   def DoConfdRequestReply(self, req):
     self.confd_counting_callback.RegisterQuery(req.rsalt)
-    self.confd_client.SendRequest(req, async=False)
+    self.confd_client.SendRequest(req, async_=False)
     while not self.confd_counting_callback.AllAnswered():
       if not self.confd_client.ReceiveReply():
         Err("Did not receive all expected confd replies")
