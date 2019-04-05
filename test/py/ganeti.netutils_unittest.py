@@ -274,7 +274,7 @@ class TestIP6Address(unittest.TestCase):
     self.assertEqual(fn("::"), 0)
     self.assertEqual(fn("::1"), 1)
     self.assertEqual(fn("2001:db8::1"),
-                     42540766411282592856903984951653826561L)
+                     42540766411282592856903984951653826561)
     self.assertEqual(fn("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 2**128-1)
     self.assertNotEqual(netutils.IP6Address._GetIPIntFromString("::2"), 1)
 

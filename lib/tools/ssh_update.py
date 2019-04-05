@@ -125,7 +125,7 @@ def UpdateAuthorizedKeys(data, dry_run, _homedir_fn=None):
                    auth_keys_file)
     else:
       if not os.path.exists(auth_keys_file):
-        utils.WriteFile(auth_keys_file, mode=0600, data="")
+        utils.WriteFile(auth_keys_file, mode=0o600, data="")
       ssh.AddAuthorizedKeys(auth_keys_file, key_values)
   elif action == constants.SSHS_REMOVE:
     if dry_run:

@@ -136,7 +136,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     "lxc-wait",
     ]
 
-  _DIR_MODE = 0755
+  _DIR_MODE = 0o755
   _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
 
   _MEMORY_PARAMETER = "memory.limit_in_bytes"
@@ -211,8 +211,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     utils.EnsureDirs([
       (self._ROOT_DIR, self._DIR_MODE),
-      (self._LOG_DIR, 0750),
-      (self._INSTANCE_DIR, 0750),
+      (self._LOG_DIR, 0o750),
+      (self._INSTANCE_DIR, 0o750),
       ])
 
   def _SaveInstanceStash(self, instance_name, data):

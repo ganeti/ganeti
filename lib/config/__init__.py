@@ -2762,7 +2762,7 @@ class ConfigWriter(object):
       getents = self._getents()
       try:
         fd = utils.SafeWriteFile(destination, self._cfg_id, data=txt,
-                                 close=False, gid=getents.confd_gid, mode=0640)
+                                 close=False, gid=getents.confd_gid, mode=0o640)
       except errors.LockError:
         raise errors.ConfigurationError("The configuration file has been"
                                         " modified since the last write, cannot"

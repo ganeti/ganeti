@@ -71,7 +71,7 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
       out.write(line)
   _write_entry(written)
 
-  io.WriteFile(file_name, data=out.getvalue(), uid=0, gid=0, mode=0644,
+  io.WriteFile(file_name, data=out.getvalue(), uid=0, gid=0, mode=0o644,
                keep_perms=io.KP_IF_EXISTS)
 
 
@@ -114,7 +114,7 @@ def RemoveEtcHostsEntry(file_name, hostname):
 
     out.write(line)
 
-  io.WriteFile(file_name, data=out.getvalue(), uid=0, gid=0, mode=0644,
+  io.WriteFile(file_name, data=out.getvalue(), uid=0, gid=0, mode=0o644,
                keep_perms=io.KP_IF_EXISTS)
 
 

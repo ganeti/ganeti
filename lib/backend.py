@@ -4710,7 +4710,7 @@ def CreateFileStorageDir(file_storage_dir):
             file_storage_dir)
   else:
     try:
-      os.makedirs(file_storage_dir, 0750)
+      os.makedirs(file_storage_dir, 0o750)
     except OSError as err:
       _Fail("Cannot create file storage directory '%s': %s",
             file_storage_dir, err, exc=True)
@@ -4830,7 +4830,7 @@ def JobQueueRename(old, new):
 
   getents = runtime.GetEnts()
 
-  utils.RenameFile(old, new, mkdir=True, mkdir_mode=0750,
+  utils.RenameFile(old, new, mkdir=True, mkdir_mode=0o750,
                    dir_uid=getents.masterd_uid, dir_gid=getents.daemons_gid)
 
 
@@ -5119,8 +5119,8 @@ def CreateX509Certificate(validity, cryptodir=pathutils.CRYPTO_KEYS_DIR):
 
     (_, key_file, cert_file) = _GetX509Filenames(cryptodir, name)
 
-    utils.WriteFile(key_file, mode=0400, data=key_pem)
-    utils.WriteFile(cert_file, mode=0400, data=cert_pem)
+    utils.WriteFile(key_file, mode=0o400, data=key_pem)
+    utils.WriteFile(cert_file, mode=0o400, data=cert_pem)
 
     # Never return private key as it shouldn't leave the node
     return (name, cert_pem)
@@ -5179,7 +5179,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
             filename, pathutils.EXPORT_DIR, real_filename)
 
     # Create directory
-    utils.Makedirs(directory, mode=0750)
+    utils.Makedirs(directory, mode=0o750)
 
     quoted_filename = utils.ShellQuote(filename)
 
@@ -5341,7 +5341,7 @@ def StartImportExportDaemon(mode, opts, host, port, instance, component,
       ca = opts.ca_pem
 
     # Write CA file
-    utils.WriteFile(ca_file, data=ca, mode=0400)
+    utils.WriteFile(ca_file, data=ca, mode=0o400)
 
     cmd = [
       pathutils.IMPORT_EXPORT_DAEMON,
@@ -5847,7 +5847,7 @@ def SetWatcherPause(until, _filename=pathutils.WATCHER_PAUSEFILE):
     if not ht.TNumber(until):
       _Fail("Duration must be numeric")
 
-    utils.WriteFile(_filename, data="%d\n" % (until, ), mode=0644)
+    utils.WriteFile(_filename, data="%d\n" % (until, ), mode=0o644)
 
 
 def ConfigureOVS(ovs_name, ovs_link):

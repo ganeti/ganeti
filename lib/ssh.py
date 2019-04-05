@@ -620,7 +620,7 @@ def ReplaceNameByUuid(node_uuid, node_name, key_file=pathutils.SSH_PUB_KEYS,
                         error_fn=error_fn)
 
 
-def ClearPubKeyFile(key_file=pathutils.SSH_PUB_KEYS, mode=0600):
+def ClearPubKeyFile(key_file=pathutils.SSH_PUB_KEYS, mode=0o600):
   """Resets the content of the public key file.
 
   """
@@ -965,7 +965,7 @@ def WriteKnownHostsFile(cfg, file_name):
   if cfg.GetDsaHostKey():
     data += "%s ssh-dss %s\n" % (cfg.GetClusterName(), cfg.GetDsaHostKey())
 
-  utils.WriteFile(file_name, mode=0600, data=data)
+  utils.WriteFile(file_name, mode=0o600, data=data)
 
 
 def _EnsureCorrectGanetiVersion(cmd):

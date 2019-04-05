@@ -200,7 +200,7 @@ class Merger(object):
                                  (cluster, result.fail_reason, result.output))
 
       key_path = utils.PathJoin(self.work_dir, cluster)
-      utils.WriteFile(key_path, mode=0600, data=result.stdout)
+      utils.WriteFile(key_path, mode=0o600, data=result.stdout)
 
       result = self._RunCmd(cluster, "gnt-node list -o name,offline"
                             " --no-headers --separator=,", private_key=key_path)

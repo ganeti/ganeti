@@ -310,13 +310,13 @@ class TestWriteFile(testutils.GanetiTestCase):
     self.assertRaises(errors.ProgrammerError, utils.WriteFile,
                       self.tfile.name, data="test", atime=0)
     self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
-                      mode=0400, keep_perms=utils.KP_ALWAYS)
+                      mode=0o400, keep_perms=utils.KP_ALWAYS)
     self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
                       uid=0, keep_perms=utils.KP_ALWAYS)
     self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
                       gid=0, keep_perms=utils.KP_ALWAYS)
     self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
-                      mode=0400, uid=0, keep_perms=utils.KP_ALWAYS)
+                      mode=0o400, uid=0, keep_perms=utils.KP_ALWAYS)
 
   def testPreWrite(self):
     utils.WriteFile(self.tfile.name, data="", prewrite=self.markPre)
@@ -419,22 +419,22 @@ class TestWriteFile(testutils.GanetiTestCase):
     self.assertRaises(OSError, utils.WriteFile, target, data="data",
                       keep_perms=utils.KP_ALWAYS)
     # All masks have only user bits set, to avoid interactions with umask
-    utils.WriteFile(target, data="data", mode=0200)
-    self.assertFileMode(target, 0200)
-    utils.WriteFile(target, data="data", mode=0400,
+    utils.WriteFile(target, data="data", mode=0o200)
+    self.assertFileMode(target, 0o200)
+    utils.WriteFile(target, data="data", mode=0o400,
                     keep_perms=utils.KP_IF_EXISTS)
-    self.assertFileMode(target, 0200)
+    self.assertFileMode(target, 0o200)
     utils.WriteFile(target, data="data", keep_perms=utils.KP_ALWAYS)
-    self.assertFileMode(target, 0200)
-    utils.WriteFile(target, data="data", mode=0700)
-    self.assertFileMode(target, 0700)
+    self.assertFileMode(target, 0o200)
+    utils.WriteFile(target, data="data", mode=0o700)
+    self.assertFileMode(target, 0o700)
 
   def testNewFileMode(self):
     self.tmpdir = tempfile.mkdtemp()
     target = utils.PathJoin(self.tmpdir, "target")
-    utils.WriteFile(target, data="data", mode=0400,
+    utils.WriteFile(target, data="data", mode=0o400,
                     keep_perms=utils.KP_IF_EXISTS)
-    self.assertFileMode(target, 0400)
+    self.assertFileMode(target, 0o400)
 
 class TestFileID(testutils.GanetiTestCase):
   def testEquality(self):
@@ -616,15 +616,16 @@ class TestEnsureDirs(unittest.TestCase):
 
   def setUp(self):
     self.dir = tempfile.mkdtemp()
-    self.old_umask = os.umask(0777)
+    self.old_umask = os.umask(0o777)
 
   def testEnsureDirs(self):
     utils.EnsureDirs([
-        (utils.PathJoin(self.dir, "foo"), 0777),
+        (utils.PathJoin(self.dir, "foo"), 0o777),
         (utils.PathJoin(self.dir, "bar"), 0000),
         ])
-    self.assertEquals(os.stat(utils.PathJoin(self.dir, "foo"))[0] & 0777, 0777)
-    self.assertEquals(os.stat(utils.PathJoin(self.dir, "bar"))[0] & 0777, 0000)
+    self.assertEquals(os.stat(utils.PathJoin(self.dir, "foo"))[0] & 0o777,
+                      0o777)
+    self.assertEquals(os.stat(utils.PathJoin(self.dir, "bar"))[0] & 0o777, 0000)
 
   def tearDown(self):
     os.rmdir(utils.PathJoin(self.dir, "foo"))
@@ -908,41 +909,41 @@ class TestPermissionEnforcements(unittest.TestCase):
 
   def _VerifyPerm(self, path, mode, uid=-1, gid=-1):
     self.assertEqual(path, "/ganeti-qa-non-test")
-    self.assertEqual(mode, 0700)
+    self.assertEqual(mode, 0o700)
     self.assertEqual(uid, self.UID_A)
     self.assertEqual(gid, self.GID_A)
 
   def testMakeDirWithPerm(self):
     is_dir_stat = _MockStatResult(None, stat.S_IFDIR, 0, 0)
-    utils.MakeDirWithPerm("/ganeti-qa-non-test", 0700, self.UID_A, self.GID_A,
+    utils.MakeDirWithPerm("/ganeti-qa-non-test", 0o700, self.UID_A, self.GID_A,
                           _lstat_fn=is_dir_stat, _perm_fn=self._VerifyPerm)
 
   def testDirErrors(self):
     self.assertRaises(errors.GenericError, utils.MakeDirWithPerm,
-                      "/ganeti-qa-non-test", 0700, 0, 0,
+                      "/ganeti-qa-non-test", 0o700, 0, 0,
                       _lstat_fn=_MockStatResult(None, 0, 0, 0))
     self.assertRaises(IndexError, self._mkdir_calls.pop)
 
     other_stat_raise = _MockStatResult(_OtherStatRaise, stat.S_IFDIR, 0, 0)
     self.assertRaises(errors.GenericError, utils.MakeDirWithPerm,
-                      "/ganeti-qa-non-test", 0700, 0, 0,
+                      "/ganeti-qa-non-test", 0o700, 0, 0,
                       _lstat_fn=other_stat_raise)
     self.assertRaises(IndexError, self._mkdir_calls.pop)
 
     non_exist_stat = _MockStatResult(_RaiseNoEntError, stat.S_IFDIR, 0, 0)
-    utils.MakeDirWithPerm("/ganeti-qa-non-test", 0700, self.UID_A, self.GID_A,
+    utils.MakeDirWithPerm("/ganeti-qa-non-test", 0o700, self.UID_A, self.GID_A,
                           _lstat_fn=non_exist_stat, _mkdir_fn=self._FakeMkdir,
                           _perm_fn=self._VerifyPerm)
     self.assertEqual(self._mkdir_calls.pop(0), "/ganeti-qa-non-test")
 
   def testEnforcePermissionNoEnt(self):
     self.assertRaises(errors.GenericError, utils.EnforcePermission,
-                      "/ganeti-qa-non-test", 0600,
+                      "/ganeti-qa-non-test", 0o600,
                       _chmod_fn=NotImplemented, _chown_fn=NotImplemented,
                       _stat_fn=_MockStatResult(_RaiseNoEntError, 0, 0, 0))
 
   def testEnforcePermissionNoEntMustNotExist(self):
-    utils.EnforcePermission("/ganeti-qa-non-test", 0600, must_exist=False,
+    utils.EnforcePermission("/ganeti-qa-non-test", 0o600, must_exist=False,
                             _chmod_fn=NotImplemented,
                             _chown_fn=NotImplemented,
                             _stat_fn=_MockStatResult(_RaiseNoEntError,
@@ -950,27 +951,27 @@ class TestPermissionEnforcements(unittest.TestCase):
 
   def testEnforcePermissionOtherErrorMustNotExist(self):
     self.assertRaises(errors.GenericError, utils.EnforcePermission,
-                      "/ganeti-qa-non-test", 0600, must_exist=False,
+                      "/ganeti-qa-non-test", 0o600, must_exist=False,
                       _chmod_fn=NotImplemented, _chown_fn=NotImplemented,
                       _stat_fn=_MockStatResult(_OtherStatRaise, 0, 0, 0))
 
   def testEnforcePermissionNoChanges(self):
-    utils.EnforcePermission("/ganeti-qa-non-test", 0600,
-                            _stat_fn=_MockStatResult(None, 0600, 0, 0),
+    utils.EnforcePermission("/ganeti-qa-non-test", 0o600,
+                            _stat_fn=_MockStatResult(None, 0o600, 0, 0),
                             _chmod_fn=self._ChmodWrapper(None),
                             _chown_fn=self._FakeChown)
 
   def testEnforcePermissionChangeMode(self):
-    utils.EnforcePermission("/ganeti-qa-non-test", 0444,
-                            _stat_fn=_MockStatResult(None, 0600, 0, 0),
+    utils.EnforcePermission("/ganeti-qa-non-test", 0o444,
+                            _stat_fn=_MockStatResult(None, 0o600, 0, 0),
                             _chmod_fn=self._ChmodWrapper(None),
                             _chown_fn=self._FakeChown)
-    self.assertEqual(self._chmod_calls.pop(0), ("/ganeti-qa-non-test", 0444))
+    self.assertEqual(self._chmod_calls.pop(0), ("/ganeti-qa-non-test", 0o444))
 
   def testEnforcePermissionSetUidGid(self):
-    utils.EnforcePermission("/ganeti-qa-non-test", 0600,
+    utils.EnforcePermission("/ganeti-qa-non-test", 0o600,
                             uid=self.UID_B, gid=self.GID_B,
-                            _stat_fn=_MockStatResult(None, 0600,
+                            _stat_fn=_MockStatResult(None, 0o600,
                                                      self.UID_A,
                                                      self.GID_A),
                             _chmod_fn=self._ChmodWrapper(None),

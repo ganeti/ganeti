@@ -109,7 +109,7 @@ class TestGetUserFiles(unittest.TestCase):
       ssh.GetUserFiles("example20745", mkdir=True, kind=kind,
                        _homedir_fn=self._GetTempHomedir)
       self.assertEqual(os.listdir(self.tmpdir), [".ssh"])
-      self.assertEqual(os.stat(sshdir).st_mode & 0777, 0700)
+      self.assertEqual(os.stat(sshdir).st_mode & 0o777, 0o700)
 
   def testFilenames(self):
     sshdir = os.path.join(self.tmpdir, ".ssh")

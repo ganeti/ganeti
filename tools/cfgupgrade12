@@ -126,7 +126,7 @@ def WriteFile(file_name, data):
 
   """
   logging.debug("Writing %s", file_name)
-  utils.WriteFile(file_name=file_name, data=data, mode=0600,
+  utils.WriteFile(file_name=file_name, data=data, mode=0o600,
                   dry_run=options.dry_run, backup=True)
 
 

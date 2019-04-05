@@ -205,7 +205,7 @@ class CfgUpgrade(object):
                    self.opts.CONFIG_DATA_PATH)
       utils.WriteFile(file_name=self.opts.CONFIG_DATA_PATH,
                       data=serializer.DumpJson(self.config_data),
-                      mode=0600,
+                      mode=0o600,
                       dry_run=self.opts.dry_run,
                       backup=True)
 
@@ -489,7 +489,8 @@ class CfgUpgrade(object):
                    self.opts.RAPI_USERS_FILE_PRE24, self.opts.RAPI_USERS_FILE)
       if not self.opts.dry_run:
         utils.RenameFile(self.opts.RAPI_USERS_FILE_PRE24,
-                         self.opts.RAPI_USERS_FILE, mkdir=True, mkdir_mode=0750)
+                         self.opts.RAPI_USERS_FILE,
+                         mkdir=True, mkdir_mode=0o750)
 
     # Create a symlink for RAPI users file
     if (not (os.path.islink(self.opts.RAPI_USERS_FILE_PRE24) or
@@ -537,7 +538,7 @@ class CfgUpgrade(object):
         buf.write("%s\n" % shared_file_storage_dir)
       utils.WriteFile(file_name=self.opts.FILE_STORAGE_PATHS_FILE,
                       data=buf.getvalue(),
-                      mode=0600,
+                      mode=0o600,
                       dry_run=self.opts.dry_run,
                       backup=True)
 

@@ -278,7 +278,7 @@ def RequestUnusedUid(all_uids):
   """
   # Create the lock dir if it's not yet present
   try:
-    utils.EnsureDirs([(pathutils.UIDPOOL_LOCKDIR, 0755)])
+    utils.EnsureDirs([(pathutils.UIDPOOL_LOCKDIR, 0o755)])
   except errors.GenericError as err:
     raise errors.LockError("Failed to create user-id pool lock dir: %s" % err)
 

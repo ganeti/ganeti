@@ -210,7 +210,7 @@ class StatusFile(object):
     self._data.mtime = time.time()
     utils.WriteFile(self._path,
                     data=serializer.DumpJson(self._data.ToDict()),
-                    mode=0400)
+                    mode=0o400)
 
 
 def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,

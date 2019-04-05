@@ -305,7 +305,7 @@ def main():
   else:
     utils.WriteFile(file_name=args[0],
                     data=data,
-                    mode=0600,
+                    mode=0o600,
                     backup=True)
 
 if __name__ == "__main__":

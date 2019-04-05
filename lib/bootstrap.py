@@ -73,7 +73,7 @@ def GenerateHmacKey(file_name):
   @param file_name: Path to output file
 
   """
-  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0400,
+  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0o400,
                   backup=True)
 
 
@@ -177,7 +177,7 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
     # certificate
     logging.debug("Writing the public certificate to %s",
                   spicecert_file)
-    utils.io.WriteFile(spicecacert_file, mode=0400, data=cert_pem)
+    utils.io.WriteFile(spicecacert_file, mode=0o400, data=cert_pem)
 
   # Cluster domain secret
   if cds:
@@ -311,7 +311,7 @@ def _InitFileStorageDir(file_storage_dir):
 
   if not os.path.exists(file_storage_dir):
     try:
-      os.makedirs(file_storage_dir, 0750)
+      os.makedirs(file_storage_dir, 0o750)
     except OSError as err:
       raise errors.OpPrereqError("Cannot create file storage directory"
                                  " '%s': %s" % (file_storage_dir, err),
@@ -879,7 +879,7 @@ def InitConfig(version, cluster_config, master_node_config,
                                    ctime=now, mtime=now)
   utils.WriteFile(cfg_file,
                   data=serializer.Dump(config_data.ToDict()),
-                  mode=0600)
+                  mode=0o600)
 
 
 def FinalizeClusterDestroy(master_uuid):

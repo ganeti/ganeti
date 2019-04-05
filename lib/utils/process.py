@@ -253,7 +253,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   return RunResult(exitcode, signal_, out, err, strcmd, timeout_action, timeout)
 
 
-def SetupDaemonEnv(cwd="/", umask=077):
+def SetupDaemonEnv(cwd="/", umask=0o77):
   """Setup a daemon's environment.
 
   This should be called between the first and second fork, due to
@@ -290,7 +290,7 @@ def SetupDaemonFDs(output_file, output_fd):
     # Open output file
     try:
       output_fd = os.open(output_file,
-                          os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0600)
+                          os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     except EnvironmentError as err:
       raise Exception("Opening output file failed: %s" % err)
   else:

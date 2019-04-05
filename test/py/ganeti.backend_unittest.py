@@ -295,7 +295,7 @@ class TestVerifyRestrictedCmdDirectory(unittest.TestCase):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     os.mkdir(tmpname)
 
-    for mode in [0777, 0706, 0760, 0722]:
+    for mode in [0o777, 0o706, 0o760, 0o722]:
       os.chmod(tmpname, mode)
       self.assertTrue(os.path.isdir(tmpname))
       (status, msg) = \
@@ -316,7 +316,7 @@ class TestVerifyRestrictedCmdDirectory(unittest.TestCase):
   def testNormal(self):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     os.mkdir(tmpname)
-    os.chmod(tmpname, 0755)
+    os.chmod(tmpname, 0o755)
     self.assertTrue(os.path.isdir(tmpname))
     (status, msg) = \
       backend._VerifyRestrictedCmdDirectory(tmpname,
@@ -352,7 +352,7 @@ class TestVerifyRestrictedCmd(unittest.TestCase):
 
   def testExecutable(self):
     tmpname = utils.PathJoin(self.tmpdir, "cmdname")
-    utils.WriteFile(tmpname, data="empty\n", mode=0700)
+    utils.WriteFile(tmpname, data="empty\n", mode=0o700)
     (status, executable) = \
       backend._VerifyRestrictedCmd(self.tmpdir, "cmdname",
                                    _owner=_DefRestrictedCmdOwner())
@@ -666,7 +666,7 @@ class TestSetWatcherPause(unittest.TestCase):
     for i in range(10):
       backend.SetWatcherPause(i, _filename=self.filename)
       self.assertEqual(utils.ReadFile(self.filename), "%s\n" % i)
-      self.assertEqual(os.stat(self.filename).st_mode & 0777, 0644)
+      self.assertEqual(os.stat(self.filename).st_mode & 0o777, 0o644)
 
 
 class TestGetBlockDevSymlinkPath(unittest.TestCase):

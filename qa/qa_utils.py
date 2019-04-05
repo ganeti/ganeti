@@ -459,7 +459,7 @@ def UploadFile(node, src):
 
   """
   # Make sure nobody else has access to it while preserving local permissions
-  mode = os.stat(src).st_mode & 0700
+  mode = os.stat(src).st_mode & 0o700
 
   cmd = ('tmp=$(mktemp --tmpdir gnt.XXXXXX) && '
          'chmod %o "${tmp}" && '
@@ -479,7 +479,7 @@ def UploadFile(node, src):
     f.close()
 
 
-def UploadData(node, data, mode=0600, filename=None):
+def UploadData(node, data, mode=0o600, filename=None):
   """Uploads data to a node and returns the filename.
 
   Caller needs to remove the returned file on the node when it's not needed
@@ -701,7 +701,7 @@ def AddToEtcHosts(hostnames):
 
   """
   master = qa_config.GetMasterNode()
-  tmp_hosts = UploadData(master.primary, "", mode=0644)
+  tmp_hosts = UploadData(master.primary, "", mode=0o644)
 
   data = []
   for localhost in ("::1", "127.0.0.1"):
@@ -726,7 +726,7 @@ def RemoveFromEtcHosts(hostnames):
 
   """
   master = qa_config.GetMasterNode()
-  tmp_hosts = UploadData(master.primary, "", mode=0644)
+  tmp_hosts = UploadData(master.primary, "", mode=0o644)
   quoted_tmp_hosts = utils.ShellQuote(tmp_hosts)
 
   sed_data = " ".join(hostnames)

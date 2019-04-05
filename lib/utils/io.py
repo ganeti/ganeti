@@ -385,7 +385,7 @@ def RemoveDir(dirname):
       raise
 
 
-def RenameFile(old, new, mkdir=False, mkdir_mode=0750, dir_uid=None,
+def RenameFile(old, new, mkdir=False, mkdir_mode=0o750, dir_uid=None,
                dir_gid=None):
   """Renames a file.
 
@@ -497,7 +497,7 @@ def MakeDirWithPerm(path, mode, uid, gid, _lstat_fn=os.lstat,
   _perm_fn(path, mode, uid=uid, gid=gid)
 
 
-def Makedirs(path, mode=0750):
+def Makedirs(path, mode=0o750):
   """Super-mkdir; create a leaf directory and all intermediate ones.
 
   This is a wrapper around C{os.makedirs} adding error handling not implemented
@@ -888,7 +888,7 @@ def WritePidFile(pidfile):
   """
   # We don't rename nor truncate the file to not drop locks under
   # existing processes
-  fd_pidfile = os.open(pidfile, os.O_RDWR | os.O_CREAT, 0600)
+  fd_pidfile = os.open(pidfile, os.O_RDWR | os.O_CREAT, 0o600)
 
   # Lock the PID file (and fail if not possible to do so). Any code
   # wanting to send a signal to the daemon should try to lock the PID

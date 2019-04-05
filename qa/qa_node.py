@@ -309,7 +309,7 @@ def _CreateOobScriptStructure():
                  "exit $(< %s)\n") %
                 (utils.ShellQuote(verify_path), utils.ShellQuote(data_path),
                  utils.ShellQuote(exit_code_path)))
-  oob_path = qa_utils.UploadData(master.primary, oob_script, mode=0700)
+  oob_path = qa_utils.UploadData(master.primary, oob_script, mode=0o700)
 
   return [oob_path, verify_path, data_path, exit_code_path]
 
@@ -466,7 +466,7 @@ def TestOutOfBand():
     verify_path2 = qa_utils.UploadData(master.primary, "")
     oob_script = ("#!/bin/sh\n"
                   "echo \"$@\" > %s\n") % verify_path2
-    oob_path2 = qa_utils.UploadData(master.primary, oob_script, mode=0700)
+    oob_path2 = qa_utils.UploadData(master.primary, oob_script, mode=0o700)
 
     try:
       AssertCommand(["gnt-node", "modify", "--node-parameters",

@@ -269,7 +269,7 @@ def UploadFiles(connection, executable, filelist, logfile):
   """Uploads the specified files via sftp.
 
   Uploads the specified files to a random, freshly created directory with
-  a temporary name under /tmp. All uploaded files are chmod 0400 after upload
+  a temporary name under /tmp. All uploaded files are chmod 0o400 after upload
   with the exception of executable, with is chmod 500.
 
   Upon success, returns the absolute path to the remote upload directory,
@@ -280,15 +280,15 @@ def UploadFiles(connection, executable, filelist, logfile):
 
   try:
     sftp = paramiko.SFTPClient.from_transport(connection)
-    sftp.mkdir(remote_dir, mode=0700)
+    sftp.mkdir(remote_dir, mode=0o700)
     for item in filelist:
       remote_file = "%s/%s" % (remote_dir, os.path.basename(item))
       WriteLog("uploading %s to remote %s" % (item, remote_file), logfile)
       sftp.put(item, remote_file)
       if item == executable:
-        sftp.chmod(remote_file, 0500)
+        sftp.chmod(remote_file, 0o500)
       else:
-        sftp.chmod(remote_file, 0400)
+        sftp.chmod(remote_file, 0o400)
     sftp.close()
   except IOError as err:
     WriteLog("ERROR: FAILURE_UPLOAD: %s" % err, logfile)

@@ -113,11 +113,11 @@ def _UpdateKeyFiles(keys, dry_run, keyfiles):
     (private_file, public_file) = keyfiles[kind]
 
     logging.debug("Writing %s ...", private_file)
-    utils.WriteFile(private_file, data=private_key, mode=0600,
+    utils.WriteFile(private_file, data=private_key, mode=0o600,
                     backup=True, dry_run=dry_run)
 
     logging.debug("Writing %s ...", public_file)
-    utils.WriteFile(public_file, data=public_key, mode=0644,
+    utils.WriteFile(public_file, data=public_key, mode=0o644,
                     backup=True, dry_run=dry_run)
 
 

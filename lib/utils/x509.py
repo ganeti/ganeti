@@ -322,7 +322,7 @@ def GenerateSelfSignedSslCert(filename, serial_no,
   (key_pem, cert_pem) = GenerateSelfSignedX509Cert(
       common_name, validity * 24 * 60 * 60, serial_no)
 
-  utils_io.WriteFile(filename, mode=0440, data=key_pem + cert_pem,
+  utils_io.WriteFile(filename, mode=0o440, data=key_pem + cert_pem,
                      uid=uid, gid=gid)
   return (key_pem, cert_pem)
 
@@ -385,7 +385,7 @@ def GenerateSignedSslCert(filename_cert, serial_no,
   (key_pem, cert_pem) = GenerateSignedX509Cert(
       common_name, validity * 24 * 60 * 60, serial_no, signing_cert_pem)
 
-  utils_io.WriteFile(filename_cert, mode=0440, data=key_pem + cert_pem,
+  utils_io.WriteFile(filename_cert, mode=0o440, data=key_pem + cert_pem,
                      uid=uid, gid=gid, backup=True)
   return (key_pem, cert_pem)
 
