@@ -382,7 +382,7 @@ def CloseMultiplexers():
   """Closes all current multiplexers and cleans up.
 
   """
-  for node in _MULTIPLEXERS.keys():
+  for node in list(_MULTIPLEXERS):
     (sname, child) = _MULTIPLEXERS.pop(node)
     utils.KillProcess(child.pid, timeout=10, waitpid=True)
     utils.RemoveFile(sname)

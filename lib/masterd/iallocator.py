@@ -544,7 +544,7 @@ class IAllocator(object):
     ng = dict((guuid, {
       "name": gdata.name,
       "alloc_policy": gdata.alloc_policy,
-      "networks": [net_uuid for net_uuid, _ in gdata.networks.items()],
+      "networks": list(gdata.networks),
       "ipolicy": gmi.CalculateGroupIPolicy(cluster, gdata),
       "tags": list(gdata.GetTags()),
       })

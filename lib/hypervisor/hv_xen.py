@@ -651,7 +651,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     data.write("TAGS=\"%s\"\n" % r"\ ".join(instance.GetTags()))
     if nic.netinfo:
       netinfo = objects.Network.FromDict(nic.netinfo)
-      for k, v in netinfo.HooksDict().iteritems():
+      for k, v in netinfo.HooksDict().items():
         data.write("%s=\"%s\"\n" % (k, v))
 
     data.write("MAC=%s\n" % nic.mac)

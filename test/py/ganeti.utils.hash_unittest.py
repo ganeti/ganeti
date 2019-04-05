@@ -112,9 +112,9 @@ class TestFingerprintFiles(unittest.TestCase):
                      "35b6795ca20d6dc0aff8c7c110c96cd1070b8c38")
 
   def testMultiple(self):
-    all_files = self.results.keys()
+    all_files = list(self.results)
     all_files.append("/no/such/file")
-    self.assertEqual(utils.FingerprintFiles(self.results.keys()), self.results)
+    self.assertEqual(utils.FingerprintFiles(list(self.results)), self.results)
 
 
 if __name__ == "__main__":

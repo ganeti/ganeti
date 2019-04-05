@@ -241,7 +241,7 @@ class TestRapiDocs(unittest.TestCase):
     undocumented = []
     used_uris = []
 
-    for key, handler in resources.iteritems():
+    for key, handler in resources.items():
       # Regex objects
       if hasattr(key, "match"):
         self.assert_(key.pattern.startswith("^/2/"),
@@ -328,7 +328,7 @@ class TestManpages(unittest.TestCase):
     for script in _constants.GNT_SCRIPTS:
       self._CheckManpage(script,
                          self._ReadManFile(script),
-                         self._LoadScript(script).commands.keys())
+                         list(self._LoadScript(script).commands))
 
   def _CheckManpage(self, script, mantext, commands):
     missing = []

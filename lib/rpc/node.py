@@ -394,8 +394,8 @@ class _RpcProcessor(object):
     assert isinstance(body, dict)
     assert len(body) == len(hosts)
     assert compat.all(isinstance(v, str) for v in body.values())
-    assert frozenset(h[2] for h in hosts) == frozenset(body.keys()), \
-        "%s != %s" % (hosts, body.keys())
+    assert frozenset(h[2] for h in hosts) == frozenset(body), \
+        "%s != %s" % (hosts, list(body))
 
     for (name, ip, original_name) in hosts:
       if ip is _OFFLINE:
@@ -465,7 +465,8 @@ class _RpcProcessor(object):
       self._PrepareRequests(self._resolver(nodes, resolver_opts), self._port,
                             procedure, body, read_timeout)
 
-    _req_process_fn(requests.values(), lock_monitor_cb=self._lock_monitor_cb)
+    _req_process_fn(list(requests.values()),
+                    lock_monitor_cb=self._lock_monitor_cb)
 
     assert not frozenset(results).intersection(requests)
 

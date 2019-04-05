@@ -43,12 +43,12 @@ from qa_utils import AssertCommand
 
 def TestNetworkList():
   """gnt-network list"""
-  qa_utils.GenericQueryTest("gnt-network", query.NETWORK_FIELDS.keys())
+  qa_utils.GenericQueryTest("gnt-network", list(query.NETWORK_FIELDS))
 
 
 def TestNetworkListFields():
   """gnt-network list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-network", query.NETWORK_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-network", list(query.NETWORK_FIELDS))
 
 
 def GetNonexistentNetworks(count):

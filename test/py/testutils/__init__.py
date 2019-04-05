@@ -287,7 +287,7 @@ def UnifyValueType(data):
 
   elif isinstance(data, dict):
     return dict([(UnifyValueType(key), UnifyValueType(value))
-                 for (key, value) in data.iteritems()])
+                 for (key, value) in data.items()])
 
   return data
 

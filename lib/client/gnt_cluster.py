@@ -553,7 +553,7 @@ def ShowClusterConfig(opts, args):
     reserved_lvs = "(none)"
 
   enabled_hv = result["enabled_hypervisors"]
-  hvparams = dict((k, v) for k, v in result["hvparams"].iteritems()
+  hvparams = dict((k, v) for k, v in result["hvparams"].items()
                   if k in enabled_hv)
 
   info = [
@@ -835,7 +835,7 @@ def VerifyDisks(opts, args):
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
     if missing:
-      for iname, ival in missing.iteritems():
+      for iname, ival in missing.items():
         all_missing = compat.all(x[0] in bad_nodes for x in ival)
         if all_missing:
           ToStdout("Instance %s cannot be verified as it lives on"
@@ -1489,7 +1489,7 @@ def SetClusterParams(opts, args):
       for k, v in opts.enabled_data_collectors.items())
 
   unrecognized_data_collectors = [
-      k for k in enabled_data_collectors.keys()
+      k for k in enabled_data_collectors
       if k not in constants.DATA_COLLECTOR_NAMES]
   if unrecognized_data_collectors:
     ToStderr("Data collector names not recognized: %s" %
@@ -1855,7 +1855,7 @@ def _EpoOff(opts, node_list, inst_map):
   @return: The desired exit status
 
   """
-  if not _InstanceStart(opts, inst_map.keys(), False, no_remember=True):
+  if not _InstanceStart(opts, list(inst_map), False, no_remember=True):
     ToStderr("Please investigate and stop instances manually before continuing")
     return constants.EXIT_FAILURE
 

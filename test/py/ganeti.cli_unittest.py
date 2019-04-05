@@ -1160,8 +1160,8 @@ class TestFormatPolicyInfo(unittest.TestCase):
       self.assertTrue(isinstance(cluster, dict))
       if skip is None:
         skip = frozenset()
-      self.assertEqual(frozenset(cluster.keys()).difference(skip),
-                       frozenset(group.keys()))
+      self.assertEqual(frozenset(cluster).difference(skip),
+                       frozenset(group))
       for key in group:
         self._CompareClusterGroupItems(cluster[key], group[key])
     elif isinstance(group, list):
@@ -1194,8 +1194,8 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
     self.assertTrue(type(default_pol) is dict)
     self.assertTrue(type(diff_pol) is dict)
     self.assertTrue(type(merged_pol) is dict)
-    self.assertEqual(frozenset(default_pol.keys()),
-                     frozenset(merged_pol.keys()))
+    self.assertEqual(frozenset(default_pol),
+                     frozenset(merged_pol))
     for (key, val) in merged_pol.items():
       if key in diff_pol:
         if type(val) is dict:

@@ -707,13 +707,13 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       for idx, disk in enumerate(self.cfg.GetInstanceDisks(instance.uuid)):
         per_node_disks[pnode].append((instance, idx, disk))
 
-    assert not (frozenset(per_node_disks.keys()) -
+    assert not (frozenset(per_node_disks) -
                 frozenset(self.owned_locks(locking.LEVEL_NODE_RES))), \
       "Not owning correct locks"
     assert not self.owned_locks(locking.LEVEL_NODE)
 
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
-                                               per_node_disks.keys())
+                                               list(per_node_disks))
 
     changed = []
     for node_uuid, dskl in per_node_disks.items():
@@ -1085,9 +1085,9 @@ class LUClusterSetParams(LogicalUnit):
       violations = set()
       for group in self.cfg.GetAllNodeGroupsInfo().values():
         instances = frozenset(
-          [inst for inst in all_instances
-           if compat.any(nuuid in group.members
-           for nuuid in self.cfg.GetInstanceNodes(inst.uuid))])
+          inst for inst in all_instances
+          if compat.any(nuuid in group.members
+          for nuuid in self.cfg.GetInstanceNodes(inst.uuid)))
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
         ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
         new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
@@ -1369,7 +1369,7 @@ class LUClusterSetParams(LogicalUnit):
 
       # Cleanup any OS that has an empty hypervisor parameter list, as we don't
       # need them in the cluster config anymore.
-      for os_name, hvs in self.new_os_hvp.items():
+      for os_name, hvs in list(self.new_os_hvp.items()):
         if not hvs:
           self.new_os_hvp.pop(os_name, None)
 

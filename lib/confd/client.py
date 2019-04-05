@@ -196,7 +196,7 @@ class ConfdClient(object):
 
     """
     now = time.time()
-    for rsalt, rq in self._requests.items():
+    for rsalt, rq in list(self._requests.items()):
       if now >= rq.expiry:
         del self._requests[rsalt]
         client_reply = ConfdUpcallPayload(salt=rsalt,

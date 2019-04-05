@@ -186,7 +186,7 @@ def _ComputeMissingKeys(key_path, options, defaults):
   @return: A list of invalid keys
 
   """
-  defaults_keys = frozenset(defaults.keys())
+  defaults_keys = frozenset(defaults)
   invalid = []
   for key, value in options.items():
     if key_path:

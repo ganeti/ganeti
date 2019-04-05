@@ -114,7 +114,7 @@ class _JobQueueDriver(object):
     self._jobs_per_status = new_statuses
 
   def _GetJobIds(self):
-    return list(self._jobs.keys())
+    return list(self._jobs)
 
   def _GetJobsInStatuses(self, statuses):
     """Returns a list of L{_JobEntry} of all jobs in the given statuses.

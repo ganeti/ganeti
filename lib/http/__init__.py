@@ -755,7 +755,7 @@ class HttpMessageWriter(object):
 
     # Add headers
     if self._msg.start_line.version != HTTP_0_9:
-      for name, value in self._msg.headers.iteritems():
+      for name, value in self._msg.headers.items():
         buf.write("%s: %s\r\n" % (name, value))
 
     buf.write("\r\n")

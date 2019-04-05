@@ -626,7 +626,7 @@ class Burner(JobHandler):
   def FindMatchingDisk(self, instance):
     """Find a disk whose nodes match the instance's disk nodes."""
     instance_nodes = self.instance_nodes[instance]
-    for disk, disk_nodes in self.disk_nodes.iteritems():
+    for disk, disk_nodes in self.disk_nodes.items():
       if instance_nodes == disk_nodes:
         # Erase that disk from the dictionary so that we don't pick it again.
         del self.disk_nodes[disk]

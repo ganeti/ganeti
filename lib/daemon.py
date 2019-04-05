@@ -742,7 +742,7 @@ def GenericMain(daemon_name, optionparser,
       "key": options.ssl_key,
       }
 
-    for name, path in ssl_paths.iteritems():
+    for name, path in ssl_paths.items():
       if not os.path.isfile(path):
         print("SSL %s file '%s' was not found" % (name, path), file=sys.stderr)
         sys.exit(constants.EXIT_FAILURE)

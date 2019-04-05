@@ -334,7 +334,7 @@ class PrivateDict(dict):
     if other is None:
       pass
     elif hasattr(other, 'iteritems'):  # iteritems saves memory and lookups
-      for k, v in other.iteritems():
+      for k, v in other.items():
         self[k] = v
     elif hasattr(other, 'keys'):
       for k in other.keys():

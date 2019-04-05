@@ -901,12 +901,12 @@ def TestInstanceDeviceNames(instance):
 
 def TestInstanceList():
   """gnt-instance list"""
-  qa_utils.GenericQueryTest("gnt-instance", query.INSTANCE_FIELDS.keys())
+  qa_utils.GenericQueryTest("gnt-instance", list(query.INSTANCE_FIELDS))
 
 
 def TestInstanceListFields():
   """gnt-instance list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-instance", query.INSTANCE_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-instance", list(query.INSTANCE_FIELDS))
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -1131,13 +1131,13 @@ def TestBackupList(expnode):
   """gnt-backup list"""
   AssertCommand(["gnt-backup", "list", "--node=%s" % expnode.primary])
 
-  qa_utils.GenericQueryTest("gnt-backup", query.EXPORT_FIELDS.keys(),
+  qa_utils.GenericQueryTest("gnt-backup", list(query.EXPORT_FIELDS),
                             namefield=None, test_unknown=False)
 
 
 def TestBackupListFields():
   """gnt-backup list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-backup", query.EXPORT_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-backup", list(query.EXPORT_FIELDS))
 
 
 def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):

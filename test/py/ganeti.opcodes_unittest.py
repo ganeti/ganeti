@@ -163,7 +163,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertTrue(opcodes_base.BaseOpCode not in opcodes.OP_MAPPING.values())
     self.assertTrue(opcodes.OpCode not in opcodes.OP_MAPPING.values())
 
-    for cls in opcodes.OP_MAPPING.values() + [opcodes.OpCode]:
+    for cls in list(opcodes.OP_MAPPING.values()) + [opcodes.OpCode]:
       all_slots = cls.GetAllSlots()
 
       self.assertEqual(len(set(all_slots) & supported_by_all), 3,

@@ -542,7 +542,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
                          identify_defaults=True)
     self.ExecOpCode(op)
 
-    inst = self.cfg.GetAllInstancesInfo().values()[0]
+    inst = list(self.cfg.GetAllInstancesInfo().values())[0]
     self.assertEqual(0, len(inst.hvparams))
     self.assertEqual(0, len(inst.beparams))
     assert self.os_name_variant not in inst.osparams or \
@@ -819,7 +819,7 @@ class TestDiskTemplateDiskTypeBijection(TestLUInstanceCreate):
     instances = self.cfg.GetInstancesInfoByFilter(lambda _: True)
     self.assertEqual(len(instances), 1,
       "Expected 1 instance, got\n%s" % instances)
-    return instances.values()[0]
+    return list(instances.values())[0]
 
   def testDiskTemplateLogicalIdBijectionDiskless(self):
     op = self.CopyOpCode(self.diskless_op)

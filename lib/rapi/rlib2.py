@@ -160,7 +160,7 @@ _NR_MAP = {
   constants.NR_REGULAR: _NR_REGULAR,
   }
 
-assert frozenset(_NR_MAP.keys()) == constants.NR_ALL
+assert frozenset(_NR_MAP) == constants.NR_ALL
 
 # Request data version field
 _REQ_DATA_VERSION = "__version__"

@@ -190,7 +190,7 @@ class TestLUClusterConfigQuery(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(op, "pinky_bunny")
 
   def testAllFields(self):
-    op = opcodes.OpClusterConfigQuery(output_fields=query.CLUSTER_FIELDS.keys())
+    op = opcodes.OpClusterConfigQuery(output_fields=list(query.CLUSTER_FIELDS))
 
     self.rpc.call_get_watcher_pause.return_value = \
       self.RpcResultsBuilder() \
@@ -2314,7 +2314,7 @@ class TestLUClusterVerifyGroupHooksCallBack(TestLUClusterVerifyGroupMethods):
   def PrepareLU(self, lu):
     super(TestLUClusterVerifyGroupHooksCallBack, self).PrepareLU(lu)
 
-    lu.my_node_uuids = list(self.cfg.GetAllNodesInfo().keys())
+    lu.my_node_uuids = list(self.cfg.GetAllNodesInfo())
 
   @withLockedLU
   def testEmptyGroup(self, lu):
@@ -2584,7 +2584,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
   @patchPathutils("cluster")
   def testNonMasterRetriesSuccess(self, pathutils):
     cluster = self._NonMasterRetries(pathutils, 2)
-    self.assertEqual(2, len(cluster.candidate_certs.values()))
+    self.assertEqual(2, len(cluster.candidate_certs))
 
   @patchPathutils("cluster")
   def testNonMasterRetriesFail(self, pathutils):

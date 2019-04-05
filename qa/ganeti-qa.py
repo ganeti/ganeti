@@ -931,7 +931,7 @@ def RunPerformanceTests():
 
   # Preparations need to be made only if some of these tests are enabled
   if qa_config.IsTemplateSupported(constants.DT_DRBD8) and \
-     qa_config.TestEnabled(qa_config.Either(PARALLEL_TEST_DICT.keys())):
+     qa_config.TestEnabled(qa_config.Either(list(PARALLEL_TEST_DICT))):
     inodes = qa_config.AcquireManyNodes(2)
     try:
       instance = qa_instance.TestInstanceAddWithDrbdDisk(inodes)

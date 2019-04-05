@@ -47,13 +47,13 @@ from qa_utils import AssertCommand, GetCommandOutput
 
 def TestJobList():
   """gnt-job list"""
-  qa_utils.GenericQueryTest("gnt-job", query.JOB_FIELDS.keys(),
+  qa_utils.GenericQueryTest("gnt-job", list(query.JOB_FIELDS),
                             namefield="id", test_unknown=False)
 
 
 def TestJobListFields():
   """gnt-node list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-job", query.JOB_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-job", list(query.JOB_FIELDS))
 
 
 def TestJobCancellation():

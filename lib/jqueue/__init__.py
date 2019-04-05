@@ -1313,7 +1313,7 @@ class JobQueue(object):
 
     """
     # TODO: Change to "tuple(map(list, zip(*self._nodes.items())))"?
-    name_list = self._nodes.keys()
+    name_list = list(self._nodes)
     addr_list = [self._nodes[name] for name in name_list]
     return name_list, addr_list
 

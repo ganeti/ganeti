@@ -675,12 +675,12 @@ class LUInstanceCreate(LogicalUnit):
     """
     # hvparams
     hv_defs = cluster.SimpleFillHV(self.op.hypervisor, self.op.os_type, {})
-    for name in self.op.hvparams.keys():
+    for name in list(self.op.hvparams):
       if name in hv_defs and hv_defs[name] == self.op.hvparams[name]:
         del self.op.hvparams[name]
     # beparams
     be_defs = cluster.SimpleFillBE({})
-    for name in self.op.beparams.keys():
+    for name in list(self.op.beparams):
       if name in be_defs and be_defs[name] == self.op.beparams[name]:
         del self.op.beparams[name]
     # nic params
@@ -691,13 +691,13 @@ class LUInstanceCreate(LogicalUnit):
           del nic[name]
     # osparams
     os_defs = cluster.SimpleFillOS(self.op.os_type, {})
-    for name in self.op.osparams.keys():
+    for name in list(self.op.osparams):
       if name in os_defs and os_defs[name] == self.op.osparams[name]:
         del self.op.osparams[name]
 
     os_defs_ = cluster.SimpleFillOS(self.op.os_type, {},
                                     os_params_private={})
-    for name in self.op.osparams_private.keys():
+    for name in list(self.op.osparams_private):
       if name in os_defs_ and os_defs_[name] == self.op.osparams_private[name]:
         del self.op.osparams_private[name]
 
@@ -927,7 +927,7 @@ class LUInstanceCreate(LogicalUnit):
                                      (nobj.name, self.pnode.name),
                                      errors.ECODE_INVAL)
         self.LogInfo("NIC/%d inherits netparams %s" %
-                     (idx, netparams.values()))
+                     (idx, list(netparams.values())))
         nic.nicparams = dict(netparams)
         if nic.ip is not None:
           if nic.ip.lower() == constants.NIC_IP_POOL:
@@ -1021,12 +1021,12 @@ class LUInstanceCreate(LogicalUnit):
                      prereq=True)
 
       node_lvs = self.rpc.call_lv_list([pnode.uuid],
-                                       vg_names.payload.keys())[pnode.uuid]
+                                       list(vg_names.payload))[pnode.uuid]
       node_lvs.Raise("Cannot get LV information from node %s" % pnode.name,
                      prereq=True)
       node_lvs = node_lvs.payload
 
-      delta = all_lvs.difference(node_lvs.keys())
+      delta = all_lvs.difference(node_lvs)
       if delta:
         raise errors.OpPrereqError("Missing logical volume(s): %s" %
                                    utils.CommaJoin(delta),
@@ -1063,7 +1063,7 @@ class LUInstanceCreate(LogicalUnit):
       node_disks.Raise("Cannot get block device information from node %s" %
                        pnode.name, prereq=True)
       node_disks = node_disks.payload
-      delta = all_disks.difference(node_disks.keys())
+      delta = all_disks.difference(node_disks)
       if delta:
         raise errors.OpPrereqError("Missing block device(s): %s" %
                                    utils.CommaJoin(delta),

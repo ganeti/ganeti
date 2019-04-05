@@ -65,7 +65,7 @@ class MockClient(object):
     return result
 
   def FreeLocksLevel(self, _cid, level):
-    locks = self.wconfdmock.mylocks.keys()
+    locks = list(self.wconfdmock.mylocks)
     for lock in locks:
       if lock.startswith(level + "/"):
         del self.wconfdmock.mylocks[lock]

@@ -431,13 +431,13 @@ def ComputeDisksInfo(disks, disk_template, default_vg, ext_params):
 
   """
   # Ensure 'ext_params' does not violate existing disks' params
-  for key in ext_params.keys():
+  for key in ext_params:
     if key != constants.IDISK_PROVIDER:
       assert key not in constants.IDISK_PARAMS, \
         "Invalid extstorage parameter '%s'" % key
 
   # Prepare the disks argument for the 'ComputeDisks' method.
-  inst_disks = [dict((key, value) for key, value in disk.iteritems()
+  inst_disks = [dict((key, value) for key, value in disk.items()
                      if key in constants.IDISK_PARAMS)
                 for disk in map(objects.Disk.ToDict, disks)]
 
@@ -863,7 +863,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     for (idx, params) in self.op.disks:
       utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
-      unsupported = frozenset(params.keys()) - self._MODIFYABLE
+      unsupported = frozenset(params) - self._MODIFYABLE
       if unsupported:
         raise errors.OpPrereqError("Parameters for disk %s try to change"
                                    " unmodifyable parameter(s): %s" %
@@ -2455,7 +2455,7 @@ class TLReplaceDisks(Tasklet):
       owned_nodes = self.lu.owned_locks(locking.LEVEL_NODE)
       assert set(owned_nodes) == set(self.node_secondary_ip), \
           ("Incorrect node locks, owning %s, expected %s" %
-           (owned_nodes, self.node_secondary_ip.keys()))
+           (owned_nodes, list(self.node_secondary_ip)))
       assert (self.lu.owned_locks(locking.LEVEL_NODE) ==
               self.lu.owned_locks(locking.LEVEL_NODE_RES))
 
@@ -2621,7 +2621,7 @@ class TLReplaceDisks(Tasklet):
     return iv_names
 
   def _CheckDevices(self, node_uuid, iv_names):
-    for name, (dev, _, _) in iv_names.iteritems():
+    for name, (dev, _, _) in iv_names.items():
       result = _BlockdevFind(self, node_uuid, dev, self.instance)
 
       msg = result.fail_msg
@@ -2635,7 +2635,7 @@ class TLReplaceDisks(Tasklet):
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
   def _RemoveOldStorage(self, node_uuid, iv_names):
-    for name, (_, old_lvs, _) in iv_names.iteritems():
+    for name, (_, old_lvs, _) in iv_names.items():
       self.lu.LogInfo("Remove logical volumes for %s", name)
 
       for lv in old_lvs:
@@ -2690,7 +2690,7 @@ class TLReplaceDisks(Tasklet):
 
     # Step: for each lv, detach+rename*2+attach
     self.lu.LogStep(4, steps_total, "Changing drbd configuration")
-    for dev, old_lvs, new_lvs in iv_names.itervalues():
+    for dev, old_lvs, new_lvs in iv_names.values():
       self.lu.LogInfo("Detaching %s drbd from local storage", dev.iv_name)
 
       result = self.rpc.call_blockdev_removechildren(self.target_node_uuid,
@@ -2773,7 +2773,7 @@ class TLReplaceDisks(Tasklet):
     else:
       # Release all resource locks except those used by the instance
       ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
-                   keep=self.node_secondary_ip.keys())
+                   keep=list(self.node_secondary_ip))
 
     # Release all node locks while waiting for sync
     ReleaseLocks(self.lu, locking.LEVEL_NODE)
@@ -2805,7 +2805,7 @@ class TLReplaceDisks(Tasklet):
         the OpCode
     """
     self.lu.LogInfo("Updating instance configuration")
-    for dev, _, new_logical_id in iv_names.itervalues():
+    for dev, _, new_logical_id in iv_names.values():
       dev.logical_id = new_logical_id
       self.cfg.Update(dev, feedback_fn)
       self.cfg.SetDiskNodes(dev.uuid, [self.instance.primary_node,
@@ -2994,7 +2994,7 @@ class TLReplaceDisks(Tasklet):
     else:
       # Release all resource locks except those used by the instance
       ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
-                   keep=self.node_secondary_ip.keys())
+                   keep=list(self.node_secondary_ip))
 
     # TODO: Can the instance lock be downgraded here? Take the optional disk
     # shutdown in the caller into consideration.

@@ -550,7 +550,7 @@ def TestRapiQuery():
       constants.QR_FILTER: "uuid",
     }.get(what, "name")
 
-    all_fields = query.ALL_FIELDS[what].keys()
+    all_fields = list(query.ALL_FIELDS[what])
     rnd.shuffle(all_fields)
 
     # No fields, should return everything

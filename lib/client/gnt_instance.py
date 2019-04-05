@@ -1328,7 +1328,7 @@ def _ParseExtStorageParams(params):
                                  " converting to an ExtStorage disk template" %
                                  constants.IDISK_PROVIDER, errors.ECODE_INVAL)
     else:
-      for param in params.keys():
+      for param in params:
         if (param != constants.IDISK_PROVIDER and
             param in constants.IDISK_PARAMS):
           raise errors.OpPrereqError("Invalid parameter '%s' when converting"

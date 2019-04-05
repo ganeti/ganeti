@@ -167,7 +167,7 @@ class TestParseFilter(unittest.TestCase):
     self._Test("mtime >= 9999", [qlang.OP_GE, "mtime", 9999])
 
   def testAllFields(self):
-    for name in frozenset(i for d in query.ALL_FIELD_LISTS for i in d.keys()):
+    for name in frozenset(i for d in query.ALL_FIELD_LISTS for i in d):
       self._Test("%s == \"value\"" % name, [qlang.OP_EQUAL, name, "value"])
 
   def testError(self):

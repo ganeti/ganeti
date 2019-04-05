@@ -2096,7 +2096,7 @@ class TestOSEnvironment(unittest.TestCase):
 
   def testParamPresence(self):
     env = self._CreateEnv()
-    env_keys = env.keys()
+    env_keys = list(env)
     self.assertTrue("OSP_PUBLIC_PARAM" in env)
     self.assertTrue("OSP_PRIVATE_PARAM" in env)
     self.assertTrue("OSP_ANOTHER_PRIVATE_PARAM" in env)

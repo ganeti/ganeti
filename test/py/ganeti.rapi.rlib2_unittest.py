@@ -882,7 +882,7 @@ class TestInstanceCreation(RAPITestCase):
       }
 
     for name in reqfields.keys():
-      data = dict(i for i in reqfields.iteritems() if i[0] != name)
+      data = dict(i for i in reqfields.items() if i[0] != name)
 
       handler = _CreateHandler(rlib2.R_2_instances, [], {}, data,
                                self._clfactory)

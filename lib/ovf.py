@@ -370,7 +370,7 @@ class OVFReader(object):
       files_with_paths = [utils.PathJoin(self.input_dir, file_name)
                           for file_name in self.files_list]
       sha1_sums = utils.FingerprintFiles(files_with_paths)
-      for file_name, value in manifest_files.iteritems():
+      for file_name, value in manifest_files.items():
         if sha1_sums.get(utils.PathJoin(self.input_dir, file_name)) != value:
           raise errors.OpPrereqError("SHA1 checksum of %s does not match the"
                                      " value in manifest file" % file_name,
@@ -563,7 +563,7 @@ class OVFReader(object):
       results["nic%s_mac" % counter] = mac_data
 
       # GanetiSection data overrides 'manually' collected data
-      for name, value in ganeti_data.iteritems():
+      for name, value in ganeti_data.items():
         results["nic%s_%s" % (counter, name)] = value
 
       # Bridged network has no IP - unless specifically stated otherwise
@@ -733,7 +733,7 @@ class OVFWriter(object):
     assert(data.get("name"))
     name = SubElementText(root, "gnt:Name", data["name"])
     params = ET.SubElement(root, "gnt:Parameters")
-    for name, value in data.iteritems():
+    for name, value in data.items():
       if name != "name":
         SubElementText(params, "gnt:%s" % name, value)
 
@@ -1474,9 +1474,9 @@ class OVFImporter(Converter):
                                       constants.EXPORT_CONF_FILE)
 
     output = []
-    for section, options in results.iteritems():
+    for section, options in results.items():
       output.append("[%s]" % section)
-      for name, value in options.iteritems():
+      for name, value in options.items():
         if value is None:
           value = ""
         output.append("%s = %s" % (name, value))
@@ -1787,7 +1787,7 @@ class OVFExporter(Converter):
     files_list.extend(self.references_files)
     logging.warning("Calculating SHA1 checksums, this may take a while")
     sha1_sums = utils.FingerprintFiles(files_list)
-    for file_path, value in sha1_sums.iteritems():
+    for file_path, value in sha1_sums.items():
       file_name = os.path.basename(file_path)
       lines.append("SHA1(%s)= %s" % (file_name, value))
     lines.append("")

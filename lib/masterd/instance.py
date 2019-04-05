@@ -704,7 +704,7 @@ class ImportExportLoop(object):
     """
     daemon_status = {}
 
-    for node_name, names in daemons.iteritems():
+    for node_name, names in daemons.items():
       result = lu.rpc.call_impexp_status(node_name, names)
       if result.fail_msg:
         lu.LogWarning("Failed to get daemon status on %s: %s",
@@ -738,7 +738,7 @@ class ImportExportLoop(object):
       result.setdefault(diskie.node_name, []).append(daemon_name)
 
     assert len(queue) >= len(result)
-    assert len(queue) >= sum([len(names) for names in result.itervalues()])
+    assert len(queue) >= sum([len(names) for names in result.values()])
 
     logging.debug("daemons=%r", result)
 

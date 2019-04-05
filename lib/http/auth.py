@@ -65,7 +65,7 @@ def _FormatAuthHeader(scheme, params):
 
   buf.write(scheme)
 
-  for name, value in params.iteritems():
+  for name, value in params.items():
     buf.write(" ")
     buf.write(name)
     buf.write("=")

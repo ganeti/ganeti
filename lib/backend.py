@@ -1016,7 +1016,7 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
   if potential_master_candidate:
     # Check that the set of potential master candidates matches the
     # public key file
-    pub_uuids_set = set(pub_keys.keys()) - set(offline_nodes)
+    pub_uuids_set = set(pub_keys) - set(offline_nodes)
     pot_mc_uuids_set = set(pot_mc_uuids) - set(offline_nodes)
     missing_uuids = set([])
     if pub_uuids_set != pot_mc_uuids_set:
@@ -1049,7 +1049,7 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
       result.append("There is more than one key for node %s in the node public"
                     " key file %s." % (my_name, node_pub_key_path))
   else:
-    if len(pub_keys.keys()) > 0:
+    if len(pub_keys) > 0:
       result.append("The public key file %s is not empty, although"
                     " the node is not a potential master candidate." %
                     node_pub_key_path)
@@ -1296,7 +1296,7 @@ def VerifyNode(what, cluster_name, all_hvparams):
 
   if constants.NV_LVLIST in what and vm_capable:
     try:
-      val = GetVolumeList(utils.ListVolumeGroups().keys())
+      val = GetVolumeList(list(utils.ListVolumeGroups()))
     except RPCFail as err:
       val = str(err)
     result[constants.NV_LVLIST] = val
@@ -4134,7 +4134,7 @@ def _TryOSFromDisk(name, base_dir=None):
   else:
     del os_files[constants.OS_SCRIPT_VERIFY]
 
-  for (filename, required) in os_files.items():
+  for (filename, required) in list(os_files.items()):
     os_files[filename] = utils.PathJoin(os_dir, filename)
 
     try:
@@ -4997,7 +4997,7 @@ def ValidateOS(required, osname, checks, osparams, force_variant):
     return True
 
   if constants.OS_VALIDATE_PARAMETERS in checks:
-    _CheckOSPList(tbv, osparams.keys())
+    _CheckOSPList(tbv, list(osparams))
 
   validate_env = OSCoreEnv(osname, tbv, osparams)
   result = utils.RunCmd([tbv.verify_script] + checks, env=validate_env,

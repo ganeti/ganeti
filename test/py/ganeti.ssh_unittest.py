@@ -490,7 +490,7 @@ class TestGetUserFiles(testutils.GanetiTestCase):
 
 class TestDetermineKeyBits():
   def testCompleteness(self):
-    self.assertEquals(constants.SSHK_ALL, ssh.SSH_KEY_VALID_BITS.keys())
+    self.assertEquals(constants.SSHK_ALL, list(ssh.SSH_KEY_VALID_BITS))
 
   def testAdoptDefault(self):
     self.assertEquals(2048, DetermineKeyBits("rsa", None, None, None))

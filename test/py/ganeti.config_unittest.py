@@ -577,7 +577,7 @@ class TestConfigRunner(unittest.TestCase):
 
     self.assertTrue("a=A" in result)
     lines = [line for line in result.split('\n') if line != '']
-    self.assertEqual(len(hvparams.keys()), len(lines))
+    self.assertEqual(len(hvparams), len(lines))
 
   def testExtendByAllHvparamsStrings(self):
     all_hvparams = {constants.HT_XEN_PVM: "foo"}

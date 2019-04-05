@@ -2991,4 +2991,4 @@ ALL_FIELDS = {
   }
 
 #: All available field lists
-ALL_FIELD_LISTS = ALL_FIELDS.values()
+ALL_FIELD_LISTS = list(ALL_FIELDS.values())

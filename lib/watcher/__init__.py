@@ -239,7 +239,7 @@ def _CheckInstances(cl, notepad, instances, locks):
   """Make a pass over the list of instances, restarting downed ones.
 
   """
-  notepad.MaintainInstanceList(instances.keys())
+  notepad.MaintainInstanceList(list(instances))
 
   started = set()
 
@@ -858,7 +858,7 @@ def _GroupWatcher(opts):
     (nodes, instances, locks) = _GetGroupData(client, group_uuid)
 
     # Update per-group instance status file
-    _UpdateInstanceStatus(inst_status_path, instances.values())
+    _UpdateInstanceStatus(inst_status_path, list(instances.values()))
 
     _MergeInstanceStatus(pathutils.INSTANCE_STATUS_FILE,
                          pathutils.WATCHER_GROUP_INSTANCE_STATUS_FILE,

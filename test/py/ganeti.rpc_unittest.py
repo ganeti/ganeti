@@ -96,7 +96,7 @@ class TestRpcProcessor(unittest.TestCase):
     proc = rpc._RpcProcessor(resolver, 24094)
     result = proc(["localhost"], "version", {"localhost": ""}, 60,
                   NotImplemented, _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), ["localhost"])
+    self.assertEqual(list(result), ["localhost"])
     lhresp = result["localhost"]
     self.assertFalse(lhresp.offline)
     self.assertEqual(lhresp.node, "localhost")
@@ -123,7 +123,7 @@ class TestRpcProcessor(unittest.TestCase):
     body = {host: ""}
     result = proc([host], "version", body, 12356, NotImplemented,
                   _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), [host])
+    self.assertEqual(list(result), [host])
     lhresp = result[host]
     self.assertFalse(lhresp.offline)
     self.assertEqual(lhresp.node, host)
@@ -141,7 +141,7 @@ class TestRpcProcessor(unittest.TestCase):
     body = {host: ""}
     result = proc([host], "version", body, 60, NotImplemented,
                   _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), [host])
+    self.assertEqual(list(result), [host])
     lhresp = result[host]
     self.assertTrue(lhresp.offline)
     self.assertEqual(lhresp.node, host)
@@ -201,9 +201,9 @@ class TestRpcProcessor(unittest.TestCase):
                                              errinfo))
       host = "aef9ur4i.example.com"
       body = {host: ""}
-      result = proc(body.keys(), "version", body, 60, NotImplemented,
+      result = proc(list(body), "version", body, 60, NotImplemented,
                     _req_process_fn=http_proc)
-      self.assertEqual(result.keys(), [host])
+      self.assertEqual(list(result), [host])
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
       self.assertEqual(lhresp.node, host)
@@ -299,7 +299,7 @@ class TestRpcProcessor(unittest.TestCase):
       body = {host: ""}
       result = proc([host], "version", body, 60, NotImplemented,
                     _req_process_fn=http_proc)
-      self.assertEqual(result.keys(), [host])
+      self.assertEqual(list(result), [host])
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
       self.assertEqual(lhresp.node, host)
@@ -331,7 +331,7 @@ class TestRpcProcessor(unittest.TestCase):
     body = {host: serializer.DumpJson(test_data)}
     result = proc([host], "upload_file", body, 30, NotImplemented,
                   _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), [host])
+    self.assertEqual(list(result), [host])
     lhresp = result[host]
     self.assertFalse(lhresp.offline)
     self.assertEqual(lhresp.node, host)
@@ -985,7 +985,7 @@ class TestLegacyNodeInfo(unittest.TestCase):
   def testNoSpindles(self):
     my_lst = [self.VAL_BOOT, [self.DICT_VG], [self.DICT_HV]]
     result = rpc.MakeLegacyNodeInfo(my_lst, constants.DT_PLAIN)
-    expected_dict = dict((k,v) for k, v in self.STD_DICT.iteritems())
+    expected_dict = dict((k,v) for k, v in self.STD_DICT.items())
     expected_dict[self.KEY_SPINDLES_FREE] = 0
     expected_dict[self.KEY_SPINDLES_TOTAL] = 0
     self.assertEqual(result, expected_dict)

@@ -389,7 +389,7 @@ class TestNodeQuery(unittest.TestCase):
                        ])
 
   def test(self):
-    selected = query.NODE_FIELDS.keys()
+    selected = list(query.NODE_FIELDS)
     field_index = dict((field, idx) for idx, field in enumerate(selected))
 
     q = self._Create(selected)
@@ -668,7 +668,7 @@ class TestInstanceQuery(unittest.TestCase):
        ["inst3", 128, "192.0.2.99"]])
 
   def test(self):
-    selected = query.INSTANCE_FIELDS.keys()
+    selected = list(query.INSTANCE_FIELDS)
     fieldidx = dict((field, idx) for idx, field in enumerate(selected))
 
     macs = ["00:11:22:%02x:%02x:%02x" % (i % 255, i % 3, (i * 123) % 255)
@@ -1285,8 +1285,8 @@ class TestQueryFields(unittest.TestCase):
           sample_size = rnd.randint(5, 20)
         else:
           sample_size = rnd.randint(1, max(1, len(fielddefs) - 1))
-        fields = [fdef for (fdef, _, _, _) in rnd.sample(fielddefs.values(),
-                                                         sample_size)]
+        fields = [fdef for (fdef, _, _, _)
+                  in rnd.sample(list(fielddefs.values()), sample_size)]
         result = query.QueryFields(fielddefs, [fdef.name for fdef in fields])
         self.assert_(isinstance(result, dict))
         response = objects.QueryFieldsResponse.FromDict(result)

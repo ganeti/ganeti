@@ -393,7 +393,7 @@ def ProcessRequests(requests, lock_monitor_cb=None, _curl=pycurl.Curl,
     monitor = _NoOpRequestMonitor
 
   # Process all requests and act based on the returned values
-  for (curl, msg) in _curl_process(_curl_multi(), curl_to_client.keys()):
+  for (curl, msg) in _curl_process(_curl_multi(), list(curl_to_client)):
     monitor.acquire(shared=0)
     try:
       curl_to_client.pop(curl).Done(msg)

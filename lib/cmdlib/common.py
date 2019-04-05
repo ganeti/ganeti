@@ -761,7 +761,7 @@ def GetUpdatedParams(old_params, update_dict,
 
   """
   params_copy = copy.deepcopy(old_params)
-  for key, val in update_dict.iteritems():
+  for key, val in update_dict.items():
     if ((use_default and val == constants.VALUE_DEFAULT) or
           (use_none and val is None)):
       try:
@@ -805,7 +805,7 @@ def GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                      (key, value, err), errors.ECODE_INVAL)
       elif key == constants.ISPECS_MINMAX:
         for minmax in value:
-          for k in minmax.keys():
+          for k in minmax:
             utils.ForceDictType(minmax[k], constants.ISPECS_PARAMETER_TYPES)
         ipolicy[key] = value
       elif key == constants.ISPECS_STD:

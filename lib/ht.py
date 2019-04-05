@@ -506,7 +506,7 @@ def _TStrictDictCheck(require_all, exclusive, items, val):
   """
   notfound_fn = lambda _: not exclusive
 
-  if require_all and not frozenset(val.keys()).issuperset(items.keys()):
+  if require_all and not frozenset(val).issuperset(items):
     # Requires items not found in value
     return False
 

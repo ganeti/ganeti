@@ -103,7 +103,7 @@ class TestConstants(unittest.TestCase):
     self.assertFalse(constants.JOBS_FINALIZED - constants.JOB_STATUS_ALL)
 
   def testDefaultsForAllHypervisors(self):
-    self.assertEqual(frozenset(constants.HVC_DEFAULTS.keys()),
+    self.assertEqual(frozenset(constants.HVC_DEFAULTS),
                      constants.HYPER_TYPES)
 
   def testDefaultHypervisor(self):

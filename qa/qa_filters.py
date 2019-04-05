@@ -94,13 +94,13 @@ def AssertStatusRetry(jid, status, interval=1.0, timeout=20.0):
 
 def TestFilterList():
   """gnt-filter list"""
-  qa_utils.GenericQueryTest("gnt-filter", query.FILTER_FIELDS.keys(),
+  qa_utils.GenericQueryTest("gnt-filter", list(query.FILTER_FIELDS),
                             namefield="uuid", test_unknown=False)
 
 
 def TestFilterListFields():
   """gnt-filter list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-filter", query.FILTER_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-filter", list(query.FILTER_FIELDS))
 
 
 def TestFilterAddRemove():

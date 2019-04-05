@@ -1066,7 +1066,7 @@ class RADOSBlockDevice(base.BlockDev):
 
     # since ceph mimic the json output changed from dict to list
     if isinstance(devices, dict):
-      devices = devices.values()
+      devices = list(devices.values())
 
     rbd_dev = None
     for d in devices:

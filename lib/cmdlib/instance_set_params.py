@@ -787,7 +787,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     inst_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
     excl_stor = compat.any(
-      rpc.GetExclusiveStorageForNodes(self.cfg, inst_nodes).values()
+      list(rpc.GetExclusiveStorageForNodes(self.cfg, inst_nodes).values())
       )
 
     # Get the group access type
@@ -1714,7 +1714,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Modify arbitrary params in case instance template is ext
 
-    for key, value in params.iteritems():
+    for key, value in params.items():
       if (key not in constants.MODIFIABLE_IDISK_PARAMS and
           disk.dev_type == constants.DT_EXT):
         # stolen from GetUpdatedParams: default means reset/delete
@@ -1948,13 +1948,13 @@ class LUInstanceSetParams(LogicalUnit):
     # hvparams changes
     if self.op.hvparams:
       self.instance.hvparams = self.hv_inst
-      for key, val in self.op.hvparams.iteritems():
+      for key, val in self.op.hvparams.items():
         result.append(("hv/%s" % key, val))
 
     # beparams changes
     if self.op.beparams:
       self.instance.beparams = self.be_inst
-      for key, val in self.op.beparams.iteritems():
+      for key, val in self.op.beparams.items():
         result.append(("be/%s" % key, val))
 
     # OS change
@@ -1964,12 +1964,12 @@ class LUInstanceSetParams(LogicalUnit):
     # osparams changes
     if self.op.osparams:
       self.instance.osparams = self.os_inst
-      for key, val in self.op.osparams.iteritems():
+      for key, val in self.op.osparams.items():
         result.append(("os/%s" % key, val))
 
     if self.op.osparams_private:
       self.instance.osparams_private = self.os_inst_private
-      for key, val in self.op.osparams_private.iteritems():
+      for key, val in self.op.osparams_private.items():
         # Show the Private(...) blurb.
         result.append(("os_private/%s" % key, repr(val)))
 
