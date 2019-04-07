@@ -145,7 +145,7 @@ def WriteFile(file_name, fn=None, data=None,
   @type fn: callable
   @param fn: content writing function, called with
       file descriptor as parameter
-  @type data: str
+  @type data: str or bytes
   @param data: contents of the file
   @type mode: int
   @param mode: file mode
@@ -230,17 +230,16 @@ def WriteFile(file_name, fn=None, data=None,
       if callable(prewrite):
         prewrite(fd)
       if data is not None:
-        if isinstance(data, unicode):
-          data = data.encode()
-        assert isinstance(data, str)
-        to_write = len(data)
-        offset = 0
-        while offset < to_write:
-          written = os.write(fd, buffer(data, offset))
-          assert written >= 0
-          assert written <= to_write - offset
-          offset += written
-        assert offset == to_write
+        assert isinstance(data, (str, bytes))
+        if isinstance(data, str):
+          open_mode = "w"
+          encoding = "utf-8"
+        else:
+          open_mode = "wb"
+          encoding = None
+        with open(fd, open_mode, closefd=False,
+                  encoding=encoding, buffering=8192) as out:
+          out.write(data)
       else:
         fn(fd)
       if callable(postwrite):
