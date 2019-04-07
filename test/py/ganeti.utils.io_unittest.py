@@ -48,9 +48,9 @@ from ganeti import errors
 import testutils
 
 
-class TestReadFile(testutils.GanetiTestCase):
+class TestReadBinaryFile(testutils.GanetiTestCase):
   def testReadAll(self):
-    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"))
+    data = utils.ReadBinaryFile(testutils.TestDataFilename("cert1.pem"))
     self.assertEqual(len(data), 1229)
 
     h = compat.md5_hash()
@@ -58,13 +58,34 @@ class TestReadFile(testutils.GanetiTestCase):
     self.assertEqual(h.hexdigest(), "a02be485db0d82b70c0ae7913b26894e")
 
   def testReadSize(self):
-    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"),
-                          size=100)
+    data = utils.ReadBinaryFile(testutils.TestDataFilename("cert1.pem"),
+                                size=100)
     self.assertEqual(len(data), 100)
 
     h = compat.md5_hash()
     h.update(data)
     self.assertEqual(h.hexdigest(), "256d28505448898d4741b10c5f5dbc12")
+
+  def testCallback(self):
+    def _Cb(fh):
+      self.assertEqual(fh.tell(), 0)
+    data = utils.ReadBinaryFile(testutils.TestDataFilename("cert1.pem"),
+                                preread=_Cb)
+    self.assertEqual(len(data), 1229)
+
+  def testError(self):
+    self.assertRaises(EnvironmentError, utils.ReadBinaryFile,
+                      "/dev/null/does-not-exist")
+
+
+class TestReadFile(testutils.GanetiTestCase):
+  def testReadAll(self):
+    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"))
+    self.assertEqual(len(data), 1229)
+
+  def testReadSize(self):
+    data = utils.ReadFile(testutils.TestDataFilename("cert1.pem"), size=100)
+    self.assertEqual(len(data), 100)
 
   def testCallback(self):
     def _Cb(fh):

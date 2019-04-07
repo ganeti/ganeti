@@ -100,8 +100,30 @@ class FileStatHelper(object):
     self.st = os.fstat(fh.fileno())
 
 
+def ReadBinaryFile(file_name, size=-1, preread=None):
+  """Reads a binary file.
+
+  @type size: int
+  @param size: Read at most size bytes (if negative, entire file)
+  @type preread: callable receiving file handle as single parameter
+  @param preread: Function called before file is read
+  @rtype: bytes
+  @return: the (possibly partial) content of the file
+  @raise IOError: if the file cannot be opened
+
+  """
+  f = open(file_name, "rb")
+  try:
+    if preread:
+      preread(f)
+
+    return f.read(size)
+  finally:
+    f.close()
+
+
 def ReadFile(file_name, size=-1, preread=None):
-  """Reads a file.
+  """Reads a text file.
 
   @type size: int
   @param size: Read at most size bytes (if negative, entire file)
@@ -112,7 +134,7 @@ def ReadFile(file_name, size=-1, preread=None):
   @raise IOError: if the file cannot be opened
 
   """
-  f = open(file_name, "r")
+  f = open(file_name, "r", encoding="utf-8")
   try:
     if preread:
       preread(f)
