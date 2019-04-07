@@ -866,29 +866,18 @@ fi
 AC_SUBST(MAN_HAS_WARNINGS)
 
 # Check for Python
-# We need a Python-2 interpreter, version at least 2.6. As AM_PATH_PYTHON
-# only supports a "minimal version" constraint, we check <3.0 afterwards.
+# We need a Python3 interpreter, version at least 3.5.
 # We  tune _AM_PYTHON_INTERPRETER_LIST to first check interpreters that are
-# likely interpreters for Python 2.
+# likely interpreters for Python 3.
 m4_define_default([_AM_PYTHON_INTERPRETER_LIST],
-                  [python2 python2.7 python2.6 python])
-AM_PATH_PYTHON(2.6)
-if $PYTHON -c "import sys
-if (sys.hexversion >> 24) < 3:
-  sys.exit(1)
-else:
-  sys.exit(0)
-"; then
-  AC_MSG_FAILURE([Can only work with an interpreter for Python 2])
-fi
-
+                  [python3 python3.6 python3.5 python])
+AM_PATH_PYTHON([3.5])
 AC_PYTHON_MODULE(OpenSSL, t)
 AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 AC_PYTHON_MODULE(bitarray, t)
-AC_PYTHON_MODULE(ipaddr, t)
 AC_PYTHON_MODULE(mock)
 AC_PYTHON_MODULE(psutil)
 AC_PYTHON_MODULE(paramiko)
