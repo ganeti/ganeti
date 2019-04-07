@@ -73,11 +73,11 @@ class TestFillOpcode(unittest.TestCase):
                       self.OpTest, {}, {"test": [1, 2, 3]})
 
   def testUnicode(self):
-    op = baserlib.FillOpcode(self.OpTest, {u"test": "abc"}, {})
+    op = baserlib.FillOpcode(self.OpTest, {"test": "abc"}, {})
     self.assertTrue(isinstance(op, self.OpTest))
     self.assertEqual(op.test, "abc")
 
-    op = baserlib.FillOpcode(self.OpTest, {}, {u"test": "abc"})
+    op = baserlib.FillOpcode(self.OpTest, {}, {"test": "abc"})
     self.assertTrue(isinstance(op, self.OpTest))
     self.assertEqual(op.test, "abc")
 

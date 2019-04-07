@@ -102,7 +102,7 @@ class TestTypeChecks(unittest.TestCase):
 
   def testString(self):
     for val in ["", "abc", "Hello World", "123",
-                u"", u"\u272C", u"abc"]:
+                "", "\u272C", "abc"]:
       self.assertTrue(ht.TString(val))
 
     for val in [False, True, None, [], 0, 1, 5, -193, 93.8582]:

@@ -624,8 +624,8 @@ class TestTruncate(unittest.TestCase):
       data = i * "FooBarBaz"
       self.assertEqual(self._Test(data, len(data)), data)
 
-    for (length, exp) in [(8, u"T\u00e4st\u2026xyz"), (7, u"T\u00e4st...")]:
-      self.assertEqual(self._Test(u"T\u00e4st\u2026xyz", length), exp)
+    for (length, exp) in [(8, "T\u00e4st\u2026xyz"), (7, "T\u00e4st...")]:
+      self.assertEqual(self._Test("T\u00e4st\u2026xyz", length), exp)
 
     self.assertEqual(self._Test(range(100), 20), "[0, 1, 2, 3, 4, 5...")
 

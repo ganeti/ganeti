@@ -299,7 +299,7 @@ class TestWriteFile(testutils.GanetiTestCase):
     self.assertEqual(utils.ReadFile(self.tfile.name), data)
 
   def testWriteSimpleUnicode(self):
-    data = u"abc"
+    data = "abc"
     utils.WriteFile(self.tfile.name, data=data)
     self.assertEqual(utils.ReadFile(self.tfile.name), data)
 
