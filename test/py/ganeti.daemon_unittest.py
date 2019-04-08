@@ -186,7 +186,7 @@ class _BaseAsyncUDPSocketTest:
     self.server = _MyAsyncUDPSocket(self.family)
     self.client = _MyAsyncUDPSocket(self.family)
     self.server.bind((self.address, 0))
-    self.port = self.server.getsockname()[1]
+    self.port = self.server.socket.getsockname()[1]
     # Save utils.IgnoreSignals so we can do evil things to it...
     self.saved_utils_ignoresignals = utils.IgnoreSignals
 
