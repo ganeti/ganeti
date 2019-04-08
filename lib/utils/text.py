@@ -35,6 +35,7 @@
 import re
 import os
 import time
+import numbers
 import collections
 
 from ganeti import errors
@@ -159,7 +160,7 @@ def FormatUnit(value, units, roman=False):
   if units not in ("m", "g", "t", "h"):
     raise errors.ProgrammerError("Invalid unit specified '%s'" % str(units))
 
-  if not isinstance(value, (int, long, float)):
+  if not isinstance(value, numbers.Real):
     raise errors.ProgrammerError("Invalid value specified '%s (%s)'" % (
         value, type(value)))
 
@@ -413,9 +414,7 @@ def SafeEncode(text):
   @return: a safe version of text
 
   """
-  if isinstance(text, unicode):
-    # only if unicode; if str already, we handle it below
-    text = text.encode("ascii", "backslashreplace")
+  text = text.encode("ascii", "backslashreplace").decode("ascii")
   resu = ""
   for char in text:
     c = ord(char)
