@@ -37,22 +37,28 @@ import hmac
 from ganeti import compat
 
 
-def Sha1Hmac(key, text, salt=None):
-  """Calculates the HMAC-SHA1 digest of a text.
+def Sha1Hmac(key, msg, salt=None):
+  """Calculates the HMAC-SHA1 digest of a message.
 
   HMAC is defined in RFC2104.
 
   @type key: string
   @param key: Secret key
-  @type text: string
+  @type msg: string or bytes
 
   """
-  if salt:
-    salted_text = salt + text
-  else:
-    salted_text = text
+  key = key.encode("utf-8")
 
-  return hmac.new(key, salted_text, compat.sha1).hexdigest()
+  if isinstance(msg, str):
+    msg = msg.encode("utf-8")
+
+  if salt:
+    salt = salt.encode("utf-8")
+    salted_msg = salt + msg
+  else:
+    salted_msg = msg
+
+  return hmac.new(key, salted_msg, compat.sha1).hexdigest()
 
 
 def VerifySha1Hmac(key, text, digest, salt=None):
@@ -88,15 +94,15 @@ def _FingerprintFile(filename):
   if not (os.path.exists(filename) and os.path.isfile(filename)):
     return None
 
-  f = open(filename)
-
   fp = compat.sha1_hash()
-  while True:
-    data = f.read(4096)
-    if not data:
-      break
 
-    fp.update(data)
+  with open(filename, "rb") as f:
+    while True:
+      data = f.read(4096)
+      if not data:
+        break
+
+      fp.update(data)
 
   return fp.hexdigest()
 
