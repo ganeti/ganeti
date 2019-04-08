@@ -773,7 +773,7 @@ class SignalHandler(object):
     This will reset all the signals to their previous handlers.
 
     """
-    for signum, prev_handler in self._previous.items():
+    for signum, prev_handler in list(self._previous.items()):
       signal.signal(signum, prev_handler)
       # If successful, remove from dict
       del self._previous[signum]
