@@ -52,12 +52,12 @@ class TestSetCloseOnExecFlag(unittest.TestCase):
 
   def testEnable(self):
     utils.SetCloseOnExecFlag(self.tmpfile.fileno(), True)
-    self.failUnless(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
+    self.assertTrue(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
                     fcntl.FD_CLOEXEC)
 
   def testDisable(self):
     utils.SetCloseOnExecFlag(self.tmpfile.fileno(), False)
-    self.failIf(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
+    self.assertFalse(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
                 fcntl.FD_CLOEXEC)
 
 
@@ -67,12 +67,12 @@ class TestSetNonblockFlag(unittest.TestCase):
 
   def testEnable(self):
     utils.SetNonblockFlag(self.tmpfile.fileno(), True)
-    self.failUnless(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFL) &
+    self.assertTrue(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFL) &
                     os.O_NONBLOCK)
 
   def testDisable(self):
     utils.SetNonblockFlag(self.tmpfile.fileno(), False)
-    self.failIf(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFL) &
+    self.assertFalse(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFL) &
                 os.O_NONBLOCK)
 
 
@@ -87,7 +87,7 @@ class TestIgnoreProcessNotFound(unittest.TestCase):
     (pid_read_fd, pid_write_fd) = os.pipe()
 
     # Start short-lived process which writes its PID to pipe
-    self.assert_(utils.RunInSeparateProcess(self._WritePid, pid_write_fd))
+    self.assertTrue(utils.RunInSeparateProcess(self._WritePid, pid_write_fd))
     os.close(pid_write_fd)
 
     # Read PID from pipe
@@ -121,15 +121,15 @@ class TestIgnoreSignals(unittest.TestCase):
     self.assertRaises(EnvironmentError, self._Raise, env_err_intr)
     self.assertRaises(EnvironmentError, self._Raise, env_err_inval)
 
-    self.assertEquals(utils.IgnoreSignals(self._Raise, sock_err_intr), None)
-    self.assertEquals(utils.IgnoreSignals(self._Raise, env_err_intr), None)
+    self.assertEqual(utils.IgnoreSignals(self._Raise, sock_err_intr), None)
+    self.assertEqual(utils.IgnoreSignals(self._Raise, env_err_intr), None)
     self.assertRaises(socket.error, utils.IgnoreSignals, self._Raise,
                       sock_err_inval)
     self.assertRaises(EnvironmentError, utils.IgnoreSignals, self._Raise,
                       env_err_inval)
 
-    self.assertEquals(utils.IgnoreSignals(self._Return, True), True)
-    self.assertEquals(utils.IgnoreSignals(self._Return, 33), 33)
+    self.assertEqual(utils.IgnoreSignals(self._Return, True), True)
+    self.assertEqual(utils.IgnoreSignals(self._Return, 33), 33)
 
 
 class TestIsExecutable(unittest.TestCase):

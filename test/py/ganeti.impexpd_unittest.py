@@ -103,8 +103,8 @@ class TestCommandBuilder(unittest.TestCase):
           dd_cmd = builder._GetDdCommand()
 
           if magic:
-            self.assert_(("M=%s" % magic) in magic_cmd)
-            self.assert_(("M=%s" % magic) in dd_cmd)
+            self.assertTrue(("M=%s" % magic) in magic_cmd)
+            self.assertTrue(("M=%s" % magic) in dd_cmd)
           else:
             self.assertFalse(magic_cmd)
 
@@ -122,34 +122,34 @@ class TestCommandBuilder(unittest.TestCase):
 
                 # Check complete command
                 cmd = builder.GetCommand()
-                self.assert_(isinstance(cmd, list))
+                self.assertTrue(isinstance(cmd, list))
 
                 if compress != constants.IEC_NONE:
-                  self.assert_(CheckCmdWord(cmd, compress_dict[compress]))
+                  self.assertTrue(CheckCmdWord(cmd, compress_dict[compress]))
 
                 if cmd_prefix is not None:
-                  self.assert_(compat.any(cmd_prefix in i for i in cmd))
+                  self.assertTrue(compat.any(cmd_prefix in i for i in cmd))
 
                 if cmd_suffix is not None:
-                  self.assert_(compat.any(cmd_suffix in i for i in cmd))
+                  self.assertTrue(compat.any(cmd_suffix in i for i in cmd))
 
                 # Check socat command
                 socat_cmd = builder._GetSocatCommand()
 
                 if mode == constants.IEM_IMPORT:
                   ssl_addr = socat_cmd[-2].split(",")
-                  self.assert_(("OPENSSL-LISTEN:%s" % port) in ssl_addr)
+                  self.assertTrue(("OPENSSL-LISTEN:%s" % port) in ssl_addr)
                 elif mode == constants.IEM_EXPORT:
                   ssl_addr = socat_cmd[-1].split(",")
-                  self.assert_(("OPENSSL:%s:%s" % (host, port)) in ssl_addr)
+                  self.assertTrue(("OPENSSL:%s:%s" % (host, port)) in ssl_addr)
                   if impexpd.CommandBuilder._GetSocatVersion() >= (1, 7, 3):
-                    self.assert_("openssl-commonname=%s" %
+                    self.assertTrue("openssl-commonname=%s" %
                                  constants.X509_CERT_CN in ssl_addr)
                   else:
-                    self.assert_("openssl-commonname=%s" %
+                    self.assertTrue("openssl-commonname=%s" %
                                  constants.X509_CERT_CN not in ssl_addr)
 
-                self.assert_("verify=1" in ssl_addr)
+                self.assertTrue("verify=1" in ssl_addr)
 
   @testutils.RequiresIPv6()
   def testIPv6(self):
@@ -158,21 +158,21 @@ class TestCommandBuilder(unittest.TestCase):
                               ipv4=False, ipv6=False)
       builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
       cmd = builder._GetSocatCommand()
-      self.assert_(compat.all("pf=" not in i for i in cmd))
+      self.assertTrue(compat.all("pf=" not in i for i in cmd))
 
       # IPv4
       opts = CmdBuilderConfig(host="localhost", port=6789,
                               ipv4=True, ipv6=False)
       builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
       cmd = builder._GetSocatCommand()
-      self.assert_(compat.any(",pf=ipv4" in i for i in cmd))
+      self.assertTrue(compat.any(",pf=ipv4" in i for i in cmd))
 
       # IPv6
       opts = CmdBuilderConfig(host="localhost", port=6789,
                               ipv4=False, ipv6=True)
       builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
       cmd = builder._GetSocatCommand()
-      self.assert_(compat.any(",pf=ipv6" in i for i in cmd))
+      self.assertTrue(compat.any(",pf=ipv6" in i for i in cmd))
 
       # IPv4 and IPv6
       opts = CmdBuilderConfig(host="localhost", port=6789,

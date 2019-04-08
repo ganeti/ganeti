@@ -46,7 +46,7 @@ class GetFreeSlotTest(unittest.TestCase):
   """Test function that finds a free slot in a bitarray"""
 
   def testFreeSlot(self):
-    self.assertEquals(bitarrays.GetFreeSlot(_FREE), 3)
+    self.assertEqual(bitarrays.GetFreeSlot(_FREE), 3)
 
   def testReservedSlot(self):
     self.assertRaises(errors.GenericError,
@@ -59,8 +59,8 @@ class GetFreeSlotTest(unittest.TestCase):
                       _FULL)
 
   def testGetAndReserveSlot(self):
-    self.assertEquals(bitarrays.GetFreeSlot(_FREE, slot=5, reserve=True), 5)
-    self.assertEquals(_FREE, bitarray("11100110"))
+    self.assertEqual(bitarrays.GetFreeSlot(_FREE, slot=5, reserve=True), 5)
+    self.assertEqual(_FREE, bitarray("11100110"))
 
 
 if __name__ == "__main__":

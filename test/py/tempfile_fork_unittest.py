@@ -70,7 +70,7 @@ class TestResetTempfileModule(unittest.TestCase):
     self._Test(True)
 
   def _Test(self, reset):
-    self.failIf(tempfile.TMP_MAX > 10)
+    self.assertFalse(tempfile.TMP_MAX > 10)
 
     # Initialize tempfile module
     (fd, _) = tempfile.mkstemp(dir=self.tmpdir, prefix="init.", suffix="")
@@ -126,7 +126,7 @@ class TestResetTempfileModule(unittest.TestCase):
 
     (_, status) = os.waitpid(pid, 0)
 
-    self.failIf(os.WIFSIGNALED(status))
+    self.assertFalse(os.WIFSIGNALED(status))
 
     if reset:
       # If the tempfile module was reset, it should not fail to create

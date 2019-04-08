@@ -140,13 +140,13 @@ class _BaseClientTest:
     # Coverage is too big
     self.assertRaises(errors.ConfdClientError, self.client.SendRequest,
                       req2, coverage=15)
-    self.assertEquals(self.client._socket.send_count,
+    self.assertEqual(self.client._socket.send_count,
                       constants.CONFD_DEFAULT_REQ_COVERAGE)
     # Send with max coverage
     self.client.SendRequest(req2, coverage=-1)
-    self.assertEquals(self.client._socket.send_count,
+    self.assertEqual(self.client._socket.send_count,
                       constants.CONFD_DEFAULT_REQ_COVERAGE + len(self.mc_list))
-    self.assert_(self.client._socket.last_address in self.mc_list)
+    self.assertTrue(self.client._socket.last_address in self.mc_list)
 
 
   def testClientExpire(self):
@@ -160,17 +160,17 @@ class _BaseClientTest:
     self.mock_time.increase(constants.CONFD_CLIENT_EXPIRE_TIMEOUT - 1)
     # First request should be expired, second one should not
     self.client.ExpireRequests()
-    self.assertEquals(self.callback.call_count, 1)
-    self.assertEquals(self.callback.last_up.type, confd.client.UPCALL_EXPIRE)
-    self.assertEquals(self.callback.last_up.salt, req.rsalt)
-    self.assertEquals(self.callback.last_up.orig_request, req)
+    self.assertEqual(self.callback.call_count, 1)
+    self.assertEqual(self.callback.last_up.type, confd.client.UPCALL_EXPIRE)
+    self.assertEqual(self.callback.last_up.salt, req.rsalt)
+    self.assertEqual(self.callback.last_up.orig_request, req)
     self.mock_time.increase(3)
-    self.assertEquals(self.callback.call_count, 1)
+    self.assertEqual(self.callback.call_count, 1)
     self.client.ExpireRequests()
-    self.assertEquals(self.callback.call_count, 2)
-    self.assertEquals(self.callback.last_up.type, confd.client.UPCALL_EXPIRE)
-    self.assertEquals(self.callback.last_up.salt, req2.rsalt)
-    self.assertEquals(self.callback.last_up.orig_request, req2)
+    self.assertEqual(self.callback.call_count, 2)
+    self.assertEqual(self.callback.last_up.type, confd.client.UPCALL_EXPIRE)
+    self.assertEqual(self.callback.last_up.salt, req2.rsalt)
+    self.assertEqual(self.callback.last_up.orig_request, req2)
 
   def testClientCascadeExpire(self):
     req = confd.client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
@@ -178,19 +178,19 @@ class _BaseClientTest:
     self.mock_time.increase(constants.CONFD_CLIENT_EXPIRE_TIMEOUT +1)
     req2 = confd.client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
     self.client.SendRequest(req2)
-    self.assertEquals(self.callback.call_count, 1)
+    self.assertEqual(self.callback.call_count, 1)
 
   def testUpdatePeerList(self):
     self.client.UpdatePeerList(self.new_peers)
-    self.assertEquals(self.client._peers, self.new_peers)
+    self.assertEqual(self.client._peers, self.new_peers)
     req = confd.client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
     self.client.SendRequest(req)
-    self.assertEquals(self.client._socket.send_count, len(self.new_peers))
-    self.assert_(self.client._socket.last_address in self.new_peers)
+    self.assertEqual(self.client._socket.send_count, len(self.new_peers))
+    self.assertTrue(self.client._socket.last_address in self.new_peers)
 
   def testSetPeersFamily(self):
     self.client._SetPeersAddressFamily()
-    self.assertEquals(self.client._family, self.family)
+    self.assertEqual(self.client._family, self.family)
     mixed_peers = ["192.0.2.99", "2001:db8:beef::13"]
     self.client.UpdatePeerList(mixed_peers)
     self.assertRaises(errors.ConfdClientError,

@@ -70,7 +70,7 @@ class TestSerializer(testutils.GanetiTestCase):
       private_encoder=serializer.EncodeWithPrivateFields
     )
     for data in self._TESTDATA:
-      self.failUnless(_dump_fn(data).endswith("\n"))
+      self.assertTrue(_dump_fn(data).endswith("\n"))
       self.assertEqualValues(load_fn(_dump_fn(data)), data)
 
   def testGeneric(self):
@@ -165,7 +165,7 @@ class TestPrivate(unittest.TestCase):
     pDict["bar"] = "egg"
     uDict = pDict.Unprivate()
     nDict = {"bar": "egg"}
-    self.assertEquals(type(uDict), dict,
+    self.assertEqual(type(uDict), dict,
                       "PrivateDict.Unprivate() did not return a dict")
     self.assertEqual(pDict, uDict, "PrivateDict.Unprivate() equality failure")
     self.assertEqual(nDict, uDict, "PrivateDict.Unprivate() failed to return")
@@ -228,7 +228,7 @@ class TestCheckDoctests(unittest.TestCase):
 
   def testCheckSerializer(self):
     results = doctest.testmod(serializer)
-    self.assertEquals(results.failed, 0, "Doctest failures detected")
+    self.assertEqual(results.failed, 0, "Doctest failures detected")
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

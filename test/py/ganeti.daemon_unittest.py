@@ -68,16 +68,16 @@ class TestMainloop(testutils.GanetiTestCase):
   def testRunAndTermBySched(self):
     self.mainloop.scheduler.enter(0.1, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run() # terminates by _SendSig being scheduled
-    self.assertEquals(self.sendsig_events, [signal.SIGTERM])
+    self.assertEqual(self.sendsig_events, [signal.SIGTERM])
 
   def testTerminatingSignals(self):
     self.mainloop.scheduler.enter(0.1, 1, self._SendSig, [signal.SIGCHLD])
     self.mainloop.scheduler.enter(0.2, 1, self._SendSig, [signal.SIGINT])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events, [signal.SIGCHLD, signal.SIGINT])
+    self.assertEqual(self.sendsig_events, [signal.SIGCHLD, signal.SIGINT])
     self.mainloop.scheduler.enter(0.1, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events, [signal.SIGCHLD, signal.SIGINT,
+    self.assertEqual(self.sendsig_events, [signal.SIGCHLD, signal.SIGINT,
                                             signal.SIGTERM])
 
   def testSchedulerCancel(self):
@@ -87,7 +87,7 @@ class TestMainloop(testutils.GanetiTestCase):
     self.mainloop.scheduler.enter(0.2, 1, self._SendSig, [signal.SIGCHLD])
     self.mainloop.scheduler.enter(0.3, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events, [signal.SIGCHLD, signal.SIGTERM])
+    self.assertEqual(self.sendsig_events, [signal.SIGCHLD, signal.SIGTERM])
 
   def testRegisterSignal(self):
     self.mainloop.RegisterSignal(self)
@@ -101,9 +101,9 @@ class TestMainloop(testutils.GanetiTestCase):
     self.mainloop.scheduler.enter(0.4, 1, self._SendSig, [signal.SIGCHLD])
     self.mainloop.scheduler.enter(0.5, 1, self._SendSig, [signal.SIGCHLD])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events,
+    self.assertEqual(self.sendsig_events,
                       [signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM])
-    self.assertEquals(self.onsignal_events, self.sendsig_events)
+    self.assertEqual(self.onsignal_events, self.sendsig_events)
 
   def testDeferredCancel(self):
     self.mainloop.RegisterSignal(self)
@@ -120,8 +120,8 @@ class TestMainloop(testutils.GanetiTestCase):
                                      [handle2])
     self.mainloop.scheduler.enter(0.5, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events, [signal.SIGCHLD, signal.SIGTERM])
-    self.assertEquals(self.onsignal_events, self.sendsig_events)
+    self.assertEqual(self.sendsig_events, [signal.SIGCHLD, signal.SIGTERM])
+    self.assertEqual(self.onsignal_events, self.sendsig_events)
 
   def testReRun(self):
     self.mainloop.RegisterSignal(self)
@@ -131,15 +131,15 @@ class TestMainloop(testutils.GanetiTestCase):
     self.mainloop.scheduler.enter(0.4, 1, self._SendSig, [signal.SIGCHLD])
     self.mainloop.scheduler.enter(0.5, 1, self._SendSig, [signal.SIGCHLD])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events,
+    self.assertEqual(self.sendsig_events,
                       [signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM])
-    self.assertEquals(self.onsignal_events, self.sendsig_events)
+    self.assertEqual(self.onsignal_events, self.sendsig_events)
     self.mainloop.scheduler.enter(0.3, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events,
+    self.assertEqual(self.sendsig_events,
                       [signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM,
                        signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM])
-    self.assertEquals(self.onsignal_events, self.sendsig_events)
+    self.assertEqual(self.onsignal_events, self.sendsig_events)
 
   def testPriority(self):
     # for events at the same time, the highest priority one executes first
@@ -149,10 +149,10 @@ class TestMainloop(testutils.GanetiTestCase):
     self.mainloop.scheduler.enterabs(now + 0.1, 1, self._SendSig,
                                      [signal.SIGTERM])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events, [signal.SIGTERM])
+    self.assertEqual(self.sendsig_events, [signal.SIGTERM])
     self.mainloop.scheduler.enter(0.2, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run()
-    self.assertEquals(self.sendsig_events,
+    self.assertEqual(self.sendsig_events,
                       [signal.SIGTERM, signal.SIGCHLD, signal.SIGTERM])
 
 
@@ -205,7 +205,7 @@ class _BaseAsyncUDPSocketTest:
     self.client.enqueue_send(self.address, self.port, "p2")
     self.client.enqueue_send(self.address, self.port, "terminate")
     self.mainloop.Run()
-    self.assertEquals(self.server.received, ["p1", "p2", "terminate"])
+    self.assertEqual(self.server.received, ["p1", "p2", "terminate"])
 
   def testSyncClientServer(self):
     self.client.handle_write()
@@ -214,14 +214,14 @@ class _BaseAsyncUDPSocketTest:
     while self.client.writable():
       self.client.handle_write()
     self.server.process_next_packet()
-    self.assertEquals(self.server.received, ["p1"])
+    self.assertEqual(self.server.received, ["p1"])
     self.server.process_next_packet()
-    self.assertEquals(self.server.received, ["p1", "p2"])
+    self.assertEqual(self.server.received, ["p1", "p2"])
     self.client.enqueue_send(self.address, self.port, "p3")
     while self.client.writable():
       self.client.handle_write()
     self.server.process_next_packet()
-    self.assertEquals(self.server.received, ["p1", "p2", "p3"])
+    self.assertEqual(self.server.received, ["p1", "p2", "p3"])
 
   def testErrorHandling(self):
     self.client.enqueue_send(self.address, self.port, "p1")
@@ -231,28 +231,28 @@ class _BaseAsyncUDPSocketTest:
     self.client.enqueue_send(self.address, self.port, "error")
     self.client.enqueue_send(self.address, self.port, "terminate")
     self.assertRaises(errors.GenericError, self.mainloop.Run)
-    self.assertEquals(self.server.received,
+    self.assertEqual(self.server.received,
                       ["p1", "p2", "error"])
-    self.assertEquals(self.server.error_count, 1)
+    self.assertEqual(self.server.error_count, 1)
     self.assertRaises(errors.GenericError, self.mainloop.Run)
-    self.assertEquals(self.server.received,
+    self.assertEqual(self.server.received,
                       ["p1", "p2", "error", "p3", "error"])
-    self.assertEquals(self.server.error_count, 2)
+    self.assertEqual(self.server.error_count, 2)
     self.mainloop.Run()
-    self.assertEquals(self.server.received,
+    self.assertEqual(self.server.received,
                       ["p1", "p2", "error", "p3", "error", "terminate"])
-    self.assertEquals(self.server.error_count, 2)
+    self.assertEqual(self.server.error_count, 2)
 
   def testSignaledWhileReceiving(self):
     utils.IgnoreSignals = lambda fn, *args, **kwargs: None
     self.client.enqueue_send(self.address, self.port, "p1")
     self.client.enqueue_send(self.address, self.port, "p2")
     self.server.handle_read()
-    self.assertEquals(self.server.received, [])
+    self.assertEqual(self.server.received, [])
     self.client.enqueue_send(self.address, self.port, "terminate")
     utils.IgnoreSignals = self.saved_utils_ignoresignals
     self.mainloop.Run()
-    self.assertEquals(self.server.received, ["p1", "p2", "terminate"])
+    self.assertEqual(self.server.received, ["p1", "p2", "terminate"])
 
   def testOversizedDatagram(self):
     oversized_data = (constants.MAX_UDP_DATA_SIZE + 1) * "a"
@@ -315,24 +315,24 @@ class TestAsyncAwaker(testutils.GanetiTestCase):
   def testBasicSignaling(self):
     self.awaker.signal()
     self.mainloop.Run()
-    self.assertEquals(self.signal_count, 1)
+    self.assertEqual(self.signal_count, 1)
 
   def testDoubleSignaling(self):
     self.awaker.signal()
     self.awaker.signal()
     self.mainloop.Run()
     # The second signal is never delivered
-    self.assertEquals(self.signal_count, 1)
+    self.assertEqual(self.signal_count, 1)
 
   def testReallyDoubleSignaling(self):
-    self.assert_(self.awaker.readable())
+    self.assertTrue(self.awaker.readable())
     self.awaker.signal()
     # Let's suppose two threads overlap, and both find need_signal True
     self.awaker.need_signal = True
     self.awaker.signal()
     self.mainloop.Run()
     # We still get only one signaling
-    self.assertEquals(self.signal_count, 1)
+    self.assertEqual(self.signal_count, 1)
 
   def testNoSignalFnArgument(self):
     myawaker = daemon.AsyncAwaker()

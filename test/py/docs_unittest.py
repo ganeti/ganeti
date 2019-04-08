@@ -244,7 +244,7 @@ class TestRapiDocs(unittest.TestCase):
     for key, handler in resources.items():
       # Regex objects
       if hasattr(key, "match"):
-        self.assert_(key.pattern.startswith("^/2/"),
+        self.assertTrue(key.pattern.startswith("^/2/"),
                      msg="Pattern %r does not start with '^/2/'" % key.pattern)
         self.assertEqual(key.pattern[-1], "$")
 
@@ -263,7 +263,7 @@ class TestRapiDocs(unittest.TestCase):
           undocumented.append(key.pattern)
 
       else:
-        self.assert_(key.startswith("/2/") or key in prefix_exception,
+        self.assertTrue(key.startswith("/2/") or key in prefix_exception,
                      msg="Path %r does not start with '/2/'" % key)
 
         if ("``%s``" % key) in titles:
@@ -272,12 +272,12 @@ class TestRapiDocs(unittest.TestCase):
         else:
           undocumented.append(key)
 
-    self.failIf(undocumented,
+    self.assertFalse(undocumented,
                 msg=("Missing RAPI resource documentation for %s" %
                      utils.CommaJoin(undocumented)))
 
     uri_dups = utils.FindDuplicates(used_uris)
-    self.failIf(uri_dups,
+    self.assertFalse(uri_dups,
                 msg=("URIs matched by more than one resource: %s" %
                      utils.CommaJoin(uri_dups)))
 
@@ -338,7 +338,7 @@ class TestManpages(unittest.TestCase):
       if not re.findall(pattern, mantext, re.DOTALL | re.MULTILINE):
         missing.append(cmd)
 
-    self.failIf(missing,
+    self.assertFalse(missing,
                 msg=("Manpage for '%s' missing documentation for %s" %
                      (script, utils.CommaJoin(missing))))
 

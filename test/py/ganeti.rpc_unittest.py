@@ -158,7 +158,7 @@ class TestRpcProcessor(unittest.TestCase):
     self.assertEqual(http_proc.reqcount, 0)
 
   def _GetMultiVersionResponse(self, req):
-    self.assert_(req.host.startswith("node"))
+    self.assertTrue(req.host.startswith("node"))
     self.assertEqual(req.port, 23245)
     self.assertEqual(req.path, "/version")
     req.success = True
@@ -207,7 +207,7 @@ class TestRpcProcessor(unittest.TestCase):
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
       self.assertEqual(lhresp.node, host)
-      self.assert_(lhresp.fail_msg)
+      self.assertTrue(lhresp.fail_msg)
       self.assertFalse(lhresp.payload)
       self.assertEqual(lhresp.call, "version")
       self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")
@@ -263,10 +263,10 @@ class TestRpcProcessor(unittest.TestCase):
       self.assertEqual(lhresp.call, "vg_list")
 
       if name in httperrnodes:
-        self.assert_(lhresp.fail_msg)
+        self.assertTrue(lhresp.fail_msg)
         self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")
       elif name in failnodes:
-        self.assert_(lhresp.fail_msg)
+        self.assertTrue(lhresp.fail_msg)
         self.assertRaises(errors.OpPrereqError, lhresp.Raise, "failed",
                           prereq=True, ecode=errors.ECODE_INVAL)
       else:
@@ -303,7 +303,7 @@ class TestRpcProcessor(unittest.TestCase):
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
       self.assertEqual(lhresp.node, host)
-      self.assert_(lhresp.fail_msg)
+      self.assertTrue(lhresp.fail_msg)
       self.assertFalse(lhresp.payload)
       self.assertEqual(lhresp.call, "version")
       self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")

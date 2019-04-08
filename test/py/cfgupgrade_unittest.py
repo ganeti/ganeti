@@ -230,9 +230,9 @@ class TestCfgupgrade(unittest.TestCase):
       expversion = constants.CONFIG_VERSION
       checkfn = operator.truth
 
-    self.assert_(checkfn(os.path.isfile(self.rapi_cert_path)))
-    self.assert_(checkfn(os.path.isfile(self.confd_hmac_path)))
-    self.assert_(checkfn(os.path.isfile(self.cds_path)))
+    self.assertTrue(checkfn(os.path.isfile(self.rapi_cert_path)))
+    self.assertTrue(checkfn(os.path.isfile(self.confd_hmac_path)))
+    self.assertTrue(checkfn(os.path.isfile(self.cds_path)))
 
     newcfg = self._LoadConfig()
     self.assertEqual(newcfg["version"], expversion)
@@ -246,8 +246,8 @@ class TestCfgupgrade(unittest.TestCase):
     self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), False)
 
     self.assertTrue(os.path.isdir(os.path.dirname(self.rapi_users_path)))
-    self.assert_(os.path.islink(self.rapi_users_path_pre24))
-    self.assert_(os.path.isfile(self.rapi_users_path))
+    self.assertTrue(os.path.islink(self.rapi_users_path_pre24))
+    self.assertTrue(os.path.isfile(self.rapi_users_path))
     self.assertEqual(os.readlink(self.rapi_users_path_pre24),
                      self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
@@ -261,8 +261,8 @@ class TestCfgupgrade(unittest.TestCase):
     utils.WriteFile(self.rapi_users_path, data="other user\n")
     self._TestSimpleUpgrade(version.BuildVersion(2, 3, 0), False)
 
-    self.assert_(os.path.islink(self.rapi_users_path_pre24))
-    self.assert_(os.path.isfile(self.rapi_users_path))
+    self.assertTrue(os.path.islink(self.rapi_users_path_pre24))
+    self.assertTrue(os.path.isfile(self.rapi_users_path))
     self.assertEqual(os.readlink(self.rapi_users_path_pre24),
                      self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
@@ -278,9 +278,9 @@ class TestCfgupgrade(unittest.TestCase):
 
     self._TestSimpleUpgrade(version.BuildVersion(2, 2, 0), False)
 
-    self.assert_(os.path.isfile(self.rapi_users_path) and
+    self.assertTrue(os.path.isfile(self.rapi_users_path) and
                  not os.path.islink(self.rapi_users_path))
-    self.assert_(os.path.islink(self.rapi_users_path_pre24))
+    self.assertTrue(os.path.islink(self.rapi_users_path_pre24))
     self.assertEqual(os.readlink(self.rapi_users_path_pre24),
                      self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
@@ -298,7 +298,7 @@ class TestCfgupgrade(unittest.TestCase):
                       version.BuildVersion(2, 2, 0), False)
 
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
-      self.assert_(os.path.isfile(path) and not os.path.islink(path))
+      self.assertTrue(os.path.isfile(path) and not os.path.islink(path))
     self.assertEqual(utils.ReadFile(self.rapi_users_path), "other user\n")
     self.assertEqual(utils.ReadFile(self.rapi_users_path_pre24),
                      "hello world\n")

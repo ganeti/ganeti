@@ -58,12 +58,12 @@ class TestEpoUtilities(unittest.TestCase):
     return True
 
   def _FakePing(ip, port, live_port_needed=False):
-    self.assert_(live_port_needed)
+    self.assertTrue(live_port_needed)
     self.assertEqual(port, 0)
     return True
 
   def _FakeSleep(secs):
-    self.assert_(secs >= 0 and secs <= 5)
+    self.assertTrue(secs >= 0 and secs <= 5)
     return
 
   def _NoopFeedback(self, text):
@@ -129,34 +129,34 @@ class TestEpoUtilities(unittest.TestCase):
       }
 
     fn = _FakeInstanceStart
-    self.assert_(gnt_cluster._MaybeInstanceStartup(None, inst_map, set(),
+    self.assertTrue(gnt_cluster._MaybeInstanceStartup(None, inst_map, set(),
                                                    _instance_start_fn=fn))
     self.assertFalse(instances_arg)
     result = gnt_cluster._MaybeInstanceStartup(None, inst_map, set(["node1"]),
                                                _instance_start_fn=fn)
-    self.assert_(result)
+    self.assertTrue(result)
     self.assertFalse(instances_arg)
     result = gnt_cluster._MaybeInstanceStartup(None, inst_map,
                                                set(["node1", "node3"]),
                                                _instance_start_fn=fn)
-    self.assert_(result is None)
+    self.assertTrue(result is None)
     self.assertEqual(instances_arg.pop(0), set(["inst2"]))
     self.assertFalse("inst2" in inst_map)
     result = gnt_cluster._MaybeInstanceStartup(None, inst_map,
                                                set(["node1", "node3"]),
                                                _instance_start_fn=fn)
-    self.assert_(result)
+    self.assertTrue(result)
     self.assertFalse(instances_arg)
     result = gnt_cluster._MaybeInstanceStartup(None, inst_map,
                                                set(["node1", "node3", "node2"]),
                                                _instance_start_fn=fn)
     self.assertEqual(instances_arg.pop(0), set(["inst1", "inst3", "inst4"]))
-    self.assert_(result is None)
+    self.assertTrue(result is None)
     result = gnt_cluster._MaybeInstanceStartup(None, inst_map,
                                                set(["node1", "node3", "node2",
                                                     "node4"]),
                                                _instance_start_fn=fn)
-    self.assert_(result is None)
+    self.assertTrue(result is None)
     self.assertEqual(instances_arg.pop(0), set(["inst5"]))
     self.assertFalse(inst_map)
 
@@ -295,7 +295,7 @@ class InitDrbdHelper(DrbdHelperTestCase):
     self.disableDrbd()
     helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
                                          feedback_fn=mock.Mock())
-    self.assertEquals(None, helper)
+    self.assertEqual(None, helper)
 
   def testNoDrbdHelper(self):
     opts = mock.Mock()
@@ -303,7 +303,7 @@ class InitDrbdHelper(DrbdHelperTestCase):
     opts.drbd_helper = "/bin/true"
     helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
                                          feedback_fn=mock.Mock())
-    self.assertEquals(opts.drbd_helper, helper)
+    self.assertEqual(opts.drbd_helper, helper)
 
   def testDrbdHelperNone(self):
     opts = mock.Mock()
@@ -311,7 +311,7 @@ class InitDrbdHelper(DrbdHelperTestCase):
     opts.drbd_helper = None
     helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
                                          feedback_fn=mock.Mock())
-    self.assertEquals(constants.DEFAULT_DRBD_HELPER, helper)
+    self.assertEqual(constants.DEFAULT_DRBD_HELPER, helper)
 
   def testDrbdHelperEmpty(self):
     opts = mock.Mock()
@@ -326,7 +326,7 @@ class InitDrbdHelper(DrbdHelperTestCase):
     opts.drbd_helper = "/bin/true"
     helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
                                          feedback_fn=mock.Mock())
-    self.assertEquals(opts.drbd_helper, helper)
+    self.assertEqual(opts.drbd_helper, helper)
 
 
 class GetDrbdHelper(DrbdHelperTestCase):
@@ -336,40 +336,40 @@ class GetDrbdHelper(DrbdHelperTestCase):
     self.disableDrbd()
     opts.drbd_helper = None
     helper = gnt_cluster._GetDrbdHelper(opts, self.enabled_disk_templates)
-    self.assertEquals(None, helper)
+    self.assertEqual(None, helper)
 
   def testNoTemplateInfoNoHelper(self):
     opts = mock.Mock()
     opts.drbd_helper = None
     helper = gnt_cluster._GetDrbdHelper(opts, None)
-    self.assertEquals(None, helper)
+    self.assertEqual(None, helper)
 
   def testNoTemplateInfoHelper(self):
     opts = mock.Mock()
     opts.drbd_helper = "/bin/true"
     helper = gnt_cluster._GetDrbdHelper(opts, None)
-    self.assertEquals(opts.drbd_helper, helper)
+    self.assertEqual(opts.drbd_helper, helper)
 
   def testNoDrbdHelper(self):
     opts = mock.Mock()
     self.disableDrbd()
     opts.drbd_helper = "/bin/true"
     helper = gnt_cluster._GetDrbdHelper(opts, None)
-    self.assertEquals(opts.drbd_helper, helper)
+    self.assertEqual(opts.drbd_helper, helper)
 
   def testDrbdNoHelper(self):
     opts = mock.Mock()
     self.enableDrbd()
     opts.drbd_helper = None
     helper = gnt_cluster._GetDrbdHelper(opts, self.enabled_disk_templates)
-    self.assertEquals(None, helper)
+    self.assertEqual(None, helper)
 
   def testDrbdHelper(self):
     opts = mock.Mock()
     self.enableDrbd()
     opts.drbd_helper = "/bin/true"
     helper = gnt_cluster._GetDrbdHelper(opts, self.enabled_disk_templates)
-    self.assertEquals(opts.drbd_helper, helper)
+    self.assertEqual(opts.drbd_helper, helper)
 
 
 class TestBuildGanetiPubKeys(testutils.GanetiTestCase):

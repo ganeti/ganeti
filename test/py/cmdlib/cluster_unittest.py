@@ -1215,7 +1215,7 @@ class TestLUClusterVerifyGroup(CmdlibTestCase):
     drbd_map = {ninfo.uuid: {0: disk.uuid}}
     minors = verify.LUClusterVerifyGroup._ComputeDrbdMinors(
       ninfo, instanceinfo, disks_info, drbd_map, lambda *args: None)
-    self.assertEquals(minors, {0: (disk.uuid, instance.uuid, False)})
+    self.assertEqual(minors, {0: (disk.uuid, instance.uuid, False)})
 
 
 class TestLUClusterVerifyClientCerts(CmdlibTestCase):

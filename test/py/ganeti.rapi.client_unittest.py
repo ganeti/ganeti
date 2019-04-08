@@ -187,7 +187,7 @@ class RapiMockTest(unittest.TestCase):
     (code, _, response) = rapi.FetchResponse("/version", "GET", None, None)
     self.assertEqual(200, code)
     self.assertEqual("2", response)
-    self.failUnless(isinstance(rapi.GetLastHandler(), rlib2.R_version))
+    self.assertTrue(isinstance(rapi.GetLastHandler(), rlib2.R_version))
 
 
 def _FakeNoSslPycurlVersion():
@@ -285,7 +285,7 @@ class TestExtendedConfig(unittest.TestCase):
                                  curl_factory=curl_factory)
 
     curl = cl._CreateCurl()
-    self.assert_(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertTrue(curl.getopt(pycurl.SSL_VERIFYPEER))
     self.assertFalse(curl.getopt(pycurl.CAINFO))
     self.assertFalse(curl.getopt(pycurl.CAPATH))
 
@@ -298,7 +298,7 @@ class TestExtendedConfig(unittest.TestCase):
                                  curl_factory=curl_factory)
 
     curl = cl._CreateCurl()
-    self.assert_(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertTrue(curl.getopt(pycurl.SSL_VERIFYPEER))
     self.assertEqual(curl.getopt(pycurl.CAINFO), mycert)
     self.assertFalse(curl.getopt(pycurl.CAPATH))
 
@@ -313,7 +313,7 @@ class TestExtendedConfig(unittest.TestCase):
                                  curl_factory=curl_factory)
 
     curl = cl._CreateCurl()
-    self.assert_(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertTrue(curl.getopt(pycurl.SSL_VERIFYPEER))
     self.assertEqual(curl.getopt(pycurl.CAPATH), certdir)
     self.assertFalse(curl.getopt(pycurl.CAINFO))
 
@@ -378,7 +378,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
                                           curl_factory=lambda: self.curl)
 
   def assertHandler(self, handler_cls):
-    self.failUnless(isinstance(self.rapi.GetLastHandler(), handler_cls))
+    self.assertTrue(isinstance(self.rapi.GetLastHandler(), handler_cls))
 
   def assertQuery(self, key, value):
     self.assertEqual(value, self.rapi.GetLastHandler().queryargs.get(key, None))
@@ -425,15 +425,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_version)
 
     # Signals should be disabled by default
-    self.assert_(self.curl.getopt(pycurl.NOSIGNAL))
+    self.assertTrue(self.curl.getopt(pycurl.NOSIGNAL))
 
     # No auth and no proxy
     self.assertFalse(self.curl.getopt(pycurl.USERPWD))
-    self.assert_(self.curl.getopt(pycurl.PROXY) is None)
+    self.assertTrue(self.curl.getopt(pycurl.PROXY) is None)
 
     # Content-type is required for requests
     headers = self.curl.getopt(pycurl.HTTPHEADER)
-    self.assert_("Content-type: application/json" in headers)
+    self.assertTrue("Content-type: application/json" in headers)
 
   def testHttpError(self):
     self.rapi.AddResponse(None, code=404)
@@ -975,7 +975,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(1111, self.client.MigrateNode("node-a", dry_run=True))
     self.assertHandler(rlib2.R_2_nodes_name_migrate)
     self.assertItems(["node-a"])
-    self.assert_("mode" not in self.rapi.GetLastHandler().queryargs)
+    self.assertTrue("mode" not in self.rapi.GetLastHandler().queryargs)
     self.assertDryRun()
     self.assertFalse(self.rapi.GetLastRequestData())
 
@@ -1365,7 +1365,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       data = serializer.LoadJson(self.rapi.GetLastRequestData())
       if wait_for_sync is None:
         self.assertEqual(len(data), 1)
-        self.assert_("wait_for_sync" not in data)
+        self.assertTrue("wait_for_sync" not in data)
       else:
         self.assertEqual(len(data), 2)
         self.assertEqual(data["wait_for_sync"], wait_for_sync)

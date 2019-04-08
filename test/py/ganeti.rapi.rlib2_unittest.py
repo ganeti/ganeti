@@ -1129,9 +1129,9 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
       opcodes.OpInstanceStartup,
       ]
 
-    self.assert_(compat.all(isinstance(op, exp)
+    self.assertTrue(compat.all(isinstance(op, exp)
                             for op, exp in zip(ops, expcls)))
-    self.assert_(compat.all(op.instance_name == name for op in ops))
+    self.assertTrue(compat.all(op.instance_name == name for op in ops))
 
   def test(self):
     name = "shoo0tihohma"

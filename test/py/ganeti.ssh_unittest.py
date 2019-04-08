@@ -376,19 +376,19 @@ class TestPublicSshKeys(testutils.GanetiTestCase):
     ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
     ssh.AddPublicKey(self.UUID_2, self.KEY_B, key_file=pub_key_file)
     result = ssh.QueryPubKeyFile(self.UUID_1, key_file=pub_key_file)
-    self.assertEquals([self.KEY_A], result[self.UUID_1])
+    self.assertEqual([self.KEY_A], result[self.UUID_1])
 
     target_uuids = [self.UUID_1, self.UUID_2, "non-existing-UUID"]
     result = ssh.QueryPubKeyFile(target_uuids, key_file=pub_key_file)
-    self.assertEquals([self.KEY_A], result[self.UUID_1])
-    self.assertEquals([self.KEY_B], result[self.UUID_2])
-    self.assertEquals(2, len(result))
+    self.assertEqual([self.KEY_A], result[self.UUID_1])
+    self.assertEqual([self.KEY_B], result[self.UUID_2])
+    self.assertEqual(2, len(result))
 
     # Query all keys
     target_uuids = None
     result = ssh.QueryPubKeyFile(target_uuids, key_file=pub_key_file)
-    self.assertEquals([self.KEY_A], result[self.UUID_1])
-    self.assertEquals([self.KEY_B], result[self.UUID_2])
+    self.assertEqual([self.KEY_A], result[self.UUID_1])
+    self.assertEqual([self.KEY_B], result[self.UUID_2])
 
   def testReplaceNameByUuid(self):
     pub_key_file = self._CreateTempFile()
@@ -424,7 +424,7 @@ class TestPublicSshKeys(testutils.GanetiTestCase):
     fd.close()
 
     result = ssh.QueryPubKeyFile(self.UUID_1, key_file=pub_key_file)
-    self.assertEquals([self.KEY_A], result[self.UUID_1])
+    self.assertEqual([self.KEY_A], result[self.UUID_1])
 
   def testClearPubKeyFile(self):
     pub_key_file = self._CreateTempFile()
@@ -490,34 +490,34 @@ class TestGetUserFiles(testutils.GanetiTestCase):
 
 class TestDetermineKeyBits():
   def testCompleteness(self):
-    self.assertEquals(constants.SSHK_ALL, list(ssh.SSH_KEY_VALID_BITS))
+    self.assertEqual(constants.SSHK_ALL, list(ssh.SSH_KEY_VALID_BITS))
 
   def testAdoptDefault(self):
-    self.assertEquals(2048, DetermineKeyBits("rsa", None, None, None))
-    self.assertEquals(1024, DetermineKeyBits("dsa", None, None, None))
+    self.assertEqual(2048, DetermineKeyBits("rsa", None, None, None))
+    self.assertEqual(1024, DetermineKeyBits("dsa", None, None, None))
 
   def testAdoptOldKeySize(self):
-    self.assertEquals(4098, DetermineKeyBits("rsa", None, "rsa", 4098))
-    self.assertEquals(2048, DetermineKeyBits("rsa", None, "dsa", 1024))
+    self.assertEqual(4098, DetermineKeyBits("rsa", None, "rsa", 4098))
+    self.assertEqual(2048, DetermineKeyBits("rsa", None, "dsa", 1024))
 
   def testDsaSpecificValues(self):
     self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 2048,
                       None, None)
     self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 512,
                       None, None)
-    self.assertEquals(1024, DetermineKeyBits("dsa", None, None, None))
+    self.assertEqual(1024, DetermineKeyBits("dsa", None, None, None))
 
   def testEcdsaSpecificValues(self):
     self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "ecdsa", 2048,
                       None, None)
     for b in [256, 384, 521]:
-      self.assertEquals(b, DetermineKeyBits("ecdsa", b, None, None))
+      self.assertEqual(b, DetermineKeyBits("ecdsa", b, None, None))
 
   def testRsaSpecificValues(self):
     self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 766,
                       None, None)
     for b in [768, 769, 2048, 2049, 4096]:
-      self.assertEquals(b, DetermineKeyBits("rsa", b, None, None))
+      self.assertEqual(b, DetermineKeyBits("rsa", b, None, None))
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ class TestErrors(testutils.GanetiTestCase):
       }
 
     for name, cls in tdata.items():
-      self.assert_(errors.GetErrorClass(name) is cls)
+      self.assertTrue(errors.GetErrorClass(name) is cls)
 
   def testEncodeException(self):
     self.assertEqualValues(errors.EncodeException(Exception("Foobar")),

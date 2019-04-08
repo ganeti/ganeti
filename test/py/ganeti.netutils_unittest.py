@@ -152,10 +152,10 @@ class TestHostname(unittest.TestCase):
 
 class TestIPAddress(unittest.TestCase):
   def testIsValid(self):
-    self.assert_(netutils.IPAddress.IsValid("0.0.0.0"))
-    self.assert_(netutils.IPAddress.IsValid("127.0.0.1"))
-    self.assert_(netutils.IPAddress.IsValid("::"))
-    self.assert_(netutils.IPAddress.IsValid("::1"))
+    self.assertTrue(netutils.IPAddress.IsValid("0.0.0.0"))
+    self.assertTrue(netutils.IPAddress.IsValid("127.0.0.1"))
+    self.assertTrue(netutils.IPAddress.IsValid("::"))
+    self.assertTrue(netutils.IPAddress.IsValid("::1"))
 
   def testNotIsValid(self):
     self.assertFalse(netutils.IPAddress.IsValid("0"))
@@ -184,22 +184,22 @@ class TestIPAddress(unittest.TestCase):
       self.assertTrue(netutils.IP6Address.ValidateNetmask(netmask))
 
   def testGetClassFromX(self):
-    self.assert_(
+    self.assertTrue(
         netutils.IPAddress.GetClassFromIpVersion(constants.IP4_VERSION) ==
         netutils.IP4Address)
-    self.assert_(
+    self.assertTrue(
         netutils.IPAddress.GetClassFromIpVersion(constants.IP6_VERSION) ==
         netutils.IP6Address)
-    self.assert_(
+    self.assertTrue(
         netutils.IPAddress.GetClassFromIpFamily(socket.AF_INET) ==
         netutils.IP4Address)
-    self.assert_(
+    self.assertTrue(
         netutils.IPAddress.GetClassFromIpFamily(socket.AF_INET6) ==
         netutils.IP6Address)
 
   def testOwnLoopback(self):
     # FIXME: In a pure IPv6 environment this is no longer true
-    self.assert_(netutils.IPAddress.Own("127.0.0.1"),
+    self.assertTrue(netutils.IPAddress.Own("127.0.0.1"),
                  "Should own 127.0.0.1 address")
 
   def testNotOwnAddress(self):
@@ -242,10 +242,10 @@ class TestIP4Address(unittest.TestCase):
     self.assertNotEqual(fn("0.0.0.0"), 1)
 
   def testIsValid(self):
-    self.assert_(netutils.IP4Address.IsValid("0.0.0.0"))
-    self.assert_(netutils.IP4Address.IsValid("127.0.0.1"))
-    self.assert_(netutils.IP4Address.IsValid("192.0.2.199"))
-    self.assert_(netutils.IP4Address.IsValid("255.255.255.255"))
+    self.assertTrue(netutils.IP4Address.IsValid("0.0.0.0"))
+    self.assertTrue(netutils.IP4Address.IsValid("127.0.0.1"))
+    self.assertTrue(netutils.IP4Address.IsValid("192.0.2.199"))
+    self.assertTrue(netutils.IP4Address.IsValid("255.255.255.255"))
 
   def testNotIsValid(self):
     self.assertFalse(netutils.IP4Address.IsValid("0"))
@@ -255,14 +255,14 @@ class TestIP4Address(unittest.TestCase):
     self.assertFalse(netutils.IP4Address.IsValid("::1"))
 
   def testInNetwork(self):
-    self.assert_(netutils.IP4Address.InNetwork("127.0.0.0/8", "127.0.0.1"))
+    self.assertTrue(netutils.IP4Address.InNetwork("127.0.0.0/8", "127.0.0.1"))
 
   def testNotInNetwork(self):
     self.assertFalse(netutils.IP4Address.InNetwork("192.0.2.0/24",
                                                    "127.0.0.1"))
 
   def testIsLoopback(self):
-    self.assert_(netutils.IP4Address.IsLoopback("127.0.0.1"))
+    self.assertTrue(netutils.IP4Address.IsLoopback("127.0.0.1"))
 
   def testNotIsLoopback(self):
     self.assertFalse(netutils.IP4Address.IsLoopback("192.0.2.1"))
@@ -279,11 +279,11 @@ class TestIP6Address(unittest.TestCase):
     self.assertNotEqual(netutils.IP6Address._GetIPIntFromString("::2"), 1)
 
   def testIsValid(self):
-    self.assert_(netutils.IP6Address.IsValid("::"))
-    self.assert_(netutils.IP6Address.IsValid("::1"))
-    self.assert_(netutils.IP6Address.IsValid("1" + (":1" * 7)))
-    self.assert_(netutils.IP6Address.IsValid("ffff" + (":ffff" * 7)))
-    self.assert_(netutils.IP6Address.IsValid("::"))
+    self.assertTrue(netutils.IP6Address.IsValid("::"))
+    self.assertTrue(netutils.IP6Address.IsValid("::1"))
+    self.assertTrue(netutils.IP6Address.IsValid("1" + (":1" * 7)))
+    self.assertTrue(netutils.IP6Address.IsValid("ffff" + (":ffff" * 7)))
+    self.assertTrue(netutils.IP6Address.IsValid("::"))
 
   def testNotIsValid(self):
     self.assertFalse(netutils.IP6Address.IsValid("0"))
@@ -295,13 +295,13 @@ class TestIP6Address(unittest.TestCase):
     self.assertFalse(netutils.IP6Address.IsValid("127.0.0.1"))
 
   def testInNetwork(self):
-    self.assert_(netutils.IP6Address.InNetwork("::1/128", "::1"))
+    self.assertTrue(netutils.IP6Address.InNetwork("::1/128", "::1"))
 
   def testNotInNetwork(self):
     self.assertFalse(netutils.IP6Address.InNetwork("2001:db8::1/128", "::1"))
 
   def testIsLoopback(self):
-    self.assert_(netutils.IP6Address.IsLoopback("::1"))
+    self.assertTrue(netutils.IP6Address.IsLoopback("::1"))
 
   def testNotIsLoopback(self):
     self.assertFalse(netutils.IP6Address.IsLoopback("2001:db8::1"))
@@ -324,7 +324,7 @@ class _BaseTcpPingTest:
     del self.listenerport
 
   def testTcpPingToLocalHostAccept(self):
-    self.assert_(netutils.TcpPing(self.address,
+    self.assertTrue(netutils.TcpPing(self.address,
                                   self.listenerport,
                                   timeout=constants.TCP_PING_TIMEOUT,
                                   live_port_needed=True,
@@ -332,7 +332,7 @@ class _BaseTcpPingTest:
                                   ),
                  "failed to connect to test listener")
 
-    self.assert_(netutils.TcpPing(self.address, self.listenerport,
+    self.assertTrue(netutils.TcpPing(self.address, self.listenerport,
                                   timeout=constants.TCP_PING_TIMEOUT,
                                   live_port_needed=True),
                  "failed to connect to test listener (no source)")
@@ -398,7 +398,7 @@ class _BaseTcpPingDeafTest:
                      "successfully connected to deaf listener (no source)")
 
   def testTcpPingToLocalHostNoAccept(self):
-    self.assert_(netutils.TcpPing(self.address,
+    self.assertTrue(netutils.TcpPing(self.address,
                                   self.deaflistenerport,
                                   timeout=constants.TCP_PING_TIMEOUT,
                                   live_port_needed=False,
@@ -406,7 +406,7 @@ class _BaseTcpPingDeafTest:
                                   ), # ECONNREFUSED is OK
                  "failed to ping alive host on deaf port")
 
-    self.assert_(netutils.TcpPing(self.address,
+    self.assertTrue(netutils.TcpPing(self.address,
                                   self.deaflistenerport,
                                   timeout=constants.TCP_PING_TIMEOUT,
                                   live_port_needed=False,
@@ -492,7 +492,7 @@ class TestIpParsing(testutils.GanetiTestCase):
                        "203.0.113.1",
                       ]
     for addr in valid_addresses:
-      self.failUnless(re.search(netutils._IP_RE_TEXT, addr))
+      self.assertTrue(re.search(netutils._IP_RE_TEXT, addr))
 
   def testIp6(self):
     valid_addresses = [constants.IP6_ADDRESS_ANY,
@@ -507,7 +507,7 @@ class TestIpParsing(testutils.GanetiTestCase):
                        "::203.0.113.1",
                       ]
     for addr in valid_addresses:
-      self.failUnless(re.search(netutils._IP_RE_TEXT, addr))
+      self.assertTrue(re.search(netutils._IP_RE_TEXT, addr))
 
   def testParseIpCommandOutput(self):
     # IPv4-only, fake loopback interface
@@ -515,7 +515,7 @@ class TestIpParsing(testutils.GanetiTestCase):
     for test_file in tests:
       data = testutils.ReadTestData(test_file)
       addr = netutils._GetIpAddressesFromIpOutput(data)
-      self.failUnless(len(addr[4]) == 1 and addr[4][0] == "127.0.0.1" and not
+      self.assertTrue(len(addr[4]) == 1 and addr[4][0] == "127.0.0.1" and not
                       addr[6])
 
     # IPv6-only, fake loopback interface
@@ -523,20 +523,20 @@ class TestIpParsing(testutils.GanetiTestCase):
     for test_file in tests:
       data = testutils.ReadTestData(test_file)
       addr = netutils._GetIpAddressesFromIpOutput(data)
-      self.failUnless(len(addr[6]) == 1 and addr[6][0] == "::1" and not addr[4])
+      self.assertTrue(len(addr[6]) == 1 and addr[6][0] == "::1" and not addr[4])
 
     # IPv4 and IPv6, fake loopback interface
     tests = ["ip-addr-show-lo.txt", "ip-addr-show-lo-oneline.txt"]
     for test_file in tests:
       data = testutils.ReadTestData(test_file)
       addr = netutils._GetIpAddressesFromIpOutput(data)
-      self.failUnless(len(addr[6]) == 1 and addr[6][0] == "::1" and
+      self.assertTrue(len(addr[6]) == 1 and addr[6][0] == "::1" and
                       len(addr[4]) == 1 and addr[4][0] == "127.0.0.1")
 
     # IPv4 and IPv6, dummy interface
     data = testutils.ReadTestData("ip-addr-show-dummy0.txt")
     addr = netutils._GetIpAddressesFromIpOutput(data)
-    self.failUnless(len(addr[6]) == 1 and
+    self.assertTrue(len(addr[6]) == 1 and
                     addr[6][0] == "2001:db8:85a3::8a2e:370:7334" and
                     len(addr[4]) == 1 and
                     addr[4][0] == "192.0.2.1")

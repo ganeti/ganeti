@@ -400,39 +400,39 @@ class TestOVFImporter(BetterUnitTest):
       pass
 
   def testFileDoesNotExistError(self):
-    self.assertRaisesRegexp(errors.OpPrereqError, "does not exist",
+    self.assertRaisesRegex(errors.OpPrereqError, "does not exist",
       ovf.OVFImporter, self.non_existing_file, None)
 
   def testWrongInputFileExtensionError(self):
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "Unknown file extension", ovf.OVFImporter,
       self.wrong_extension, None)
 
   def testOVAUnpackingDirectories(self):
     self.importer = ovf.OVFImporter(self.ova_package, OPTS_EMPTY)
     self.assertTrue(self.importer.input_dir != None)
-    self.assertEquals(self.importer.output_dir , pathutils.EXPORT_DIR)
+    self.assertEqual(self.importer.output_dir , pathutils.EXPORT_DIR)
     self.assertTrue(self.importer.temp_dir != None)
 
   def testOVFUnpackingDirectories(self):
     self.importer = ovf.OVFImporter(self.virtualbox_ovf,
       OPTS_EMPTY)
-    self.assertEquals(self.importer.input_dir , _GetFullFilename(""))
-    self.assertEquals(self.importer.output_dir , pathutils.EXPORT_DIR)
-    self.assertEquals(self.importer.temp_dir , None)
+    self.assertEqual(self.importer.input_dir , _GetFullFilename(""))
+    self.assertEqual(self.importer.output_dir , pathutils.EXPORT_DIR)
+    self.assertEqual(self.importer.temp_dir , None)
 
   def testOVFSetOutputDirDirectories(self):
     self.importer = ovf.OVFImporter(self.ganeti_ovf, OPTS_EXPORT)
-    self.assertEquals(self.importer.input_dir , _GetFullFilename(""))
+    self.assertEqual(self.importer.input_dir , _GetFullFilename(""))
     self.assertTrue(OUTPUT_DIR in self.importer.output_dir)
-    self.assertEquals(self.importer.temp_dir , None)
+    self.assertEqual(self.importer.temp_dir , None)
 
   def testWrongOVAArchiveError(self):
-    self.assertRaisesRegexp(errors.OpPrereqError, "not a proper tar",
+    self.assertRaisesRegex(errors.OpPrereqError, "not a proper tar",
       ovf.OVFImporter, self.wrong_ova_archive, None)
 
   def testNoOVFFileInOVAPackageError(self):
-    self.assertRaisesRegexp(errors.OpPrereqError, "No .ovf file",
+    self.assertRaisesRegex(errors.OpPrereqError, "No .ovf file",
       ovf.OVFImporter, self.no_ovf_in_ova, None)
 
   def testParseGanetiOvf(self):
@@ -454,13 +454,13 @@ class TestOVFImporter(BetterUnitTest):
     self.importer = ovf.OVFImporter(self.virtualbox_ovf, OPTS_VBOX)
     self.importer.Parse()
     self.assertTrue("%s/test-instance" % OUTPUT_DIR in self.importer.output_dir)
-    self.assertEquals(self.importer.results_disk, VIRTUALBOX_DISKS)
-    self.assertEquals(self.importer.results_network, VIRTUALBOX_NETWORKS)
-    self.assertEquals(self.importer.results_hypervisor, CMDARGS_HYPERVISOR)
-    self.assertEquals(self.importer.results_os, CMDARGS_OS)
-    self.assertEquals(self.importer.results_backend, VIRTUALBOX_BACKEND)
-    self.assertEquals(self.importer.results_name, CMDARGS_NAME)
-    self.assertEquals(self.importer.results_template, VIRTUALBOX_TEMPLATE)
+    self.assertEqual(self.importer.results_disk, VIRTUALBOX_DISKS)
+    self.assertEqual(self.importer.results_network, VIRTUALBOX_NETWORKS)
+    self.assertEqual(self.importer.results_hypervisor, CMDARGS_HYPERVISOR)
+    self.assertEqual(self.importer.results_os, CMDARGS_OS)
+    self.assertEqual(self.importer.results_backend, VIRTUALBOX_BACKEND)
+    self.assertEqual(self.importer.results_name, CMDARGS_NAME)
+    self.assertEqual(self.importer.results_template, VIRTUALBOX_TEMPLATE)
     self.assertEqual(self.importer.results_tags, VIRTUALBOX_TAGS)
     self.assertEqual(self.importer.results_version, constants.EXPORT_VERSION)
 
@@ -468,62 +468,62 @@ class TestOVFImporter(BetterUnitTest):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     self.importer.Parse()
     self.assertTrue("%s/test-instance" % OUTPUT_DIR in self.importer.output_dir)
-    self.assertEquals(self.importer.results_disk, CMDARGS_DISKS)
-    self.assertEquals(self.importer.results_network, CMDARGS_NETWORKS)
-    self.assertEquals(self.importer.results_hypervisor, CMDARGS_HYPERVISOR)
-    self.assertEquals(self.importer.results_os, CMDARGS_OS)
-    self.assertEquals(self.importer.results_backend, CMDARGS_BACKEND)
-    self.assertEquals(self.importer.results_name, CMDARGS_NAME)
-    self.assertEquals(self.importer.results_template, CMDARGS_TEMPLATE)
+    self.assertEqual(self.importer.results_disk, CMDARGS_DISKS)
+    self.assertEqual(self.importer.results_network, CMDARGS_NETWORKS)
+    self.assertEqual(self.importer.results_hypervisor, CMDARGS_HYPERVISOR)
+    self.assertEqual(self.importer.results_os, CMDARGS_OS)
+    self.assertEqual(self.importer.results_backend, CMDARGS_BACKEND)
+    self.assertEqual(self.importer.results_name, CMDARGS_NAME)
+    self.assertEqual(self.importer.results_template, CMDARGS_TEMPLATE)
     self.assertEqual(self.importer.results_tags, CMDARGS_TAGS)
     self.assertEqual(self.importer.results_version, constants.EXPORT_VERSION)
 
   def testParseNameOptions(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseNameOptions()
-    self.assertEquals(results, CMDARGS_NAME)
+    self.assertEqual(results, CMDARGS_NAME)
 
   def testParseHypervisorOptions(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseHypervisorOptions()
-    self.assertEquals(results, CMDARGS_HYPERVISOR)
+    self.assertEqual(results, CMDARGS_HYPERVISOR)
 
   def testParseOSOptions(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseOSOptions()
-    self.assertEquals(results, CMDARGS_OS)
+    self.assertEqual(results, CMDARGS_OS)
 
   def testParseBackendOptions(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseBackendOptions()
-    self.assertEquals(results, CMDARGS_BACKEND)
+    self.assertEqual(results, CMDARGS_BACKEND)
 
   def testParseTags(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseTags()
-    self.assertEquals(results, CMDARGS_TAGS)
+    self.assertEqual(results, CMDARGS_TAGS)
 
   def testParseNicOptions(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseNicOptions()
-    self.assertEquals(results, CMDARGS_NETWORKS)
+    self.assertEqual(results, CMDARGS_NETWORKS)
 
   def testParseDiskOptionsFromGanetiOVF(self):
     self.importer = ovf.OVFImporter(self.ganeti_ovf, OPTS_EXPORT)
     os.mkdir(OUTPUT_DIR)
     results = self.importer._GetDiskInfo()
-    self.assertEquals(results, GANETI_DISKS)
+    self.assertEqual(results, GANETI_DISKS)
 
   def testParseTemplateOptions(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     results = self.importer._ParseTemplateOptions()
-    self.assertEquals(results, GANETI_TEMPLATE)
+    self.assertEqual(results, GANETI_TEMPLATE)
 
   def testParseDiskOptionsFromCmdLine(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_COMPLETE)
     os.mkdir(OUTPUT_DIR)
     results = self.importer._ParseDiskOptions()
-    self.assertEquals(results, CMDARGS_DISKS)
+    self.assertEqual(results, CMDARGS_DISKS)
 
   def testGetDiskFormat(self):
     self.importer = ovf.OVFImporter(self.ganeti_ovf, OPTS_EXPORT)
@@ -535,17 +535,17 @@ class TestOVFImporter(BetterUnitTest):
 
   def testNoInstanceNameOVF(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_EXPORT_NO_NAME)
-    self.assertRaisesRegexp(errors.OpPrereqError, "Name of instance",
+    self.assertRaisesRegex(errors.OpPrereqError, "Name of instance",
       self.importer.Parse)
 
   def testErrorNoOSNameOVF(self):
     self.importer = ovf.OVFImporter(self.virtualbox_ovf, OPTS_EXPORT)
-    self.assertRaisesRegexp(errors.OpPrereqError, "OS name",
+    self.assertRaisesRegex(errors.OpPrereqError, "OS name",
       self.importer.Parse)
 
   def testErrorNoDiskAndNoNetwork(self):
     self.importer = ovf.OVFImporter(self.empty_ovf, OPTS_NONIC_NODISK)
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "Either disk specification or network"
       " description", self.importer.Parse)
 
@@ -574,18 +574,18 @@ class TestOVFExporter(BetterUnitTest):
       pass
 
   def testErrorWrongConfigFile(self):
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "Error when trying to read", ovf.OVFExporter,
       self.wrong_config_file, EXP_OPTS)
 
   def testErrorPathToTheDiskIncorrect(self):
     self.exporter = ovf.OVFExporter(self.unsafe_path_to_disk, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError, "contains a directory name",
+    self.assertRaisesRegex(errors.OpPrereqError, "contains a directory name",
       self.exporter._ParseDisks)
 
   def testErrorDiskImageNotExist(self):
     self.exporter = ovf.OVFExporter(self.disk_image_not_exist, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError, "Disk image does not exist",
+    self.assertRaisesRegex(errors.OpPrereqError, "Disk image does not exist",
       self.exporter._ParseDisks)
 
   def testParseNetworks(self):
@@ -595,7 +595,7 @@ class TestOVFExporter(BetterUnitTest):
 
   def testErrorWrongNetworkMode(self):
     self.exporter = ovf.OVFExporter(self.wrong_network_mode, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "Network mode nic not recognized", self.exporter._ParseNetworks)
 
   def testParseVCPusMem(self):
@@ -607,12 +607,12 @@ class TestOVFExporter(BetterUnitTest):
 
   def testErrorNoVCPUs(self):
     self.exporter = ovf.OVFExporter(self.no_vcpus, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError, "No CPU information found",
+    self.assertRaisesRegex(errors.OpPrereqError, "No CPU information found",
       self.exporter._ParseVCPUs)
 
   def testErrorNoMemory(self):
     self.exporter = ovf.OVFExporter(self.no_memory, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError, "No memory information found",
+    self.assertRaisesRegex(errors.OpPrereqError, "No memory information found",
       self.exporter._ParseMemory)
 
   def testParseGaneti(self):
@@ -622,17 +622,17 @@ class TestOVFExporter(BetterUnitTest):
 
   def testErrorNoHypervisor(self):
     self.exporter = ovf.OVFExporter(self.no_hypervisor, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "No hypervisor information found", self.exporter._ParseGaneti)
 
   def testErrorNoOS(self):
     self.exporter = ovf.OVFExporter(self.no_os, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "No operating system information found", self.exporter._ParseGaneti)
 
   def testErrorParseNoInstanceName(self):
     self.exporter = ovf.OVFExporter(self.empty_config, EXP_OPTS)
-    self.assertRaisesRegexp(errors.OpPrereqError, "No instance name found",
+    self.assertRaisesRegex(errors.OpPrereqError, "No instance name found",
       self.exporter.Parse)
 
 
@@ -651,16 +651,16 @@ class TestOVFReader(BetterUnitTest):
     pass
 
   def testXMLParsingError(self):
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "Error while reading .ovf", ovf.OVFReader, self.wrong_xml_file)
 
   def testFileInResourcesDoesNotExistError(self):
-    self.assertRaisesRegexp(errors.OpPrereqError, "does not exist",
+    self.assertRaisesRegex(errors.OpPrereqError, "does not exist",
       ovf.OVFReader, self.corrupted_ovf)
 
   def testWrongManifestChecksumError(self):
     reader = ovf.OVFReader(self.wrong_manifest_ovf)
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "does not match the value in manifest file", reader.VerifyManifest)
 
   def testGoodManifestChecksum(self):
@@ -669,7 +669,7 @@ class TestOVFReader(BetterUnitTest):
 
   def testGetDisksNamesOVFCorruptedError(self):
     reader = ovf.OVFReader(self.no_disk_in_ref_ovf)
-    self.assertRaisesRegexp(errors.OpPrereqError,
+    self.assertRaisesRegex(errors.OpPrereqError,
       "not found in references", reader.GetDisksNames)
 
   def testGetDisksNamesVirtualbox(self):

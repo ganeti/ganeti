@@ -84,29 +84,29 @@ class TestTryToRoman(testutils.GanetiTestCase):
   def testAFewIntegers(self):
     # This test only works is the roman module is installed
     if compat.roman is not None:
-      self.assertEquals(compat.TryToRoman(0), 0)
-      self.assertEquals(compat.TryToRoman(1), "I")
-      self.assertEquals(compat.TryToRoman(4), "IV")
-      self.assertEquals(compat.TryToRoman(5), "V")
+      self.assertEqual(compat.TryToRoman(0), 0)
+      self.assertEqual(compat.TryToRoman(1), "I")
+      self.assertEqual(compat.TryToRoman(4), "IV")
+      self.assertEqual(compat.TryToRoman(5), "V")
 
   def testWithNoRoman(self):
     # compat.roman is saved/restored in setUp/tearDown
     compat.roman = None
-    self.assertEquals(compat.TryToRoman(0), 0)
-    self.assertEquals(compat.TryToRoman(1), 1)
-    self.assertEquals(compat.TryToRoman(4), 4)
-    self.assertEquals(compat.TryToRoman(5), 5)
+    self.assertEqual(compat.TryToRoman(0), 0)
+    self.assertEqual(compat.TryToRoman(1), 1)
+    self.assertEqual(compat.TryToRoman(4), 4)
+    self.assertEqual(compat.TryToRoman(5), 5)
 
   def testStrings(self):
-    self.assertEquals(compat.TryToRoman("astring"), "astring")
-    self.assertEquals(compat.TryToRoman("5"), "5")
+    self.assertEqual(compat.TryToRoman("astring"), "astring")
+    self.assertEqual(compat.TryToRoman("5"), "5")
 
   def testDontConvert(self):
-    self.assertEquals(compat.TryToRoman(0, convert=False), 0)
-    self.assertEquals(compat.TryToRoman(1, convert=False), 1)
-    self.assertEquals(compat.TryToRoman(7, convert=False), 7)
-    self.assertEquals(compat.TryToRoman("astring", convert=False), "astring")
-    self.assertEquals(compat.TryToRoman("19", convert=False), "19")
+    self.assertEqual(compat.TryToRoman(0, convert=False), 0)
+    self.assertEqual(compat.TryToRoman(1, convert=False), 1)
+    self.assertEqual(compat.TryToRoman(7, convert=False), 7)
+    self.assertEqual(compat.TryToRoman("astring", convert=False), "astring")
+    self.assertEqual(compat.TryToRoman("19", convert=False), "19")
 
 
 class TestUniqueFrozenset(unittest.TestCase):

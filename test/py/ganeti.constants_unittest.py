@@ -48,53 +48,53 @@ class TestConstants(unittest.TestCase):
   """Constants tests"""
 
   def testConfigVersion(self):
-    self.failUnless(constants.CONFIG_MAJOR >= 0 and
+    self.assertTrue(constants.CONFIG_MAJOR >= 0 and
                     constants.CONFIG_MAJOR <= 99)
-    self.failUnless(constants.CONFIG_MINOR >= 0 and
+    self.assertTrue(constants.CONFIG_MINOR >= 0 and
                     constants.CONFIG_MINOR <= 99)
-    self.failUnless(constants.CONFIG_REVISION >= 0 and
+    self.assertTrue(constants.CONFIG_REVISION >= 0 and
                     constants.CONFIG_REVISION <= 9999)
-    self.failUnless(constants.CONFIG_VERSION >= 0 and
+    self.assertTrue(constants.CONFIG_VERSION >= 0 and
                     constants.CONFIG_VERSION <= 99999999)
 
-    self.failUnless(version.BuildVersion(0, 0, 0) == 0)
-    self.failUnless(version.BuildVersion(10, 10, 1010) == 10101010)
-    self.failUnless(version.BuildVersion(12, 34, 5678) == 12345678)
-    self.failUnless(version.BuildVersion(99, 99, 9999) == 99999999)
+    self.assertTrue(version.BuildVersion(0, 0, 0) == 0)
+    self.assertTrue(version.BuildVersion(10, 10, 1010) == 10101010)
+    self.assertTrue(version.BuildVersion(12, 34, 5678) == 12345678)
+    self.assertTrue(version.BuildVersion(99, 99, 9999) == 99999999)
 
-    self.failUnless(version.SplitVersion(00000000) == (0, 0, 0))
-    self.failUnless(version.SplitVersion(10101010) == (10, 10, 1010))
-    self.failUnless(version.SplitVersion(12345678) == (12, 34, 5678))
-    self.failUnless(version.SplitVersion(99999999) == (99, 99, 9999))
-    self.failUnless(version.SplitVersion(constants.CONFIG_VERSION) ==
+    self.assertTrue(version.SplitVersion(00000000) == (0, 0, 0))
+    self.assertTrue(version.SplitVersion(10101010) == (10, 10, 1010))
+    self.assertTrue(version.SplitVersion(12345678) == (12, 34, 5678))
+    self.assertTrue(version.SplitVersion(99999999) == (99, 99, 9999))
+    self.assertTrue(version.SplitVersion(constants.CONFIG_VERSION) ==
                     (constants.CONFIG_MAJOR, constants.CONFIG_MINOR,
                      constants.CONFIG_REVISION))
 
   def testDiskStatus(self):
-    self.failUnless(constants.LDS_OKAY < constants.LDS_UNKNOWN)
-    self.failUnless(constants.LDS_UNKNOWN < constants.LDS_FAULTY)
+    self.assertTrue(constants.LDS_OKAY < constants.LDS_UNKNOWN)
+    self.assertTrue(constants.LDS_UNKNOWN < constants.LDS_FAULTY)
 
   def testClockSkew(self):
-    self.failUnless(constants.NODE_MAX_CLOCK_SKEW <
+    self.assertTrue(constants.NODE_MAX_CLOCK_SKEW <
                     (0.8 * constants.CONFD_MAX_CLOCK_SKEW))
 
   def testSslCertExpiration(self):
-    self.failUnless(constants.SSL_CERT_EXPIRATION_ERROR <
+    self.assertTrue(constants.SSL_CERT_EXPIRATION_ERROR <
                     constants.SSL_CERT_EXPIRATION_WARN)
 
   def testOpCodePriority(self):
-    self.failUnless(constants.OP_PRIO_LOWEST > constants.OP_PRIO_LOW)
-    self.failUnless(constants.OP_PRIO_LOW > constants.OP_PRIO_NORMAL)
-    self.failUnlessEqual(constants.OP_PRIO_NORMAL, locking._DEFAULT_PRIORITY)
-    self.failUnlessEqual(constants.OP_PRIO_DEFAULT, locking._DEFAULT_PRIORITY)
-    self.failUnless(constants.OP_PRIO_NORMAL > constants.OP_PRIO_HIGH)
-    self.failUnless(constants.OP_PRIO_HIGH > constants.OP_PRIO_HIGHEST)
+    self.assertTrue(constants.OP_PRIO_LOWEST > constants.OP_PRIO_LOW)
+    self.assertTrue(constants.OP_PRIO_LOW > constants.OP_PRIO_NORMAL)
+    self.assertEqual(constants.OP_PRIO_NORMAL, locking._DEFAULT_PRIORITY)
+    self.assertEqual(constants.OP_PRIO_DEFAULT, locking._DEFAULT_PRIORITY)
+    self.assertTrue(constants.OP_PRIO_NORMAL > constants.OP_PRIO_HIGH)
+    self.assertTrue(constants.OP_PRIO_HIGH > constants.OP_PRIO_HIGHEST)
 
   def testDiskDefaults(self):
-    self.failUnless(
+    self.assertTrue(
         set(constants.DISK_LD_DEFAULTS.keys()) ==
         set(constants.DISK_TEMPLATES) - set([constants.DT_DISKLESS]))
-    self.failUnless(set(constants.DISK_DT_DEFAULTS.keys()) ==
+    self.assertTrue(set(constants.DISK_DT_DEFAULTS.keys()) ==
                     constants.DISK_TEMPLATES)
 
   def testJobStatus(self):
@@ -142,7 +142,7 @@ class TestParameterNames(unittest.TestCase):
                          ("instnic", constants.INIC_PARAMS_TYPES),
                         ]:
       for key in source:
-        self.failUnless(self.VALID_NAME.match(key),
+        self.assertTrue(self.VALID_NAME.match(key),
                         "The %s parameter '%s' contains invalid characters" %
                         (kind, key))
 

@@ -65,7 +65,7 @@ class TestX509Certificates(unittest.TestCase):
     self.assertEqual(utils.ReadFile(os.path.join(self.tmpdir, name,
                                                  backend._X509_CERT_FILE)),
                      cert_pem)
-    self.assert_(0 < os.path.getsize(os.path.join(self.tmpdir, name,
+    self.assertTrue(0 < os.path.getsize(os.path.join(self.tmpdir, name,
                                                   backend._X509_KEY_FILE)))
 
     (name2, cert_pem2) = \
@@ -137,9 +137,9 @@ class TestNodeVerify(testutils.GanetiTestCase):
     local_data = (my_name,constants.IP4_ADDRESS_LOCALHOST, [my_name])
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
                                 None, {})
-    self.failUnless(constants.NV_MASTERIP in result,
+    self.assertTrue(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
-    self.failUnless(result[constants.NV_MASTERIP],
+    self.assertTrue(result[constants.NV_MASTERIP],
                     "Cannot reach localhost")
 
   def testMasterIPSkipTest(self):
@@ -148,9 +148,9 @@ class TestNodeVerify(testutils.GanetiTestCase):
                   constants.IP4_ADDRESS_LOCALHOST, [])
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
                                 None, {})
-    self.failUnless(constants.NV_MASTERIP in result,
+    self.assertTrue(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
-    self.failUnless(result[constants.NV_MASTERIP] == None,
+    self.assertTrue(result[constants.NV_MASTERIP] == None,
                     "Test ran by non master candidate")
 
   def testMasterIPUnreachable(self):
@@ -162,9 +162,9 @@ class TestNodeVerify(testutils.GanetiTestCase):
     netutils.TcpPing = lambda a, b, source=None: False
     result = backend.VerifyNode({constants.NV_MASTERIP: bad_data},
                                 None, {})
-    self.failUnless(constants.NV_MASTERIP in result,
+    self.assertTrue(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
-    self.failIf(result[constants.NV_MASTERIP],
+    self.assertFalse(result[constants.NV_MASTERIP],
                 "Result from netutils.TcpPing corrupted")
 
   def testVerifyNodeNetTestMissingSelf(self):
@@ -173,9 +173,9 @@ class TestNodeVerify(testutils.GanetiTestCase):
     result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
                                 None, {})
 
-    self.failUnless(constants.NV_NODENETTEST in result,
+    self.assertTrue(constants.NV_NODENETTEST in result,
                     "NodeNetTest data not returned")
-    self.failUnless(my_name in result[constants.NV_NODENETTEST],
+    self.assertTrue(my_name in result[constants.NV_NODENETTEST],
                     "Missing failure in net test")
 
   def testVerifyNodeNetTest(self):
@@ -187,18 +187,18 @@ class TestNodeVerify(testutils.GanetiTestCase):
     result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
                                 None, {})
 
-    self.failUnless(constants.NV_NODENETTEST in result,
+    self.assertTrue(constants.NV_NODENETTEST in result,
                     "NodeNetTest data not returned")
-    self.failUnless(result[constants.NV_NODENETTEST] == {},
+    self.assertTrue(result[constants.NV_NODENETTEST] == {},
                     "NodeNetTest failed")
 
   def testVerifyNodeNetSkipTest(self):
     local_data = ([('n1.test.com', "any", "any")], [])
     result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
                                 None, {})
-    self.failUnless(constants.NV_NODENETTEST in result,
+    self.assertTrue(constants.NV_NODENETTEST in result,
                     "NodeNetTest data not returned")
-    self.failUnless(result[constants.NV_NODENETTEST] == {},
+    self.assertTrue(result[constants.NV_NODENETTEST] == {},
                     "Test ran by non master candidate")
 
   def testVerifyHvparams(self):
@@ -1112,7 +1112,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     calls_per_node = self._GetCallsPerNode()
     for node, calls in calls_per_node.items():
-      self.assertEquals(node, test_node_name)
+      self.assertEqual(node, test_node_name)
       for call in calls:
         self.assertTrue(constants.SSHS_GENERATE in call)
 

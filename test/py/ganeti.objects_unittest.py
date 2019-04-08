@@ -52,14 +52,14 @@ class TestDictState(unittest.TestCase):
 
   def testSimpleObjectToDict(self):
     o1 = SimpleObject(a="1")
-    self.assertEquals(o1.ToDict(), {"a": "1"})
-    self.assertEquals(o1.__getstate__(), {"a": "1"})
-    self.assertEquals(o1.__getstate__(), o1.ToDict())
+    self.assertEqual(o1.ToDict(), {"a": "1"})
+    self.assertEqual(o1.__getstate__(), {"a": "1"})
+    self.assertEqual(o1.__getstate__(), o1.ToDict())
     o1.a = 2
     o1.b = 5
-    self.assertEquals(o1.ToDict(), {"a": 2, "b": 5})
+    self.assertEqual(o1.ToDict(), {"a": 2, "b": 5})
     o2 = SimpleObject.FromDict(o1.ToDict())
-    self.assertEquals(o1.ToDict(), {"a": 2, "b": 5})
+    self.assertEqual(o1.ToDict(), {"a": 2, "b": 5})
 
 
 class TestClusterObject(unittest.TestCase):
@@ -101,9 +101,9 @@ class TestClusterObject(unittest.TestCase):
 
   def testGetHVDefaults(self):
     cl = self.fake_cl
-    self.failUnlessEqual(cl.GetHVDefaults(constants.HT_FAKE),
+    self.assertEqual(cl.GetHVDefaults(constants.HT_FAKE),
                          cl.hvparams[constants.HT_FAKE])
-    self.failUnlessEqual(cl.GetHVDefaults(None), {})
+    self.assertEqual(cl.GetHVDefaults(None), {})
     defaults = cl.GetHVDefaults(constants.HT_XEN_PVM,
                                           os_name="lenny-image")
     for param, value in cl.os_hvp["lenny-image"][constants.HT_XEN_PVM].items():

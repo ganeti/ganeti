@@ -69,7 +69,7 @@ class TestMisc(unittest.TestCase):
     self.assertEqual(tmo.progress, 5)
 
   def testTimeoutExpired(self):
-    self.assert_(utils.TimeoutExpired(100, 300, _time_fn=lambda: 500))
+    self.assertTrue(utils.TimeoutExpired(100, 300, _time_fn=lambda: 500))
     self.assertFalse(utils.TimeoutExpired(100, 300, _time_fn=lambda: 0))
     self.assertFalse(utils.TimeoutExpired(100, 300, _time_fn=lambda: 100))
     self.assertFalse(utils.TimeoutExpired(100, 300, _time_fn=lambda: 400))
@@ -89,13 +89,13 @@ class TestRieHandshake(unittest.TestCase):
     self.assertEqual(CheckRemoteExportHandshake(cds, hs), None)
 
   def testCheckErrors(self):
-    self.assert_(CheckRemoteExportHandshake(None, None))
-    self.assert_(CheckRemoteExportHandshake("", ""))
-    self.assert_(CheckRemoteExportHandshake("", ("xyz", "foo")))
+    self.assertTrue(CheckRemoteExportHandshake(None, None))
+    self.assertTrue(CheckRemoteExportHandshake("", ""))
+    self.assertTrue(CheckRemoteExportHandshake("", ("xyz", "foo")))
 
   def testCheckWrongHash(self):
     cds = "cd-secret999"
-    self.assert_(CheckRemoteExportHandshake(cds, (0, "fakehash", "xyz")))
+    self.assertTrue(CheckRemoteExportHandshake(cds, (0, "fakehash", "xyz")))
 
   def testCheckWrongVersion(self):
     version = 14887
@@ -104,7 +104,7 @@ class TestRieHandshake(unittest.TestCase):
     salt = "a19cf8cc06"
     msg = "%s:%s" % (version, constants.RIE_HANDSHAKE)
     hs = (version, utils.Sha1Hmac(cds, msg, salt=salt), salt)
-    self.assert_(CheckRemoteExportHandshake(cds, hs))
+    self.assertTrue(CheckRemoteExportHandshake(cds, hs))
 
 
 class TestRieDiskInfo(unittest.TestCase):

@@ -62,11 +62,11 @@ class TestOpcodeParams(testutils.GanetiTestCase):
     for op in sorted(mcpu.Processor.DISPATCH_TABLE):
       lu = mcpu.Processor.DISPATCH_TABLE[op]
       lu_name = lu.__name__
-      self.failIf(hasattr(lu, "_OP_REQP"),
+      self.assertFalse(hasattr(lu, "_OP_REQP"),
                   msg=("LU '%s' has old-style _OP_REQP" % lu_name))
-      self.failIf(hasattr(lu, "_OP_DEFS"),
+      self.assertFalse(hasattr(lu, "_OP_DEFS"),
                   msg=("LU '%s' has old-style _OP_DEFS" % lu_name))
-      self.failIf(hasattr(lu, "_OP_PARAMS"),
+      self.assertFalse(hasattr(lu, "_OP_PARAMS"),
                   msg=("LU '%s' has old-style _OP_PARAMS" % lu_name))
 
 
@@ -136,7 +136,7 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
 
 class TestLUTestJqueue(unittest.TestCase):
   def test(self):
-    self.assert_(cmdlib.LUTestJqueue._CLIENT_CONNECT_TIMEOUT <
+    self.assertTrue(cmdlib.LUTestJqueue._CLIENT_CONNECT_TIMEOUT <
                  (luxi.WFJC_TIMEOUT * 0.75),
                  msg=("Client timeout too high, might not notice bugs"
                       " in WaitForJobChange"))
@@ -151,7 +151,7 @@ class TestLUQuery(unittest.TestCase):
     assert constants.QR_INSTANCE in constants.QR_VIA_LUXI
 
     for i in constants.QR_VIA_OP:
-      self.assert_(query._GetQueryImplementation(i))
+      self.assertTrue(query._GetQueryImplementation(i))
 
     self.assertRaises(errors.OpPrereqError, query._GetQueryImplementation,
                       "")

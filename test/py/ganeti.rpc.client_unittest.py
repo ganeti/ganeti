@@ -129,9 +129,9 @@ class TextRPCParsing(testutils.GanetiTestCase):
                             (True, { "a": 123, "b": None, })]:
       msg = client.FormatResponse(success, result)
       msgdata = serializer.LoadJson(msg)
-      self.assert_(client.KEY_SUCCESS in msgdata)
-      self.assert_(client.KEY_RESULT in msgdata)
-      self.assert_(client.KEY_VERSION not in msgdata)
+      self.assertTrue(client.KEY_SUCCESS in msgdata)
+      self.assertTrue(client.KEY_RESULT in msgdata)
+      self.assertTrue(client.KEY_VERSION not in msgdata)
       self.assertEqualValues(msgdata,
                              { client.KEY_SUCCESS: success,
                                client.KEY_RESULT: result,
@@ -142,9 +142,9 @@ class TextRPCParsing(testutils.GanetiTestCase):
                                      (True, { "a": 123, "b": None, }, 2010)]:
       msg = client.FormatResponse(success, result, version=version)
       msgdata = serializer.LoadJson(msg)
-      self.assert_(client.KEY_SUCCESS in msgdata)
-      self.assert_(client.KEY_RESULT in msgdata)
-      self.assert_(client.KEY_VERSION in msgdata)
+      self.assertTrue(client.KEY_SUCCESS in msgdata)
+      self.assertTrue(client.KEY_RESULT in msgdata)
+      self.assertTrue(client.KEY_VERSION in msgdata)
       self.assertEqualValues(msgdata,
                              { client.KEY_SUCCESS: success,
                                client.KEY_RESULT: result,
@@ -155,9 +155,9 @@ class TextRPCParsing(testutils.GanetiTestCase):
     for method, args in [("a", []), ("b", [1, 2, 3])]:
       msg = client.FormatRequest(method, args)
       msgdata = serializer.LoadJson(msg)
-      self.assert_(client.KEY_METHOD in msgdata)
-      self.assert_(client.KEY_ARGS in msgdata)
-      self.assert_(client.KEY_VERSION not in msgdata)
+      self.assertTrue(client.KEY_METHOD in msgdata)
+      self.assertTrue(client.KEY_ARGS in msgdata)
+      self.assertTrue(client.KEY_VERSION not in msgdata)
       self.assertEqualValues(msgdata,
                              { client.KEY_METHOD: method,
                                client.KEY_ARGS: args,
@@ -167,9 +167,9 @@ class TextRPCParsing(testutils.GanetiTestCase):
     for method, args, version in [("fn1", [], 123), ("fn2", [1, 2, 3], 999)]:
       msg = client.FormatRequest(method, args, version=version)
       msgdata = serializer.LoadJson(msg)
-      self.assert_(client.KEY_METHOD in msgdata)
-      self.assert_(client.KEY_ARGS in msgdata)
-      self.assert_(client.KEY_VERSION in msgdata)
+      self.assertTrue(client.KEY_METHOD in msgdata)
+      self.assertTrue(client.KEY_ARGS in msgdata)
+      self.assertTrue(client.KEY_VERSION in msgdata)
       self.assertEqualValues(msgdata,
                              { client.KEY_METHOD: method,
                                client.KEY_ARGS: args,

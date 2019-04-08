@@ -108,10 +108,10 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
   def testReplace(self):
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assertTrue(self.notified[self.NOTIFIER_TERM])
     self.assertFalse(self.notified[self.NOTIFIER_NORM])
-    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
-    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testEnableDisable(self):
     self.ihandler[self.NOTIFIER_TERM].enable()
@@ -122,49 +122,49 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.ihandler[self.NOTIFIER_TERM].enable()
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assertTrue(self.notified[self.NOTIFIER_TERM])
     self.assertFalse(self.notified[self.NOTIFIER_NORM])
-    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
-    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testDoubleEnable(self):
     self.ihandler[self.NOTIFIER_TERM].enable()
     self.ihandler[self.NOTIFIER_TERM].enable()
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assertTrue(self.notified[self.NOTIFIER_TERM])
     self.assertFalse(self.notified[self.NOTIFIER_NORM])
-    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
-    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testDefaultDisabled(self):
     utils.WriteFile(self.chk_files[self.NOTIFIER_NORM], data="dummy")
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assertTrue(self.notified[self.NOTIFIER_TERM])
     # NORM notifier is disabled by default
     self.assertFalse(self.notified[self.NOTIFIER_NORM])
-    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
-    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testBothEnabled(self):
     self.ihandler[self.NOTIFIER_NORM].enable()
     utils.WriteFile(self.chk_files[self.NOTIFIER_NORM], data="dummy")
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[self.NOTIFIER_TERM])
-    self.assert_(self.notified[self.NOTIFIER_NORM])
-    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
-    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertTrue(self.notified[self.NOTIFIER_TERM])
+    self.assertTrue(self.notified[self.NOTIFIER_NORM])
+    self.assertEqual(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testError(self):
     self.ihandler[self.NOTIFIER_ERR].enable()
     utils.WriteFile(self.chk_files[self.NOTIFIER_ERR], data="dummy")
     self.assertRaises(errors.GenericError, self.mainloop.Run)
-    self.assert_(self.notified[self.NOTIFIER_ERR])
-    self.assertEquals(self.notifiers[self.NOTIFIER_ERR].error_count, 1)
-    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
-    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertTrue(self.notified[self.NOTIFIER_ERR])
+    self.assertEqual(self.notifiers[self.NOTIFIER_ERR].error_count, 1)
+    self.assertEqual(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertEqual(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
 
 
 class TestSingleFileEventHandlerError(unittest.TestCase):

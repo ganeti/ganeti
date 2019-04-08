@@ -69,8 +69,8 @@ REQ_BGL_WHITELIST = compat.UniqueFrozenset([
 class TestLockAttemptTimeoutStrategy(unittest.TestCase):
   def testConstants(self):
     tpa = mcpu.LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT
-    self.assert_(len(tpa) > LOCK_ATTEMPTS_TIMEOUT / LOCK_ATTEMPTS_MAXWAIT)
-    self.assert_(sum(tpa) >= LOCK_ATTEMPTS_TIMEOUT)
+    self.assertTrue(len(tpa) > LOCK_ATTEMPTS_TIMEOUT / LOCK_ATTEMPTS_MAXWAIT)
+    self.assertTrue(sum(tpa) >= LOCK_ATTEMPTS_TIMEOUT)
 
     self.assertTrue(LOCK_ATTEMPTS_TIMEOUT >= 1800,
                     msg="Waiting less than half an hour per priority")
@@ -84,16 +84,16 @@ class TestLockAttemptTimeoutStrategy(unittest.TestCase):
     prev = None
     for i in range(len(strat._TIMEOUT_PER_ATTEMPT)):
       timeout = strat.NextAttempt()
-      self.assert_(timeout is not None)
+      self.assertTrue(timeout is not None)
 
-      self.assert_(timeout <= LOCK_ATTEMPTS_MAXWAIT)
-      self.assert_(timeout >= LOCK_ATTEMPTS_MINWAIT)
-      self.assert_(prev is None or timeout >= prev)
+      self.assertTrue(timeout <= LOCK_ATTEMPTS_MAXWAIT)
+      self.assertTrue(timeout >= LOCK_ATTEMPTS_MINWAIT)
+      self.assertTrue(prev is None or timeout >= prev)
 
       prev = timeout
 
     for _ in range(10):
-      self.assert_(strat.NextAttempt() is None)
+      self.assertTrue(strat.NextAttempt() is None)
 
 
 class TestDispatchTable(unittest.TestCase):

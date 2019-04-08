@@ -145,10 +145,10 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser for disk and network version 8.0"""
     data = testutils.ReadTestData("bdev-drbd-8.0.txt")
     result = drbd_info.DRBD83ShowInfo.GetDevInfo(data)
-    self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
+    self.assertTrue(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
-    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+    self.assertTrue(self._has_net(result, ("192.0.2.1", 11000),
                                   ("192.0.2.2", 11000)),
                     "Wrong network info (8.0.x)")
 
@@ -156,10 +156,10 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser for disk and network version 8.3"""
     data = testutils.ReadTestData("bdev-drbd-8.3.txt")
     result = drbd_info.DRBD83ShowInfo.GetDevInfo(data)
-    self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
+    self.assertTrue(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
-    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+    self.assertTrue(self._has_net(result, ("192.0.2.1", 11000),
                                   ("192.0.2.2", 11000)),
                     "Wrong network info (8.3.x)")
 
@@ -167,10 +167,10 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser for disk and network version 8.4"""
     data = testutils.ReadTestData("bdev-drbd-8.4.txt")
     result = drbd_info.DRBD84ShowInfo.GetDevInfo(data)
-    self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
+    self.assertTrue(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
-    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+    self.assertTrue(self._has_net(result, ("192.0.2.1", 11000),
                                   ("192.0.2.2", 11000)),
                     "Wrong network info (8.4.x)")
 
@@ -183,10 +183,10 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """
     data = testutils.ReadTestData("bdev-drbd-8.4-no-disk-params.txt")
     result = drbd_info.DRBD84ShowInfo.GetDevInfo(data)
-    self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
+    self.assertTrue(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta", meta_index=None),
                     "Wrong local disk info")
-    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+    self.assertTrue(self._has_net(result, ("192.0.2.1", 11000),
                                   ("192.0.2.2", 11000)),
                     "Wrong network info (8.4.x)")
 
@@ -194,11 +194,11 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser for IPv4 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip4.txt")
     result = drbd_info.DRBD83ShowInfo.GetDevInfo(data)
-    self.failUnless(("local_dev" not in result and
+    self.assertTrue(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
                     "Should not find local disk info")
-    self.failUnless(self._has_net(result, ("192.0.2.1", 11002),
+    self.assertTrue(self._has_net(result, ("192.0.2.1", 11002),
                                   ("192.0.2.2", 11002)),
                     "Wrong network info (IPv4)")
 
@@ -206,11 +206,11 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser for IPv6 network"""
     data = testutils.ReadTestData("bdev-drbd-net-ip6.txt")
     result = drbd_info.DRBD83ShowInfo.GetDevInfo(data)
-    self.failUnless(("local_dev" not in result and
+    self.assertTrue(("local_dev" not in result and
                      "meta_dev" not in result and
                      "meta_index" not in result),
                     "Should not find local disk info")
-    self.failUnless(self._has_net(result, ("2001:db8:65::1", 11048),
+    self.assertTrue(self._has_net(result, ("2001:db8:65::1", 11048),
                                   ("2001:db8:66::1", 11048)),
                     "Wrong network info (IPv6)")
 
@@ -218,10 +218,10 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser for disk"""
     data = testutils.ReadTestData("bdev-drbd-disk.txt")
     result = drbd_info.DRBD83ShowInfo.GetDevInfo(data)
-    self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
+    self.assertTrue(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
-    self.failUnless(("local_addr" not in result and
+    self.assertTrue(("local_addr" not in result and
                      "remote_addr" not in result),
                     "Should not find network info")
 
@@ -281,7 +281,7 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
           vmaj, vmin, vrel,
           disabled_barriers,
           disable_meta_flush)
-      self.failUnless(set(args) == set(expected),
+      self.assertTrue(set(args) == set(expected),
                       "For test %s, got wrong results %s" % (test, args))
 
     # Unsupported or invalid versions
@@ -334,28 +334,28 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     """Test handling of errors while reading the proc file."""
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
-    self.failUnlessRaises(errors.BlockDeviceError,
+    self.assertRaises(errors.BlockDeviceError,
                           drbd.DRBD8Info.CreateFromFile, filename=temp_file)
 
   def testHelper(self):
     """Test reading usermode_helper in /sys."""
     sys_drbd_helper = testutils.TestDataFilename("sys_drbd_usermode_helper.txt")
     drbd_helper = drbd.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
-    self.failUnlessEqual(drbd_helper, "/bin/true")
+    self.assertEqual(drbd_helper, "/bin/true")
 
   def testHelperIOErrors(self):
     """Test handling of errors while reading usermode_helper in /sys."""
     temp_file = self._CreateTempFile()
     os.unlink(temp_file)
-    self.failUnlessRaises(errors.BlockDeviceError,
+    self.assertRaises(errors.BlockDeviceError,
                           drbd.DRBD8.GetUsermodeHelper, filename=temp_file)
 
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
-    self.failUnless(not self.drbd_info.HasMinorStatus(9))
-    self.failUnless(not self.drbd_info83.HasMinorStatus(9))
-    self.failUnless(not self.drbd_info80e.HasMinorStatus(3))
-    self.failUnless(not self.drbd_info84_emptyfirst.HasMinorStatus(0))
+    self.assertTrue(not self.drbd_info.HasMinorStatus(9))
+    self.assertTrue(not self.drbd_info83.HasMinorStatus(9))
+    self.assertTrue(not self.drbd_info80e.HasMinorStatus(3))
+    self.assertTrue(not self.drbd_info84_emptyfirst.HasMinorStatus(0))
 
   def testLineNotMatch(self):
     """Test wrong line passed to drbd_info.DRBD8Status"""
@@ -365,8 +365,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     """Test connected, primary device"""
     for info in [self.drbd_info, self.drbd_info83, self.drbd_info84]:
       stats = info.GetMinorStatus(0)
-      self.failUnless(stats.is_in_use)
-      self.failUnless(stats.is_connected and stats.is_primary and
+      self.assertTrue(stats.is_in_use)
+      self.assertTrue(stats.is_connected and stats.is_primary and
                       stats.peer_secondary and stats.is_disk_uptodate)
 
   def testMinor1(self):
@@ -374,8 +374,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     for info in [self.drbd_info, self.drbd_info83, self.drbd_info84,
                  self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(1)
-      self.failUnless(stats.is_in_use)
-      self.failUnless(stats.is_connected and stats.is_secondary and
+      self.assertTrue(stats.is_in_use)
+      self.assertTrue(stats.is_connected and stats.is_secondary and
                       stats.peer_primary and stats.is_disk_uptodate)
 
   def testMinor2(self):
@@ -384,15 +384,15 @@ class TestDRBD8Status(testutils.GanetiTestCase):
                  self.drbd_info80e, self.drbd_info84,
                  self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(2)
-      self.failIf(stats.is_in_use)
+      self.assertFalse(stats.is_in_use)
 
   def testMinor4(self):
     """Test WFconn device"""
     for info in [self.drbd_info, self.drbd_info83,
                  self.drbd_info84, self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(4)
-      self.failUnless(stats.is_in_use)
-      self.failUnless(stats.is_wfconn and stats.is_primary and
+      self.assertTrue(stats.is_in_use)
+      self.assertTrue(stats.is_wfconn and stats.is_primary and
                       stats.rrole == "Unknown" and
                       stats.is_disk_uptodate)
 
@@ -401,32 +401,32 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     for info in [self.drbd_info, self.drbd_info83,
                  self.drbd_info84, self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(6)
-      self.failUnless(stats.is_in_use)
-      self.failUnless(stats.is_connected and stats.is_secondary and
+      self.assertTrue(stats.is_in_use)
+      self.assertTrue(stats.is_connected and stats.is_secondary and
                       stats.peer_primary and stats.is_diskless)
 
   def testMinor8(self):
     """Test standalone device"""
     for info in [self.drbd_info, self.drbd_info83, self.drbd_info84]:
       stats = info.GetMinorStatus(8)
-      self.failUnless(stats.is_in_use)
-      self.failUnless(stats.is_standalone and
+      self.assertTrue(stats.is_in_use)
+      self.assertTrue(stats.is_standalone and
                       stats.rrole == "Unknown" and
                       stats.is_disk_uptodate)
 
   def testDRBD83SyncFine(self):
     stats = self.drbd_info83_sync.GetMinorStatus(3)
-    self.failUnless(stats.is_in_resync)
+    self.assertTrue(stats.is_in_resync)
     self.assertAlmostEqual(stats.sync_percent, 34.9)
 
   def testDRBD83SyncBroken(self):
     stats = self.drbd_info83_sync_krnl.GetMinorStatus(3)
-    self.failUnless(stats.is_in_resync)
+    self.assertTrue(stats.is_in_resync)
     self.assertAlmostEqual(stats.sync_percent, 2.4)
 
   def testDRBD84Sync(self):
     stats = self.drbd_info84_sync.GetMinorStatus(5)
-    self.failUnless(stats.is_in_resync)
+    self.assertTrue(stats.is_in_resync)
     self.assertAlmostEqual(stats.sync_percent, 68.5)
 
   def testDRBDEmptyVersion(self):

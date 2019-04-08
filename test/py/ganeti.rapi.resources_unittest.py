@@ -50,10 +50,10 @@ class MapperTests(unittest.TestCase):
     self.map = connector.Mapper()
 
   def _TestUri(self, uri, result):
-    self.assertEquals(self.map.getController(uri), result)
+    self.assertEqual(self.map.getController(uri), result)
 
   def _TestFailingUri(self, uri):
-    self.failUnlessRaises(http.HttpNotFound, self.map.getController, uri)
+    self.assertRaises(http.HttpNotFound, self.map.getController, uri)
 
   def testMapper(self):
     """Testing Mapper"""

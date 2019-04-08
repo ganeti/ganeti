@@ -112,12 +112,12 @@ class _BaseFileLockTest:
   def testTimeout(self):
     for blocking in [True, False]:
       self.lock.Exclusive(blocking=True)
-      self.failIf(self._TryLock(False, blocking))
-      self.failIf(self._TryLock(True, blocking))
+      self.assertFalse(self._TryLock(False, blocking))
+      self.assertFalse(self._TryLock(True, blocking))
 
       self.lock.Shared(blocking=True)
-      self.assert_(self._TryLock(True, blocking))
-      self.failIf(self._TryLock(False, blocking))
+      self.assertTrue(self._TryLock(True, blocking))
+      self.assertFalse(self._TryLock(False, blocking))
 
   def testCloseShared(self):
     self.lock.Close()

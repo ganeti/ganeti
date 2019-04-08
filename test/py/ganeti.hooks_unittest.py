@@ -94,7 +94,7 @@ class TestHooksRunner(unittest.TestCase):
   def testEmpty(self):
     """Test no hooks"""
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), [])
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}), [])
 
   def testSkipNonExec(self):
     """Test skip non-exec file"""
@@ -103,7 +103,7 @@ class TestHooksRunner(unittest.TestCase):
       f = open(fname, "w")
       f.close()
       self.torm.append((fname, False))
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SKIP, "")])
 
   def testSkipInvalidName(self):
@@ -115,7 +115,7 @@ class TestHooksRunner(unittest.TestCase):
       f.close()
       os.chmod(fname, 0o700)
       self.torm.append((fname, False))
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SKIP, "")])
 
   def testSkipDir(self):
@@ -124,7 +124,7 @@ class TestHooksRunner(unittest.TestCase):
       fname = "%s/testdir" % self.ph_dirs[phase]
       os.mkdir(fname)
       self.torm.append((fname, True))
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SKIP, "")])
 
   def testSuccess(self):
@@ -136,7 +136,7 @@ class TestHooksRunner(unittest.TestCase):
       f.close()
       self.torm.append((fname, False))
       os.chmod(fname, 0o700)
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SUCCESS, "")])
 
   def testSymlink(self):
@@ -145,7 +145,7 @@ class TestHooksRunner(unittest.TestCase):
       fname = "%s/success" % self.ph_dirs[phase]
       os.symlink("/bin/true", fname)
       self.torm.append((fname, False))
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SUCCESS, "")])
 
   def testFail(self):
@@ -157,7 +157,7 @@ class TestHooksRunner(unittest.TestCase):
       f.close()
       self.torm.append((fname, False))
       os.chmod(fname, 0o700)
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_FAIL, "")])
 
   def testCombined(self):
@@ -175,7 +175,7 @@ class TestHooksRunner(unittest.TestCase):
         self.torm.append((fname, False))
         os.chmod(fname, 0o700)
         expect.append((self._rname(fname), rs, ""))
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
 
   def testOrdering(self):
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
@@ -191,7 +191,7 @@ class TestHooksRunner(unittest.TestCase):
         self.torm.append((fname, False))
         expect.append((self._rname(fname), HKR_SUCCESS, ""))
       expect.sort()
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
 
   def testEnv(self):
     """Test environment execution"""
@@ -202,7 +202,7 @@ class TestHooksRunner(unittest.TestCase):
       self.torm.append((fname, False))
       env_snt = {"PHASE": phase}
       env_exp = "PHASE=%s" % phase
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, env_snt),
+      self.assertEqual(self.hr.RunHooks(self.hpath, phase, env_snt),
                            [(self._rname(fname), HKR_SUCCESS, env_exp)])
 
 
@@ -260,7 +260,7 @@ class TestHooksMaster(unittest.TestCase):
   def testTotalFalse(self):
     """Test complete rpc failure"""
     hm = hooksmaster.HooksMaster.BuildFromLu(self._call_false, self.lu)
-    self.failUnlessRaises(errors.HooksFailure,
+    self.assertRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
@@ -275,7 +275,7 @@ class TestHooksMaster(unittest.TestCase):
   def testScriptFalse(self):
     """Test individual rpc failure"""
     hm = hooksmaster.HooksMaster.BuildFromLu(self._call_script_fail, self.lu)
-    self.failUnlessRaises(errors.HooksAbort,
+    self.assertRaises(errors.HooksAbort,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 

@@ -52,7 +52,7 @@ class TestIsProcessAlive(unittest.TestCase):
 
   def testExists(self):
     mypid = os.getpid()
-    self.assert_(utils.IsProcessAlive(mypid), "can't find myself running")
+    self.assertTrue(utils.IsProcessAlive(mypid), "can't find myself running")
 
   def testNotExisting(self):
     pid_non_existing = os.fork()
@@ -67,7 +67,7 @@ class TestIsProcessAlive(unittest.TestCase):
 
 class TestGetProcStatusPath(unittest.TestCase):
   def test(self):
-    self.assert_("/1234/" in utils.process._GetProcStatusPath(1234))
+    self.assertTrue("/1234/" in utils.process._GetProcStatusPath(1234))
     self.assertNotEqual(utils.process._GetProcStatusPath(1),
                         utils.process._GetProcStatusPath(2))
 
@@ -123,7 +123,7 @@ class TestIsProcessHandlingSignal(unittest.TestCase):
       "CapEff: 0000000000000000",
       ]))
 
-    self.assert_(utils.IsProcessHandlingSignal(1234, 10, status_path=sp))
+    self.assertTrue(utils.IsProcessHandlingSignal(1234, 10, status_path=sp))
 
   def testNoSigCgt(self):
     sp = utils.PathJoin(self.tmpdir, "status")
@@ -161,7 +161,7 @@ class TestIsProcessHandlingSignal(unittest.TestCase):
     return True
 
   def testRealProcess(self):
-    self.assert_(utils.RunInSeparateProcess(self._TestRealProcess))
+    self.assertTrue(utils.RunInSeparateProcess(self._TestRealProcess))
 
 
 class _PostforkProcessReadyHelper:
@@ -297,7 +297,7 @@ class TestRunCmd(testutils.GanetiTestCase):
                                 None,
                                 _linger_timeout=0.2,
                                 postfork_fn=self.proc_ready_helper.Ready)
-    self.assert_(status < 0)
+    self.assertTrue(status < 0)
     self.assertEqual(-status, signal.SIGKILL)
 
   def testTimeoutOutputAfterTerm(self):
@@ -306,7 +306,7 @@ class TestRunCmd(testutils.GanetiTestCase):
     result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2,
                           noclose_fds=[self.proc_ready_helper.write_fd],
                           postfork_fn=self.proc_ready_helper.Ready)
-    self.assert_(result.failed)
+    self.assertTrue(result.failed)
     self.assertEqual(result.stdout, "sigtermed\n")
 
   def testListRun(self):
@@ -341,28 +341,28 @@ class TestRunCmd(testutils.GanetiTestCase):
         # Ignore these variables, they're overridden by LC_ALL
         if key == "LANG" or key == "LANGUAGE":
           continue
-        self.failIf(value and value != "C" and value != '"C"',
+        self.assertFalse(value and value != "C" and value != '"C"',
             "Variable %s is set to the invalid value '%s'" % (key, value))
     finally:
       os.environ = old_env
 
   def testDefaultCwd(self):
     """Test default working directory"""
-    self.failUnlessEqual(utils.RunCmd(["pwd"]).stdout.strip(), "/")
+    self.assertEqual(utils.RunCmd(["pwd"]).stdout.strip(), "/")
 
   def testCwd(self):
     """Test default working directory"""
-    self.failUnlessEqual(utils.RunCmd(["pwd"], cwd="/").stdout.strip(), "/")
-    self.failUnlessEqual(utils.RunCmd(["pwd"], cwd="/tmp").stdout.strip(),
+    self.assertEqual(utils.RunCmd(["pwd"], cwd="/").stdout.strip(), "/")
+    self.assertEqual(utils.RunCmd(["pwd"], cwd="/tmp").stdout.strip(),
                          "/tmp")
     cwd = os.getcwd()
-    self.failUnlessEqual(utils.RunCmd(["pwd"], cwd=cwd).stdout.strip(), cwd)
+    self.assertEqual(utils.RunCmd(["pwd"], cwd=cwd).stdout.strip(), cwd)
 
   def testResetEnv(self):
     """Test environment reset functionality"""
-    self.failUnlessEqual(utils.RunCmd(["env"], reset_env=True).stdout.strip(),
+    self.assertEqual(utils.RunCmd(["env"], reset_env=True).stdout.strip(),
                          "")
-    self.failUnlessEqual(utils.RunCmd(["env"], reset_env=True,
+    self.assertEqual(utils.RunCmd(["env"], reset_env=True,
                                       env={"FOO": "bar",}).stdout.strip(),
                          "FOO=bar")
 
@@ -467,7 +467,7 @@ class TestRunParts(testutils.GanetiTestCase):
 
   def testEmpty(self):
     """Test on an empty dir"""
-    self.failUnlessEqual(utils.RunParts(self.rundir, reset_env=True), [])
+    self.assertEqual(utils.RunParts(self.rundir, reset_env=True), [])
 
   def testSkipWrongName(self):
     """Test that wrong files are skipped"""
@@ -475,7 +475,7 @@ class TestRunParts(testutils.GanetiTestCase):
     utils.WriteFile(fname, data="")
     os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
     relname = os.path.basename(fname)
-    self.failUnlessEqual(utils.RunParts(self.rundir, reset_env=True),
+    self.assertEqual(utils.RunParts(self.rundir, reset_env=True),
                          [(relname, constants.RUNPARTS_SKIP, None)])
 
   def testSkipNonExec(self):
@@ -483,7 +483,7 @@ class TestRunParts(testutils.GanetiTestCase):
     fname = os.path.join(self.rundir, "00test")
     utils.WriteFile(fname, data="")
     relname = os.path.basename(fname)
-    self.failUnlessEqual(utils.RunParts(self.rundir, reset_env=True),
+    self.assertEqual(utils.RunParts(self.rundir, reset_env=True),
                          [(relname, constants.RUNPARTS_SKIP, None)])
 
   def testError(self):
@@ -492,9 +492,9 @@ class TestRunParts(testutils.GanetiTestCase):
     utils.WriteFile(fname, data="")
     os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
     (relname, status, error) = utils.RunParts(self.rundir, reset_env=True)[0]
-    self.failUnlessEqual(relname, os.path.basename(fname))
-    self.failUnlessEqual(status, constants.RUNPARTS_ERR)
-    self.failUnless(error)
+    self.assertEqual(relname, os.path.basename(fname))
+    self.assertEqual(status, constants.RUNPARTS_ERR)
+    self.assertTrue(error)
 
   def testSorted(self):
     """Test executions are sorted"""
@@ -509,7 +509,7 @@ class TestRunParts(testutils.GanetiTestCase):
     results = utils.RunParts(self.rundir, reset_env=True)
 
     for fname in sorted(files):
-      self.failUnlessEqual(os.path.basename(fname), results.pop(0)[0])
+      self.assertEqual(os.path.basename(fname), results.pop(0)[0])
 
   def testOk(self):
     """Test correct execution"""
@@ -518,9 +518,9 @@ class TestRunParts(testutils.GanetiTestCase):
     os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
     (relname, status, runresult) = \
       utils.RunParts(self.rundir, reset_env=True)[0]
-    self.failUnlessEqual(relname, os.path.basename(fname))
-    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
-    self.failUnlessEqual(runresult.stdout, "ciao")
+    self.assertEqual(relname, os.path.basename(fname))
+    self.assertEqual(status, constants.RUNPARTS_RUN)
+    self.assertEqual(runresult.stdout, "ciao")
 
   def testRunFail(self):
     """Test correct execution, with run failure"""
@@ -529,10 +529,10 @@ class TestRunParts(testutils.GanetiTestCase):
     os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
     (relname, status, runresult) = \
       utils.RunParts(self.rundir, reset_env=True)[0]
-    self.failUnlessEqual(relname, os.path.basename(fname))
-    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
-    self.failUnlessEqual(runresult.exit_code, 1)
-    self.failUnless(runresult.failed)
+    self.assertEqual(relname, os.path.basename(fname))
+    self.assertEqual(status, constants.RUNPARTS_RUN)
+    self.assertEqual(runresult.exit_code, 1)
+    self.assertTrue(runresult.failed)
 
   def testRunMix(self):
     files = []
@@ -561,27 +561,27 @@ class TestRunParts(testutils.GanetiTestCase):
     results = utils.RunParts(self.rundir, reset_env=True)
 
     (relname, status, runresult) = results[0]
-    self.failUnlessEqual(relname, os.path.basename(files[0]))
-    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
-    self.failUnlessEqual(runresult.exit_code, 1)
-    self.failUnless(runresult.failed)
+    self.assertEqual(relname, os.path.basename(files[0]))
+    self.assertEqual(status, constants.RUNPARTS_RUN)
+    self.assertEqual(runresult.exit_code, 1)
+    self.assertTrue(runresult.failed)
 
     (relname, status, runresult) = results[1]
-    self.failUnlessEqual(relname, os.path.basename(files[1]))
-    self.failUnlessEqual(status, constants.RUNPARTS_SKIP)
-    self.failUnlessEqual(runresult, None)
+    self.assertEqual(relname, os.path.basename(files[1]))
+    self.assertEqual(status, constants.RUNPARTS_SKIP)
+    self.assertEqual(runresult, None)
 
     (relname, status, runresult) = results[2]
-    self.failUnlessEqual(relname, os.path.basename(files[2]))
-    self.failUnlessEqual(status, constants.RUNPARTS_ERR)
-    self.failUnless(runresult)
+    self.assertEqual(relname, os.path.basename(files[2]))
+    self.assertEqual(status, constants.RUNPARTS_ERR)
+    self.assertTrue(runresult)
 
     (relname, status, runresult) = results[3]
-    self.failUnlessEqual(relname, os.path.basename(files[3]))
-    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
-    self.failUnlessEqual(runresult.output, "ciao")
-    self.failUnlessEqual(runresult.exit_code, 0)
-    self.failUnless(not runresult.failed)
+    self.assertEqual(relname, os.path.basename(files[3]))
+    self.assertEqual(status, constants.RUNPARTS_RUN)
+    self.assertEqual(runresult.output, "ciao")
+    self.assertEqual(runresult.exit_code, 0)
+    self.assertTrue(not runresult.failed)
 
   def testMissingDirectory(self):
     nosuchdir = utils.PathJoin(self.rundir, "no/such/directory")
@@ -609,7 +609,7 @@ class TestStartDaemon(testutils.GanetiTestCase):
 
   def testNoShellNoOutputTouch(self):
     testfile = os.path.join(self.tmpdir, "check")
-    self.failIf(os.path.exists(testfile))
+    self.assertFalse(os.path.exists(testfile))
     utils.StartDaemon(["touch", testfile])
     self._wait(testfile, 60.0, "")
 
@@ -661,11 +661,11 @@ class TestStartDaemon(testutils.GanetiTestCase):
 
       self.assertEqual(int(pidtext.strip()), pid)
 
-      self.assert_(utils.IsProcessAlive(pid))
+      self.assertTrue(utils.IsProcessAlive(pid))
     finally:
       # No matter what happens, kill daemon
       utils.KillProcess(pid, timeout=5.0, waitpid=False)
-      self.failIf(utils.IsProcessAlive(pid))
+      self.assertFalse(utils.IsProcessAlive(pid))
 
     self.assertEqual(utils.ReadFile(self.tmpfile), "")
 
@@ -718,7 +718,7 @@ class RunInSeparateProcess(unittest.TestCase):
       def _child(carg1, carg2):
         return carg1 == "Foo" and carg2 == arg
 
-      self.assert_(utils.RunInSeparateProcess(_child, "Foo", arg))
+      self.assertTrue(utils.RunInSeparateProcess(_child, "Foo", arg))
 
   def testPid(self):
     parent_pid = os.getpid()
@@ -726,7 +726,7 @@ class RunInSeparateProcess(unittest.TestCase):
     def _check():
       return os.getpid() == parent_pid
 
-    self.failIf(utils.RunInSeparateProcess(_check))
+    self.assertFalse(utils.RunInSeparateProcess(_check))
 
   def testSignal(self):
     def _kill():

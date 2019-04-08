@@ -183,7 +183,7 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-    self.assertEquals(ctx.GetDoneTasks(), 10)
+    self.assertEqual(ctx.GetDoneTasks(), 10)
 
   def testNoTasks(self):
     wp = workerpool.WorkerPool("Test", 3, CountingBaseWorker)
@@ -250,7 +250,7 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-    self.assertEquals(ctx.GetDoneTasks(), 22)
+    self.assertEqual(ctx.GetDoneTasks(), 22)
 
   def testManyTasksSequence(self):
     ctx = CountingContext()
@@ -273,7 +273,7 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-    self.assertEquals(ctx.GetDoneTasks(), 11)
+    self.assertEqual(ctx.GetDoneTasks(), 11)
 
   def _CheckNoTasks(self, wp):
     wp._lock.acquire()
