@@ -229,12 +229,15 @@ class TestNiceSort(unittest.TestCase):
                      msg="Key function was not called once per value")
 
   def testNiceSortKey(self):
-    self.assertEqual(algo.NiceSortKey(""),
+    key = algo.NiceSortKey("")
+    self.assertEqual([k._obj for k in key],
                      ([None] * algo._SORTER_GROUPS) + [""])
-    self.assertEqual(algo.NiceSortKey("Hello World"),
+    key = algo.NiceSortKey("Hello World")
+    self.assertEqual([k._obj for k in key],
                      ["Hello World"] +
                      ([None] * int(algo._SORTER_GROUPS - 1)) + [""])
-    self.assertEqual(algo.NiceSortKey("node1.net75.bld3.example.com"),
+    key = algo.NiceSortKey("node1.net75.bld3.example.com")
+    self.assertEqual([k._obj for k in key],
                      ["node", 1, ".net", 75, ".bld", 3, ".example.com",
                       None, ""])
 

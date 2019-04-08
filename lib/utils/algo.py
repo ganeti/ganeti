@@ -33,6 +33,7 @@
 
 import re
 import time
+import numbers
 import itertools
 
 from ganeti import compat
@@ -128,21 +129,81 @@ def GetRepeatedKeys(*dicts):
   return set(FindDuplicates(keys))
 
 
-def _NiceSortTryInt(val):
-  """Attempts to convert a string to an integer.
+class _NiceSortAtom:
+  """Helper class providing rich comparison between different types
+
+  Wrap an object to provide rich comparison against None, numbers and strings
+  and allow sorting of heterogeneous lists.
 
   """
+  __slots__ = ["_obj"]
+
+  def __init__(self, obj):
+    if not isinstance(obj, (numbers.Real, str, type(None))):
+      raise ValueError("Cannot wrap type %s" % type(obj))
+    self._obj = obj
+
+  def __lt__(self, other):
+    if not isinstance(other, _NiceSortAtom):
+      raise TypeError("Can compare only with _NiceSortAtom")
+
+    try:
+      return self._obj < other._obj
+    except TypeError:
+      pass
+
+    if self._obj is None:
+      # None is smaller than anything else
+      return True
+    elif isinstance(self._obj, numbers.Real):
+      if other._obj is None:
+        return False
+      elif isinstance(other._obj, str):
+        return True
+    elif isinstance(self._obj, str):
+      return False
+
+    raise TypeError("Cannot compare with %s" % type(other._obj))
+
+  def __eq__(self, other):
+    if not isinstance(other, _NiceSortAtom):
+      raise TypeError("Can compare only with _NiceSortAtom")
+
+    return self._obj == other._obj
+
+  # Mark the rest as NotImplemented and let the intepreter derive them using
+  # __eq__ and __lt__.
+  def __ne__(self, other):
+    return NotImplemented
+
+  def __gt__(self, other):
+    return NotImplemented
+
+  def __ge__(self, other):
+    return NotImplemented
+
+  def __le__(self, other):
+    return NotImplemented
+
+
+def _NiceSortGetKey(val):
+  """Get a suitable sort key.
+
+  Attempt to convert a value to an integer and wrap it in a _NiceSortKey.
+
+  """
+
   if val and val.isdigit():
-    return int(val)
-  else:
-    return val
+    val = int(val)
+
+  return _NiceSortAtom(val)
 
 
 def NiceSortKey(value):
   """Extract key for sorting.
 
   """
-  return [_NiceSortTryInt(grp)
+  return [_NiceSortGetKey(grp)
           for grp in _SORTER_RE.match(str(value)).groups()]
 
 
