@@ -43,9 +43,9 @@ import sys
 def main():
   if len(sys.argv) > 1:
     if sys.argv[1] == "AF_INET4":
-      print("%s" % socket.AF_INET)
+      print("%d" % socket.AF_INET)
     elif sys.argv[1] == "AF_INET6":
-      print("%s" % socket.AF_INET6)
+      print("%d" % socket.AF_INET6)
 
 
 if __name__ == "__main__":
