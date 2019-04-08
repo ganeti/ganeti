@@ -1497,7 +1497,7 @@ def SetClusterParams(opts, args):
 
   try:
     data_collector_interval = dict(
-        (k, long(1e6 * float(v)))
+        (k, int(1e6 * float(v)))
         for (k, v) in opts.data_collector_interval.items())
   except ValueError:
     ToStderr("Can't transform all values to integers: {}".format(

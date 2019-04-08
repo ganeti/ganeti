@@ -746,7 +746,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
                           instance.name)
           continue
         (size, spindles) = dimensions
-        if not isinstance(size, (int, long)):
+        if not isinstance(size, int):
           self.LogWarning("Disk %d of instance %s did not return valid"
                           " size information, ignoring", idx, instance.name)
           continue

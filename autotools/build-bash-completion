@@ -362,7 +362,7 @@ class CompletionWriter(object):
       if not suggest:
         suggest = opt.choices
 
-      if (isinstance(suggest, (int, long)) and
+      if (isinstance(suggest, int) and
           suggest in cli.OPT_COMPL_ALL):
         key = suggest
       elif suggest:

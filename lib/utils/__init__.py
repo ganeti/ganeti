@@ -355,7 +355,7 @@ def GetHomeDir(user, default=None):
   try:
     if isinstance(user, str):
       result = pwd.getpwnam(user)
-    elif isinstance(user, (int, long)):
+    elif isinstance(user, int):
       result = pwd.getpwuid(user)
     else:
       raise errors.ProgrammerError("Invalid type passed to GetHomeDir (%s)" %

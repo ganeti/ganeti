@@ -223,7 +223,7 @@ def TInt(val):
   #
   # >>> (isinstance(False, int), isinstance(True, int))
   # (True, True)
-  return isinstance(val, (int, long)) and not isinstance(val, bool)
+  return isinstance(val, int) and not isinstance(val, bool)
 
 
 @WithDesc("Float")

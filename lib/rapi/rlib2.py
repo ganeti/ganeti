@@ -543,7 +543,7 @@ class R_2_jobs_id_wait(baserlib.ResourceBase):
                                 " be a list")
 
     if not (prev_log_serial is None or
-            isinstance(prev_log_serial, (int, long))):
+            isinstance(prev_log_serial, int)):
       raise http.HttpBadRequest("The 'previous_log_serial' parameter should"
                                 " be a number")
 

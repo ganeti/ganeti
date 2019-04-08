@@ -1583,8 +1583,8 @@ class _DiskWipeProgressTracker:
 
   def __call__(self, disk_info, offset, size):
     (disk, _) = disk_info
-    assert isinstance(offset, (long, int))
-    assert isinstance(size, (long, int))
+    assert isinstance(offset, int)
+    assert isinstance(size, int)
 
     max_chunk_size = (disk.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT)
 

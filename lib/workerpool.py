@@ -322,8 +322,8 @@ class WorkerPool(object):
 
     """
     assert isinstance(args, (tuple, list)), "Arguments must be a sequence"
-    assert isinstance(priority, (int, long)), "Priority must be numeric"
-    assert task_id is None or isinstance(task_id, (int, long)), \
+    assert isinstance(priority, int), "Priority must be numeric"
+    assert task_id is None or isinstance(task_id, int), \
       "Task ID must be numeric or None"
 
     task = [priority, next(self._counter), task_id, args]
@@ -376,13 +376,13 @@ class WorkerPool(object):
     """
     assert compat.all(isinstance(task, (tuple, list)) for task in tasks), \
            "Each task must be a sequence"
-    assert (isinstance(priority, (int, long)) or
-            compat.all(isinstance(prio, (int, long)) for prio in priority)), \
+    assert (isinstance(priority, int) or
+            compat.all(isinstance(prio, int) for prio in priority)), \
            "Priority must be numeric or be a list of numeric values"
     assert task_id is None or isinstance(task_id, (tuple, list)), \
            "Task IDs must be in a sequence"
 
-    if isinstance(priority, (int, long)):
+    if isinstance(priority, int):
       priority = [priority] * len(tasks)
     elif len(priority) != len(tasks):
       raise errors.ProgrammerError("Number of priorities (%s) doesn't match"
@@ -400,7 +400,7 @@ class WorkerPool(object):
     try:
       self._WaitWhileQuiescingUnlocked()
 
-      assert compat.all(isinstance(prio, (int, long)) for prio in priority)
+      assert compat.all(isinstance(prio, int) for prio in priority)
       assert len(tasks) == len(priority)
       assert len(tasks) == len(task_id)
 
@@ -420,7 +420,7 @@ class WorkerPool(object):
       currently running)
 
     """
-    assert isinstance(priority, (int, long)), "Priority must be numeric"
+    assert isinstance(priority, int), "Priority must be numeric"
 
     self._lock.acquire()
     try:

@@ -5212,7 +5212,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
   elif ieio == constants.IEIO_SCRIPT:
     (disk, disk_index, ) = ieargs
 
-    assert isinstance(disk_index, (int, long))
+    assert isinstance(disk_index, int)
 
     inst_os = OSFromDisk(instance.os)
     env = OSEnvironment(instance, inst_os)
