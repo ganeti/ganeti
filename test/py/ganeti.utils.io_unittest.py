@@ -40,6 +40,8 @@ import signal
 import stat
 import errno
 
+from hashlib import md5
+
 from ganeti import constants
 from ganeti import utils
 from ganeti import compat
@@ -53,7 +55,7 @@ class TestReadBinaryFile(testutils.GanetiTestCase):
     data = utils.ReadBinaryFile(testutils.TestDataFilename("cert1.pem"))
     self.assertEqual(len(data), 1229)
 
-    h = compat.md5_hash()
+    h = md5()
     h.update(data)
     self.assertEqual(h.hexdigest(), "a02be485db0d82b70c0ae7913b26894e")
 
@@ -62,7 +64,7 @@ class TestReadBinaryFile(testutils.GanetiTestCase):
                                 size=100)
     self.assertEqual(len(data), 100)
 
-    h = compat.md5_hash()
+    h = md5()
     h.update(data)
     self.assertEqual(h.hexdigest(), "256d28505448898d4741b10c5f5dbc12")
 

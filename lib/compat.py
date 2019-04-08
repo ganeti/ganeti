@@ -48,25 +48,6 @@ except ImportError:
   roman = None
 
 
-# compat.md5_hash and compat.sha1_hash can be called to generate and md5 and a
-# sha1 hashing modules, under python 2.4, 2.5 and 2.6, even though some changes
-# went on. compat.sha1 is python-version specific and is used for python
-# modules (hmac, for example) which have changed their behavior as well from
-# one version to the other.
-try:
-  # Yes, these don't always exist, that's why we're testing
-  # Yes, we're not using the imports in this module.
-  from hashlib import md5 as md5_hash # pylint: disable=W0611,E0611,F0401
-  from hashlib import sha1 as sha1_hash # pylint: disable=W0611,E0611,F0401
-  # this additional version is needed for compatibility with the hmac module
-  sha1 = sha1_hash # pylint: disable=C0103
-except ImportError:
-  from md5 import new as md5_hash # pylint: disable=W0611
-  import sha
-  sha1 = sha
-  sha1_hash = sha.new # pylint: disable=C0103
-
-
 def _all(seq):
   """Returns True if all elements in the iterable are True.
 
