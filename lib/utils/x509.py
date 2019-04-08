@@ -67,11 +67,17 @@ _ASN1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
 def _ParseAsn1Generalizedtime(value):
   """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
 
-  @type value: string
+  @type value: string or bytes
   @param value: ASN1 GENERALIZEDTIME timestamp
   @return: Seconds since the Epoch (1970-01-01 00:00:00 UTC)
 
   """
+  if value is None:
+    return None
+
+  if isinstance(value, bytes):
+    value = value.decode("ascii")
+
   m = _ASN1_TIME_REGEX.match(value)
   if m:
     # We have an offset
