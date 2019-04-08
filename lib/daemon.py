@@ -463,7 +463,7 @@ class Mainloop(object):
     timed events
 
   """
-  _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxint - 1)
+  _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxsize - 1)
 
   def __init__(self):
     """Constructs a new Mainloop instance.
