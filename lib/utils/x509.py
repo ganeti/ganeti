@@ -105,31 +105,8 @@ def GetX509CertValidity(cert):
   @param cert: X509 certificate object
 
   """
-  # The get_notBefore and get_notAfter functions are only supported in
-  # pyOpenSSL 0.7 and above.
-  try:
-    get_notbefore_fn = cert.get_notBefore
-  except AttributeError:
-    not_before = None
-  else:
-    not_before_asn1 = get_notbefore_fn()
-
-    if not_before_asn1 is None:
-      not_before = None
-    else:
-      not_before = _ParseAsn1Generalizedtime(not_before_asn1)
-
-  try:
-    get_notafter_fn = cert.get_notAfter
-  except AttributeError:
-    not_after = None
-  else:
-    not_after_asn1 = get_notafter_fn()
-
-    if not_after_asn1 is None:
-      not_after = None
-    else:
-      not_after = _ParseAsn1Generalizedtime(not_after_asn1)
+  not_before = _ParseAsn1Generalizedtime(cert.get_notBefore())
+  not_after = _ParseAsn1Generalizedtime(cert.get_notAfter())
 
   return (not_before, not_after)
 
