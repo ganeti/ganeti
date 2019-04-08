@@ -322,7 +322,7 @@ def GenerateSecret(numbytes=20):
   @return: an hex representation of the pseudo-random sequence
 
   """
-  return os.urandom(numbytes).encode("hex")
+  return os.urandom(numbytes).hex()
 
 
 def _MakeMacAddrRegexp(octets):
