@@ -40,7 +40,7 @@ import os
 import time
 import tempfile
 
-from cStringIO import StringIO
+from io import StringIO
 
 import OpenSSL
 

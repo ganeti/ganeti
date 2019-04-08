@@ -31,7 +31,7 @@
 
 """
 
-import BaseHTTPServer
+import http.server
 import cgi
 import logging
 import os
@@ -271,7 +271,7 @@ class HttpResponder(object):
   # Most web servers default to HTTP 0.9, i.e. don't send a status line.
   default_request_version = http.HTTP_0_9
 
-  responses = BaseHTTPServer.BaseHTTPRequestHandler.responses
+  responses = http.server.BaseHTTPRequestHandler.responses
 
   def __init__(self, handler):
     """Initializes this class.

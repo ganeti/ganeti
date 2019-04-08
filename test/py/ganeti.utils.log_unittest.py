@@ -36,7 +36,7 @@ import logging
 import tempfile
 import shutil
 import threading
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import errors

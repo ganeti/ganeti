@@ -41,7 +41,7 @@ import logging
 import signal
 import resource
 
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import errors
 from ganeti import constants

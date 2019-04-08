@@ -39,7 +39,7 @@ import logging
 import signal
 import errno
 import time
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import errors

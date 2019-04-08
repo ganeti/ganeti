@@ -37,7 +37,7 @@ import os
 import stat
 import errno
 import socket
-import StringIO
+import io
 import logging
 try:
   import fdsend   # pylint: disable=F0401
@@ -351,7 +351,7 @@ class QmpConnection(MonitorSocket):
     if message:
       return message
 
-    recv_buffer = StringIO.StringIO(self._buf)
+    recv_buffer = io.StringIO(self._buf)
     recv_buffer.seek(len(self._buf))
     try:
       while True:

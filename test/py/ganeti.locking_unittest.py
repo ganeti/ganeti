@@ -34,7 +34,7 @@
 import os
 import unittest
 import time
-import Queue
+import queue
 import threading
 import random
 import gc
@@ -80,7 +80,7 @@ class _ThreadedTestCase(unittest.TestCase):
   """Test class that supports adding/waiting on threads"""
   def setUp(self):
     unittest.TestCase.setUp(self)
-    self.done = Queue.Queue(0)
+    self.done = queue.Queue(0)
     self.threads = []
 
   def _addThread(self, *args, **kwargs):
@@ -133,7 +133,7 @@ class _ConditionTestCase(_ThreadedTestCase):
     self.cond.acquire()
     self._addThread(target=_NotifyAll)
     self.assertEqual(self.done.get(True, 1), "NE")
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.cond.wait(None)
     self.assertEqual(self.done.get(True, 1), "NA")
     self.assertEqual(self.done.get(True, 1), "NN")
@@ -191,7 +191,7 @@ class TestPipeCondition(_ConditionTestCase):
     for _ in threads:
       self.assertEqual(self.done.get(True, 1), "A")
 
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
     self.cond.acquire()
     self.assertEqual(len(self.cond._waiters), 3)
@@ -204,7 +204,7 @@ class TestPipeCondition(_ConditionTestCase):
     # release it
     self._addThread(target=fn)
     self.cond.notifyAll()
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.cond.release()
 
     # We should now get 3 W and 1 A (for the new thread) in whatever order
@@ -227,7 +227,7 @@ class TestPipeCondition(_ConditionTestCase):
     self.cond.release()
     self._waitThreads()
     self.assertEqual(self.done.get_nowait(), "W")
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
   def testBlockingWait(self):
     def _BlockingWait():
@@ -261,7 +261,7 @@ class TestPipeCondition(_ConditionTestCase):
     self._waitThreads()
     self.assertEqual(self.done.get_nowait(), "T1")
     self.assertEqual(self.done.get_nowait(), "T1")
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
   def testZeroTimeoutWait(self):
     self._addThread(target=self._TimeoutWait, args=(0, "T0"))
@@ -271,7 +271,7 @@ class TestPipeCondition(_ConditionTestCase):
     self.assertEqual(self.done.get_nowait(), "T0")
     self.assertEqual(self.done.get_nowait(), "T0")
     self.assertEqual(self.done.get_nowait(), "T0")
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
 
 class TestSharedLock(_ThreadedTestCase):
@@ -363,7 +363,7 @@ class TestSharedLock(_ThreadedTestCase):
   def testExclusiveBlocksExclusive(self):
     self.sl.acquire()
     self._addThread(target=self._doItExclusive)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "EXC")
@@ -372,7 +372,7 @@ class TestSharedLock(_ThreadedTestCase):
   def testExclusiveBlocksDelete(self):
     self.sl.acquire()
     self._addThread(target=self._doItDelete)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "DEL")
@@ -382,7 +382,7 @@ class TestSharedLock(_ThreadedTestCase):
   def testExclusiveBlocksSharer(self):
     self.sl.acquire()
     self._addThread(target=self._doItSharer)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "SHR")
@@ -391,7 +391,7 @@ class TestSharedLock(_ThreadedTestCase):
   def testSharerBlocksExclusive(self):
     self.sl.acquire(shared=1)
     self._addThread(target=self._doItExclusive)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "EXC")
@@ -400,7 +400,7 @@ class TestSharedLock(_ThreadedTestCase):
   def testSharerBlocksDelete(self):
     self.sl.acquire(shared=1)
     self._addThread(target=self._doItDelete)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "DEL")
@@ -417,7 +417,7 @@ class TestSharedLock(_ThreadedTestCase):
     # ...but now an exclusive is waiting...
     self._addThread(target=self._doItSharer)
     # ...so the sharer should be blocked as well
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     # The exclusive passed before
@@ -435,7 +435,7 @@ class TestSharedLock(_ThreadedTestCase):
     # ...but now a sharer is waiting...
     self._addThread(target=self._doItExclusive)
     # ...the exclusive is waiting too...
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     self.sl.release()
     self._waitThreads()
     # The sharer passed before
@@ -540,7 +540,7 @@ class TestSharedLock(_ThreadedTestCase):
 
       self.assertEqual(self.done.get_nowait(), "A: end wait")
       self.assertEqual(self.done.get_nowait(), "got 2nd")
-      self.assertRaises(Queue.Empty, self.done.get_nowait)
+      self.assertRaises(queue.Empty, self.done.get_nowait)
 
   @_Repeat
   def testAcquireExpiringTimeout(self):
@@ -567,7 +567,7 @@ class TestSharedLock(_ThreadedTestCase):
       for _ in range(11):
         self.assertEqual(self.done.get_nowait(), "timeout")
 
-      self.assertRaises(Queue.Empty, self.done.get_nowait)
+      self.assertRaises(queue.Empty, self.done.get_nowait)
 
   @_Repeat
   def testSharedSkipExclusiveAcquires(self):
@@ -650,7 +650,7 @@ class TestSharedLock(_ThreadedTestCase):
     for _ in range(3):
       self.assertEqual(self.done.get_nowait(), "exclusive 2")
 
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
   def testIllegalDowngrade(self):
     # Not yet acquired
@@ -856,7 +856,7 @@ class TestSharedLock(_ThreadedTestCase):
     for _ in range(10):
       self.assertEqual(self.done.get_nowait(), "shared2")
 
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
   def testPriority(self):
     # Acquire in exclusive mode
@@ -954,7 +954,7 @@ class TestSharedLock(_ThreadedTestCase):
           names.remove(self.done.get_nowait())
       self.assertFalse(compat.any(names for (_, names, _) in acquires))
 
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
   def _VerifyPrioPending(self, lockinfo, perprio):
     ((name, mode, owner, pending), ) = lockinfo
@@ -992,7 +992,7 @@ class TestSharedLock(_ThreadedTestCase):
   def testAcquireTimeoutWithSpuriousNotifications(self):
     ready = threading.Event()
     locked = threading.Event()
-    req = Queue.Queue(0)
+    req = queue.Queue(0)
 
     epoch = 4000.0
     timeout = 60.0
@@ -1046,7 +1046,7 @@ class TestSharedLock(_ThreadedTestCase):
     self._waitThreads()
 
     self.assertEqual(self.done.get_nowait(), "success")
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
 
 
 class TestSharedLockInCondition(_ThreadedTestCase):
@@ -1113,7 +1113,7 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
     _decoratorlock.acquire()
     self._addThread(target=self._doItExclusive)
     # give it a bit of time to check that it's not actually doing anything
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     _decoratorlock.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "EXC")
@@ -1122,7 +1122,7 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
   def testExclusiveBlocksSharer(self):
     _decoratorlock.acquire()
     self._addThread(target=self._doItSharer)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     _decoratorlock.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "SHR")
@@ -1131,7 +1131,7 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
   def testSharerBlocksExclusive(self):
     _decoratorlock.acquire(shared=1)
     self._addThread(target=self._doItExclusive)
-    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.assertRaises(queue.Empty, self.done.get_nowait)
     _decoratorlock.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), "EXC")

@@ -36,7 +36,7 @@ import base64
 import logging
 import re
 
-from cStringIO import StringIO
+from io import StringIO
 
 import pycurl
 

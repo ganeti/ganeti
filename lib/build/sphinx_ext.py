@@ -36,7 +36,7 @@
 # C0413: Wrong import position
 
 import re
-from cStringIO import StringIO
+from io import StringIO
 
 import docutils.statemachine
 import docutils.nodes

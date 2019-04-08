@@ -37,7 +37,7 @@ import mimetools
 import select
 import socket
 
-from cStringIO import StringIO
+from io import StringIO
 
 import OpenSSL
 

@@ -36,7 +36,7 @@ import re
 import base64
 import binascii
 
-from cStringIO import StringIO
+from io import StringIO
 from hashlib import md5
 
 from ganeti import compat

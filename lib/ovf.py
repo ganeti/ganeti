@@ -39,7 +39,7 @@
 # C0413 Wrong import position
 
 
-import ConfigParser
+import configparser
 import errno
 import logging
 import os
@@ -1492,22 +1492,22 @@ class OVFImporter(Converter):
     self.Cleanup()
 
 
-class ConfigParserWithDefaults(ConfigParser.SafeConfigParser):
+class ConfigParserWithDefaults(configparser.SafeConfigParser):
   """This is just a wrapper on SafeConfigParser, that uses default values
 
   """
   def get(self, section, options, raw=None, vars=None): # pylint: disable=W0622
     try:
-      result = ConfigParser.SafeConfigParser.get(self, section, options,
+      result = configparser.SafeConfigParser.get(self, section, options,
                                                  raw=raw, vars=vars)
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
       result = None
     return result
 
   def getint(self, section, options):
     try:
-      result = ConfigParser.SafeConfigParser.get(self, section, options)
-    except ConfigParser.NoOptionError:
+      result = configparser.SafeConfigParser.get(self, section, options)
+    except configparser.NoOptionError:
       result = 0
     return int(result)
 
@@ -1565,7 +1565,7 @@ class OVFExporter(Converter):
     logging.info("Reading configuration from %s file", input_path)
     try:
       self.config_parser.read(input_path)
-    except ConfigParser.MissingSectionHeaderError as err:
+    except configparser.MissingSectionHeaderError as err:
       raise errors.OpPrereqError("Error when trying to read %s: %s" %
                                  (input_path, err), errors.ECODE_ENVIRON)
     if self.options.ova_package:

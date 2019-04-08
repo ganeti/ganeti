@@ -39,7 +39,7 @@ import sys
 import re
 import itertools
 import textwrap
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import utils
 from ganeti import compat

@@ -40,7 +40,7 @@ import errno
 import itertools
 import shlex
 
-from cStringIO import StringIO
+from io import StringIO
 from optparse import (OptionParser, TitledHelpFormatter)
 
 from ganeti import utils

@@ -34,7 +34,7 @@
 import os.path
 import logging
 import logging.handlers
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import compat

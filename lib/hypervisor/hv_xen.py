@@ -38,7 +38,7 @@ import os
 import string # pylint: disable=W0402
 import shutil
 import time
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import errors

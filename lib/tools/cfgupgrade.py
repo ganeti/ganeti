@@ -42,7 +42,7 @@ import logging
 import optparse
 import time
 import functools
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import cli
 from ganeti import constants

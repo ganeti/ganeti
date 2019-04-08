@@ -47,12 +47,12 @@ pass to and from external parties.
 
 # R0902: Allow instances of these objects to have more than 20 attributes
 
-import ConfigParser
+import configparser
 import re
 import copy
 import logging
 import time
-from cStringIO import StringIO
+from io import StringIO
 from socket import AF_INET
 
 from ganeti import errors
@@ -2419,7 +2419,7 @@ class Network(TaggableObject):
 
 
 # need to inherit object in order to use super()
-class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
+class SerializableConfigParser(configparser.SafeConfigParser, object):
   """Simple wrapper over ConfigParse that allows serialization.
 
   This class is basically ConfigParser.SafeConfigParser with two
@@ -2448,7 +2448,7 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
                                                         **kwargs)
       if value.lower() == constants.VALUE_NONE:
         value = None
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
       r = re.compile(r"(disk|nic)\d+_name|nic\d+_(network|vlan)")
       match = r.match(option)
       if match:

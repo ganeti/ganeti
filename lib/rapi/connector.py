@@ -36,7 +36,7 @@
 # C0103: Invalid name, since the R_* names are not conforming
 
 import re
-import urlparse
+import urllib.parse
 
 from ganeti import constants
 from ganeti import http
@@ -80,7 +80,7 @@ class Mapper(object):
     """
     if "?" in uri:
       (path, query) = uri.split("?", 1)
-      args = urlparse.parse_qs(query)
+      args = urllib.parse.parse_qs(query)
     else:
       path = uri
       query = None

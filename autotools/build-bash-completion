@@ -40,7 +40,7 @@ import os.path
 import re
 import itertools
 import optparse
-from cStringIO import StringIO
+from io import StringIO
 
 # _constants shouldn't be imported from anywhere except constants.py, but we're
 # making an exception here because this script is only used at build time.

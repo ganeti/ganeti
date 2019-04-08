@@ -42,7 +42,7 @@ import urllib
 import random
 import string # pylint: disable=W0402
 from itertools import izip, islice, cycle
-from cStringIO import StringIO
+from io import StringIO
 from operator import or_
 
 from ganeti import opcodes

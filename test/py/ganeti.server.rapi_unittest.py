@@ -35,7 +35,7 @@ import unittest
 import random
 import mimetools
 import base64
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import utils

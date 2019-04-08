@@ -38,7 +38,7 @@ import tempfile
 import pycurl
 import itertools
 import threading
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import http
 from ganeti import compat
