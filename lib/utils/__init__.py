@@ -828,7 +828,7 @@ class FieldSet(object):
     @return: either None or a regular expression match object
 
     """
-    for m in itertools.ifilter(None, (val.match(field) for val in self.items)):
+    for m in filter(None, (val.match(field) for val in self.items)):
       return m
     return None
 

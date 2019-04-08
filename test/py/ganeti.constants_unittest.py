@@ -121,8 +121,8 @@ class TestExportedNames(unittest.TestCase):
 
   def test(self):
     wrong = \
-      set(itertools.ifilterfalse(self._BUILTIN_NAME_RE.match,
-            itertools.ifilterfalse(self._VALID_NAME_RE.match,
+      set(itertools.filterfalse(self._BUILTIN_NAME_RE.match,
+            itertools.filterfalse(self._VALID_NAME_RE.match,
                                    dir(constants))))
     wrong -= self._EXCEPTIONS
     self.assertFalse(wrong,

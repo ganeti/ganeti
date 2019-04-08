@@ -310,7 +310,7 @@ class CompletionWriter(object):
       # pylint. pylint: disable=W0212
       opt.all_names = sorted(opt._short_opts + opt._long_opts)
 
-      invalid = list(itertools.ifilterfalse(_OPT_NAME_RE.match, opt.all_names))
+      invalid = list(itertools.filterfalse(_OPT_NAME_RE.match, opt.all_names))
       if invalid:
         raise Exception("Option names don't match regular expression '%s': %s" %
                         (_OPT_NAME_RE.pattern, utils.CommaJoin(invalid)))

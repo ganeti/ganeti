@@ -41,7 +41,7 @@ import socket
 import urllib
 import random
 import string # pylint: disable=W0402
-from itertools import izip, islice, cycle
+from itertools import islice, cycle
 from io import StringIO
 from operator import or_
 
@@ -640,7 +640,7 @@ class Burner(JobHandler):
 
     """
     self.to_rem = []
-    mytor = izip(cycle(self.nodes),
+    mytor = zip(cycle(self.nodes),
                  islice(cycle(self.nodes), 1, None),
                  self.instances)
 
@@ -733,7 +733,7 @@ class Burner(JobHandler):
     Log("Changing the secondary node")
     mode = constants.REPLACE_DISK_CHG
 
-    mytor = izip(islice(cycle(self.nodes), 2, None),
+    mytor = zip(islice(cycle(self.nodes), 2, None),
                  self.instances)
     for tnode, instance in mytor:
       Log("instance %s", instance, indent=1)
@@ -767,7 +767,7 @@ class Burner(JobHandler):
   def BurnMove(self):
     """Move the instances."""
     Log("Moving instances")
-    mytor = izip(islice(cycle(self.nodes), 1, None),
+    mytor = zip(islice(cycle(self.nodes), 1, None),
                  self.instances)
     for tnode, instance in mytor:
       Log("instance %s", instance, indent=1)
@@ -796,7 +796,7 @@ class Burner(JobHandler):
 
     """
     Log("Exporting and re-importing instances")
-    mytor = izip(cycle(self.nodes),
+    mytor = zip(cycle(self.nodes),
                  islice(cycle(self.nodes), 1, None),
                  islice(cycle(self.nodes), 2, None),
                  self.instances)

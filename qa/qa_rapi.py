@@ -745,7 +745,7 @@ def _FilterTags(seq):
   ignore_re = qa_config.get("ignore-tags-re", None)
 
   if ignore_re:
-    return itertools.ifilterfalse(re.compile(ignore_re).match, seq)
+    return itertools.filterfalse(re.compile(ignore_re).match, seq)
   else:
     return seq
 
