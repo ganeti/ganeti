@@ -391,7 +391,7 @@ class TestSafeEncode(unittest.TestCase):
   """Test case for SafeEncode"""
 
   def testAscii(self):
-    for txt in [string.digits, string.letters, string.punctuation]:
+    for txt in [string.digits, string.ascii_letters, string.punctuation]:
       self.assertEqual(txt, utils.SafeEncode(txt))
 
   def testDoubleEncode(self):

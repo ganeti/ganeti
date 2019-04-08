@@ -131,7 +131,7 @@ class TestSignX509Certificate(unittest.TestCase):
       self.assertRaises(errors.GenericError, utils.SignX509Certificate,
                         cert_pem, self.KEY, "foo%sbar" % salt)
 
-    for salt in ["HelloWorld", "salt", string.letters, string.digits,
+    for salt in ["HelloWorld", "salt", string.ascii_letters, string.digits,
                  utils.GenerateSecret(numbytes=4),
                  utils.GenerateSecret(numbytes=16),
                  "{123:456}".encode("hex")]:
