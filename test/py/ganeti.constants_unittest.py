@@ -151,7 +151,7 @@ class TestConfdConstants(unittest.TestCase):
   """Test the confd constants"""
 
   def testFourCc(self):
-    self.assertEqual(len(constants.CONFD_MAGIC_FOURCC), 4,
+    self.assertEqual(len(constants.CONFD_MAGIC_FOURCC_BYTES), 4,
                      msg="Invalid fourcc len, should be 4")
 
   def testReqs(self):

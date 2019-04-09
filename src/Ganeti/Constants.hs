@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Constants where
 
 import Control.Arrow ((***),(&&&))
+import qualified Data.ByteString.Char8 as BC
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
@@ -4571,6 +4572,10 @@ confdConfigReloadRatelimit = 250000
 -- payload to be compressed, or move away from json.
 confdMagicFourcc :: String
 confdMagicFourcc = "plj0"
+
+-- | The confd magic encoded in bytes
+confdMagicFourccBytes :: BC.ByteString
+confdMagicFourccBytes = BC.pack confdMagicFourcc
 
 -- | By default a confd request is sent to the minimum between this
 -- number and all MCs. 6 was chosen because even in the case of a

@@ -52,7 +52,7 @@ def PackMagic(payload):
   """Prepend the confd magic fourcc to a payload.
 
   """
-  return "".join([constants.CONFD_MAGIC_FOURCC, payload])
+  return b"".join([constants.CONFD_MAGIC_FOURCC_BYTES, payload])
 
 
 def UnpackMagic(payload):
@@ -64,7 +64,7 @@ def UnpackMagic(payload):
                                  " fourcc code")
 
   magic_number = payload[:_FOURCC_LEN]
-  if magic_number != constants.CONFD_MAGIC_FOURCC:
+  if magic_number != constants.CONFD_MAGIC_FOURCC_BYTES:
     raise errors.ConfdMagicError("UDP payload contains an unkown fourcc")
 
   return payload[_FOURCC_LEN:]
