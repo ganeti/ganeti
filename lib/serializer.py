@@ -288,7 +288,7 @@ class Private(object):
   def __getnewargs__(self):
     return tuple()
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self._item)
 
   # Get in the way of Pickle by implementing __slots__ but not __getstate__
