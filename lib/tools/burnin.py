@@ -38,7 +38,7 @@ import sys
 import optparse
 import time
 import socket
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import random
 import string # pylint: disable=W0402
 from itertools import islice, cycle
@@ -139,7 +139,7 @@ def RandomString(size=8, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for x in range(size))
 
 
-class SimpleOpener(urllib.FancyURLopener):
+class SimpleOpener(urllib.request.FancyURLopener):
   """A simple url opener"""
   # pylint: disable=W0221
 

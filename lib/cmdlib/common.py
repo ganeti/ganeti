@@ -33,7 +33,7 @@
 import copy
 import math
 import os
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from ganeti import constants
 from ganeti import errors
@@ -1503,14 +1503,14 @@ def DetermineImageSize(lu, image, node_uuid):
 
   """
   # Check if we are dealing with a URL first
-  class _HeadRequest(urllib2.Request):
+  class _HeadRequest(urllib.request.Request):
     def get_method(self):
       return "HEAD"
 
   if utils.IsUrl(image):
     try:
-      response = urllib2.urlopen(_HeadRequest(image))
-    except urllib2.URLError:
+      response = urllib.request.urlopen(_HeadRequest(image))
+    except urllib.error.URLError:
       raise errors.OpExecError("Could not retrieve image from given url '%s'" %
                                image)
 

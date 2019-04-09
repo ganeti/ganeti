@@ -41,7 +41,7 @@ import time
 import logging
 import pwd
 import shutil
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from bitarray import bitarray
 try:
   import psutil   # pylint: disable=F0401
@@ -456,7 +456,7 @@ def _AnalyzeSerializedRuntime(serialized_runtime):
   return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
 
 
-class HeadRequest(urllib2.Request):
+class HeadRequest(urllib.request.Request):
   def get_method(self):
     return "HEAD"
 
@@ -466,9 +466,9 @@ def _CheckUrl(url):
 
   """
   try:
-    urllib2.urlopen(HeadRequest(url))
+    urllib.request.urlopen(HeadRequest(url))
     return True
-  except urllib2.URLError:
+  except urllib.error.URLError:
     return False
 
 
