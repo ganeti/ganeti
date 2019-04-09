@@ -402,7 +402,7 @@ class TestSafeEncode(unittest.TestCase):
   def testUnicode(self):
     # 1024 is high enough to catch non-direct ASCII mappings
     for i in range(1024):
-      txt = utils.SafeEncode(unichr(i))
+      txt = utils.SafeEncode(chr(i))
       self.assertEqual(txt, utils.SafeEncode(txt))
 
 
