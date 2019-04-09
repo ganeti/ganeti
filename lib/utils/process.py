@@ -371,7 +371,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
         # Wait for daemon to be started (or an error message to
         # arrive) and read up to 100 KB as an error message
         errormsg = utils_wrapper.RetryOnSignal(os.read, errpipe_read,
-                                               100 * 1024)
+                                               100 * 1024).decode("utf-8")
       finally:
         utils_wrapper.CloseFdNoError(errpipe_read)
     finally:
@@ -441,7 +441,8 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
     SetupDaemonFDs(output, fd_output)
 
     # Send daemon PID to parent
-    utils_wrapper.RetryOnSignal(os.write, pidpipe_write, str(os.getpid()))
+    utils_wrapper.RetryOnSignal(os.write, pidpipe_write,
+                                b"%d" % os.getpid())
 
     # Close all file descriptors except stdio and error message pipe
     CloseFDs(noclose_fds=noclose_fds)
@@ -478,7 +479,7 @@ def WriteErrorToFD(fd, err):
   if not err:
     err = "<unknown error>"
 
-  utils_wrapper.RetryOnSignal(os.write, fd, err)
+  utils_wrapper.RetryOnSignal(os.write, fd, err.encode("utf-8"))
 
 
 def _CheckIfAlive(child):
@@ -558,7 +559,8 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
                            stdin=stdin,
                            pass_fds=pass_fds,
                            env=env,
-                           cwd=cwd)
+                           cwd=cwd,
+                           encoding="utf-8")
 
   if postfork_fn:
     postfork_fn(child.pid)
@@ -696,7 +698,8 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd, noclose_fds):
                              stdin=subprocess.PIPE,
                              pass_fds=pass_fds,
                              env=env,
-                             cwd=cwd)
+                             cwd=cwd,
+                             encoding="utf-8")
 
     child.stdin.close()
     status = child.wait()
