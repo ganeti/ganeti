@@ -548,19 +548,17 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
     stdin = subprocess.PIPE
 
   if noclose_fds:
-    preexec_fn = lambda: CloseFDs(noclose_fds)
-    close_fds = False
+    pass_fds = noclose_fds
   else:
-    preexec_fn = None
-    close_fds = True
+    pass_fds = []
 
   child = subprocess.Popen(cmd, shell=via_shell,
                            stderr=stderr,
                            stdout=stdout,
                            stdin=stdin,
-                           close_fds=close_fds, env=env,
-                           cwd=cwd,
-                           preexec_fn=preexec_fn)
+                           pass_fds=pass_fds,
+                           env=env,
+                           cwd=cwd)
 
   if postfork_fn:
     postfork_fn(child.pid)
@@ -687,20 +685,18 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd, noclose_fds):
   fh = open(output, "a")
 
   if noclose_fds:
-    preexec_fn = lambda: CloseFDs(noclose_fds + [fh.fileno()])
-    close_fds = False
+    pass_fds = noclose_fds
   else:
-    preexec_fn = None
-    close_fds = True
+    pass_fds = []
 
   try:
     child = subprocess.Popen(cmd, shell=via_shell,
                              stderr=subprocess.STDOUT,
                              stdout=fh,
                              stdin=subprocess.PIPE,
-                             close_fds=close_fds, env=env,
-                             cwd=cwd,
-                             preexec_fn=preexec_fn)
+                             pass_fds=pass_fds,
+                             env=env,
+                             cwd=cwd)
 
     child.stdin.close()
     status = child.wait()
