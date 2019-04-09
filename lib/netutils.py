@@ -339,12 +339,13 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
 
   try:
     sock.connect((target, port))
-    sock.close()
     success = True
   except socket.timeout:
     success = False
   except socket.error as err:
     success = (not live_port_needed) and (err.errno == errno.ECONNREFUSED)
+  finally:
+    sock.close()
 
   return success
 

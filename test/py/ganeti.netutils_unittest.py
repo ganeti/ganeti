@@ -320,6 +320,7 @@ class _BaseTcpPingTest:
 
   def tearDown(self):
     self.listener.shutdown(socket.SHUT_RDWR)
+    self.listener.close()
     del self.listener
     del self.listenerport
 
@@ -378,6 +379,7 @@ class _BaseTcpPingDeafTest:
     self.deaflistenerport = self.deaflistener.getsockname()[1]
 
   def tearDown(self):
+    self.deaflistener.close()
     del self.deaflistener
     del self.deaflistenerport
 
@@ -425,6 +427,7 @@ class TestIP4TcpPingDeaf(unittest.TestCase, _BaseTcpPingDeafTest):
     self.deaflistenerport = self.deaflistener.getsockname()[1]
 
   def tearDown(self):
+    self.deaflistener.close()
     del self.deaflistener
     del self.deaflistenerport
 
