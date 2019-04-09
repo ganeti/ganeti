@@ -423,7 +423,7 @@ def SingleWaitForFdCondition(fdobj, event, timeout):
     # every so often.
     io_events = poller.poll(timeout)
   except select.error as err:
-    if err[0] != errno.EINTR:
+    if err.errno != errno.EINTR:
       raise
     io_events = []
   if io_events and io_events[0][1] & check:

@@ -1063,7 +1063,8 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
       spice_cert_pem = _ReadAndVerifyCert(spice_cert_filename, True)
       spice_cacert_pem = _ReadAndVerifyCert(spice_cacert_filename)
   except errors.X509CertError as err:
-    ToStderr("Unable to load X509 certificate from %s: %s", err[0], err[1])
+    ToStderr("Unable to load X509 certificate from %s: %s",
+             err.args[0], err.args[1])
     return 1
 
   if cds_filename:

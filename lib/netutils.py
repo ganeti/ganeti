@@ -156,7 +156,8 @@ def GetHostname(name=None, family=None):
     return Hostname(name=name, family=family)
   except errors.ResolverError as err:
     raise errors.OpPrereqError("The given name (%s) does not resolve: %s" %
-                               (err[0], err[2]), errors.ECODE_RESOLVER)
+                               (err.args[0], err.args[2]),
+                               errors.ECODE_RESOLVER)
 
 
 class Hostname(object):
@@ -331,7 +332,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
     try:
       sock.bind((source, 0))
     except socket.error as err:
-      if err[0] == errno.EADDRNOTAVAIL:
+      if err.errno == errno.EADDRNOTAVAIL:
         success = False
 
   sock.settimeout(timeout)
@@ -343,7 +344,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   except socket.timeout:
     success = False
   except socket.error as err:
-    success = (not live_port_needed) and (err[0] == errno.ECONNREFUSED)
+    success = (not live_port_needed) and (err.errno == errno.ECONNREFUSED)
 
   return success
 
