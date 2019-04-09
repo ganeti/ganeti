@@ -244,7 +244,7 @@ class _RapiMock(object):
     @param method: HTTP method
     @type request_body: string
     @param request_body: Request body
-    @type headers: mimetools.Message
+    @type headers: email.message.Message
     @param headers: Request headers
     @return: Tuple containing status code, response headers and response body
 
