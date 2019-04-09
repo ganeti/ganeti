@@ -66,7 +66,7 @@ class CountingContext(object):
 
   @staticmethod
   def UpdateChecksum(current, value):
-    return zlib.adler32(str(value), current)
+    return zlib.adler32(str(value).encode("utf-8"), current)
 
 
 class CountingBaseWorker(workerpool.BaseWorker):
@@ -75,7 +75,7 @@ class CountingBaseWorker(workerpool.BaseWorker):
 
 
 class ChecksumContext:
-  CHECKSUM_START = zlib.adler32("")
+  CHECKSUM_START = zlib.adler32(b"")
 
   def __init__(self):
     self.lock = threading.Condition(threading.Lock())
@@ -83,7 +83,7 @@ class ChecksumContext:
 
   @staticmethod
   def UpdateChecksum(current, value):
-    return zlib.adler32(str(value), current)
+    return zlib.adler32(str(value).encode("utf-8"), current)
 
 
 class ChecksumBaseWorker(workerpool.BaseWorker):
