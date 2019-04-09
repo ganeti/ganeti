@@ -587,12 +587,12 @@ class WorkerPool(object):
         self._lock.acquire()
 
       # Remove terminated threads. This could be done in a more efficient way
-      # (del self._termworkers[:]), but checking worker.isAlive() makes sure we
+      # (del self._termworkers[:]), but checking worker.is_alive() makes sure we
       # don't leave zombie threads around.
       for worker in termworkers:
         assert worker in self._termworkers, ("Worker not in list of"
                                              " terminating workers")
-        if not worker.isAlive():
+        if not worker.is_alive():
           self._termworkers.remove(worker)
 
       assert not self._termworkers, "Zombie worker detected"

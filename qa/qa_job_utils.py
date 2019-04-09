@@ -388,7 +388,7 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
     qa_thread = QAThread(fn, args, kwargs)
     qa_thread.start()
 
-    while qa_thread.isAlive():
+    while qa_thread.is_alive():
       blocking_locks = _GetBlockingLocks()
       blocking_owned_locks = \
         set(blocking_locks).intersection(set(lock_name_map))

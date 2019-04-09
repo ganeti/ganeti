@@ -94,7 +94,7 @@ class _ThreadedTestCase(unittest.TestCase):
     """Wait for all our threads to finish"""
     for t in self.threads:
       t.join(60)
-      self.assertFalse(t.isAlive())
+      self.assertFalse(t.is_alive())
     self.threads = []
 
 
