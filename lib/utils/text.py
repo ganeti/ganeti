@@ -414,6 +414,9 @@ def SafeEncode(text):
   @return: a safe version of text
 
   """
+  if not isinstance(text, str):
+    raise TypeError("Only str can be SafeEncoded")
+
   text = text.encode("ascii", "backslashreplace").decode("ascii")
   resu = ""
   for char in text:
