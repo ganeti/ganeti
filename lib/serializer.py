@@ -58,7 +58,7 @@ def DumpJson(data, private_encoder=None):
   """Serialize a given object.
 
   @param data: the data to serialize
-  @return: the string representation of data
+  @return: the bytes representation of data
   @param private_encoder: specify L{serializer.EncodeWithPrivateFields} if you
                           require the produced JSON to also contain private
                           parameters. Otherwise, they will encode to null.
@@ -73,18 +73,19 @@ def DumpJson(data, private_encoder=None):
   if not txt.endswith("\n"):
     txt += "\n"
 
-  return txt
+  return txt.encode("utf-8")
 
 
-def LoadJson(txt):
-  """Unserialize data from a string.
+def LoadJson(data):
+  """Unserialize data from bytes.
 
-  @param txt: the json-encoded form
+  @param data: the json-encoded form
+  @type data: str or bytes
   @return: the original data
   @raise JSONDecodeError: if L{txt} is not a valid JSON document
 
   """
-  values = simplejson.loads(txt)
+  values = simplejson.loads(data)
 
   # Hunt and seek for Private fields and wrap them.
   WrapPrivateValues(values)
