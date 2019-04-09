@@ -6028,7 +6028,7 @@ class IAllocatorRunner(object):
 
     fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
     try:
-      os.write(fd, idata)
+      os.write(fd, idata.encode("utf-8"))
       os.close(fd)
       result = utils.RunCmd([alloc_script, fin_name] + ial_params)
       if result.failed:

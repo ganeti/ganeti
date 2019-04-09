@@ -740,7 +740,7 @@ class BaseHypervisor(object):
     try:
       fd = os.open("/proc/sysrq-trigger", os.O_WRONLY)
       try:
-        os.write(fd, "b")
+        os.write(fd, b"b")
       finally:
         fd.close()
     except OSError:

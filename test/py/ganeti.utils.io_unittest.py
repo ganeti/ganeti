@@ -838,7 +838,7 @@ class TestPidFileFunctions(unittest.TestCase):
     new_pid = os.fork()
     if new_pid == 0: #child
       utils.WritePidFile(self.f_dpn("child"))
-      os.write(w_fd, "a")
+      os.write(w_fd, b"a")
       signal.pause()
       os._exit(0)
       return
