@@ -660,8 +660,8 @@ class LUGroupEvacuate(LogicalUnit):
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
     if self.op.target_groups:
-      self.req_target_uuids = map(self.cfg.LookupNodeGroup,
-                                  self.op.target_groups)
+      self.req_target_uuids = [self.cfg.LookupNodeGroup(g)
+                               for g in self.op.target_groups]
     else:
       self.req_target_uuids = []
 

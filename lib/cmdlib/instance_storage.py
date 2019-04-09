@@ -1254,7 +1254,7 @@ def WipeDisks(lu, instance, disks=None):
   logging.info("Pausing synchronization of disks of instance '%s'",
                instance.name)
   result = lu.rpc.call_blockdev_pause_resume_sync(node_uuid,
-                                                  (map(compat.snd, disks),
+                                                  ([d[1] for d in disks],
                                                    instance),
                                                   True)
   result.Raise("Failed to pause disk synchronization on node '%s'" % node_name)
@@ -1312,9 +1312,9 @@ def WipeDisks(lu, instance, disks=None):
                  instance.name)
 
     result = lu.rpc.call_blockdev_pause_resume_sync(node_uuid,
-                                                    (map(compat.snd, disks),
-                                                     instance),
-                                                    False)
+                                                    ([d[1] for d in disks],
+                                                      instance),
+                                                     False)
 
     if result.fail_msg:
       lu.LogWarning("Failed to resume disk synchronization on node '%s': %s",
@@ -1351,7 +1351,7 @@ def ImageDisks(lu, instance, image, disks=None):
   logging.info("Pausing synchronization of disks of instance '%s'",
                instance.name)
   result = lu.rpc.call_blockdev_pause_resume_sync(node_uuid,
-                                                  (map(compat.snd, disks),
+                                                  ([d[1] for d in disks],
                                                    instance),
                                                   True)
   result.Raise("Failed to pause disk synchronization on node '%s'" % node_name)
@@ -1375,7 +1375,7 @@ def ImageDisks(lu, instance, image, disks=None):
                  instance.name)
 
     result = lu.rpc.call_blockdev_pause_resume_sync(node_uuid,
-                                                    (map(compat.snd, disks),
+                                                    ([d[1] for d in disks],
                                                      instance),
                                                     False)
 

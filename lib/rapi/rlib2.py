@@ -395,7 +395,7 @@ class R_2_filters(baserlib.ResourceBase):
       bulkdata = client.QueryFilters(None, FILTER_RULE_FIELDS)
       return baserlib.MapBulkFields(bulkdata, FILTER_RULE_FIELDS)
     else:
-      jobdata = map(compat.fst, client.QueryFilters(None, ["uuid"]))
+      jobdata = [f[0] for f in client.QueryFilters(None, ["uuid"])]
       return baserlib.BuildUriList(jobdata, "/2/filters/%s",
                                    uri_fields=("uuid", "uri"))
 
@@ -480,7 +480,7 @@ class R_2_jobs(baserlib.ResourceBase):
       bulkdata = client.QueryJobs(None, J_FIELDS_BULK)
       return baserlib.MapBulkFields(bulkdata, J_FIELDS_BULK)
     else:
-      jobdata = map(compat.fst, client.QueryJobs(None, ["id"]))
+      jobdata = [j[0] for j in client.QueryJobs(None, ["id"])]
       return baserlib.BuildUriList(jobdata, "/2/jobs/%s",
                                    uri_fields=("id", "uri"))
 
@@ -1108,7 +1108,8 @@ class R_2_instances(baserlib.OpcodeResource):
     use_locking = self.useLocking()
     if self.useBulk():
       bulkdata = client.QueryInstances([], I_FIELDS, use_locking)
-      return map(_UpdateBeparams, baserlib.MapBulkFields(bulkdata, I_FIELDS))
+      return [_UpdateBeparams(f)
+              for f in baserlib.MapBulkFields(bulkdata, I_FIELDS)]
     else:
       instancesdata = client.QueryInstances([], ["name"], use_locking)
       instanceslist = [row[0] for row in instancesdata]

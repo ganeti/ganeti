@@ -732,15 +732,15 @@ def _GetHvInfoAll(hv_specs, get_hv_fn=hypervisor.GetHypervisor):
 
 
 def _GetNamedNodeInfo(names, fn):
-  """Calls C{fn} for all names in C{names} and returns a dictionary.
+  """Calls C{fn} for all names in C{names} and returns a list of dictionaries.
 
-  @rtype: None or dict
+  @rtype: None or list of dict
 
   """
   if names is None:
     return None
   else:
-    return map(fn, names)
+    return [fn(n) for n in names]
 
 
 def GetNodeInfo(storage_units, hv_specs):
@@ -753,7 +753,7 @@ def GetNodeInfo(storage_units, hv_specs):
     parameters, for example exclusive storage for lvm storage.
   @type hv_specs: list of pairs (string, dict of strings)
   @param hv_specs: list of pairs of a hypervisor's name and its hvparams
-  @rtype: tuple; (string, None/dict, None/dict)
+  @rtype: tuple; (string, None/list of dict, None/dict)
   @return: Tuple containing boot ID, volume group information and hypervisor
     information
 
@@ -1316,7 +1316,7 @@ def VerifyNode(what, cluster_name, all_hvparams):
       for pvi in val:
         # Avoid sending useless data on the wire
         pvi.lv_list = []
-    result[constants.NV_PVLIST] = map(objects.LvmPvInfo.ToDict, val)
+    result[constants.NV_PVLIST] = [objects.LvmPvInfo.ToDict(v) for v in val]
 
   if constants.NV_VERSION in what:
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,

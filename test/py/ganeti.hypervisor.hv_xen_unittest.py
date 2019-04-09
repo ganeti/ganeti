@@ -259,7 +259,7 @@ class TestGetInstanceList(testutils.GanetiTestCase):
 
     self.assertEqual(len(result), 4)
 
-    self.assertEqual(map(compat.fst, result), [
+    self.assertEqual([r[0] for r in result], [
       "Domain-0",
       "server01.example.com",
       "web3106215069.example.com",
@@ -278,7 +278,7 @@ class TestGetInstanceList(testutils.GanetiTestCase):
 
     self.assertEqual(len(result), 2)
 
-    self.assertEqual(map(compat.fst, result), [
+    self.assertEqual([r[0] for r in result], [
       "Domain-0",
       "server01.example.com",
       ])
@@ -741,7 +741,7 @@ class _TestXenHypervisor(object):
 
     result = hv.GetAllInstancesInfo()
 
-    self.assertEqual(map(compat.fst, result), [
+    self.assertEqual([r[0] for r in result], [
       "server01.example.com",
       "web3106215069.example.com",
       "testinstance.example.com",
@@ -800,7 +800,7 @@ class _TestXenHypervisor(object):
     inst = objects.Instance(name="server01.example.com",
                             hvparams=hvp, beparams=bep,
                             osparams={}, nics=[], os="deb1",
-                            disks=map(compat.fst, disks))
+                            disks=[d[0] for d in disks])
     inst.UpgradeConfig()
 
     return (inst, disks)

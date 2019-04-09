@@ -144,7 +144,7 @@ def _WriteBaseClass(sw, clsname, calls):
       else:
         raise Exception("Unknown kind '%s'" % kind)
 
-      funcargs.extend(map(compat.fst, args))
+      funcargs.extend([arg[0] for arg in args])
 
       funcargs.append("_def=_CALLS[%r]" % name)
 

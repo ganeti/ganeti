@@ -85,7 +85,7 @@ class FakeConfig(object):
       return None
 
   def GetNodeNames(self, node_uuids):
-    return map(self.GetNodeName, node_uuids)
+    return [self.GetNodeName(uuid) for uuid in node_uuids]
 
 
 class FakeProc(object):

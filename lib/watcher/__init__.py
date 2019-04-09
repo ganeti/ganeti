@@ -771,7 +771,7 @@ def _GetGroupData(qcl, uuid):
       ht.TListOf(ht.TListOf(ht.TIsLength(2)))(d) for d in results_data)
 
   # Extract values ignoring result status
-  (raw_instances, raw_nodes) = [[map(compat.snd, values)
+  (raw_instances, raw_nodes) = [[[v[1] for v in values]
                                  for values in res]
                                 for res in results_data]
 

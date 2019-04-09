@@ -529,7 +529,7 @@ def CheckNodePVs(nresult, exclusive_storage):
   pvlist_dict = nresult.get(constants.NV_PVLIST, None)
   if pvlist_dict is None:
     return (["Can't get PV list from node"], None)
-  pvlist = map(objects.LvmPvInfo.FromDict, pvlist_dict)
+  pvlist = [objects.LvmPvInfo.FromDict(d) for d in pvlist_dict]
   errlist = []
   # check that ':' is not present in PV names, since it's a
   # special character for lvcreate (denotes the range of PEs to

@@ -258,7 +258,7 @@ def _ConvertResources(key_value):
   (key, value) = key_value
   fn = _RESOURCE_CONVERTER.get(key, None)
   if fn:
-    return (key, map(fn, value))
+    return (key, [fn(v) for v in value])
   else:
     return (key, value)
 
@@ -356,8 +356,7 @@ class _QaConfig(object):
       ordered_patches = filter(None, ordered_patches)
 
     # Add the patch dir
-    ordered_patches = map(lambda x: os.path.join(_QA_PATCH_DIR, x),
-                          ordered_patches)
+    ordered_patches = [os.path.join(_QA_PATCH_DIR, x) for x in ordered_patches]
 
     # First the ordered patches
     for patch in ordered_patches:

@@ -276,7 +276,7 @@ def SequenceToDict(seq, key=compat.fst):
   @rtype: dict
 
   """
-  keys = map(key, seq)
+  keys = [key(s) for s in seq]
 
   duplicates = FindDuplicates(keys)
   if duplicates:

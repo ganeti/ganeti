@@ -285,8 +285,8 @@ class TestRapiDocs(unittest.TestCase):
     self._CheckTagHandlers(resources.values())
 
   def _FindRapiMissing(self, handlers):
-    used = frozenset(itertools.chain(*map(baserlib.GetResourceOpcodes,
-                                          handlers)))
+    used = frozenset(itertools.chain(*list(map(baserlib.GetResourceOpcodes,
+                                               handlers))))
 
     unexpected = used & RAPI_OPCODE_EXCLUDE
     self.assertFalse(unexpected,

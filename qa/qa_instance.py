@@ -1009,7 +1009,7 @@ def _BuildRecreateDisksOpts(en_disks, with_spindles, with_growth,
   build_disk_opt = (lambda idx_dsk:
                     "--disk=%s:%s%s" % (idx_dsk[0], build_size_opt(idx_dsk[1]),
                                         build_spindles_opt(idx_dsk[1])))
-  return map(build_disk_opt, en_disks)
+  return [build_disk_opt(d) for d in en_disks]
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -1439,7 +1439,7 @@ def TestInstanceCommunication(instance, master):
 
   ## Check the output of 'gnt-instance list'
   nic_names = _GetInstanceField(instance.name, "nic.names")
-  nic_names = map(lambda x: x.strip(" '"), nic_names.strip("[]").split(","))
+  nic_names = [x.strip(" '") for x in nic_names.strip("[]").split(",")]
 
   AssertIn(nic_name, nic_names,
            msg="Looking for instance communication TAP interface")

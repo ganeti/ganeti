@@ -1024,7 +1024,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       match = self._CPU_INFO_RE.search(line)
       if not match:
         continue
-      grp = map(int, match.groups())
+      grp = [int(g) for g in match.groups()]
       result[grp[0]] = grp[1]
 
     return result

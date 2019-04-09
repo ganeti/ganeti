@@ -787,7 +787,7 @@ class Query(object):
 
     assert not result or (len(result[0]) == 3 and len(result[-1]) == 3)
 
-    return map(operator.itemgetter(2), result)
+    return [r[2] for r in result]
 
   def OldStyleQuery(self, ctx, sort_by_name=True):
     """Query with "old" query result format.
@@ -2591,7 +2591,7 @@ def _PerJobOpInner(fn, job):
   """Executes a function per opcode in a job.
 
   """
-  return map(fn, job.ops)
+  return [fn(op) for op in job.ops]
 
 
 def _PerJobOp(fn):

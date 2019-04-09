@@ -125,7 +125,7 @@ def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   # unittests.
   ids.sort()
 
-  return map(_MapId, ids)
+  return [_MapId(id) for id in ids]
 
 
 def MapFields(names, data):

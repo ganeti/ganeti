@@ -1902,7 +1902,7 @@ def Epo(opts, args, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
                                             "sinst_list", "powered", "offline"],
                           False)
 
-  all_nodes = map(compat.fst, result)
+  all_nodes = [r[0] for r in result]
   node_list = []
   inst_map = {}
   for (node, master, pinsts, sinsts, powered, offline) in result:

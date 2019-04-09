@@ -466,7 +466,7 @@ class TestWorkerpool(unittest.TestCase):
         all_order_ids = []
 
         for (num, numordertaskid) in ctx.num2ordertaskid.items():
-          order_ids = map(compat.fst, numordertaskid)
+          order_ids = [n[0] for n in numordertaskid]
           self.assertFalse(utils.FindDuplicates(order_ids),
                            msg="Order ID has been reused")
           all_order_ids.extend(order_ids)

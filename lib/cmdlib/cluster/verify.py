@@ -1750,10 +1750,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                  not node.offline)]
     keyfunc = operator.attrgetter("group")
 
-    return map(itertools.cycle,
-               [sorted(n.name for n in names)
-                for _, names in itertools.groupby(sorted(nodes, key=keyfunc),
-                                                  keyfunc)])
+    nodes_by_group = itertools.groupby(sorted(nodes, key=keyfunc), keyfunc)
+    node_names = (sorted(n.name for n in names) for _, names in nodes_by_group)
+
+    return [itertools.cycle(ns) for ns in node_names]
 
   @classmethod
   def _SelectSshCheckNodes(cls, group_nodes, group_uuid, all_nodes):

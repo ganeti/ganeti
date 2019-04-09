@@ -395,7 +395,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
   print("Testing get/modify symmetry of %s and %s" % (get_uri, modify_uri))
 
   # First we see if all parameters of the opcode are returned through RAPI
-  params_of_interest = map(lambda x: x[0], opcode_params)
+  params_of_interest = [x[0] for x in opcode_params]
 
   # The RAPI-specific aliases are to be checked as well
   if rapi_only_aliases is not None:

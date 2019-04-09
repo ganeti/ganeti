@@ -207,7 +207,7 @@ class OpInstanceMultiAllocBase(OpCode):
                        type(state))
 
     if "instances" in state:
-      state["instances"] = map(OpCode.LoadOpCode, state["instances"])
+      state["instances"] = [OpCode.LoadOpCode(x) for x in state["instances"]]
 
     return OpCode.__setstate__(self, state)
 

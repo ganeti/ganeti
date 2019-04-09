@@ -101,10 +101,10 @@ def GetJobStatuses(job_ids=None):
   """
   cmd = ["gnt-job", "list", "--no-headers", "--output=id,status"]
   if job_ids is not None:
-    cmd.extend(map(str, job_ids))
+    cmd.extend([str(id) for id in job_ids])
 
   list_output = GetOutputFromMaster(cmd)
-  return dict(map(lambda s: s.split(), list_output.splitlines()))
+  return dict([s.split() for s in list_output.splitlines()])
 
 
 def _RetrieveTerminationInfo(job_id):
@@ -182,7 +182,7 @@ def _GetNodeUUIDMap(nodes):
   cmd = ["gnt-node", "list", "--no-header", "-o", "name,uuid"]
   cmd.extend(nodes)
   output = GetOutputFromMaster(cmd)
-  return dict(map(lambda x: x.split(), output.splitlines()))
+  return dict([x.split() for x in output.splitlines()])
 
 
 def _FindLockNames(locks):

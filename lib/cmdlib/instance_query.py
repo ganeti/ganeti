@@ -287,9 +287,9 @@ class LUInstanceQueryData(NoHooksLU):
         "pnode": pnode.name,
         "pnode_group_uuid": pnode.group,
         "pnode_group_name": group2name_fn(pnode.group),
-        "snodes": map(node_uuid2name_fn, secondary_nodes),
+        "snodes": [node_uuid2name_fn(n) for n in secondary_nodes],
         "snodes_group_uuids": snodes_group_uuids,
-        "snodes_group_names": map(group2name_fn, snodes_group_uuids),
+        "snodes_group_names": [group2name_fn(u) for u in snodes_group_uuids],
         "os": instance.os,
         # this happens to be the same format used for hooks
         "nics": NICListToTuple(self, instance.nics),

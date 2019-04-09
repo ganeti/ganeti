@@ -2098,7 +2098,7 @@ def GenericListFields(resource, fields, separator, header, cl=None):
     TableColumn("Description", str, False),
     ]
 
-  rows = map(_FieldDescValues, response.fields)
+  rows = [_FieldDescValues(f) for f in response.fields]
 
   for line in FormatTable(rows, columns, header, separator):
     ToStdout(line)
@@ -2327,7 +2327,7 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
   else:
     fn = _GetName
 
-  return map(fn, online)
+  return [fn(node) for node in online]
 
 
 def GetNodesSshPorts(nodes, cl):
