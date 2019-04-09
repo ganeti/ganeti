@@ -127,7 +127,7 @@ def _RetrieveTerminationInfo(job_id):
   is_termination_info_fn = \
     lambda e: e["Content"][1] == constants.ELOG_DELAY_TEST
 
-  filtered_logs = filter(is_termination_info_fn, execution_logs)
+  filtered_logs = [l for l in execution_logs if is_termination_info(l)]
 
   no_logs = len(filtered_logs)
   if no_logs > 1:
@@ -360,7 +360,7 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
   good conservative estimate.
 
   """
-  if filter(lambda l_type: l_type not in AVAILABLE_LOCKS, locks):
+  if [l_type for l_type in locks if l_type not in AVAILABLE_LOCKS]:
     raise qa_error.Error("Attempted to acquire locks that cannot yet be "
                          "acquired in the course of a QA test.")
 

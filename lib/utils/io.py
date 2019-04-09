@@ -362,7 +362,7 @@ def ReadOneLineFile(file_name, strict=False):
 
   """
   file_lines = ReadFile(file_name).splitlines()
-  full_lines = filter(bool, file_lines)
+  full_lines = [l for l in file_lines if l]
   if not file_lines or not full_lines:
     raise errors.GenericError("No data in one-liner file %s" % file_name)
   elif strict and len(full_lines) > 1:
@@ -605,7 +605,7 @@ def ListVisibleFiles(path, _is_mountpoint=os.path.ismount):
                 (mountpoint and name == _LOST_AND_FOUND and
                  os.path.isdir(os.path.join(path, name))))
 
-  return filter(fn, os.listdir(path))
+  return [f for f in os.listdir(path) if fn(f)]
 
 
 def EnsureDirs(dirs):

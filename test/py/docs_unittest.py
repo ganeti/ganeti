@@ -300,7 +300,7 @@ class TestRapiDocs(unittest.TestCase):
            utils.CommaJoin(_GetOpIds(missing))))
 
   def _CheckTagHandlers(self, handlers):
-    tag_handlers = filter(lambda x: issubclass(x, rlib2._R_Tags), handlers)
+    tag_handlers = [x for x in handlers if issubclass(x, rlib2._R_Tags)]
     self.assertEqual(frozenset(tag.TAG_LEVEL for tag in tag_handlers),
                      constants.VALID_TAG_TYPES)
 

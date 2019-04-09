@@ -281,7 +281,7 @@ class OVFReader(object):
     """
     current_list = self.tree.findall(path)
     results = [x.get(attribute) for x in current_list]
-    return filter(None, results)
+    return [r for r in results if r]
 
   def _GetElementMatchingAttr(self, path, match_attr):
     """Searches for element on a path that matches certain attribute value.

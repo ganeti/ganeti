@@ -134,7 +134,7 @@ class LogicalVolume(base.BlockDev):
     """Return a list of empty PVs, by name.
 
     """
-    empty_pvs = filter(objects.LvmPvInfo.IsEmpty, pvs_info)
+    empty_pvs = [pv for pv in pvs_info if objects.LvmPvInfo.IsEmpty(pv)]
     if max_pvs is not None:
       empty_pvs = empty_pvs[:max_pvs]
     return [pv.name for pv in empty_pvs]

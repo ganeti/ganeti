@@ -629,9 +629,8 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
 
   min_errs = None
   for minmax in ipolicy[constants.ISPECS_MINMAX]:
-    errs = filter(None,
-                  (_compute_fn(name, qualifier, minmax, value)
-                   for (name, qualifier, value) in test_settings))
+    errs = [err for err in (_compute_fn(name, qualifier, minmax, value)
+                for (name, qualifier, value) in test_settings) if err]
     if min_errs is None or len(errs) < len(min_errs):
       min_errs = errs
   assert min_errs is not None

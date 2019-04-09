@@ -1153,7 +1153,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if fn is None:
         filenodes = nodes
       else:
-        filenodes = filter(fn, nodes)
+        filenodes = [n for n in nodes if fn(n)]
       nodefiles.update((filename, frozenset(fn.uuid for fn in filenodes))
                        for filename in files)
 

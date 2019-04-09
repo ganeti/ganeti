@@ -353,7 +353,7 @@ class _QaConfig(object):
       order_file = open(order_path, 'r')
       ordered_patches = order_file.read().splitlines()
       # Removes empty lines
-      ordered_patches = filter(None, ordered_patches)
+      ordered_patches = [_f for _f in ordered_patches if _f]
 
     # Add the patch dir
     ordered_patches = [os.path.join(_QA_PATCH_DIR, x) for x in ordered_patches]
@@ -879,7 +879,7 @@ def AcquireInstance(_cfg=None):
     cfg = _cfg
 
   # Filter out unwanted instances
-  instances = filter(lambda inst: not inst.used, cfg["instances"])
+  instances = [inst for inst in cfg["instances"] if not inst.used]
 
   if not instances:
     raise qa_error.OutOfInstancesError("No instances left")
@@ -906,7 +906,7 @@ def AcquireManyInstances(num, _cfg=None):
     cfg = _cfg
 
   # Filter out unwanted instances
-  instances = filter(lambda inst: not inst.used, cfg["instances"])
+  instances = [inst for inst in cfg["instances"] if not inst.used]
 
   if len(instances) < num:
     raise qa_error.OutOfInstancesError(
@@ -992,11 +992,11 @@ def AcquireNode(exclude=None, _cfg=None):
   if exclude is None:
     nodes = cfg["nodes"][:]
   elif isinstance(exclude, (list, tuple)):
-    nodes = filter(lambda node: node not in exclude, cfg["nodes"])
+    nodes = [node for node in cfg["nodes"] if node not in exclude]
   else:
-    nodes = filter(lambda node: node != exclude, cfg["nodes"])
+    nodes = [node for node in cfg["nodes"] if node != exclude]
 
-  nodes = filter(lambda node: node.added or node == master, nodes)
+  nodes = [node for node in nodes if node.added or node == master]
 
   if not nodes:
     raise qa_error.OutOfNodesError("No nodes left")

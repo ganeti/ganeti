@@ -162,8 +162,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.ECODE_ALL, errors.ECODE_ALL)
 
     # Make sure all error codes are in both RAPI client and errors module
-    for name in filter(lambda s: (s.startswith("ECODE_") and s != "ECODE_ALL"),
-                       dir(client)):
+    for name in [s for s in dir(client) if (s.startswith("ECODE_") and s != "ECODE_ALL")]:
       value = getattr(client, name)
       self.assertEqual(value, getattr(errors, name))
       self.assertTrue(value in client.ECODE_ALL)

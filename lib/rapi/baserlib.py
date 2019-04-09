@@ -444,8 +444,8 @@ def GetResourceOpcodes(cls):
   """Returns all opcodes used by a resource.
 
   """
-  return frozenset(filter(None, (getattr(cls, method_attrs.opcode, None)
-                                 for method_attrs in OPCODE_ATTRS)))
+  return frozenset(opcode for opcode in (getattr(cls, method_attrs.opcode, None)
+                       for method_attrs in OPCODE_ATTRS) if opcode)
 
 
 def GetHandlerAccess(handler, method):

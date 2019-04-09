@@ -881,8 +881,8 @@ class LUInstanceCreate(LogicalUnit):
         self._RunAllocator()
 
     # Release all unneeded node locks
-    keep_locks = filter(None, [self.op.pnode_uuid, self.op.snode_uuid,
-                               self.op.src_node_uuid])
+    keep_locks = [uuid for uuid in [self.op.pnode_uuid, self.op.snode_uuid,
+                                    self.op.src_node_uuid] if uuid]
     ReleaseLocks(self, locking.LEVEL_NODE, keep=keep_locks)
     ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=keep_locks)
     # Release all unneeded group locks

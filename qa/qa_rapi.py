@@ -403,8 +403,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
 
   info = _rapi_client._SendRequest("GET", get_uri, None, {})
 
-  missing_params = filter(lambda x: x not in info and x not in exceptions,
-                          params_of_interest)
+  missing_params = [x for x in params_of_interest if x not in info and x not in exceptions]
   if missing_params:
     raise qa_error.Error("The parameters %s which can be set through the "
                          "appropriate opcode are not present in the response "

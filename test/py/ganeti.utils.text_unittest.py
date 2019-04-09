@@ -128,9 +128,9 @@ class TestDnsNameGlobPattern(unittest.TestCase):
       ]
 
   def _Test(self, pattern):
-    re_pat = utils.DnsNameGlobPattern(pattern)
+    re_pat = re.compile(utils.DnsNameGlobPattern(pattern))
 
-    return filter(re.compile(re_pat).match, self.names)
+    return [n for n in self.names if re_pat.match(n)]
 
   def test(self):
     for pattern in ["xyz", "node", " ", "example.net", "x*.example.*",

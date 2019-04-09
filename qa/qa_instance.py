@@ -94,7 +94,7 @@ def GetInstanceInfo(instance):
       if nodestr:
         m = re_nodelist.match(nodestr)
         if m:
-          nodes.extend(filter(None, m.groups()))
+          nodes.extend([n for n in m.groups() if n])
         else:
           nodes.append(nodestr)
 

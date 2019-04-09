@@ -451,7 +451,7 @@ def _EncodeRapiResourceLink(method, uri):
   if method is not None:
     parts.append(method.lower())
 
-  return "rapi-res-%s" % "+".join(filter(None, parts))
+  return "rapi-res-%s" % "+".join([p for p in parts if p])
 
 
 def _MakeRapiResourceLink(method, uri):
