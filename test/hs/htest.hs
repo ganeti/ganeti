@@ -75,6 +75,7 @@ import Test.Ganeti.Network
 import Test.Ganeti.Objects
 import Test.Ganeti.Objects.BitArray
 import Test.Ganeti.OpCodes
+import Test.Ganeti.PyValue
 import Test.Ganeti.Query.Aliases
 import Test.Ganeti.Query.Filter
 import Test.Ganeti.Query.Instance
@@ -151,6 +152,7 @@ allTests =
   , testObjects
   , testObjects_BitArray
   , testOpCodes
+  , testPyValue
   , testQuery_Aliases
   , testQuery_Filter
   , testQuery_Instance
