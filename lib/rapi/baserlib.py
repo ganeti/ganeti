@@ -606,7 +606,7 @@ class _MetaOpcodeResource(type):
     return obj
 
 
-class OpcodeResource(ResourceBase):
+class OpcodeResource(ResourceBase, metaclass=_MetaOpcodeResource):
   """Base class for opcode-based RAPI resources.
 
   Instances of this class automatically gain handler functions through
@@ -665,7 +665,6 @@ class OpcodeResource(ResourceBase):
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
   """
-  __metaclass__ = _MetaOpcodeResource
 
   def _ForbiddenHandler(self, method_fn, forbidden_params, rename_dict):
     """Examines provided parameters for forbidden values.

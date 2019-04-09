@@ -84,11 +84,10 @@ class _AutoReqParam(outils.AutoSlots):
     return [slot for (slot, _) in params]
 
 
-class IARequestBase(outils.ValidatedSlots):
+class IARequestBase(outils.ValidatedSlots, metaclass=_AutoReqParam):
   """A generic IAllocator request object.
 
   """
-  __metaclass__ = _AutoReqParam
 
   MODE = NotImplemented
   REQ_PARAMS = []

@@ -160,16 +160,13 @@ class _AutoOpParamSlots(outils.AutoSlots):
     return [pname for (pname, _, _, _) in params]
 
 
-class BaseOpCode(outils.ValidatedSlots):
+class BaseOpCode(outils.ValidatedSlots, metaclass=_AutoOpParamSlots):
   """A simple serializable object.
 
   This object serves as a parent class for OpCode without any custom
   field handling.
 
   """
-  # pylint: disable=E1101
-  # as OP_ID is dynamically defined
-  __metaclass__ = _AutoOpParamSlots
 
   def __init__(self, **kwargs):
     outils.ValidatedSlots.__init__(self, **kwargs)

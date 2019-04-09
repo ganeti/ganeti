@@ -44,9 +44,7 @@ class SlotsAutoSlot(outils.AutoSlots):
     return attr["SLOTS"]
 
 
-class AutoSlotted(object):
-  __metaclass__ = SlotsAutoSlot
-
+class AutoSlotted(object, metaclass=SlotsAutoSlot):
   SLOTS = ["foo", "bar", "baz"]
 
 
