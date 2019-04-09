@@ -49,8 +49,6 @@ Before installing, please verify that you have the following programs:
   optional Python package for supporting NIC hotplugging under KVM
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.sourceforge.net/>`_
-- `Python IP address manipulation library
-  <http://code.google.com/p/ipaddr-py/>`_
 - `Bitarray Python library <http://pypi.python.org/pypi/bitarray/>`_
 - `GNU Make <http://www.gnu.org/software/make/>`_
 - `GNU M4 <http://www.gnu.org/software/m4/>`_

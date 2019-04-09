@@ -32,7 +32,7 @@
 
 import re
 import operator
-import ipaddr
+import ipaddress
 
 from ganeti import compat
 from ganeti import utils
@@ -660,8 +660,8 @@ def _CheckCIDRNetNotation(value):
 
   """
   try:
-    ipaddr.IPv4Network(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv4Network(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
@@ -672,8 +672,8 @@ def _CheckCIDRAddrNotation(value):
 
   """
   try:
-    ipaddr.IPv4Address(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv4Address(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
@@ -684,8 +684,8 @@ def _CheckCIDR6AddrNotation(value):
 
   """
   try:
-    ipaddr.IPv6Address(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv6Address(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
@@ -696,8 +696,8 @@ def _CheckCIDR6NetNotation(value):
 
   """
   try:
-    ipaddr.IPv6Network(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv6Network(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
