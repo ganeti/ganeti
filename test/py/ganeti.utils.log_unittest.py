@@ -36,7 +36,8 @@ import logging
 import tempfile
 import shutil
 import threading
-from io import StringIO
+
+from io import FileIO, StringIO
 
 from ganeti import constants
 from ganeti import errors
@@ -141,7 +142,7 @@ class TestLogHandler(unittest.TestCase):
         self.assertTrue("Cannot log message" in consout)
         self.assertTrue("Test message ERROR" in consout)
 
-  class _FailingFile(file):
+  class _FailingFile(FileIO):
     def write(self, _):
       raise Exception
 
