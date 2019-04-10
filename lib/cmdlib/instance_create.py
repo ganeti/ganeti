@@ -1500,7 +1500,7 @@ class LUInstanceCreate(LogicalUnit):
           rename_to.append(t_dsk.logical_id)
           t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk[constants.IDISK_ADOPT])
         result = self.rpc.call_blockdev_rename(self.pnode.uuid,
-                                               zip(tmp_disks, rename_to))
+                                               list(zip(tmp_disks, rename_to)))
         result.Raise("Failed to rename adoped LVs")
     elif self.op.forthcoming:
       feedback_fn("Instance is forthcoming, not creating disks")

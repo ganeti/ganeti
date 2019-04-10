@@ -2144,7 +2144,7 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   (_, new_pub_keyfile) = root_keyfiles[new_key_type]
   old_master_key = utils.ReadFile(old_pub_keyfile)
 
-  node_uuid_name_map = zip(node_uuids, node_names)
+  node_uuid_name_map = list(zip(node_uuids, node_names))
 
   master_node_name = ssconf_store.GetMasterNode()
   master_node_uuid = _GetMasterNodeUUID(node_uuid_name_map, master_node_name)

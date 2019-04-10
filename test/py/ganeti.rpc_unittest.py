@@ -350,27 +350,27 @@ class TestSsconfResolver(unittest.TestCase):
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=NotImplemented)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testNsLookup(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     ssc = GetFakeSimpleStoreClass(lambda _: [])
-    node_addr_map = dict(zip(node_list, addr_list))
+    node_addr_map = dict(list(zip(node_list, addr_list)))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testDisabledSsconfIp(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     ssc = GetFakeSimpleStoreClass(_RaiseNotImplemented)
-    node_addr_map = dict(zip(node_list, addr_list))
+    node_addr_map = dict(list(zip(node_list, addr_list)))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._SsconfResolver(False, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testBothLookups(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
@@ -378,11 +378,11 @@ class TestSsconfResolver(unittest.TestCase):
     n = len(addr_list) // 2
     node_addr_list = [" ".join(t) for t in zip(node_list[n:], addr_list[n:])]
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
-    node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
+    node_addr_map = dict(list(zip(node_list[:n], addr_list[:n])))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testAddressLookupIPv6(self):
     addr_list = ["2001:db8::%d" % n for n in range(0, 255, 11)]
@@ -391,7 +391,7 @@ class TestSsconfResolver(unittest.TestCase):
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=NotImplemented)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
 
 class TestStaticResolver(unittest.TestCase):
@@ -399,7 +399,7 @@ class TestStaticResolver(unittest.TestCase):
     addresses = ["192.0.2.%d" % n for n in range(0, 123, 7)]
     nodes = ["node%s.example.com" % n for n in range(0, 123, 7)]
     res = rpc._StaticResolver(addresses)
-    self.assertEqual(res(nodes, NotImplemented), zip(nodes, addresses, nodes))
+    self.assertEqual(res(nodes, NotImplemented), list(zip(nodes, addresses, nodes)))
 
   def testWrongLength(self):
     res = rpc._StaticResolver([])
@@ -690,7 +690,7 @@ class TestRpcClientBase(unittest.TestCase):
     def _Resolver(expected, hosts, options):
       self.assertEqual(hosts, nodes)
       self.assertEqual(options, expected)
-      return zip(hosts, nodes, hosts)
+      return list(zip(hosts, nodes, hosts))
 
     def _DynamicResolverOptions(args):
       (arg0, ) = args

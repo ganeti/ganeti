@@ -317,7 +317,7 @@ class _StaticResolver(object):
 
     """
     assert len(hosts) == len(self._addresses)
-    return zip(hosts, self._addresses, hosts)
+    return list(zip(hosts, self._addresses, hosts))
 
 
 def _CheckConfigNode(node_uuid_or_name, node, accept_offline_node):
