@@ -37,8 +37,8 @@ import time
 from ganeti import query
 from ganeti.utils import retry
 
-import qa_job_utils
-import qa_utils
+from qa import qa_job_utils
+from qa import qa_utils
 from qa_utils import AssertCommand, AssertEqual, AssertIn, stdout_of
 
 

@@ -42,9 +42,9 @@ from ganeti import locking
 from ganeti import utils
 from ganeti.utils import retry
 
-import qa_config
-import qa_logging
-import qa_error
+from qa import qa_config
+from qa import qa_logging
+from qa import qa_error
 
 from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo, stdout_of
 

@@ -40,12 +40,12 @@ import time
 
 from ganeti import constants
 
-import qa_config
-import qa_error
+from qa import qa_config
+from qa import qa_error
 from qa_instance_utils import GetGenericAddParameters
-import qa_job_utils
-import qa_logging
-import qa_utils
+from qa import qa_job_utils
+from qa import qa_logging
+from qa import qa_utils
 
 
 MAX_JOB_SUBMISSION_DURATION = 15.0

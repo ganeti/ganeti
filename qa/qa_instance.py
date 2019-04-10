@@ -42,10 +42,10 @@ from ganeti import pathutils
 from ganeti import query
 from ganeti.netutils import IP4Address
 
-import qa_config
-import qa_daemon
-import qa_utils
-import qa_error
+from qa import qa_config
+from qa import qa_daemon
+from qa import qa_utils
+from qa import qa_error
 
 from qa_filters import stdout_of
 from qa_utils import AssertCommand, AssertEqual, AssertIn

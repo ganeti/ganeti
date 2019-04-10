@@ -37,9 +37,9 @@ from ganeti import netutils
 from ganeti import query
 from ganeti import utils
 
-import qa_iptables
-import qa_config
-import qa_utils
+from qa import qa_iptables
+from qa import qa_config
+from qa import qa_utils
 
 from qa_utils import AssertCommand, AssertEqual, GetCommandOutput
 

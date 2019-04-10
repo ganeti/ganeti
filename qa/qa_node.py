@@ -37,9 +37,9 @@ from ganeti import constants
 from ganeti import query
 from ganeti import serializer
 
-import qa_config
-import qa_error
-import qa_utils
+from qa import qa_config
+from qa import qa_error
+from qa import qa_utils
 
 from qa_utils import AssertCommand, AssertRedirectedCommand, AssertEqual, \
   AssertIn, GetCommandOutput

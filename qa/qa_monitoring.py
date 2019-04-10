@@ -35,7 +35,7 @@
 from ganeti import _constants
 from ganeti import constants
 
-import qa_config
+from qa import qa_config
 
 from qa_utils import AssertCommand
 from qa_instance_utils import CreateInstanceByDiskTemplate, \

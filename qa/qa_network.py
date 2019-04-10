@@ -32,9 +32,9 @@
 
 """
 
-import qa_config
-import qa_tags
-import qa_utils
+from qa import qa_config
+from qa import qa_tags
+from qa import qa_utils
 
 from ganeti import query
 

@@ -60,8 +60,8 @@ from ganeti import pathutils
 from ganeti import vcluster
 
 import colors
-import qa_config
-import qa_error
+from qa import qa_config
+from qa import qa_error
 
 from qa_logging import FormatInfo
 

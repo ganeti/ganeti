@@ -39,9 +39,9 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import pathutils
 
-import qa_config
-import qa_utils
-import qa_error
+from qa import qa_config
+from qa import qa_utils
+from qa import qa_error
 
 from qa_utils import AssertCommand, AssertIn, AssertNotIn
 

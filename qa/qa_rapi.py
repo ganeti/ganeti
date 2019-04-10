@@ -57,10 +57,10 @@ from ganeti.http.auth import ParsePasswordFile
 import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
 
-import qa_config
-import qa_error
-import qa_logging
-import qa_utils
+from qa import qa_config
+from qa import qa_error
+from qa import qa_logging
+from qa import qa_utils
 
 from qa_instance import GetInstanceInfo
 from qa_instance import IsDiskReplacingSupported

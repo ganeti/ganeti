@@ -38,10 +38,10 @@ import re
 from ganeti.utils import retry
 from ganeti import constants
 from ganeti import query
-import qa_config
-import qa_error
-import qa_job_utils
-import qa_utils
+from qa import qa_config
+from qa import qa_error
+from qa import qa_job_utils
+from qa import qa_utils
 from qa_utils import AssertCommand, GetCommandOutput
 
 

@@ -40,8 +40,8 @@ from ganeti import serializer
 from ganeti import compat
 from ganeti import ht
 
-import qa_error
-import qa_logging
+from qa import qa_error
+from qa import qa_logging
 
 
 _INSTANCE_CHECK_KEY = "instance-check"
