@@ -1696,7 +1696,8 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       config.write("vnclisten = '%s'\n" % hvp[constants.HV_VNC_BIND_ADDRESS])
 
-    if instance.network_port > constants.VNC_BASE_PORT:
+    if (instance.network_port is not None
+        and instance.network_port > constants.VNC_BASE_PORT):
       display = instance.network_port - constants.VNC_BASE_PORT
       config.write("vncdisplay = %s\n" % display)
       config.write("vncunused = 0\n")
