@@ -121,7 +121,7 @@ class QmpMessage(object):
     data = serializer.LoadJson(json_string)
     return QmpMessage(data)
 
-  def __str__(self):
+  def to_bytes(self):
     # The protocol expects the JSON object to be sent as a single line.
     return serializer.DumpJson(self.data)
 
@@ -255,7 +255,7 @@ class QmpConnection(MonitorSocket):
   _QEMU_KEY = "qemu"
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _QUERY_COMMANDS = "query-commands"
-  _MESSAGE_END_TOKEN = "\r\n"
+  _MESSAGE_END_TOKEN = b"\r\n"
   # List of valid attributes for the device_add QMP command.
   # Extra attributes found in device's hvinfo will be ignored.
   _DEVICE_ATTRIBUTES = [
@@ -264,7 +264,7 @@ class QmpConnection(MonitorSocket):
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
-    self._buf = ""
+    self._buf = b""
     self.supported_commands = None
 
   def __enter__(self):
@@ -304,7 +304,7 @@ class QmpConnection(MonitorSocket):
 
     # This is needed because QMP can return more than one greetings
     # see https://groups.google.com/d/msg/ganeti-devel/gZYcvHKDooU/SnukC8dgS5AJ
-    self._buf = ""
+    self._buf = b""
 
     # Let's put the monitor in command mode using the qmp_capabilities
     # command, or else no command will be executable.
@@ -351,7 +351,7 @@ class QmpConnection(MonitorSocket):
     if message:
       return message
 
-    recv_buffer = io.StringIO(self._buf)
+    recv_buffer = io.BytesIO(self._buf)
     recv_buffer.seek(len(self._buf))
     try:
       while True:
@@ -382,12 +382,7 @@ class QmpConnection(MonitorSocket):
     """
     self._check_connection()
     try:
-      message_str = str(message)
-    except Exception as err:
-      raise errors.ProgrammerError("QMP data deserialization error: %s" % err)
-
-    try:
-      self.sock.sendall(message_str)
+      self.sock.sendall(message.to_bytes())
     except socket.timeout as err:
       raise errors.HypervisorError("Timeout while sending a QMP message: "
                                    "%s" % err)

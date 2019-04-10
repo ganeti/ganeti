@@ -132,10 +132,10 @@ class QmpStub(threading.Thread):
         break
       response = self.script.pop(0)
       if isinstance(response, str):
-        conn.send(response)
+        conn.send(response.encode("utf-8"))
       elif isinstance(response, list):
         for chunk in response:
-          conn.send(chunk)
+          conn.send(chunk.encode("utf-8"))
       else:
         raise errors.ProgrammerError("Unknown response type for %s" % response)
 
@@ -157,7 +157,7 @@ class TestQmpMessage(testutils.GanetiTestCase):
     for k, v in test_data.items():
       self.assertEqual(message[k], v)
 
-    serialized = str(message)
+    serialized = message.to_bytes()
     self.assertEqual(len(serialized.splitlines()), 1,
                      msg="Got multi-line message")
 
