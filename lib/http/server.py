@@ -31,7 +31,6 @@
 
 """
 
-import http.server
 import cgi
 import logging
 import os
@@ -39,6 +38,8 @@ import socket
 import time
 import signal
 import asyncore
+
+from http.server import BaseHTTPRequestHandler
 
 from ganeti import http
 from ganeti import utils
@@ -271,7 +272,7 @@ class HttpResponder(object):
   # Most web servers default to HTTP 0.9, i.e. don't send a status line.
   default_request_version = http.HTTP_0_9
 
-  responses = http.server.BaseHTTPRequestHandler.responses
+  responses = BaseHTTPRequestHandler.responses
 
   def __init__(self, handler):
     """Initializes this class.
