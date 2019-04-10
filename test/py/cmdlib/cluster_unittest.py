@@ -148,7 +148,7 @@ class TestLUClusterActivateMasterIp(CmdlibTestCase):
     self.ExecOpCode(op)
 
     self.rpc.call_node_activate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
 
   def testFailure(self):
     op = opcodes.OpClusterActivateMasterIp()
@@ -171,7 +171,7 @@ class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
     self.ExecOpCode(op)
 
     self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
 
   def testFailure(self):
     op = opcodes.OpClusterDeactivateMasterIp()
@@ -297,9 +297,9 @@ class TestLUClusterRename(CmdlibTestCase):
 
     self.assertEqual(1, self.ssh_mod.WriteKnownHostsFile.call_count)
     self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
     self.rpc.call_node_activate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
 
   def testRenameOfflineMaster(self):
     op = opcodes.OpClusterRename(name=self.NEW_NAME)

@@ -295,10 +295,6 @@ class ConfigObject(outils.ValidatedSlots):
     """Implement __repr__ for ConfigObjects."""
     return repr(self.ToDict())
 
-  def __eq__(self, other):
-    """Implement __eq__ for ConfigObjects."""
-    return isinstance(other, self.__class__) and self.ToDict() == other.ToDict()
-
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.
 

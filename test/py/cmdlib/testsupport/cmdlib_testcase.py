@@ -38,7 +38,7 @@ import traceback
 import functools
 import sys
 
-from testutils.config_mock import ConfigMock
+from testutils.config_mock import ConfigMock, ConfigObjectMatcher
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
 from cmdlib.testsupport.livelock_mock import LiveLockMock
 from cmdlib.testsupport.netutils_mock import patchNetutils, \
@@ -390,6 +390,9 @@ class CmdlibTestCase(testutils.GanetiTestCase):
       if group.name == "default":
         return group
     assert False
+
+  def _MatchMasterParams(self):
+    return ConfigObjectMatcher(self.cfg.GetMasterNetworkParameters())
 
   def MockOut(self, *args, **kwargs):
     """Immediately start mock.patch.object."""
