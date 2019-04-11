@@ -59,7 +59,7 @@ import mocks
 
 class TestOpcodeParams(testutils.GanetiTestCase):
   def testParamsStructures(self):
-    for op in sorted(mcpu.Processor.DISPATCH_TABLE):
+    for op in mcpu.Processor.DISPATCH_TABLE:
       lu = mcpu.Processor.DISPATCH_TABLE[op]
       lu_name = lu.__name__
       self.assertFalse(hasattr(lu, "_OP_REQP"),
