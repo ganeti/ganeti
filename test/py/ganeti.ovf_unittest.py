@@ -790,44 +790,44 @@ class TestOVFWriter(BetterUnitTest):
     pass
 
   def testOVFWriterInit(self):
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_EMPTY in result)
 
   def testSaveDisksDataEmpty(self):
     self.writer.SaveDisksData([])
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_DISKS_EMPTY in result)
 
   def testSaveDisksData(self):
     self.writer.SaveDisksData(EXP_DISKS_LIST)
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_DISKS in result)
 
   def testSaveNetworkDataEmpty(self):
     self.writer.SaveNetworksData([])
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_NETWORKS_EMPTY in result)
 
   def testSaveNetworksData(self):
     self.writer.SaveNetworksData(EXP_NETWORKS_LIST)
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_NETWORKS in result)
 
   def testSaveGanetiDataIncomplete(self):
     self.writer.SaveGanetiData(EXP_PARTIAL_GANETI_DICT, EXP_NETWORKS_LIST)
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_GANETI_INCOMPLETE in result)
 
   def testSaveGanetiDataComplete(self):
     self.writer.SaveGanetiData(EXP_GANETI_DICT, EXP_NETWORKS_LIST)
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_GANETI in result)
 
   def testSaveVirtualSystem(self):
     self.writer.SaveDisksData(EXP_DISKS_LIST)
     self.writer.SaveNetworksData(EXP_NETWORKS_LIST)
     self.writer.SaveVirtualSystemData(EXP_NAME, EXP_VCPUS, EXP_MEMORY)
-    result = ET.tostring(self.writer.tree)
+    result = ET.tostring(self.writer.tree, encoding="unicode")
     self.assertTrue(EXPORT_SYSTEM in result)
 
 

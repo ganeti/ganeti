@@ -840,7 +840,7 @@ class OVFWriter(object):
     @return: XML tree in the form of nicely-formatted string
 
     """
-    raw_string = ET.tostring(self.tree)
+    raw_string = ET.tostring(self.tree, encoding="unicode")
     parsed_xml = xml.dom.minidom.parseString(raw_string)
     xml_string = parsed_xml.toprettyxml(indent="  ")
     text_re = re.compile(r">\n\s+([^<>\s].*?)\n\s+</", re.DOTALL)
