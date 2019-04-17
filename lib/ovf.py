@@ -1496,17 +1496,16 @@ class ConfigParserWithDefaults(configparser.ConfigParser):
   """This is just a wrapper on ConfigParser, that uses default values
 
   """
-  def get(self, section, options, raw=None, vars=None): # pylint: disable=W0622
+  def get(self, section, options, **kwargs): # pylint: disable=W0622
     try:
-      result = configparser.ConfigParser.get(self, section, options,
-                                                 raw=raw, vars=vars)
+      result = configparser.ConfigParser.get(self, section, options, **kwargs)
     except configparser.NoOptionError:
       result = None
     return result
 
-  def getint(self, section, options):
+  def getint(self, section, options, **kwargs):
     try:
-      result = configparser.ConfigParser.get(self, section, options)
+      result = configparser.ConfigParser.get(self, section, options, **kwargs)
     except configparser.NoOptionError:
       result = 0
     return int(result)
