@@ -2415,10 +2415,10 @@ class Network(TaggableObject):
 
 
 # need to inherit object in order to use super()
-class SerializableConfigParser(configparser.SafeConfigParser, object):
+class SerializableConfigParser(configparser.ConfigParser, object):
   """Simple wrapper over ConfigParse that allows serialization.
 
-  This class is basically ConfigParser.SafeConfigParser with two
+  This class is basically configparser.ConfigParser with two
   additional methods that allow it to serialize/unserialize to/from a
   buffer.
 
