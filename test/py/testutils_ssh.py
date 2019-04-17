@@ -212,8 +212,14 @@ class FakeSshFileManager(object):
     @returns: list of tuples of node name and node information of master
               candidate nodes.
     """
+    # Sort MCs so that the master node comes last
+    # This is implicitly relied upon by the backend unittests
+    # TODO: refine the test infrastructure so that this is not necessary
+    keyfunc = lambda n_ni: n_ni[1].is_master
+
     return [(name, node_info) for name, node_info
-            in self._all_node_data.items() if node_info.is_master_candidate]
+            in sorted(self._all_node_data.items(), key=keyfunc)
+            if node_info.is_master_candidate]
 
   def GetAllNormalNodes(self):
     """Get all normal nodes.
