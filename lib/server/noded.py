@@ -1343,15 +1343,16 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   # If we receive a certificate from the certificate chain that is higher
   # than the lowest element of the chain, we have to check it against the
   # server certificate.
+  cert_digest = cert.digest("sha1").decode("ascii")
   if errdepth > 0:
     server_digest = utils.GetCertificateDigest(
         cert_filename=pathutils.NODED_CERT_FILE)
-    match = cert.digest("sha1") == server_digest
+    match = cert_digest == server_digest
     if not match:
       logging.debug("Received certificate from the certificate chain, which"
                     " does not match the server certficate. Digest of the"
                     " received certificate: %s. Digest of the server"
-                    " certificate: %s.", cert.digest("sha1"), server_digest)
+                    " certificate: %s.", cert_digest, server_digest)
     return match
   elif errdepth == 0:
     sstore = ssconf.SimpleStore()
@@ -1365,11 +1366,11 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
       candidate_certs = {
         constants.CRYPTO_BOOTSTRAP: utils.GetCertificateDigest(
           cert_filename=pathutils.NODED_CERT_FILE)}
-    match = cert.digest("sha1") in candidate_certs.values()
+    match = cert_digest in candidate_certs.values()
     if not match:
       logging.debug("Received certificate which is not a certificate of a"
                     " master candidate. Certificate digest: %s. List of master"
-                    " candidate certificate digests: %s.", cert.digest("sha1"),
+                    " candidate certificate digests: %s.", cert_digest,
                     str(candidate_certs))
     return match
   else:
