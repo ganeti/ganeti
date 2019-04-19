@@ -159,6 +159,7 @@ def AddAuthorizedKeys(file_obj, keys):
 
   if isinstance(file_obj, str):
     f = open(file_obj, "a+")
+    f.seek(0)
   else:
     f = file_obj
 
