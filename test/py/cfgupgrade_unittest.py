@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2010, 2012, 2013, 2014, 2015 Google Inc.

@@ -1525,7 +1525,7 @@ python_scripts_shebang = \
 
 tools/shebang/%: tools/%
 	mkdir -p tools/shebang
-	head -1 $< | sed 's|#!/usr/bin/python|#!$(PYTHON)|' > $@
+	head -1 $< | sed 's|#!/usr/bin/python3|#!$(PYTHON)|' > $@
 	echo '# Generated file; do not edit.' >> $@
 	tail -n +2 $< >> $@
 
