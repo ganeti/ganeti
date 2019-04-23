@@ -139,6 +139,7 @@ class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
     if self._request_msg.start_line:
       request_method = self._request_msg.start_line.method
     else:
+      # We will end up here if we were unable to parse the request.
       request_method = None
 
     response_code = self._response_msg.start_line.code
@@ -157,8 +158,7 @@ class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
     # message-body, [...]"
 
     return (http.HttpMessageWriter.HasMessageBody(self) and
-            (request_method is not None and
-             request_method != http.HTTP_HEAD) and
+            request_method != http.HTTP_HEAD and
             response_code >= http.HTTP_OK and
             response_code not in (http.HTTP_NO_CONTENT,
                                   http.HTTP_NOT_MODIFIED))
@@ -313,6 +313,8 @@ class HttpResponder(object):
         _HandleServerRequestInner(self._handler, request_msg, req_msg_reader)
     except http.HttpException, err:
       self._SetError(self.responses, self._handler, response_msg, err)
+      request_msg = http.HttpMessage()
+      req_msg_reader = None
     else:
       # Only wait for client to close if we didn't have any exception.
       force_close = False
