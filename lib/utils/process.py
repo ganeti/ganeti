@@ -625,13 +625,19 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
           # no data from read signifies EOF (the same as POLLHUP)
           if not data:
             poller.unregister(fd)
+            fdmap[fd][1].close()
             del fdmap[fd]
             continue
           fdmap[fd][0].write(data)
         if (event & select.POLLNVAL or event & select.POLLHUP or
             event & select.POLLERR):
           poller.unregister(fd)
+          fdmap[fd][1].close()
           del fdmap[fd]
+
+    if fdmap:
+      for (_, handle) in fdmap.values():
+        handle.close()
 
   if timeout is not None:
     assert callable(poll_timeout)
