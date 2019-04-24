@@ -32,6 +32,7 @@
 
 
 import os
+import base64
 import unittest
 import time
 import tempfile
@@ -210,6 +211,10 @@ class _SimpleAuthenticator:
 
 
 class TestHttpServerRequestAuthentication(unittest.TestCase):
+  @staticmethod
+  def _b64encode(text):
+    return base64.b64encode(text.encode("ascii")).decode("ascii").strip()
+
   def testNoAuth(self):
     req = http.server._HttpServerRequest("GET", "/", None, None, None)
     _FakeRequestAuth("area1", False, None).PreHandleRequest(req)
@@ -240,7 +245,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
 
   def testAuthForPublicResource(self):
     headers = {
-      http.HTTP_AUTHORIZATION: "Basic %s" % ("foo".encode("base64").strip(), ),
+      http.HTTP_AUTHORIZATION: "Basic %s" % self._b64encode("foo"),
       }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ra = _FakeRequestAuth("area1", False, None)
@@ -249,7 +254,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
   def testAuthForPublicResource(self):
     headers = {
       http.HTTP_AUTHORIZATION:
-        "Basic %s" % ("foo:bar".encode("base64").strip(), ),
+        "Basic %s" % self._b64encode("foo:bar"),
       }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
@@ -264,7 +269,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
   def testInvalidRequestHeader(self):
     checks = {
       http.HttpUnauthorized: ["", "\t", "-", ".", "@", "<", ">", "Digest",
-                              "basic %s" % "foobar".encode("base64").strip()],
+                              "basic %s" % self._b64encode("foobar")],
       http.HttpBadRequest: ["Basic"],
       }
 
@@ -285,7 +290,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
             basic_auth += "WRONG"
           headers = {
               http.HTTP_AUTHORIZATION:
-                "Basic %s" % (basic_auth.encode("base64").strip(), ),
+                "Basic %s" % self._b64encode(basic_auth),
             }
           req = http.server._HttpServerRequest("GET", "/", headers, None, None)
 
