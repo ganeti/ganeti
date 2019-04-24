@@ -520,30 +520,6 @@ class TestClientStartRequest(unittest.TestCase):
                            msg="Previous checks did not consume all options")
           assert id(opts) == id(curl.opts)
 
-  def _TestWrongTypes(self, *args, **kwargs):
-    req = http.client.HttpClientRequest(*args, **kwargs)
-    self.assertRaises(AssertionError, http.client._StartRequest,
-                      _FakeCurl(), req)
-
-  def testWrongHostType(self):
-    self._TestWrongTypes(unicode("localhost"), 8080, "GET", "/version")
-
-  def testWrongUrlType(self):
-    self._TestWrongTypes("localhost", 8080, "GET", unicode("/version"))
-
-  def testWrongMethodType(self):
-    self._TestWrongTypes("localhost", 8080, unicode("GET"), "/version")
-
-  def testWrongHeaderType(self):
-    self._TestWrongTypes("localhost", 8080, "GET", "/version",
-                         headers={
-                           unicode("foo"): "bar",
-                           })
-
-  def testWrongPostDataType(self):
-    self._TestWrongTypes("localhost", 8080, "GET", "/version",
-                         post_data=unicode("verylongdata" * 100))
-
 
 class _EmptyCurlMulti:
   def perform(self):

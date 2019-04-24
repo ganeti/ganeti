@@ -148,7 +148,6 @@ def _StartRequest(curl, req):
   post_data = req.post_data
   headers = req.headers
 
-  # PycURL requires strings to be non-unicode
   assert isinstance(method, str)
   assert isinstance(url, str)
   assert isinstance(post_data, str)
@@ -162,7 +161,7 @@ def _StartRequest(curl, req):
   curl.setopt(pycurl.NOSIGNAL, True)
   curl.setopt(pycurl.USERAGENT, http.HTTP_GANETI_VERSION)
   curl.setopt(pycurl.PROXY, "")
-  curl.setopt(pycurl.CUSTOMREQUEST, str(method))
+  curl.setopt(pycurl.CUSTOMREQUEST, method)
   curl.setopt(pycurl.URL, url)
   curl.setopt(pycurl.POSTFIELDS, post_data)
   curl.setopt(pycurl.HTTPHEADER, headers)
