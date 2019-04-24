@@ -31,7 +31,7 @@
 
 """
 
-import cgi
+import html
 import logging
 import os
 import socket
@@ -341,7 +341,7 @@ class HttpResponder(object):
 
     values = {
       "code": err.code,
-      "message": cgi.escape(message),
+      "message": html.escape(message),
       "explain": longmsg,
       }
 
