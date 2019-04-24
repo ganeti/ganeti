@@ -276,8 +276,8 @@ class HttpServerRequestAuthentication(object):
         # There can not be a valid password for this case
         raise AssertionError("No authentication realm")
 
-      expha1 = md5()
-      expha1.update("%s:%s:%s" % (username, realm, password))
+      digest = "%s:%s:%s" % (username, realm, password)
+      expha1 = md5(digest.encode("ascii"))
 
       return (expected_password.lower() == expha1.hexdigest().lower())
 
