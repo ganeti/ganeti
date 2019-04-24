@@ -2434,7 +2434,7 @@ class SerializableConfigParser(configparser.ConfigParser, object):
     """Load data from a string."""
     buf = StringIO(data)
     cfp = cls()
-    cfp.readfp(buf)
+    cfp.read_file(buf)
     return cfp
 
   def get(self, section, option, **kwargs):
