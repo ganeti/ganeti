@@ -145,6 +145,9 @@ class QmpStub(threading.Thread):
     return (serializer.DumpJson(message) +
             hv_kvm.QmpConnection._MESSAGE_END_TOKEN)
 
+  def shutdown(self):
+    self.socket.close()
+
 
 class TestQmpMessage(testutils.GanetiTestCase):
   def testSerialization(self):
@@ -215,21 +218,26 @@ class TestQmp(testutils.GanetiTestCase):
 
     # Set up the QMP connection
     qmp_connection = hv_kvm.QmpConnection(socket_file.name)
-    qmp_connection.connect()
 
-    # Format the script
-    for request, expected_response in zip(self.REQUESTS,
-                                          self.EXPECTED_RESPONSES):
-      response = qmp_connection.Execute(request["execute"],
-                                        request["arguments"])
-      self.assertEqual(response, expected_response)
-      msg = hv_kvm.QmpMessage({"return": expected_response})
-      self.assertEqual(len(str(msg).splitlines()), 1,
-                       msg="Got multi-line message")
+    try:
+      qmp_connection.connect()
 
-    self.assertRaises(monitor.QmpCommandNotSupported,
-                      qmp_connection.Execute,
+      # Format the script
+      for request, expected_response in zip(self.REQUESTS,
+                                            self.EXPECTED_RESPONSES):
+        response = qmp_connection.Execute(request["execute"],
+                                          request["arguments"])
+        self.assertEqual(response, expected_response)
+        msg = hv_kvm.QmpMessage({"return": expected_response})
+        self.assertEqual(len(str(msg).splitlines()), 1,
+                         msg="Got multi-line message")
+
+      self.assertRaises(monitor.QmpCommandNotSupported,
+                        qmp_connection.Execute,
                       "unsupported-command")
+    finally:
+      qmp_stub.shutdown()
+      qmp_connection.close()
 
   def testQmpContextManager(self):
     # Set up the stub
@@ -238,12 +246,15 @@ class TestQmp(testutils.GanetiTestCase):
     qmp_stub = QmpStub(socket_file.name, self.SERVER_RESPONSES)
     qmp_stub.start()
 
-    # Test the context manager functionality
-    with hv_kvm.QmpConnection(socket_file.name) as qmp:
-      for request, expected_response in zip(self.REQUESTS,
-                                            self.EXPECTED_RESPONSES):
-        response = qmp.Execute(request["execute"], request["arguments"])
-        self.assertEqual(response, expected_response)
+    try:
+      # Test the context manager functionality
+      with hv_kvm.QmpConnection(socket_file.name) as qmp:
+        for request, expected_response in zip(self.REQUESTS,
+                                              self.EXPECTED_RESPONSES):
+          response = qmp.Execute(request["execute"], request["arguments"])
+          self.assertEqual(response, expected_response)
+    finally:
+      qmp_stub.shutdown()
 
 
 class TestConsole(unittest.TestCase):
