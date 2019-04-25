@@ -409,7 +409,8 @@ class TestRunCmd(testutils.GanetiTestCase):
   def testInputFileHandle(self):
     testfile = testutils.TestDataFilename("cert1.pem")
 
-    result = utils.RunCmd(["cat"], input_fd=open(testfile, "r"))
+    with open(testfile, "r") as input_file:
+      result = utils.RunCmd(["cat"], input_fd=input_file)
     self.assertFalse(result.failed)
     self.assertEqual(result.stdout, utils.ReadFile(testfile))
     self.assertEqual(result.stderr, "")
@@ -435,11 +436,12 @@ class TestRunCmd(testutils.GanetiTestCase):
       temp.write("test283523367")
       temp.seek(0)
 
-      result = utils.RunCmd(["/bin/bash", "-c",
-                             ("cat && read -u %s; echo $REPLY" %
-                              temp.fileno())],
-                            input_fd=open(testfile, "r"),
-                            noclose_fds=[temp.fileno()])
+      with open(testfile, "r") as input_file:
+        result = utils.RunCmd(["/bin/bash", "-c",
+                               ("cat && read -u %s; echo $REPLY" %
+                                temp.fileno())],
+                              input_fd=input_file,
+                              noclose_fds=[temp.fileno()])
       self.assertFalse(result.failed)
       self.assertEqual(result.stdout.strip(),
                        utils.ReadFile(testfile) + "test283523367")
@@ -452,8 +454,9 @@ class TestRunCmd(testutils.GanetiTestCase):
                       [], output=self.fname, interactive=True)
 
   def testOutputAndInput(self):
-    self.assertRaises(errors.ProgrammerError, utils.RunCmd,
-                      [], output=self.fname, input_fd=open(self.fname))
+    with open(self.fname) as input_file:
+      self.assertRaises(errors.ProgrammerError, utils.RunCmd,
+                        [], output=self.fname, input_fd=input_file)
 
 
 class TestRunParts(testutils.GanetiTestCase):
@@ -746,11 +749,14 @@ class RunInSeparateProcess(unittest.TestCase):
 class GetCmdline(unittest.TestCase):
   def test(self):
     sample_cmd = "sleep 20; true"
-    pid = subprocess.Popen(sample_cmd, shell=True).pid
+    child = subprocess.Popen(sample_cmd, shell=True)
+    pid = child.pid
     cmdline = utils.GetProcCmdline(pid)
     # As the popen will quote and pass on the sample_cmd, it should be returned
     # by the function as an element in the list of arguments
     self.assertTrue(sample_cmd in cmdline)
+    child.kill()
+    child.wait()
 
 
 if __name__ == "__main__":

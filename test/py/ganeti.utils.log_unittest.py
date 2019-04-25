@@ -112,15 +112,18 @@ class TestLogHandler(unittest.TestCase):
     self.assertEqual(len(utils.ReadFile(tmpfile2.name).splitlines()), 3)
 
   def testConsole(self):
+    temp_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8")
+    failing_file = self._FailingFile(os.devnull, "w")
     for (console, check) in [(None, False),
-                             (tempfile.NamedTemporaryFile(), True),
-                             (self._FailingFile(os.devnull), False)]:
+                             (temp_file, True),
+                             (failing_file, False)]:
       # Create a handler which will fail when handling errors
       cls = utils.log._LogErrorsToConsole(self._FailingHandler)
 
       # Instantiate handler with file which will fail when writing,
       # provoking a write to the console
-      handler = cls(console, self._FailingFile(os.devnull))
+      failing_output = self._FailingFile(os.devnull)
+      handler = cls(console, failing_output)
 
       logger = logging.Logger("TestLogger")
       logger.addHandler(handler)
@@ -133,6 +136,7 @@ class TestLogHandler(unittest.TestCase):
       logger.removeHandler(handler)
       self.assertFalse(logger.handlers)
       handler.close()
+      failing_output.close()
 
       if console and check:
         console.flush()
@@ -141,6 +145,9 @@ class TestLogHandler(unittest.TestCase):
         consout = utils.ReadFile(console.name)
         self.assertTrue("Cannot log message" in consout)
         self.assertTrue("Test message ERROR" in consout)
+
+    temp_file.close()
+    failing_file.close()
 
   class _FailingFile(FileIO):
     def write(self, _):

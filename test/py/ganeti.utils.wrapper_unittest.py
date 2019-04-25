@@ -60,10 +60,16 @@ class TestSetCloseOnExecFlag(unittest.TestCase):
     self.assertFalse(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
                 fcntl.FD_CLOEXEC)
 
+  def tearDown(self):
+    self.tmpfile.close()
+
 
 class TestSetNonblockFlag(unittest.TestCase):
   def setUp(self):
     self.tmpfile = tempfile.TemporaryFile()
+
+  def tearDown(self):
+    self.tmpfile.close()
 
   def testEnable(self):
     utils.SetNonblockFlag(self.tmpfile.fileno(), True)
