@@ -201,19 +201,22 @@ class FakeCurl(object):
 
     if self._opts.get(pycurl.HTTPAUTH, 0) & pycurl.HTTPAUTH_BASIC:
       try:
-        userpwd = self._opts[pycurl.USERPWD]
+        userpwd = self._opts[pycurl.USERPWD].encode("utf-8")
       except KeyError:
         raise errors.ProgrammerError("Basic authentication requires username"
                                      " and password")
 
       headers[http.HTTP_AUTHORIZATION] = \
-        "%s %s" % (http.auth.HTTP_BASIC_AUTH, base64.b64encode(userpwd))
+        "%s %s" % (http.auth.HTTP_BASIC_AUTH,
+                   base64.b64encode(userpwd).decode("ascii"))
 
     path = _GetPathFromUri(url)
     (code, _, resp_body) = \
       self._handler.FetchResponse(path, method, headers, request_body)
 
     self._info[pycurl.RESPONSE_CODE] = code
+    if isinstance(resp_body, bytes):
+      resp_body = resp_body.decode("utf-8")
     if resp_body is not None:
       writefn(resp_body)
 
