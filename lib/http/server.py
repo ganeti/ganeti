@@ -256,7 +256,7 @@ def _HandleServerRequestInner(handler, req_msg, reader):
       logging.exception("Unknown exception")
       raise http.HttpInternalServerError(message="Unknown error")
 
-    if not isinstance(result, str):
+    if not isinstance(result, (str, bytes)):
       raise http.HttpError("Handler function didn't return string type")
 
     return (http.HTTP_OK, handler_context.resp_headers, result)
