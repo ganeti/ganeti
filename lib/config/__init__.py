@@ -2402,7 +2402,8 @@ class ConfigWriter(object):
         mc_max += 1
       if node.master_candidate:
         mc_now += 1
-    mc_should = min(mc_max, self._ConfigData().cluster.candidate_pool_size)
+    pool_size = self._ConfigData().cluster.candidate_pool_size
+    mc_should = mc_max if pool_size is None else min(mc_max, pool_size)
     return (mc_now, mc_should, mc_max)
 
   @ConfigSync(shared=1)
