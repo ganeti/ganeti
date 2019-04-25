@@ -393,7 +393,7 @@ class _RpcProcessor(object):
 
     assert isinstance(body, dict)
     assert len(body) == len(hosts)
-    assert compat.all(isinstance(v, str) for v in body.values())
+    assert compat.all(isinstance(v, (str, bytes)) for v in body.values())
     assert frozenset(h[2] for h in hosts) == frozenset(body), \
         "%s != %s" % (hosts, list(body))
 
@@ -561,7 +561,7 @@ def _PrepareFileUpload(getents_fn, node, filename):
 
   """
   statcb = utils.FileStatHelper()
-  data = _Compress(node, utils.ReadFile(filename, preread=statcb))
+  data = _Compress(node, utils.ReadBinaryFile(filename, preread=statcb))
   st = statcb.st
 
   if getents_fn is None:
