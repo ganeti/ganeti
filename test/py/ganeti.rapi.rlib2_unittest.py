@@ -1414,7 +1414,7 @@ class TestNodeRole(RAPITestCase):
         else:
           self.fail("Unknown role '%s'" % role)
 
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+        self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestSimpleResources(RAPITestCase):
