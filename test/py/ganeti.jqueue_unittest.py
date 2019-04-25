@@ -1594,17 +1594,17 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
 
     if self.curop == 1:
       # Normal retry
-      timeouts = range(10, 31, 10)
+      timeouts = list(range(10, 31, 10))
       self.retries = len(timeouts) - 1
 
     elif self.curop == 2:
       # Let this run into a blocking acquire
-      timeouts = range(11, 61, 12)
+      timeouts = list(range(11, 61, 12))
       self.retries = len(timeouts)
 
     elif self.curop == 3:
       # Wait for priority to increase, but give lock before blocking acquire
-      timeouts = range(12, 100, 14)
+      timeouts = list(range(12, 100, 14))
       self.retries = len(timeouts)
 
       self.assertFalse(self.done_lock_before_blocking)
@@ -1613,12 +1613,12 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
       self.assertTrue(self.done_lock_before_blocking)
 
       # Timeouts, but no need to retry
-      timeouts = range(10, 31, 10)
+      timeouts = list(range(10, 31, 10))
       self.retries = 0
 
     elif self.curop == 5:
       # Normal retry
-      timeouts = range(19, 100, 11)
+      timeouts = list(range(19, 100, 11))
       self.retries = len(timeouts)
 
     else:

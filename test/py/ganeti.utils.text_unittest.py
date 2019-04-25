@@ -627,7 +627,7 @@ class TestTruncate(unittest.TestCase):
     for (length, exp) in [(8, "T\u00e4st\u2026xyz"), (7, "T\u00e4st...")]:
       self.assertEqual(self._Test("T\u00e4st\u2026xyz", length), exp)
 
-    self.assertEqual(self._Test(range(100), 20), "[0, 1, 2, 3, 4, 5...")
+    self.assertEqual(self._Test(list(range(100)), 20), "[0, 1, 2, 3, 4, 5...")
 
   def testError(self):
     for i in range(4):

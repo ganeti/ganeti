@@ -998,7 +998,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     if ((self.op.node_uuids or self.op.iallocator) and
-         sorted(self.disks.keys()) != range(len(instance.disks))):
+         sorted(self.disks.keys()) != list(range(len(instance.disks)))):
       raise errors.OpPrereqError("Can't recreate disks partially and"
                                  " change the nodes at the same time",
                                  errors.ECODE_INVAL)
@@ -2401,7 +2401,7 @@ class TLReplaceDisks(Tasklet):
 
       # If not specified all disks should be replaced
       if not self.disks:
-        self.disks = range(len(self.instance.disks))
+        self.disks = list(range(len(self.instance.disks)))
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     if (not disks or

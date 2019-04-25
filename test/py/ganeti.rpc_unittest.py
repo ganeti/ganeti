@@ -321,7 +321,7 @@ class TestRpcProcessor(unittest.TestCase):
   def testResponseBody(self):
     test_data = {
       "Hello": "World",
-      "xyz": range(10),
+      "xyz": list(range(10)),
       }
     resolver = rpc._StaticResolver(["192.0.2.84"])
     http_proc = _FakeRequestProcessor(compat.partial(self._GetBodyTestResponse,
@@ -703,7 +703,7 @@ class TestRpcClientBase(unittest.TestCase):
       (True, None, True),
       (0, None, 0),
       (_DynamicResolverOptions, [1, 2, 3], 6),
-      (_DynamicResolverOptions, range(4, 19), 165),
+      (_DynamicResolverOptions, list(range(4, 19)), 165),
       ]
 
     for (resolver_opts, arg0, expected) in tests:

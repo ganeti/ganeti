@@ -1206,7 +1206,7 @@ class TestInstanceReplaceDisks(RAPITestCase):
   def test(self):
     name = "inst22568"
 
-    for disks in [range(1, 4), "1,2,3", "1, 2, 3"]:
+    for disks in [list(range(1, 4)), "1,2,3", "1, 2, 3"]:
       data = {
         "mode": constants.REPLACE_DISK_SEC,
         "disks": disks,

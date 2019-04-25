@@ -127,7 +127,7 @@ class TestTypeChecks(unittest.TestCase):
     self.assertFalse(fn("e"))
 
   def testList(self):
-    for val in [[], range(10), ["Hello", "World", "!"]]:
+    for val in [[], list(range(10)), ["Hello", "World", "!"]]:
       self.assertTrue(ht.TList(val))
 
     for val in [False, True, None, {}, 0, 1, 5, -193, 93.8582]:
@@ -229,7 +229,7 @@ class TestTypeChecks(unittest.TestCase):
     fn = ht.TStrictDict(False, True, { "a": ht.TInt, "b": ht.TList, })
     self.assertTrue(fn({}))
     self.assertTrue(fn({"a": 123, }))
-    self.assertTrue(fn({"b": range(4), }))
+    self.assertTrue(fn({"b": list(range(4)), }))
     self.assertFalse(fn({"b": 123, }))
 
     self.assertFalse(fn({"foo": {}, }))
