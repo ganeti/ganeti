@@ -1010,10 +1010,8 @@ def _GetInstDiskMagic(base, instance_name, index):
 
   """
   h = sha1()
-  h.update(str(constants.RIE_VERSION))
-  h.update(base)
-  h.update(instance_name)
-  h.update(str(index))
+  for value in (str(constants.RIE_VERSION), base, instance_name, str(index)):
+    h.update(value.encode("utf-8"))
   return h.hexdigest()
 
 
