@@ -290,7 +290,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
                                  line=lineno)
     return ([inliner.problematic(rawtext, rawtext, msg)], [msg])
 
-  node = docutils.nodes.literal("", unicode(result), **options)
+  node = docutils.nodes.literal("", str(result), **options)
 
   return ([node], [])
 
