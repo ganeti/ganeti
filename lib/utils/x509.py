@@ -201,7 +201,8 @@ def SignX509Certificate(cert, key, salt):
     raise errors.GenericError("Invalid salt: %r" % salt)
 
   # Dumping as PEM here ensures the certificate is in a sane format
-  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                             cert).decode("ascii")
 
   return ("%s: %s/%s\n\n%s" %
           (constants.X509_CERT_SIGNATURE_HEADER, salt,
@@ -213,6 +214,9 @@ def _ExtractX509CertificateSignature(cert_pem):
   """Helper function to extract signature from X509 certificate.
 
   """
+  if isinstance(cert_pem, bytes):
+    cert_pem = cert_pem.decode("ascii")
+
   # Extract signature from original PEM data
   for line in cert_pem.splitlines():
     if line.startswith("---"):
