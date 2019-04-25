@@ -62,7 +62,7 @@ class TestX509Certificates(unittest.TestCase):
   def test(self):
     (name, cert_pem) = backend.CreateX509Certificate(300, cryptodir=self.tmpdir)
 
-    self.assertEqual(utils.ReadFile(os.path.join(self.tmpdir, name,
+    self.assertEqual(utils.ReadBinaryFile(os.path.join(self.tmpdir, name,
                                                  backend._X509_CERT_FILE)),
                      cert_pem)
     self.assertTrue(0 < os.path.getsize(os.path.join(self.tmpdir, name,

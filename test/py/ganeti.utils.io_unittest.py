@@ -322,7 +322,7 @@ class TestWriteFile(testutils.GanetiTestCase):
     self.assertEqual(utils.ReadFile(self.tfile.name), data)
 
   def testWriteSimpleUnicode(self):
-    data = "abc"
+    data = "αβγ"
     utils.WriteFile(self.tfile.name, data=data)
     self.assertEqual(utils.ReadFile(self.tfile.name), data)
 
@@ -361,7 +361,7 @@ class TestWriteFile(testutils.GanetiTestCase):
 
   def testDryRun(self):
     orig = "abc"
-    self.tfile.write(orig)
+    self.tfile.write(orig.encode())
     self.tfile.flush()
     utils.WriteFile(self.tfile.name, data="hello", dry_run=True)
     self.assertEqual(utils.ReadFile(self.tfile.name), orig)
@@ -376,7 +376,7 @@ class TestWriteFile(testutils.GanetiTestCase):
       self.assertEqual(st.st_mtime, mt)
 
   def testNoClose(self):
-    data = "hello"
+    data = b"hello"
     self.assertEqual(utils.WriteFile(self.tfile.name, data="abc"), None)
     fd = utils.WriteFile(self.tfile.name, data=data, close=False)
     try:

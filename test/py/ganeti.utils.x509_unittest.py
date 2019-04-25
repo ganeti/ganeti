@@ -124,7 +124,7 @@ class TestSignX509Certificate(unittest.TestCase):
     self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
                       "X-Ganeti-Signature: $1234567890$abcdef\n", self.KEY)
     self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
-                      "X-Ganeti-Signature: $1234$abc\n\n" + cert_pem, self.KEY)
+                      b"X-Ganeti-Signature: $1234$abc\n\n" + cert_pem, self.KEY)
 
     # Invalid salt
     for salt in list("-_@$,:;/\\ \t\n"):
@@ -134,7 +134,7 @@ class TestSignX509Certificate(unittest.TestCase):
     for salt in ["HelloWorld", "salt", string.ascii_letters, string.digits,
                  utils.GenerateSecret(numbytes=4),
                  utils.GenerateSecret(numbytes=16),
-                 "{123:456}".encode("hex")]:
+                 "{123:456}".encode("ascii").hex()]:
       signed_pem = utils.SignX509Certificate(cert, self.KEY, salt)
 
       self._Check(cert, salt, signed_pem)

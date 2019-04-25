@@ -493,7 +493,7 @@ class TestCompress(unittest.TestCase):
       self.assertEqual(rpc._Compress(NotImplemented, data),
                        (constants.RPC_ENCODING_NONE, data))
 
-    for data in [512 * " ", 5242 * "Hello World!\n"]:
+    for data in [512 * b" ", 5242 * b"Hello World!\n"]:
       compressed = rpc._Compress(NotImplemented, data)
       self.assertEqual(len(compressed), 2)
       self.assertEqual(backend._Decompress(compressed), data)
@@ -759,7 +759,7 @@ class _FakeConfigForRpcRunner:
 
 class TestRpcRunner(unittest.TestCase):
   def testUploadFile(self):
-    data = 1779 * "Hello World\n"
+    data = 1779 * b"Hello World\n"
 
     tmpfile = tempfile.NamedTemporaryFile()
     tmpfile.write(data)
@@ -774,7 +774,9 @@ class TestRpcRunner(unittest.TestCase):
       (uldata, ) = serializer.LoadJson(req.post_data)
       self.assertEqual(len(uldata), 7)
       self.assertEqual(uldata[0], tmpfile.name)
-      self.assertEqual(list(uldata[1]), list(rpc._Compress(nodes[0], data)))
+      compressed = [x.decode("ascii") if isinstance(x, bytes) else x
+                    for x in rpc._Compress(nodes[0], data)]
+      self.assertEqual(list(uldata[1]), compressed)
       self.assertEqual(uldata[2], st.st_mode)
       self.assertEqual(uldata[3], "user%s" % os.getuid())
       self.assertEqual(uldata[4], "group%s" % os.getgid())

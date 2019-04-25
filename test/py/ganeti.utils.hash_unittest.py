@@ -106,7 +106,7 @@ class TestFingerprintFiles(unittest.TestCase):
     self.assertEqual(utils.hash._FingerprintFile("/no/such/file"), None)
 
   def testBigFile(self):
-    self.tmpfile.write("A" * 8192)
+    self.tmpfile.write(b"A" * 8192)
     self.tmpfile.flush()
     self.assertEqual(utils.hash._FingerprintFile(self.tmpfile.name),
                      "35b6795ca20d6dc0aff8c7c110c96cd1070b8c38")

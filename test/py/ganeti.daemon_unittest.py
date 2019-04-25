@@ -164,7 +164,8 @@ class _MyAsyncUDPSocket(daemon.AsyncUDPSocket):
     self.error_count = 0
 
   def handle_datagram(self, payload, ip, port):
-    self.received.append((payload))
+    payload = payload.decode("utf-8")
+    self.received.append(payload)
     if payload == "terminate":
       os.kill(os.getpid(), signal.SIGTERM)
     elif payload == "error":
