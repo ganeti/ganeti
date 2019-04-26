@@ -634,7 +634,7 @@ def WriteCompletion(sw, scriptname, funcname, support_debug,
       # We're doing options and arguments to commands
       sw.Write("""case "${COMP_WORDS[1]}" in""")
       sort_grouped = sorted(grouped_cmds.items(),
-                            key=lambda (_, y): sorted(y)[0])
+                            key=lambda _y: sorted(_y[1])[0])
       for ((argdef, optdef), cmds) in sort_grouped:
         assert argdef or optdef
         sw.Write("%s)", "|".join(map(utils.ShellQuote, sorted(cmds))))
