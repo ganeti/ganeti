@@ -8,7 +8,9 @@ PartOf = ganeti-noded.target
 [Service]
 Type = simple
 Group = @GNTDAEMONSGROUP@
-ExecStart = @SBINDIR@/ganeti-kvmd -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-kvmd.onetime.conf
+ExecStart = @SBINDIR@/ganeti-kvmd -f $KVMD_ARGS $ONETIME_ARGS
 Restart = on-failure
 
 [Install]

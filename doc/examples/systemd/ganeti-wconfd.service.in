@@ -10,7 +10,9 @@ ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
 Type = simple
 User = @GNTWCONFDUSER@
 Group = @GNTWCONFDGROUP@
-ExecStart = @SBINDIR@/ganeti-wconfd -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-wconfd.onetime.conf
+ExecStart = @SBINDIR@/ganeti-wconfd -f $WCONFD_ARGS $ONETIME_ARGS
 Restart = on-failure
 SuccessExitStatus = 0 11
 

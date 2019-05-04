@@ -9,7 +9,9 @@ PartOf = ganeti-node.target
 Type = simple
 User = @GNTMONDUSER@
 Group = @GNTMONDGROUP@
-ExecStart = @SBINDIR@/ganeti-mond -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-mond.onetime.conf
+ExecStart = @SBINDIR@/ganeti-mond -f $MOND_ARGS $ONETIME_ARGS
 Restart = on-failure
 
 [Install]

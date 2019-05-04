@@ -10,7 +10,9 @@ ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
 Type = simple
 User = @GNTCONFDUSER@
 Group = @GNTCONFDGROUP@
-ExecStart = @SBINDIR@/ganeti-confd -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-confd.onetime.conf
+ExecStart = @SBINDIR@/ganeti-confd -f $CONFD_ARGS $ONETIME_ARGS
 Restart = on-failure
 
 [Install]
