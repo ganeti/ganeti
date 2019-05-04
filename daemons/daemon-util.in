@@ -287,7 +287,13 @@ start() {
   local daemonexec=$(_daemon_executable $name)
 
   if use_systemctl; then
+    local onetime_conf="${DATA_DIR}/${name}.onetime.conf"
+    echo "ONETIME_ARGS=$@" > "$onetime_conf"
+
     systemctl start "${name}.service"
+    ret=$?
+
+    rm -f "$onetime_conf"
     return $?
   fi
 

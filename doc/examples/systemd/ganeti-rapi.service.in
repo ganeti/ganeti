@@ -11,7 +11,9 @@ ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/rapi.pem
 Type = simple
 User = @GNTRAPIUSER@
 Group = @GNTRAPIGROUP@
-ExecStart = @SBINDIR@/ganeti-rapi -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-rapi.onetime.conf
+ExecStart = @SBINDIR@/ganeti-rapi -f $RAPI_ARGS $ONETIME_ARGS
 SuccessExitStatus = 0 11
 Restart = on-failure
 

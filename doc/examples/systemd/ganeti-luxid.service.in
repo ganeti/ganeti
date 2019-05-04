@@ -10,7 +10,9 @@ ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
 Type = simple
 User = @GNTLUXIDUSER@
 Group = @GNTLUXIDGROUP@
-ExecStart = @SBINDIR@/ganeti-luxid -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-luxid.onetime.conf
+ExecStart = @SBINDIR@/ganeti-luxid -f $LUXID_ARGS $ONETIME_ARGS
 Restart = on-failure
 SuccessExitStatus = 0 11
 

@@ -10,7 +10,9 @@ ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/server.pem
 Type = simple
 User = @GNTNODEDUSER@
 Group = @GNTNODEDGROUP@
-ExecStart = @SBINDIR@/ganeti-noded -f
+EnvironmentFile = -@SYSCONFDIR@/default/ganeti
+EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-noded.onetime.conf
+ExecStart = @SBINDIR@/ganeti-noded -f $NODED_ARGS $ONETIME_ARGS
 Restart = on-failure
 # Important: do not kill any KVM processes
 KillMode = process
