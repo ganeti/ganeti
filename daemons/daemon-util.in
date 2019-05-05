@@ -441,7 +441,13 @@ rotate_all_logs() {
 
 # Reloads the SSH keys
 reload_ssh_keys() {
-  @RPL_SSH_INITD_SCRIPT@ restart
+  local ssh_initd_script=@RPL_SSH_INITD_SCRIPT@
+
+  if use_systemctl; then
+    systemctl restart ${ssh_initd_script##*/}.service
+  else
+    $ssh_initd_script restart
+  fi
 }
 
 # Read @SYSCONFDIR@/rc.d/init.d/functions if start-stop-daemon not available
