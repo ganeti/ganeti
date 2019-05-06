@@ -162,7 +162,7 @@ class LUNetworkAdd(LogicalUnit):
     # Initialize the associated address pool
     try:
       pool = network.AddressPool.InitializeNetwork(nobj)
-    except errors.AddressPoolError, err:
+    except errors.AddressPoolError as err:
       raise errors.OpExecError("Cannot create IP address pool for network"
                                " '%s': %s" % (self.op.network_name, err))
 
@@ -177,7 +177,7 @@ class LUNetworkAdd(LogicalUnit):
               pool.Reserve(ip, external=True)
               self.LogInfo("Reserved IP address of node '%s' (%s)",
                            node.name, ip)
-          except errors.AddressPoolError, err:
+          except errors.AddressPoolError as err:
             self.LogWarning("Cannot reserve IP address '%s' of node '%s': %s",
                             ip, node.name, err)
 
@@ -186,7 +186,7 @@ class LUNetworkAdd(LogicalUnit):
         if pool.Contains(master_ip):
           pool.Reserve(master_ip, external=True)
           self.LogInfo("Reserved cluster master IP address (%s)", master_ip)
-      except errors.AddressPoolError, err:
+      except errors.AddressPoolError as err:
         self.LogWarning("Cannot reserve cluster master IP address (%s): %s",
                         master_ip, err)
 
@@ -194,7 +194,7 @@ class LUNetworkAdd(LogicalUnit):
       for ip in self.op.add_reserved_ips:
         try:
           pool.Reserve(ip, external=True)
-        except errors.AddressPoolError, err:
+        except errors.AddressPoolError as err:
           raise errors.OpExecError("Cannot reserve IP address '%s': %s" %
                                    (ip, err))
 
@@ -370,7 +370,7 @@ class LUNetworkSetParams(LogicalUnit):
       for ip in self.op.add_reserved_ips:
         try:
           self.pool.Reserve(ip, external=True)
-        except errors.AddressPoolError, err:
+        except errors.AddressPoolError as err:
           self.LogWarning("Cannot reserve IP address %s: %s", ip, err)
 
     if self.op.remove_reserved_ips:
@@ -380,7 +380,7 @@ class LUNetworkSetParams(LogicalUnit):
           continue
         try:
           self.pool.Release(ip, external=True)
-        except errors.AddressPoolError, err:
+        except errors.AddressPoolError as err:
           self.LogWarning("Cannot release IP address %s: %s", ip, err)
 
     if self.op.mac_prefix:

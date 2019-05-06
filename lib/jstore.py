@@ -52,14 +52,14 @@ def _ReadNumericFile(file_name):
   """
   try:
     contents = utils.ReadFile(file_name)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno in (errno.ENOENT, ):
       return None
     raise
 
   try:
     return int(contents)
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError) as err:
     # Couldn't convert to int
     raise errors.JobQueueError("Content of file '%s' is not numeric: %s" %
                                (file_name, err))
@@ -222,7 +222,7 @@ def GetArchiveDirectory(job_id):
   @return: Directory name
 
   """
-  return str(ParseJobId(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
+  return str(ParseJobId(job_id) // JOBS_PER_ARCHIVE_DIRECTORY)
 
 
 def ParseJobId(job_id):

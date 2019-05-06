@@ -49,7 +49,7 @@ def LockFile(fd):
   """
   try:
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-  except IOError, err:
+  except IOError as err:
     if err.errno == errno.EAGAIN:
       raise errors.LockError("File already locked")
     raise
@@ -82,8 +82,8 @@ class FileLock(object):
     # Using "os.open" is necessary to allow both opening existing file
     # read/write and creating if not existing. Vanilla "open" will truncate an
     # existing file -or- allow creating if not existing.
-    return cls(os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT, 0664), "w+"),
-               filename)
+    _flags = os.O_RDWR | os.O_CREAT
+    return cls(os.fdopen(os.open(filename, _flags, 0o664), "w+"), filename)
 
   def __del__(self):
     self.Close()
@@ -132,7 +132,7 @@ class FileLock(object):
   def _Lock(fd, flag, timeout):
     try:
       fcntl.flock(fd, flag)
-    except IOError, err:
+    except IOError as err:
       if timeout is not None and err.errno == errno.EAGAIN:
         raise retry.RetryAgain()
 

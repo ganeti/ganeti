@@ -131,7 +131,7 @@ def _ConvertRegexpValue(_, loc, toks):
   # Test if valid
   try:
     re.compile(re_cond)
-  except re.error, err:
+  except re.error as err:
     raise pyp.ParseFatalException("Invalid regular expression (%s)" % err, loc)
 
   return [re_cond]
@@ -157,7 +157,7 @@ def BuildFilterParser():
 
   # Boolean condition
   bool_cond = field_name.copy()
-  bool_cond.setParseAction(lambda (fname, ): [[OP_TRUE, fname]])
+  bool_cond.setParseAction(lambda toks: [[OP_TRUE, toks[0]]])
 
   # Simple binary conditions
   binopstbl = {
@@ -171,16 +171,21 @@ def BuildFilterParser():
     }
 
   binary_cond = (field_name + pyp.oneOf(binopstbl.keys()) + rval)
-  binary_cond.setParseAction(lambda (lhs, op, rhs): [[binopstbl[op], lhs, rhs]])
+  binary_cond.setParseAction(lambda lhs_op_rhs: [[binopstbl[lhs_op_rhs[1]],
+                                                 lhs_op_rhs[0],
+                                                 lhs_op_rhs[2]]])
 
   # "in" condition
   in_cond = (rval + pyp.Suppress("in") + field_name)
-  in_cond.setParseAction(lambda (value, field): [[OP_CONTAINS, field, value]])
+  in_cond.setParseAction(lambda value_field: [[OP_CONTAINS,
+                                               value_field[1],
+                                               value_field[0]]])
 
   # "not in" condition
   not_in_cond = (rval + pyp.Suppress("not") + pyp.Suppress("in") + field_name)
-  not_in_cond.setParseAction(lambda (value, field): [[OP_NOT, [OP_CONTAINS,
-                                                               field, value]]])
+  not_in_cond.setParseAction(lambda value_field: [[OP_NOT, [OP_CONTAINS,
+                                                            value_field[1],
+                                                            value_field[0]]]])
 
   # Regular expression, e.g. m/foobar/i
   regexp_val = pyp.Group(pyp.Optional("m").suppress() +
@@ -189,22 +194,25 @@ def BuildFilterParser():
                          pyp.Optional(pyp.Word(pyp.alphas), default=""))
   regexp_val.setParseAction(_ConvertRegexpValue)
   regexp_cond = (field_name + pyp.Suppress("=~") + regexp_val)
-  regexp_cond.setParseAction(lambda (field, value): [[OP_REGEXP, field, value]])
+  regexp_cond.setParseAction(lambda field_value: [[OP_REGEXP, field_value[0],
+                                                   field_value[1]]])
 
   not_regexp_cond = (field_name + pyp.Suppress("!~") + regexp_val)
-  not_regexp_cond.setParseAction(lambda (field, value):
-                                 [[OP_NOT, [OP_REGEXP, field, value]]])
+  not_regexp_cond.setParseAction(lambda field_value:
+                                 [[OP_NOT, [OP_REGEXP, field_value[0],
+                                            field_value[1]]]])
 
   # Globbing, e.g. name =* "*.site"
   glob_cond = (field_name + pyp.Suppress("=*") + quoted_string)
-  glob_cond.setParseAction(lambda (field, value):
-                           [[OP_REGEXP, field,
-                             utils.DnsNameGlobPattern(value)]])
+  glob_cond.setParseAction(lambda field_value:
+                           [[OP_REGEXP, field_value[0],
+                             utils.DnsNameGlobPattern(field_value[1])]])
 
   not_glob_cond = (field_name + pyp.Suppress("!*") + quoted_string)
-  not_glob_cond.setParseAction(lambda (field, value):
-                               [[OP_NOT, [OP_REGEXP, field,
-                                          utils.DnsNameGlobPattern(value)]]])
+  not_glob_cond.setParseAction(lambda field_value:
+                               [[OP_NOT,
+                                 [OP_REGEXP, field_value[0],
+                                  utils.DnsNameGlobPattern(field_value[1])]]])
 
   # All possible conditions
   condition = (binary_cond ^ bool_cond ^
@@ -248,7 +256,7 @@ def ParseFilter(text, parser=None):
 
   try:
     return parser.parseString(text)[0]
-  except pyp.ParseBaseException, err:
+  except pyp.ParseBaseException as err:
     raise errors.QueryFilterParseError("Failed to parse query filter"
                                        " '%s': %s" % (text, err), err)
 
@@ -278,7 +286,7 @@ def _MakeFilterPart(namefield, text, isnumeric=False):
   if isnumeric:
     try:
       number = int(text)
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       raise errors.OpPrereqError("Invalid job ID passed: %s" % str(err),
                                  errors.ECODE_INVAL)
     return [OP_EQUAL, namefield, number]

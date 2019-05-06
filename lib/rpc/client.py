@@ -55,7 +55,7 @@ def ParseRequest(msg):
   """
   try:
     request = serializer.LoadJson(msg)
-  except ValueError, err:
+  except ValueError as err:
     raise ProtocolError("Invalid RPC request (parsing error): %s" % err)
 
   logging.debug("RPC request: %s", request)
@@ -85,7 +85,7 @@ def ParseResponse(msg):
     data = serializer.LoadJson(msg)
   except KeyboardInterrupt:
     raise
-  except Exception, err:
+  except Exception as err:
     raise ProtocolError("Error while deserializing response: %s" % str(err))
 
   # Validate response

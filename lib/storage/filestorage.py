@@ -165,7 +165,7 @@ class FileDeviceHelper(object):
       f = open(self.path, "a+")
       f.truncate(new_size)
       f.close()
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       base.ThrowError("%s: can't grow: ", self.path, str(err))
 
   def Move(self, new_path):
@@ -178,7 +178,7 @@ class FileDeviceHelper(object):
     try:
       os.rename(self.path, new_path)
       self.path = new_path
-    except OSError, err:
+    except OSError as err:
       base.ThrowError("%s: can't rename to %s: ", str(err), new_path)
 
 
@@ -322,13 +322,13 @@ def GetFileStorageSpaceInfo(path):
   """
   try:
     result = os.statvfs(path)
-    free = (result.f_frsize * result.f_bavail) / (1024 * 1024)
-    size = (result.f_frsize * result.f_blocks) / (1024 * 1024)
+    free = (result.f_frsize * result.f_bavail) // (1024 * 1024)
+    size = (result.f_frsize * result.f_blocks) // (1024 * 1024)
     return {"type": constants.ST_FILE,
             "name": path,
             "storage_size": size,
             "storage_free": free}
-  except OSError, e:
+  except OSError as e:
     raise errors.CommandError("Failed to retrieve file system information about"
                               " path: %s - %s" % (path, e.strerror))
 

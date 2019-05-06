@@ -137,7 +137,7 @@ def Main():
     else:
       raise SslSetupError("Unsupported action: %s." % action)
 
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.debug("Caught unhandled exception", exc_info=True)
 
     (retcode, message) = cli.FormatError(err)

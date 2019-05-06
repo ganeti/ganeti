@@ -368,8 +368,8 @@ class TestCfgupgrade(unittest.TestCase):
     self.assertEqual(lines.pop(0), self.tmpdir)
     self.assertEqual(lines.pop(0), "/tmp")
     self.assertFalse(lines)
-    self.assertEqual(os.stat(self.file_storage_paths).st_mode & 0777,
-                     0600, msg="Wrong permissions")
+    self.assertEqual(os.stat(self.file_storage_paths).st_mode & 0o777,
+                     0o600, msg="Wrong permissions")
 
   def testFileStoragePathsSharedOnly(self):
     self.assertFalse(os.path.exists(self.file_storage_paths))

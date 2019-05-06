@@ -320,7 +320,7 @@ Python
 
   import urllib2
   f = urllib2.urlopen('https://CLUSTERNAME:5080/2/info')
-  print f.read()
+  print(f.read())
 
 
 JavaScript

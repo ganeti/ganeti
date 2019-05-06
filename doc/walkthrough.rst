@@ -1052,7 +1052,7 @@ import path for Ganeti's modules using the following command (note that
 depending on your setup you might have to use an explicit version in the
 Python command, e.g. ``python2.6``)::
 
-  python -c 'import ganeti; print ganeti.__file__'
+  python -c 'import ganeti; print(ganeti.__file__)'
 
 .. vim: set textwidth=72 :
 .. Local Variables:

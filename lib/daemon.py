@@ -30,6 +30,7 @@
 
 """Module with helper classes and functions for daemons"""
 
+from __future__  import print_function
 
 import asyncore
 import asynchat
@@ -721,7 +722,7 @@ def GenericMain(daemon_name, optionparser,
     if options.bind_address != default_bind_address:
       msg = ("Can't specify both, bind address (%s) and bind interface (%s)" %
              (options.bind_address, options.bind_interface))
-      print >> sys.stderr, msg
+      print(msg, file=sys.stderr)
       sys.exit(constants.EXIT_FAILURE)
     interface_ip_addresses = \
       netutils.GetInterfaceIpAddresses(options.bind_interface)
@@ -731,7 +732,7 @@ def GenericMain(daemon_name, optionparser,
       if_addresses = interface_ip_addresses[constants.IP4_VERSION]
     if len(if_addresses) < 1:
       msg = "Failed to find IP for interface %s" % options.bind_interace
-      print >> sys.stderr, msg
+      print(msg, file=sys.stderr)
       sys.exit(constants.EXIT_FAILURE)
     options.bind_address = if_addresses[0]
 
@@ -743,7 +744,7 @@ def GenericMain(daemon_name, optionparser,
 
     for name, path in ssl_paths.iteritems():
       if not os.path.isfile(path):
-        print >> sys.stderr, "SSL %s file '%s' was not found" % (name, path)
+        print("SSL %s file '%s' was not found" % (name, path), file=sys.stderr)
         sys.exit(constants.EXIT_FAILURE)
 
     # TODO: By initiating http.HttpSslParams here we would only read the files
@@ -754,7 +755,7 @@ def GenericMain(daemon_name, optionparser,
   if not result:
     msg = ("%s started using wrong user ID (%d), expected %d" %
            (daemon_name, running_uid, expected_uid))
-    print >> sys.stderr, msg
+    print(msg, file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   if check_fn is not None:
@@ -802,8 +803,8 @@ def GenericMain(daemon_name, optionparser,
 
   try:
     utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
-  except errors.PidFileLockError, err:
-    print >> sys.stderr, "Error while locking PID file:\n%s" % err
+  except errors.PidFileLockError as err:
+    print("Error while locking PID file:\n%s" % err, file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   try:
@@ -813,7 +814,7 @@ def GenericMain(daemon_name, optionparser,
         prep_results = prepare_fn(options, args)
       else:
         prep_results = None
-    except Exception, err:
+    except Exception as err:
       utils.WriteErrorToFD(wpipe, _BeautifyError(err))
       raise
 

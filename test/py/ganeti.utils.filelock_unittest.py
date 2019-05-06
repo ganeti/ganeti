@@ -100,7 +100,7 @@ class _BaseFileLockTest:
       # The timeout doesn't really matter as the parent process waits for us to
       # finish anyway.
       fn(blocking=blocking, timeout=0.01)
-    except errors.LockError, err:
+    except errors.LockError as err:
       return False
 
     return True

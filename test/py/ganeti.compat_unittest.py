@@ -30,6 +30,7 @@
 
 """Script for unittesting the compat module"""
 
+import inspect
 import unittest
 
 from ganeti import compat
@@ -121,7 +122,7 @@ class TestUniqueFrozenset(unittest.TestCase):
 
   def testGenerator(self):
     seq = ("Foo%s" % i for i in range(10))
-    self.assertTrue(callable(seq.next))
+    self.assertTrue(inspect.isgenerator(seq))
     self.assertFalse(isinstance(seq, (list, tuple)))
     self.assertEqual(compat.UniqueFrozenset(seq),
                      frozenset(["Foo%s" % i for i in range(10)]))

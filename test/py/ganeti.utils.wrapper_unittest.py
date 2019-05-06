@@ -152,7 +152,7 @@ class TestIsExecutable(unittest.TestCase):
 
   def testExecutable(self):
     fname = utils.PathJoin(self.tmpdir, "file")
-    utils.WriteFile(fname, data="#!/bin/bash", mode=0700)
+    utils.WriteFile(fname, data="#!/bin/bash", mode=0o700)
     assert os.path.exists(fname)
     self.assertTrue(utils.IsExecutable(fname))
 
@@ -160,7 +160,7 @@ class TestIsExecutable(unittest.TestCase):
 
   def testFileNotExecutable(self):
     fname = utils.PathJoin(self.tmpdir, "file")
-    utils.WriteFile(fname, data="#!/bin/bash", mode=0600)
+    utils.WriteFile(fname, data="#!/bin/bash", mode=0o600)
     assert os.path.exists(fname)
     self.assertFalse(utils.IsExecutable(fname))
 

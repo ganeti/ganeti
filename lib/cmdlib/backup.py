@@ -237,7 +237,7 @@ class LUBackupExport(LogicalUnit):
       # Check X509 key name
       try:
         (key_name, hmac_digest, hmac_salt) = self.x509_key_name
-      except (TypeError, ValueError), err:
+      except (TypeError, ValueError) as err:
         raise errors.OpPrereqError("Invalid data for X509 key name: %s" % err,
                                    errors.ECODE_INVAL)
 
@@ -248,7 +248,7 @@ class LUBackupExport(LogicalUnit):
       # Load and verify CA
       try:
         (cert, _) = utils.LoadSignedX509Certificate(self.dest_x509_ca_pem, cds)
-      except OpenSSL.crypto.Error, err:
+      except OpenSSL.crypto.Error as err:
         raise errors.OpPrereqError("Unable to load destination X509 CA (%s)" %
                                    (err, ), errors.ECODE_INVAL)
 
@@ -265,7 +265,7 @@ class LUBackupExport(LogicalUnit):
         try:
           (host, port, magic) = \
             masterd.instance.CheckRemoteExportDiskInfo(cds, idx, disk_data)
-        except errors.GenericError, err:
+        except errors.GenericError as err:
           raise errors.OpPrereqError("Target info for disk %s: %s" %
                                      (idx, err), errors.ECODE_INVAL)
 

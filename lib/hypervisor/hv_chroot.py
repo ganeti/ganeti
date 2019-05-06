@@ -160,7 +160,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     if not os.path.exists(root_dir):
       try:
         os.mkdir(root_dir)
-      except IOError, err:
+      except IOError as err:
         raise HypervisorError("Failed to start instance %s: %s" %
                               (instance.name, err))
       if not os.path.isdir(root_dir):

@@ -295,7 +295,7 @@ class TestVerifyRestrictedCmdDirectory(unittest.TestCase):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     os.mkdir(tmpname)
 
-    for mode in [0777, 0706, 0760, 0722]:
+    for mode in [0o777, 0o706, 0o760, 0o722]:
       os.chmod(tmpname, mode)
       self.assertTrue(os.path.isdir(tmpname))
       (status, msg) = \
@@ -316,7 +316,7 @@ class TestVerifyRestrictedCmdDirectory(unittest.TestCase):
   def testNormal(self):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     os.mkdir(tmpname)
-    os.chmod(tmpname, 0755)
+    os.chmod(tmpname, 0o755)
     self.assertTrue(os.path.isdir(tmpname))
     (status, msg) = \
       backend._VerifyRestrictedCmdDirectory(tmpname,
@@ -352,7 +352,7 @@ class TestVerifyRestrictedCmd(unittest.TestCase):
 
   def testExecutable(self):
     tmpname = utils.PathJoin(self.tmpdir, "cmdname")
-    utils.WriteFile(tmpname, data="empty\n", mode=0700)
+    utils.WriteFile(tmpname, data="empty\n", mode=0o700)
     (status, executable) = \
       backend._VerifyRestrictedCmd(self.tmpdir, "cmdname",
                                    _owner=_DefRestrictedCmdOwner())
@@ -460,7 +460,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _prepare_fn=NotImplemented,
                                _runcmd_fn=NotImplemented,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       assert str(err) == _GenericRestrictedCmdError("test22717"), \
              "Did not fail with generic error message"
       result = True
@@ -496,7 +496,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _path=NotImplemented, _runcmd_fn=NotImplemented,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertEqual(str(err), _GenericRestrictedCmdError("test23122"))
     else:
       self.fail("Didn't fail")
@@ -521,7 +521,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _path=NotImplemented, _runcmd_fn=NotImplemented,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertEqual(str(err), _GenericRestrictedCmdError("test29327"))
     else:
       self.fail("Didn't fail")
@@ -572,7 +572,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _path=self.tmpdir, _runcmd_fn=runcmd_fn,
                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
                                _enabled=True)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertTrue(str(err).startswith("Restricted command 'test3079'"
                                           " failed:"))
       self.assertTrue("stderr406328567" in str(err),
@@ -627,7 +627,7 @@ class TestRunRestrictedCmd(unittest.TestCase):
                                _prepare_fn=NotImplemented,
                                _runcmd_fn=NotImplemented,
                                _enabled=False)
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       self.assertEqual(str(err),
                        "Restricted commands disabled at configure time")
     else:
@@ -653,7 +653,7 @@ class TestSetWatcherPause(unittest.TestCase):
 
       try:
         backend.SetWatcherPause(i, _filename=self.filename)
-      except backend.RPCFail, err:
+      except backend.RPCFail as err:
         self.assertEqual(str(err), "Duration must be numeric")
       else:
         self.fail("Did not raise exception")
@@ -666,7 +666,7 @@ class TestSetWatcherPause(unittest.TestCase):
     for i in range(10):
       backend.SetWatcherPause(i, _filename=self.filename)
       self.assertEqual(utils.ReadFile(self.filename), "%s\n" % i)
-      self.assertEqual(os.stat(self.filename).st_mode & 0777, 0644)
+      self.assertEqual(os.stat(self.filename).st_mode & 0o777, 0o644)
 
 
 class TestGetBlockDevSymlinkPath(unittest.TestCase):

@@ -122,7 +122,7 @@ def RunWatcherHooks():
 
   try:
     results = utils.RunParts(hooks_dir)
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.exception("RunParts %s failed: %s", hooks_dir, err)
     return
 
@@ -418,10 +418,10 @@ def IsRapiResponding(hostname):
                                              curl_config_fn=curl_config)
   try:
     master_version = rapi_client.GetVersion()
-  except rapi.client.CertificateError, err:
+  except rapi.client.CertificateError as err:
     logging.warning("RAPI certificate error: %s", err)
     return False
-  except rapi.client.GanetiApiError, err:
+  except rapi.client.GanetiApiError as err:
     if err.code == 401:
       # Unauthorized, but RAPI is alive and responding
       return True
@@ -441,7 +441,7 @@ def IsWconfdResponding():
 
   try:
     result = wconfd.Client().Echo(probe_string)
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.warning("WConfd connection error: %s", err)
     return False
 
@@ -537,7 +537,7 @@ def _ReadInstanceStatus(filename):
   statcb = utils.FileStatHelper()
   try:
     content = utils.ReadFile(filename, preread=statcb)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno == errno.ENOENT:
       logging.error("Can't read '%s', does not exist (yet)", filename)
     else:
@@ -564,7 +564,7 @@ def _MergeInstanceStatus(filename, pergroup_filename, groups):
   lock = utils.FileLock.Open(filename)
   try:
     lock.Exclusive(blocking=True, timeout=INSTANCE_STATUS_LOCK_TIMEOUT)
-  except errors.LockError, err:
+  except errors.LockError as err:
     # All per-group processes will lock and update the file. None of them
     # should take longer than 10 seconds (the value of
     # INSTANCE_STATUS_LOCK_TIMEOUT).
@@ -602,11 +602,11 @@ def GetLuxiClient(try_restart):
   """
   try:
     return cli.GetClient()
-  except errors.OpPrereqError, err:
+  except errors.OpPrereqError as err:
     # this is, from cli.GetClient, a not-master case
     raise NotMasterError("Not on master node (%s)" % err)
 
-  except (rpcerr.NoMasterError, rpcerr.TimeoutError), err:
+  except (rpcerr.NoMasterError, rpcerr.TimeoutError) as err:
     if not try_restart:
       raise
 
@@ -658,7 +658,7 @@ def _StartGroupChildren(cl, wait):
       logging.debug("Waiting for child PID %s", child)
       try:
         result = utils.RetryOnSignal(os.waitpid, child, 0)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         result = str(err)
       logging.debug("Child PID %s exited with status %s", child, result)
 
@@ -880,7 +880,7 @@ def _GroupWatcher(opts):
     # is implemented.
     if not opts.no_verify_disks and not only_ext:
       _VerifyDisks(client, group_uuid, nodes, instances)
-  except Exception, err:
+  except Exception as err:
     logging.info("Not updating status file due to failure: %s", err)
     raise
   else:
@@ -910,7 +910,7 @@ def Main():
   lock = utils.FileLock.Open(pathutils.WATCHER_LOCK_FILE)
   try:
     lock.Shared(blocking=False)
-  except (EnvironmentError, errors.LockError), err:
+  except (EnvironmentError, errors.LockError) as err:
     logging.error("Can't acquire lock on %s: %s",
                   pathutils.WATCHER_LOCK_FILE, err)
     return constants.EXIT_SUCCESS
@@ -927,14 +927,14 @@ def Main():
   except NotMasterError:
     logging.debug("Not master, exiting")
     return constants.EXIT_NOTMASTER
-  except errors.ResolverError, err:
+  except errors.ResolverError as err:
     logging.error("Cannot resolve hostname '%s', exiting", err.args[0])
     return constants.EXIT_NODESETUP_ERROR
   except errors.JobQueueFull:
     logging.error("Job queue is full, can't query cluster state")
   except errors.JobQueueDrainError:
     logging.error("Job queue is drained, can't maintain cluster state")
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     logging.exception(str(err))
     return constants.EXIT_FAILURE
 

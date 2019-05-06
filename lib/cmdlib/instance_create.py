@@ -309,7 +309,7 @@ class LUInstanceCreate(LogicalUnit):
       try:
         (cert, _) = utils.LoadSignedX509Certificate(self.source_x509_ca_pem,
                                                     self._cds)
-      except OpenSSL.crypto.Error, err:
+      except OpenSSL.crypto.Error as err:
         raise errors.OpPrereqError("Unable to load source X509 CA (%s)" %
                                    (err, ), errors.ECODE_INVAL)
 
@@ -1541,7 +1541,7 @@ class LUInstanceCreate(LogicalUnit):
       feedback_fn("* wiping instance disks...")
       try:
         WipeDisks(self, iobj)
-      except errors.OpExecError, err:
+      except errors.OpExecError as err:
         logging.exception("Wiping disks failed")
         self.LogWarning("Wiping instance disks failed (%s)", err)
         disk_abort = True
@@ -1556,7 +1556,7 @@ class LUInstanceCreate(LogicalUnit):
       feedback_fn("* imaging instance disks...")
       try:
         ImageDisks(self, iobj, os_image)
-      except errors.OpExecError, err:
+      except errors.OpExecError as err:
         logging.exception("Imaging disks failed")
         self.LogWarning("Imaging instance disks failed (%s)", err)
         disk_abort = True

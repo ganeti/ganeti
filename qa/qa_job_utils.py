@@ -283,7 +283,7 @@ class QAThread(threading.Thread):
 
     """
     if self._exc_info is not None:
-      raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+      raise self._exc_info[0](self._exc_info[1]).with_traceback(self._exc_info[2])
 
 
 class QAThreadGroup(object):
@@ -322,14 +322,14 @@ class PausedWatcher(object):
   def __exit__(self, _ex_type, ex_value, _ex_traceback):
     try:
       AssertCommand(["gnt-cluster", "watcher", "continue"])
-    except qa_error.Error, err:
+    except qa_error.Error as err:
       # If an exception happens during 'continue', re-raise it only if there
       # is no exception from the inner block:
       if ex_value is None:
         raise
       else:
-        print qa_logging.FormatError('Re-enabling watcher failed: %s' %
-                                     (err, ))
+        print(qa_logging.FormatError('Re-enabling watcher failed: %s' %
+                                     (err, )))
 
 
 # TODO: Can this be done as a decorator? Implement as needed.

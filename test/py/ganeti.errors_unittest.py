@@ -76,7 +76,7 @@ class TestErrors(testutils.GanetiTestCase):
       src = errors.GenericError(i)
       try:
         errors.MaybeRaise(errors.EncodeException(src))
-      except errors.GenericError, dst:
+      except errors.GenericError as dst:
         self.assertEqual(src.args, dst.args)
         self.assertEqual(src.__class__, dst.__class__)
       else:

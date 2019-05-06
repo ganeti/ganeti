@@ -53,7 +53,7 @@ class TestCommonRestrictedCmdCheck(testutils.GanetiTestCase):
   def _PrepareTest(self):
     tmpname = utils.PathJoin(self.tmpdir, "foobar")
     os.mkdir(tmpname)
-    os.chmod(tmpname, 0700)
+    os.chmod(tmpname, 0o700)
     return tmpname
 
   def testCorrectOwner(self):

@@ -171,7 +171,7 @@ def InitCluster(opts, args):
   try:
     vg_name = _InitVgName(opts, enabled_disk_templates)
     drbd_helper = _InitDrbdHelper(opts, enabled_disk_templates)
-  except errors.OpPrereqError, e:
+  except errors.OpPrereqError as e:
     ToStderr(str(e))
     return 1
 
@@ -268,7 +268,7 @@ def InitCluster(opts, args):
 
   try:
     primary_ip_version = int(opts.primary_ip_version)
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError) as err:
     ToStderr("Invalid primary ip version value: %s" % str(err))
     return 1
 
@@ -276,7 +276,7 @@ def InitCluster(opts, args):
   try:
     if master_netmask is not None:
       master_netmask = int(master_netmask)
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError) as err:
     ToStderr("Invalid master netmask value: %s" % str(err))
     return 1
 
@@ -829,7 +829,7 @@ def VerifyDisks(opts, args):
       try:
         ToStdout("Activating disks for instance '%s'", iname)
         SubmitOpCode(op, opts=opts, cl=cl)
-      except errors.GenericError, err:
+      except errors.GenericError as err:
         nret, msg = FormatError(err)
         retcode |= nret
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
@@ -968,20 +968,20 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
   """
   try:
     pem = utils.ReadFile(cert_filename)
-  except IOError, err:
+  except IOError as err:
     raise errors.X509CertError(cert_filename,
                                "Unable to read certificate: %s" % str(err))
 
   try:
     OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pem)
-  except Exception, err:
+  except Exception as err:
     raise errors.X509CertError(cert_filename,
                                "Unable to load certificate: %s" % str(err))
 
   if verify_private_key:
     try:
       OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, pem)
-    except Exception, err:
+    except Exception as err:
       raise errors.X509CertError(cert_filename,
                                  "Unable to load private key: %s" % str(err))
 
@@ -1062,14 +1062,14 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
     if spice_cert_filename:
       spice_cert_pem = _ReadAndVerifyCert(spice_cert_filename, True)
       spice_cacert_pem = _ReadAndVerifyCert(spice_cacert_filename)
-  except errors.X509CertError, err:
+  except errors.X509CertError as err:
     ToStderr("Unable to load X509 certificate from %s: %s", err[0], err[1])
     return 1
 
   if cds_filename:
     try:
       cds = utils.ReadFile(cds_filename)
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       ToStderr("Can't load new cluster domain secret from %s: %s" %
                (cds_filename, str(err)))
       return 1
@@ -1410,7 +1410,7 @@ def SetClusterParams(opts, args):
 
   try:
     drbd_helper = _GetDrbdHelper(opts, enabled_disk_templates)
-  except errors.OpPrereqError, e:
+  except errors.OpPrereqError as e:
     ToStderr(str(e))
     return 1
 

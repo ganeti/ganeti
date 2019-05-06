@@ -51,7 +51,7 @@ def main():
 
   try:
     port = int(port)
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError) as err:
     sys.stderr.write("Invalid port '%s': %s\n" % (port, err))
     sys.exit(1)
 

@@ -121,7 +121,7 @@ class TestProcessResult(unittest.TestCase):
     self._count = itertools.count(200)
 
   def _Submit(self, jobs):
-    job_ids = [self._count.next() for _ in jobs]
+    job_ids = [next(self._count) for _ in jobs]
     self._submitted.extend(zip(job_ids, jobs))
     return job_ids
 

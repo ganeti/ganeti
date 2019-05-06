@@ -1480,7 +1480,7 @@ class LUInstanceSetParams(LogicalUnit):
           f_create = node_uuid == pnode_uuid
           CreateSingleBlockDev(self, node_uuid, self.instance, disk, info,
                                f_create, excl_stor)
-    except errors.GenericError, e:
+    except errors.GenericError as e:
       feedback_fn("Initializing of DRBD devices failed;"
                   " renaming back original volumes...")
       rename_back_list = [(n.children[0], o.logical_id)

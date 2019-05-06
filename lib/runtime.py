@@ -63,7 +63,7 @@ def GetUid(user, _getpwnam):
   """
   try:
     return _getpwnam(user).pw_uid
-  except KeyError, err:
+  except KeyError as err:
     raise errors.ConfigurationError("User '%s' not found (%s)" % (user, err))
 
 
@@ -77,7 +77,7 @@ def GetGid(group, _getgrnam):
   """
   try:
     return _getgrnam(group).gr_gid
-  except KeyError, err:
+  except KeyError as err:
     raise errors.ConfigurationError("Group '%s' not found (%s)" % (group, err))
 
 

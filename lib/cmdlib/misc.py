@@ -151,7 +151,7 @@ class LUOobCommand(NoHooksLU):
 
       try:
         self._CheckPayload(result)
-      except errors.OpExecError, err:
+      except errors.OpExecError as err:
         self.LogWarning("Payload returned by node '%s' is not valid: %s",
                         node.name, err)
         node_entry.append((constants.RS_NODATA, None))

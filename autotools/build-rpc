@@ -212,7 +212,7 @@ def main():
     for (clsname, calls) in sorted(module.CALLS.items()):
       _WriteBaseClass(sw, clsname, calls.values())
 
-  print buf.getvalue().rstrip()
+  print(buf.getvalue().rstrip())
 
 
 if __name__ == "__main__":

@@ -194,7 +194,7 @@ class TestParseFilter(unittest.TestCase):
     for qfilter in tests:
       try:
         qlang.ParseFilter(qfilter, parser=self.parser)
-      except errors.QueryFilterParseError, err:
+      except errors.QueryFilterParseError as err:
         self.assertEqual(len(err.GetDetails()), 3)
       else:
         self.fail("Invalid filter '%s' did not raise exception" % qfilter)

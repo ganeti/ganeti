@@ -208,7 +208,7 @@ def FillOpcode(opcls, body, static, rename=None):
   try:
     op = opcls(**params)
     op.Validate(False)
-  except (errors.OpPrereqError, TypeError), err:
+  except (errors.OpPrereqError, TypeError) as err:
     raise http.HttpBadRequest("Invalid body parameters: %s" % err)
 
   return op
@@ -220,7 +220,7 @@ def HandleItemQueryErrors(fn, *args, **kwargs):
   """
   try:
     result = fn(*args, **kwargs)
-  except errors.OpPrereqError, err:
+  except errors.OpPrereqError as err:
     if len(err.args) == 2 and err.args[1] == errors.ECODE_NOENT:
       raise http.HttpNotFound()
 
@@ -405,7 +405,7 @@ class ResourceBase(object):
     # Could be a function, pylint: disable=R0201
     try:
       return self._client_cls()
-    except rpcerr.NoMasterError, err:
+    except rpcerr.NoMasterError as err:
       raise http.HttpBadGateway("Can't connect to master daemon: %s" % err)
     except rpcerr.PermissionError:
       raise http.HttpInternalServerError("Internal error: no permission to"
@@ -430,12 +430,12 @@ class ResourceBase(object):
       raise http.HttpServiceUnavailable("Job queue is full, needs archiving")
     except errors.JobQueueDrainError:
       raise http.HttpServiceUnavailable("Job queue is drained, cannot submit")
-    except rpcerr.NoMasterError, err:
+    except rpcerr.NoMasterError as err:
       raise http.HttpBadGateway("Master seems to be unreachable: %s" % err)
     except rpcerr.PermissionError:
       raise http.HttpInternalServerError("Internal error: no permission to"
                                          " connect to the master daemon")
-    except rpcerr.TimeoutError, err:
+    except rpcerr.TimeoutError as err:
       raise http.HttpGatewayTimeout("Timeout while talking to the master"
                                     " daemon: %s" % err)
 

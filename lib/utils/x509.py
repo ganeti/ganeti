@@ -322,7 +322,7 @@ def GenerateSelfSignedSslCert(filename, serial_no,
   (key_pem, cert_pem) = GenerateSelfSignedX509Cert(
       common_name, validity * 24 * 60 * 60, serial_no)
 
-  utils_io.WriteFile(filename, mode=0440, data=key_pem + cert_pem,
+  utils_io.WriteFile(filename, mode=0o440, data=key_pem + cert_pem,
                      uid=uid, gid=gid)
   return (key_pem, cert_pem)
 
@@ -385,7 +385,7 @@ def GenerateSignedSslCert(filename_cert, serial_no,
   (key_pem, cert_pem) = GenerateSignedX509Cert(
       common_name, validity * 24 * 60 * 60, serial_no, signing_cert_pem)
 
-  utils_io.WriteFile(filename_cert, mode=0440, data=key_pem + cert_pem,
+  utils_io.WriteFile(filename_cert, mode=0o440, data=key_pem + cert_pem,
                      uid=uid, gid=gid, backup=True)
   return (key_pem, cert_pem)
 
@@ -437,7 +437,7 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
   """
   try:
     noded_pem = utils_io.ReadFile(_noded_cert_file)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno != errno.ENOENT:
       raise
 
@@ -447,14 +447,14 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
   try:
     noded_cert = \
       OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
-  except Exception, err:
+  except Exception as err:
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load certificate: %s" % err)
 
   try:
     noded_key = \
       OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
-  except Exception, err:
+  except Exception as err:
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load private key: %s" % err)
 

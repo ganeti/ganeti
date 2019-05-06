@@ -32,6 +32,8 @@
 
 """
 
+from __future__ import print_function
+
 import contextlib
 import copy
 import datetime
@@ -47,7 +49,7 @@ import yaml
 
 try:
   import functools
-except ImportError, err:
+except ImportError as err:
   raise ImportError("Python 2.5 or higher is required: %s" % err)
 
 from ganeti import utils
@@ -166,13 +168,13 @@ def _PrintCommandOutput(stdout, stderr):
   if stdout:
     stdout_clean = stdout.rstrip('\n')
     if stderr:
-      print "Stdout was:\n%s" % stdout_clean
+      print("Stdout was:\n%s" % stdout_clean)
     else:
-      print stdout_clean
+      print(stdout_clean)
 
   if stderr:
-    print "Stderr was:"
-    print >> sys.stderr, stderr.rstrip('\n')
+    print("Stderr was:")
+    print(stderr.rstrip('\n'), file=sys.stderr)
 
 
 def AssertCommand(cmd, fail=False, node=None, log_cmd=True, forward_agent=True,
@@ -343,8 +345,8 @@ def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
       pcmd = [i for i in cmd if not i.startswith("-")]
     else:
       pcmd = cmd
-    print "%s %s" % (colors.colorize("Command:", colors.CYAN),
-                     utils.ShellQuoteArgs(pcmd))
+    print("%s %s" % (colors.colorize("Command:", colors.CYAN),
+                     utils.ShellQuoteArgs(pcmd)))
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
@@ -371,7 +373,7 @@ def StartMultiplexer(node):
   sname = tempfile.mktemp(prefix="ganeti-qa-multiplexer.")
   utils.RemoveFile(sname)
   opts = ["-N", "-oControlPath=%s" % sname, "-oControlMaster=yes"]
-  print "Created socket at %s" % sname
+  print("Created socket at %s" % sname)
   child = StartLocalCommand(GetSSHCommand(node, None, opts=opts))
   _MULTIPLEXERS[node] = (sname, child)
 
@@ -459,7 +461,7 @@ def UploadFile(node, src):
 
   """
   # Make sure nobody else has access to it while preserving local permissions
-  mode = os.stat(src).st_mode & 0700
+  mode = os.stat(src).st_mode & 0o700
 
   cmd = ('tmp=$(mktemp --tmpdir gnt.XXXXXX) && '
          'chmod %o "${tmp}" && '
@@ -479,7 +481,7 @@ def UploadFile(node, src):
     f.close()
 
 
-def UploadData(node, data, mode=0600, filename=None):
+def UploadData(node, data, mode=0o600, filename=None):
   """Uploads data to a node and returns the filename.
 
   Caller needs to remove the returned file on the node when it's not needed
@@ -523,7 +525,7 @@ def BackupFile(node, path):
   # Return temporary filename
   result = GetCommandOutput(node, cmd).strip()
 
-  print "Backup filename: %s" % result
+  print("Backup filename: %s" % result)
 
   return result
 
@@ -701,7 +703,7 @@ def AddToEtcHosts(hostnames):
 
   """
   master = qa_config.GetMasterNode()
-  tmp_hosts = UploadData(master.primary, "", mode=0644)
+  tmp_hosts = UploadData(master.primary, "", mode=0o644)
 
   data = []
   for localhost in ("::1", "127.0.0.1"):
@@ -726,7 +728,7 @@ def RemoveFromEtcHosts(hostnames):
 
   """
   master = qa_config.GetMasterNode()
-  tmp_hosts = UploadData(master.primary, "", mode=0644)
+  tmp_hosts = UploadData(master.primary, "", mode=0o644)
   quoted_tmp_hosts = utils.ShellQuote(tmp_hosts)
 
   sed_data = " ".join(hostnames)
@@ -763,8 +765,8 @@ def RunInstanceCheck(instance, running):
     running_shellval = ""
     running_text = "not "
 
-  print FormatInfo("Checking if instance '%s' is %srunning" %
-                   (instance_name, running_text))
+  print(FormatInfo("Checking if instance '%s' is %srunning" %
+                   (instance_name, running_text)))
 
   args = [script, instance_name]
   env = {

@@ -154,7 +154,7 @@ class Client(cl.AbstractClient):
     return self.CallMethod(REQ_CHANGE_JOB_PRIORITY, (job_id, priority))
 
   def AutoArchiveJobs(self, age):
-    timeout = (DEF_RWTO - 1) / 2
+    timeout = (DEF_RWTO - 1) // 2
     return self.CallMethod(REQ_AUTO_ARCHIVE_JOBS, (age, timeout))
 
   def WaitForJobChangeOnce(self, job_id, fields,

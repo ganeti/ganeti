@@ -35,6 +35,8 @@
 # pylint: disable=C0103
 # [C0103] Invalid name
 
+from __future__ import print_function
+
 import sys
 import time
 import datetime
@@ -185,7 +187,7 @@ def main():
 
   if errors:
     for msg in errors:
-      print >> sys.stderr, msg
+      print(msg, file=sys.stderr)
     sys.exit(1)
   else:
     sys.exit(0)

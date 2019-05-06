@@ -35,6 +35,8 @@
 
 # C0103: Invalid name ganeti-watcher
 
+from __future__ import print_function
+
 import logging
 import optparse
 import sys
@@ -206,7 +208,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
       result = ctx.handler_fn()
     except rpcerr.TimeoutError:
       raise http.HttpGatewayTimeout()
-    except rpcerr.ProtocolError, err:
+    except rpcerr.ProtocolError as err:
       raise http.HttpBadGateway(str(err))
 
     req.resp_headers[http.HTTP_CONTENT_TYPE] = http.HTTP_APP_JSON
@@ -241,7 +243,7 @@ class RapiUsers(object):
     try:
       try:
         contents = utils.ReadFile(filename)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         self._users = None
         if err.errno == errno.ENOENT:
           logging.warning("No users file at %s", filename)
@@ -251,7 +253,7 @@ class RapiUsers(object):
 
       users = http.auth.ParsePasswordFile(contents)
 
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       # We don't care about the type of exception
       logging.error("Error while parsing %s: %s", filename, err)
       return False
@@ -314,13 +316,13 @@ def CheckRapi(options, args):
 
   """
   if args: # rapi doesn't take any arguments
-    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
-                          sys.argv[0])
+    print("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   if options.max_clients < 1:
-    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
-                          sys.argv[0])
+    print("%s --max-clients argument must be >= 1" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   ssconf.CheckMaster(options.debug)

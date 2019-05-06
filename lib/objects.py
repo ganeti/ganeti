@@ -1158,7 +1158,7 @@ class InstancePolicy(ConfigObject):
     """
     try:
       float(value)
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       raise errors.ConfigurationError("Invalid value for key" " '%s':"
                                       " '%s', error: %s" % (key, value, err))
 
@@ -1237,7 +1237,7 @@ class Instance(TaggableObject):
     try:
       idx = int(idx)
       return self.disks[idx]
-    except (TypeError, ValueError), err:
+    except (TypeError, ValueError) as err:
       raise errors.OpPrereqError("Invalid disk index: '%s'" % str(err),
                                  errors.ECODE_INVAL)
     except IndexError:

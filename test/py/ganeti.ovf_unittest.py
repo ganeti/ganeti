@@ -371,7 +371,7 @@ class BetterUnitTest(unittest.TestCase):
     try:
       function(*args)
       self.fail("Expected raising %s" % exception)
-    except exception, err:
+    except exception as err:
       regexp = re.compile(regexp_val)
       if re.search(regexp, str(err)) == None:
         self.fail("Expected matching '%s', got '%s'" %

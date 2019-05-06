@@ -154,10 +154,10 @@ def _CreateBlockDevInner(lu, node_uuid, instance, device, force_create,
     created_devices = [(node_uuid, device)]
     return created_devices
 
-  except errors.DeviceCreationError, e:
+  except errors.DeviceCreationError as e:
     e.created_devices.extend(created_devices)
     raise e
-  except errors.OpExecError, e:
+  except errors.OpExecError as e:
     raise errors.DeviceCreationError(str(e), created_devices)
 
 
@@ -294,7 +294,7 @@ def CreateDisks(lu, instance, disk_template=None,
         _CreateBlockDev(lu, node_uuid, instance, device, f_create, info,
                         f_create)
         disks_created.append((node_uuid, device))
-      except errors.DeviceCreationError, e:
+      except errors.DeviceCreationError as e:
         logging.warning("Creating disk %s for instance '%s' failed",
                         idx, instance.name)
         disks_created.extend(e.created_devices)
@@ -2615,7 +2615,7 @@ class TLReplaceDisks(Tasklet):
           _CreateBlockDevInner(self.lu, node_uuid, self.instance, new_lv, True,
                                GetInstanceInfoText(self.instance), False,
                                excl_stor)
-        except errors.DeviceCreationError, e:
+        except errors.DeviceCreationError as e:
           raise errors.OpExecError("Can't create block device: %s" % e.message)
 
     return iv_names
@@ -2766,7 +2766,7 @@ class TLReplaceDisks(Tasklet):
     cstep = itertools.count(5)
 
     if self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
       # TODO: Check if releasing locks early still makes sense
       ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
@@ -2784,7 +2784,7 @@ class TLReplaceDisks(Tasklet):
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(cstep.next(), steps_total, "Sync devices")
+    self.lu.LogStep(next(cstep), steps_total, "Sync devices")
     WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
@@ -2792,7 +2792,7 @@ class TLReplaceDisks(Tasklet):
 
     # Step: remove old storage
     if not self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
   def _UpdateDisksSecondary(self, iv_names, feedback_fn):
@@ -2884,7 +2884,7 @@ class TLReplaceDisks(Tasklet):
           _CreateBlockDevInner(self.lu, self.new_node_uuid, self.instance,
                                new_lv, True, GetInstanceInfoText(self.instance),
                                False, excl_stor)
-        except errors.DeviceCreationError, e:
+        except errors.DeviceCreationError as e:
           raise errors.OpExecError("Can't create block device: %s" % e.message)
 
     # Step 4: dbrd minors and drbd setups changes
@@ -2987,7 +2987,7 @@ class TLReplaceDisks(Tasklet):
     cstep = itertools.count(5)
 
     if self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
       # TODO: Check if releasing locks early still makes sense
       ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
@@ -3002,7 +3002,7 @@ class TLReplaceDisks(Tasklet):
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(cstep.next(), steps_total, "Sync devices")
+    self.lu.LogStep(next(cstep), steps_total, "Sync devices")
     WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
@@ -3010,7 +3010,7 @@ class TLReplaceDisks(Tasklet):
 
     # Step: remove old storage
     if not self.early_release:
-      self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
+      self.lu.LogStep(next(cstep), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
 

@@ -415,7 +415,7 @@ class MoveRuntime(object):
       errmsg = None
     except Abort:
       errmsg = "Aborted"
-    except Exception, err:  # pylint: disable=W0703
+    except Exception as err:  # pylint: disable=W0703
       logging.exception("Caught unhandled exception")
       errmsg = str(err)
 
@@ -526,7 +526,7 @@ class MoveDestExecutor(object):
                     remote_import_fn=compat.partial(self._SetImportInfo, mrt))
         logging.info("Import successful")
         return
-      except errors.OpPrereqError, err:
+      except errors.OpPrereqError as err:
         # Any exception in the non-opportunistic creation is to be passed on,
         # as well as exceptions apart from resources temporarily unavailable
         if not is_attempt_opportunistic or \
@@ -741,7 +741,7 @@ class MoveSourceExecutor(object):
     """
     try:
       cl.GetInstance(name)
-    except rapi.client.GanetiApiError, err:
+    except rapi.client.GanetiApiError as err:
       if err.code == rapi.client.HTTP_NOT_FOUND:
         raise Error("Instance %s not found (%s)" % (name, str(err)))
       raise
@@ -843,7 +843,7 @@ class MoveSourceWorker(workerpool.BaseWorker):
                               (mrt.src_error_message, mrt.dest_error_message))
       else:
         move.error_message = None
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       logging.exception("Caught unhandled exception")
       move.error_message = str(err)
 

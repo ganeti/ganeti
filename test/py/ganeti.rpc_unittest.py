@@ -375,7 +375,7 @@ class TestSsconfResolver(unittest.TestCase):
   def testBothLookups(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
-    n = len(addr_list) / 2
+    n = len(addr_list) // 2
     node_addr_list = [" ".join(t) for t in zip(node_list[n:], addr_list[n:])]
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
@@ -521,7 +521,8 @@ class TestRpcClientBase(unittest.TestCase):
                       cdef, [], [0, 1, 2])
 
   def testTimeout(self):
-    def _CalcTimeout((arg1, arg2)):
+    def _CalcTimeout(args):
+      (arg1, arg2) = args
       return arg1 + arg2
 
     def _VerifyRequest(exp_timeout, req):
@@ -691,7 +692,8 @@ class TestRpcClientBase(unittest.TestCase):
       self.assertEqual(options, expected)
       return zip(hosts, nodes, hosts)
 
-    def _DynamicResolverOptions((arg0, )):
+    def _DynamicResolverOptions(args):
+      (arg0, ) = args
       return sum(arg0)
 
     tests = [

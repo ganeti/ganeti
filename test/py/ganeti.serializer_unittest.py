@@ -142,7 +142,7 @@ class TestLoadAndVerifyJson(unittest.TestCase):
     verify_fn = ht.TListOf(ht.TNonEmptyString)
     try:
       serializer.LoadAndVerifyJson("{}", verify_fn)
-    except errors.ParseError, err:
+    except errors.ParseError as err:
       self.assertTrue(str(err).endswith(str(verify_fn)))
     else:
       self.fail("Exception not raised")

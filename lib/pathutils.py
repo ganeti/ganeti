@@ -129,7 +129,7 @@ NODED_CERT_FILE = DATA_DIR + "/server.pem"
 NODED_CLIENT_CERT_FILE = DATA_DIR + "/client.pem"
 
 #: Node daemon certificate file permissions
-NODED_CERT_MODE = 0440
+NODED_CERT_MODE = 0o440
 
 #: Locked in exclusive mode while noded verifies a remote command
 RESTRICTED_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-restricted-commands.lock"

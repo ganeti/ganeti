@@ -35,6 +35,8 @@ This is can be used to test and debug confd daemon functionality.
 
 """
 
+from __future__ import print_function
+
 import sys
 import optparse
 import time
@@ -102,8 +104,8 @@ def Err(msg, exit_code=1):
 def Usage():
   """Shows program usage information and exits the program."""
 
-  print >> sys.stderr, "Usage:"
-  print >> sys.stderr, USAGE
+  print("Usage:", file=sys.stderr)
+  print(USAGE, file=sys.stderr)
   sys.exit(2)
 
 
@@ -204,11 +206,11 @@ class TestClient(object):
         self._ProcessMapping(answer)
       else:
         Log("Unhandled reply %s, please fix the client", reqtype)
-        print answer
+        print(answer)
 
   def DoConfdRequestReply(self, req):
     self.confd_counting_callback.RegisterQuery(req.rsalt)
-    self.confd_client.SendRequest(req, async=False)
+    self.confd_client.SendRequest(req, async_=False)
     while not self.confd_counting_callback.AllAnswered():
       if not self.confd_client.ReceiveReply():
         Err("Did not receive all expected confd replies")

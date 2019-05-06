@@ -61,6 +61,8 @@ Security considerations:
 # pylint: disable=C0103
 # C0103: Invalid name ganeti-listrunner
 
+from __future__ import print_function
+
 import errno
 import optparse
 import getpass
@@ -76,10 +78,9 @@ import traceback
 try:
   import paramiko
 except ImportError:
-  print >> sys.stderr, \
-    ("The \"paramiko\" module could not be imported. Install it from your"
+  print("The \"paramiko\" module could not be imported. Install it from your"
      " distribution's repository. The package is usually named"
-     " \"python-paramiko\".")
+     " \"python-paramiko\".", file=sys.stderr)
   sys.exit(1)
 
 
@@ -96,7 +97,7 @@ def LogDirUseable(logdir):
                                          random.random())
   try:
     os.mkdir(logdir)
-  except OSError, err:
+  except OSError as err:
     if err.errno != errno.EEXIST:
       raise
   try:
@@ -143,8 +144,8 @@ def PingByTcp(target, port, timeout=10, live_port_needed=False, source=None):
   if source is not None:
     try:
       sock.bind((source, 0))
-    except socket.error, (errcode):
-      if errcode == errno.EADDRNOTAVAIL:
+    except socket.error as err:
+      if err.errno == errno.EADDRNOTAVAIL:
         success = False
 
   sock.settimeout(timeout)
@@ -155,8 +156,8 @@ def PingByTcp(target, port, timeout=10, live_port_needed=False, source=None):
     success = True
   except socket.timeout:
     success = False
-  except socket.error, (errcode):
-    success = (not live_port_needed) and (errcode == errno.ECONNREFUSED)
+  except socket.error as err:
+    success = (not live_port_needed) and (err.errno == errno.ECONNREFUSED)
 
   return success
 
@@ -170,8 +171,8 @@ def GetHosts(hostsfile):
   """
   try:
     datafile = open(hostsfile, "r")
-  except IOError, msg:
-    print "Failed to open hosts file %s: %s" % (hostsfile, msg)
+  except IOError as msg:
+    print("Failed to open hosts file %s: %s" % (hostsfile, msg))
     sys.exit(2)
 
   hosts = datafile.readlines()
@@ -184,17 +185,17 @@ def WriteLog(message, logfile):
   """Writes message, terminated by newline, to logfile."""
   try:
     logfile = open(logfile, "a+")
-  except IOError, msg:
-    print "failed to open log file %s: %s" % (logfile, msg)
-    print "log message was: %s" % message
+  except IOError as msg:
+    print("failed to open log file %s: %s" % (logfile, msg))
+    print("log message was: %s" % message)
     sys.exit(1)  # no being able to log is critical
   try:
     timestamp = GetTimeStamp()
     logfile.writelines("%s %s\n" % (timestamp, message))
     logfile.close()
-  except IOError, msg:
-    print "failed to write to logfile %s: %s" % (logfile, msg)
-    print "log message was: %s" % message
+  except IOError as msg:
+    print("failed to write to logfile %s: %s" % (logfile, msg))
+    print("log message was: %s" % message)
     sys.exit(1)  # no being able to log is critical
 
 
@@ -220,7 +221,7 @@ def SetupSshConnection(host, username, password, use_agent, logfile):
   # check if target is willing to talk to us at all
   if not PingByTcp(host, 22, live_port_needed=True):
     WriteLog("ERROR: FAILURE_NOT_REACHABLE", logfile)
-    print "  - ERROR: host not reachable on 22/tcp"
+    print("  - ERROR: host not reachable on 22/tcp")
     return False
 
   if use_agent:
@@ -261,7 +262,7 @@ def SetupSshConnection(host, username, password, use_agent, logfile):
   methods = ", ".join(all_desc)
   WriteLog("ERROR: FAILURE_CONNECTION_SETUP (tried %s) " % methods, logfile)
   WriteLog("aborted", logfile)
-  print "  - ERROR: connection setup failed (tried %s)" % methods
+  print("  - ERROR: connection setup failed (tried %s)" % methods)
 
   return False
 
@@ -270,7 +271,7 @@ def UploadFiles(connection, executable, filelist, logfile):
   """Uploads the specified files via sftp.
 
   Uploads the specified files to a random, freshly created directory with
-  a temporary name under /tmp. All uploaded files are chmod 0400 after upload
+  a temporary name under /tmp. All uploaded files are chmod 0o400 after upload
   with the exception of executable, with is chmod 500.
 
   Upon success, returns the absolute path to the remote upload directory,
@@ -281,17 +282,17 @@ def UploadFiles(connection, executable, filelist, logfile):
 
   try:
     sftp = paramiko.SFTPClient.from_transport(connection)
-    sftp.mkdir(remote_dir, mode=0700)
+    sftp.mkdir(remote_dir, mode=0o700)
     for item in filelist:
       remote_file = "%s/%s" % (remote_dir, os.path.basename(item))
       WriteLog("uploading %s to remote %s" % (item, remote_file), logfile)
       sftp.put(item, remote_file)
       if item == executable:
-        sftp.chmod(remote_file, 0500)
+        sftp.chmod(remote_file, 0o500)
       else:
-        sftp.chmod(remote_file, 0400)
+        sftp.chmod(remote_file, 0o400)
     sftp.close()
-  except IOError, err:
+  except IOError as err:
     WriteLog("ERROR: FAILURE_UPLOAD: %s" % err, logfile)
     return False
 
@@ -308,7 +309,7 @@ def CleanupRemoteDir(connection, upload_dir, filelist, logfile):
       sftp.remove(fullpath)
     sftp.rmdir(upload_dir)
     sftp.close()
-  except IOError, err:
+  except IOError as err:
     WriteLog("ERROR: FAILURE_CLEANUP: %s" % err, logfile)
     return False
 
@@ -329,7 +330,7 @@ def RunRemoteCommand(connection, command, logfile):
   try:
     if session.exec_command("%s 2>&1" % command) is False:
       result = False
-  except paramiko.SSHException, message:
+  except paramiko.SSHException as message:
     result = False
 
   if not result:
@@ -341,10 +342,10 @@ def RunRemoteCommand(connection, command, logfile):
   while select.select([session], [], []):
     try:
       data = session.recv(1024)
-    except socket.timeout, err:
+    except socket.timeout as err:
       data = None
       WriteLog("FAILED: socket.timeout %s" % err, logfile)
-    except socket.error, err:
+    except socket.error as err:
       data = None
       WriteLog("FAILED: socket.error %s" % err, logfile)
     if not data:
@@ -382,50 +383,50 @@ def HostWorker(logdir, username, password, use_agent, hostname,
   """
   # in the child/worker process
   logfile = "%s/%s.log" % (logdir, hostname)
-  print "%s - starting" % hostname
+  print("%s - starting" % hostname)
   result = 0  # optimism, I know
   try:
     connection = SetupSshConnection(hostname, username,
                                     password, use_agent, logfile)
     if connection is not False:
       if executable is not None:
-        print "  %s: uploading files" % hostname
+        print("  %s: uploading files" % hostname)
         upload_dir = UploadFiles(connection, executable,
                                  filelist, logfile)
         command = ("cd %s && ./%s" %
                    (upload_dir, os.path.basename(executable)))
         if exec_args:
           command += " %s" % exec_args
-      print "  %s: executing remote command" % hostname
+      print("  %s: executing remote command" % hostname)
       cmd_result = RunRemoteCommand(connection, command, logfile)
       if cmd_result is True:
-        print "  %s: remote command execution successful" % hostname
+        print("  %s: remote command execution successful" % hostname)
       else:
-        print ("  %s: remote command execution failed,"
-               " check log for details" % hostname)
+        print("  %s: remote command execution failed,"
+              " check log for details" % hostname)
         result = 1
       if executable is not None:
-        print "  %s: cleaning up remote work dir" % hostname
+        print("  %s: cleaning up remote work dir" % hostname)
         cln_result = CleanupRemoteDir(connection, upload_dir,
                                       filelist, logfile)
         if cln_result is False:
-          print ("  %s: remote work dir cleanup failed, check"
-                 " log for details" % hostname)
+          print("  %s: remote work dir cleanup failed, check"
+                " log for details" % hostname)
           result = 1
       connection.close()
     else:
-      print "  %s: connection setup failed, skipping" % hostname
+      print("  %s: connection setup failed, skipping" % hostname)
       result = 1
   except KeyboardInterrupt:
-    print "  %s: received KeyboardInterrupt, aborting" % hostname
+    print("  %s: received KeyboardInterrupt, aborting" % hostname)
     WriteLog("ERROR: ABORT_KEYBOARD_INTERRUPT", logfile)
     result = 1
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     result = 1
     trace = traceback.format_exc()
     msg = "ERROR: UNHANDLED_EXECPTION_ERROR: %s\nTrace: %s" % (err, trace)
     WriteLog(msg, logfile)
-    print "  %s: %s" % (hostname, msg)
+    print("  %s: %s" % (hostname, msg))
   # and exit with exit code 0 or 1, so the parent can compute statistics
   sys.exit(result)
 
@@ -521,8 +522,8 @@ def _GetPassword(use_agent, password, username):
       fh = file(password)
       pwvalue = fh.readline().strip()
       fh.close()
-    except IOError, e:
-      print "error: can not read in from password file %s: %s" % (password, e)
+    except IOError as e:
+      print("error: can not read in from password file %s: %s" % (password, e))
       sys.exit(1)
     password = pwvalue
   else:
@@ -552,7 +553,7 @@ def main():
   sys.stdout = os.fdopen(1, "w", 0)
 
   if LogDirUseable(logdir) is False:
-    print "ERROR: cannot create logfiles in dir %s, aborting" % logdir
+    print("ERROR: cannot create logfiles in dir %s, aborting" % logdir)
     sys.exit(1)
 
   password = _GetPassword(use_agent, password, username)
@@ -574,7 +575,7 @@ def main():
   while child_pids:
     pid, status = os.wait()
     hostname = child_pids.pop(pid, "<unknown host>")
-    print "  %s: done (in parent)" % hostname
+    print("  %s: done (in parent)" % hostname)
     if os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0:
       successes += 1
     else:
@@ -583,8 +584,8 @@ def main():
       LaunchWorker(child_pids, logdir, username, password, use_agent,
                    hosts.pop(0), executable, exec_args, command, filelist)
 
-  print
-  print "All done, %s successful and %s failed hosts" % (successes, failures)
+  print()
+  print("All done, %s successful and %s failed hosts" % (successes, failures))
 
   sys.exit(0)
 
@@ -593,5 +594,5 @@ if __name__ == "__main__":
   try:
     main()
   except KeyboardInterrupt:
-    print "Received KeyboardInterrupt, aborting"
+    print("Received KeyboardInterrupt, aborting")
     sys.exit(1)

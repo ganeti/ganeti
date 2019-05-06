@@ -212,7 +212,7 @@ def GetDiskLabels(prefix, num_disks, start=0):
       return chr(ord('a') + i)
     else:
       mod = int(i % n)
-      pref = _GetDiskSuffix((i - mod) / (n + 1))
+      pref = _GetDiskSuffix((i - mod) // (n + 1))
       suf = _GetDiskSuffix(mod)
       return pref + suf
 

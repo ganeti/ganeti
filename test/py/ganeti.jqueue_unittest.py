@@ -535,7 +535,7 @@ class _FakeQueueForProc:
     self._updates.append((job, bool(replicate)))
 
   def SubmitManyJobs(self, jobs):
-    job_ids = [self._submit_count.next() for _ in jobs]
+    job_ids = [next(self._submit_count) for _ in jobs]
     self._submitted.extend(zip(job_ids, jobs))
     return job_ids
 
@@ -1208,7 +1208,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     counter = itertools.count()
     while True:
-      attempt = counter.next()
+      attempt = next(counter)
 
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertRaises(IndexError, depmgr.GetNextNotification)
@@ -1325,7 +1325,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     counter = itertools.count()
     while True:
-      attempt = counter.next()
+      attempt = next(counter)
 
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertRaises(IndexError, depmgr.GetNextNotification)
@@ -1432,7 +1432,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     counter = itertools.count()
     while True:
-      attempt = counter.next()
+      attempt = next(counter)
 
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertRaises(IndexError, depmgr.GetNextNotification)
@@ -1579,7 +1579,7 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.assertFalse(success)
 
   def _NextOpcode(self):
-    self.curop = self.opcounter.next()
+    self.curop = next(self.opcounter)
     self.prev_prio = self.job.ops[self.curop].priority
     self.prev_status = self.job.ops[self.curop].status
 
@@ -1708,7 +1708,7 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
 
     self.assertEqual(self.curop, len(job.ops) - 1)
     self.assertEqual(self.job, job)
-    self.assertEqual(self.opcounter.next(), len(job.ops))
+    self.assertEqual(next(self.opcounter), len(job.ops))
     self.assert_(self.done_lock_before_blocking)
 
     self.assertRaises(IndexError, self.queue.GetNextUpdate)

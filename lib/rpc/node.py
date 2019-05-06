@@ -485,10 +485,11 @@ class _RpcClientBase(object):
     self._encoder = compat.partial(self._EncodeArg, encoder_fn)
 
   @staticmethod
-  def _EncodeArg(encoder_fn, node, (argkind, value)):
+  def _EncodeArg(encoder_fn, node, arg):
     """Encode argument.
 
     """
+    (argkind, value) = arg
     if argkind is None:
       return value
     else:
@@ -655,10 +656,11 @@ def MakeLegacyNodeInfo(data, disk_template):
   return ret
 
 
-def _AnnotateDParamsDRBD(disk, (drbd_params, data_params, meta_params)):
+def _AnnotateDParamsDRBD(disk, params):
   """Annotates just DRBD disks layouts.
 
   """
+  (drbd_params, data_params, meta_params) = params
   assert disk.dev_type == constants.DT_DRBD8
 
   disk.params = objects.FillDict(drbd_params, disk.params)
@@ -669,13 +671,13 @@ def _AnnotateDParamsDRBD(disk, (drbd_params, data_params, meta_params)):
   return disk
 
 
-def _AnnotateDParamsGeneric(disk, (params, )):
+def _AnnotateDParamsGeneric(disk, params):
   """Generic disk parameter annotation routine.
 
   """
   assert disk.dev_type != constants.DT_DRBD8
 
-  disk.params = objects.FillDict(params, disk.params)
+  disk.params = objects.FillDict(params[0], disk.params)
 
   return disk
 
@@ -860,7 +862,8 @@ class RpcRunner(_RpcClientBase,
         n.netinfo = objects.Network.ToDict(nobj)
     return n.ToDict()
 
-  def _DeviceDict(self, _, (device, instance)):
+  def _DeviceDict(self, _, devinstance):
+    (device, instance) = devinstance
     if isinstance(device, objects.NIC):
       return self._NicDict(None, device)
     elif isinstance(device, objects.Disk):
@@ -912,22 +915,25 @@ class RpcRunner(_RpcClientBase,
           nic["netinfo"] = objects.Network.ToDict(nobj)
     return idict
 
-  def _InstDictHvpBepDp(self, node, (instance, hvp, bep)):
+  def _InstDictHvpBepDp(self, node, instance_params):
     """Wrapper for L{_InstDict}.
 
     """
+    (instance, hvp, bep) = instance_params
     return self._InstDict(node, instance, hvp=hvp, bep=bep)
 
-  def _InstDictOspDp(self, node, (instance, osparams)):
+  def _InstDictOspDp(self, node, instance_osparams):
     """Wrapper for L{_InstDict}.
 
     """
+    (instance, osparams) = instance_osparams
     return self._InstDict(node, instance, osp=osparams)
 
-  def _DisksDictDP(self, node, (disks, instance)):
+  def _DisksDictDP(self, node, instance_disks):
     """Wrapper for L{AnnotateDiskParams}.
 
     """
+    (disks, instance) = instance_disks
     diskparams = self._cfg.GetInstanceDiskParams(instance)
     ret = []
     for disk in AnnotateDiskParams(disks, diskparams):
@@ -949,10 +955,11 @@ class RpcRunner(_RpcClientBase,
     return [disk for disk_inst in disks_insts
             for disk in self._DisksDictDP(node, disk_inst)]
 
-  def _SingleDiskDictDP(self, node, (disk, instance)):
+  def _SingleDiskDictDP(self, node, instance_disk):
     """Wrapper for L{AnnotateDiskParams}.
 
     """
+    (disk, instance) = instance_disk
     anno_disk = self._DisksDictDP(node, ([disk], instance))[0]
     return anno_disk
 
@@ -963,10 +970,11 @@ class RpcRunner(_RpcClientBase,
     return dict((name, [self._SingleDiskDictDP(node, disk) for disk in disks])
                 for name, disks in value.items())
 
-  def _EncodeImportExportIO(self, node, (ieio, ieioargs)):
+  def _EncodeImportExportIO(self, node, ieinfo):
     """Encodes import/export I/O information.
 
     """
+    (ieio, ieioargs) = ieinfo
     if ieio == constants.IEIO_RAW_DISK:
       assert len(ieioargs) == 2
       return (ieio, (self._SingleDiskDictDP(node, ieioargs), ))

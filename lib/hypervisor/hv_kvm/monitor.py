@@ -149,7 +149,7 @@ class MonitorSocket(object):
     sock_stat = None
     try:
       sock_stat = os.stat(self.monitor_filename)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno == errno.ENOENT:
         raise errors.HypervisorError("No monitor socket found")
       else:
@@ -329,7 +329,7 @@ class QmpConnection(MonitorSocket):
     if pos >= 0:
       try:
         message = QmpMessage.BuildFromJsonString(buf[:pos + 1])
-      except Exception, err:
+      except Exception as err:
         raise errors.ProgrammerError("QMP data serialization error: %s" % err)
       buf = buf[pos + 1:]
 
@@ -364,10 +364,10 @@ class QmpConnection(MonitorSocket):
         if message:
           return message
 
-    except socket.timeout, err:
+    except socket.timeout as err:
       raise errors.HypervisorError("Timeout while receiving a QMP message: "
                                    "%s" % (err))
-    except socket.error, err:
+    except socket.error as err:
       raise errors.HypervisorError("Unable to receive data from KVM using the"
                                    " QMP protocol: %s" % err)
 
@@ -383,15 +383,15 @@ class QmpConnection(MonitorSocket):
     self._check_connection()
     try:
       message_str = str(message)
-    except Exception, err:
+    except Exception as err:
       raise errors.ProgrammerError("QMP data deserialization error: %s" % err)
 
     try:
       self.sock.sendall(message_str)
-    except socket.timeout, err:
+    except socket.timeout as err:
       raise errors.HypervisorError("Timeout while sending a QMP message: "
                                    "%s" % err)
-    except socket.error, err:
+    except socket.error as err:
       raise errors.HypervisorError("Unable to send data from KVM using the"
                                    " QMP protocol: %s" % err)
 
@@ -738,7 +738,7 @@ class QmpConnection(MonitorSocket):
           "fdname": fdname,
           }
       self.Execute("getfd", arguments)
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
       raise
 
@@ -762,7 +762,7 @@ class QmpConnection(MonitorSocket):
       # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
       response = self.Execute("add-fd")
       fdset = response["fdset-id"]
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
       raise
 
@@ -779,7 +779,7 @@ class QmpConnection(MonitorSocket):
     # Omit the fd to cleanup all fds in the fdset (see qemu/qmp-commands.hx)
     try:
       self.Execute("remove-fd", {"fdset-id": fdset})
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       # There is no big deal if we cannot remove an fdset. This cleanup here is
       # done on a best effort basis. Upon next hot-add a new fdset will be
       # created. If we raise an exception here, that is after drive_add has

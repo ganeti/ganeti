@@ -32,13 +32,15 @@
 
 """
 
+from __future__ import print_function
+
 import sys
 import stat
 import tarfile
 
 
 def ReportError(member, msg):
-  print >>sys.stderr, "%s: %s" % (member.name, msg)
+  print("%s: %s" % (member.name, msg), file=sys.stderr)
 
 
 def main():

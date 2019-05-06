@@ -61,7 +61,7 @@ class TestContainerToDicts(unittest.TestCase):
     for value in [None, 19410, "xyz"]:
       try:
         outils.ContainerToDicts(value)
-      except TypeError, err:
+      except TypeError as err:
         self.assertTrue(str(err).startswith("Unknown container type"))
       else:
         self.fail("Exception was not raised")
@@ -86,14 +86,14 @@ class TestContainerFromDicts(unittest.TestCase):
     for cls in [str, int, bool]:
       try:
         outils.ContainerFromDicts(None, cls, NotImplemented)
-      except TypeError, err:
+      except TypeError as err:
         self.assertTrue(str(err).startswith("Unknown container type"))
       else:
         self.fail("Exception was not raised")
 
       try:
         outils.ContainerFromDicts(None, cls(), NotImplemented)
-      except TypeError, err:
+      except TypeError as err:
         self.assertTrue(str(err).endswith("is not a type"))
       else:
         self.fail("Exception was not raised")

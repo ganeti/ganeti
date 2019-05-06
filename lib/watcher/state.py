@@ -71,7 +71,7 @@ def OpenStateFile(path):
   # watcher from running.
   try:
     utils.LockFile(statefile_fd)
-  except errors.LockError, err:
+  except errors.LockError as err:
     logging.error("Can't acquire lock on state file %s: %s", path, err)
     return None
 
@@ -97,7 +97,7 @@ class WatcherState(object):
         self._data = {}
       else:
         self._data = serializer.Load(state_data)
-    except Exception, msg: # pylint: disable=W0703
+    except Exception as msg: # pylint: disable=W0703
       # Ignore errors while loading the file and treat it as empty
       self._data = {}
       logging.warning(("Invalid state file. Using defaults."

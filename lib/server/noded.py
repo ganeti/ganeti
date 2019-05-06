@@ -35,6 +35,8 @@
 # C0103: Functions in this module need to have a given name structure,
 # and the name of the daemon doesn't match
 
+from __future__ import print_function
+
 import os
 import sys
 import logging
@@ -88,7 +90,7 @@ def _PrepareQueueLock():
   try:
     queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
     return None
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     return err
 
 
@@ -187,12 +189,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     try:
       result = (True, method(serializer.LoadJson(req.request_body)))
 
-    except backend.RPCFail, err:
+    except backend.RPCFail as err:
       # our custom failure exception; str(err) works fine if the
       # exception was constructed with a single argument, and in
       # this case, err.message == err.args[0] == str(err)
       result = (False, str(err))
-    except errors.QuitGanetiException, err:
+    except errors.QuitGanetiException as err:
       # Tell parent to quit
       logging.info("Shutting down the node daemon, arguments: %s",
                    str(err.args))
@@ -200,7 +202,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
       # And return the error's arguments, which must be already in
       # correct tuple format
       result = err.args
-    except Exception, err: # pylint: disable=W0703
+    except Exception as err: # pylint: disable=W0703
       logging.exception("Error in RPC call")
       result = (False, "Error while executing backend function: %s" % str(err))
 
@@ -1285,21 +1287,21 @@ def CheckNoded(options, args):
 
   """
   if args: # noded doesn't take any arguments
-    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
-                          sys.argv[0])
+    print("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   if options.max_clients < 1:
-    print >> sys.stderr, ("%s --max-clients argument must be >= 1" %
-                          sys.argv[0])
+    print("%s --max-clients argument must be >= 1" %
+                          sys.argv[0], file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
   try:
     codecs.lookup("string-escape")
   except LookupError:
-    print >> sys.stderr, ("Can't load the string-escape code which is part"
+    print("Can't load the string-escape code which is part"
                           " of the Python installation. Is your installation"
-                          " complete/correct? Aborting.")
+                          " complete/correct? Aborting.", file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
 

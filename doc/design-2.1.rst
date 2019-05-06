@@ -1098,7 +1098,7 @@ Requesting a user-id from the pool:
     <start a process with the UID>
     # Once the process is started, we can release the file lock
     uid.Unlock()
-  except ..., err:
+  except ... as err:
     # Return the UID to the pool
     uidpool.ReleaseUid(uid)
 

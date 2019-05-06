@@ -58,7 +58,7 @@ def main():
   # Read certificate
   try:
     cert_pem = utils.ReadFile(filename)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     cli.ToStderr("Unable to read %s: %s", filename, err)
     sys.exit(constants.EXIT_FAILURE)
 
@@ -75,7 +75,7 @@ def main():
 
   except (KeyboardInterrupt, SystemExit):
     raise
-  except Exception, err: # pylint: disable=W0703
+  except Exception as err: # pylint: disable=W0703
     cli.ToStderr("Unable to check %s: %s", filename, err)
 
   sys.exit(constants.EXIT_FAILURE)

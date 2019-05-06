@@ -59,7 +59,7 @@ def Log(msg, *args):
 def _GetImportExportData(filename):
   try:
     data = utils.ReadFile(filename)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     Log("%s = %s", filename, err)
     if err.errno != errno.ENOENT:
       raise
@@ -102,7 +102,7 @@ def main():
   Log("Running helper for %s %s", filename, what)
 
   if what == "listen-port":
-    print WaitForListenPort(filename)
+    print(WaitForListenPort(filename))
   elif what == "connected":
     WaitForConnected(filename)
   elif what == "gencert":

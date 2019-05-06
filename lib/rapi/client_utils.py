@@ -61,7 +61,7 @@ class RapiJobPollCb(cli.JobPollCbBase):
     try:
       result = self.cl.WaitForJobChange(job_id, fields,
                                         prev_job_info, prev_log_serial)
-    except client.GanetiApiError, err:
+    except client.GanetiApiError as err:
       if err.code == HTTP_NOT_FOUND:
         return None
 
@@ -86,7 +86,7 @@ class RapiJobPollCb(cli.JobPollCbBase):
 
     try:
       result = self.cl.GetJobStatus(job_ids[0])
-    except client.GanetiApiError, err:
+    except client.GanetiApiError as err:
       if err.code == HTTP_NOT_FOUND:
         return [None]
 

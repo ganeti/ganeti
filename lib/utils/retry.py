@@ -171,7 +171,7 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
     retry_args = []
     try:
       return fn(*args)
-    except RetryAgain, err:
+    except RetryAgain as err:
       retry_args = err.args
     except RetryTimeout:
       raise errors.ProgrammerError("Nested retry loop detected that didn't"

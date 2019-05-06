@@ -163,7 +163,7 @@ class TestParseInstanceList(testutils.GanetiTestCase):
     for lines in tests:
       try:
         hv_xen._ParseInstanceList(["Header would be here"] + lines, False)
-      except errors.HypervisorError, err:
+      except errors.HypervisorError as err:
         self.assertTrue("Can't parse instance list" in str(err))
       else:
         self.fail("Exception was not raised")
@@ -237,7 +237,7 @@ class TestGetInstanceList(testutils.GanetiTestCase):
     try:
       hv_xen._GetRunningInstanceList(fn, False, delays=(0.02, 1.0, 0.03),
                                      timeout=0.1)
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       self.assertTrue("timeout exceeded" in str(err))
     else:
       self.fail("Exception was not raised")
@@ -371,7 +371,7 @@ class TestGetConfigFileDiskData(unittest.TestCase):
       else:
         try:
           hv_xen._GetConfigFileDiskData(disks, "hd")
-        except errors.HypervisorError, err:
+        except errors.HypervisorError as err:
           self.assertEqual(str(err), "Too many disks")
         else:
           self.fail("Exception was not raised")
@@ -576,7 +576,7 @@ class TestXenHypervisorWriteConfigFile(unittest.TestCase):
 
     try:
       hv._WriteConfigFile("name", "data")
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       self.assertTrue(str(err).startswith("Cannot write Xen instance"))
     else:
       self.fail("Exception was not raised")
@@ -672,7 +672,7 @@ class _TestXenHypervisor(object):
 
     try:
       hv._ReadConfigFile("inst15780.example.com")
-    except errors.HypervisorError, err:
+    except errors.HypervisorError as err:
       self.assertTrue(str(err).startswith("Failed to load Xen config file:"))
     else:
       self.fail("Exception was not raised")
@@ -885,7 +885,7 @@ class _TestXenHypervisor(object):
           try:
             hv._StopInstance(name, force, None,
                              constants.DEFAULT_SHUTDOWN_TIMEOUT)
-          except errors.HypervisorError, err:
+          except errors.HypervisorError as err:
             self.assertTrue(str(err).startswith("listing instances failed"),
                             msg=str(err))
           else:
@@ -917,7 +917,7 @@ class _TestXenHypervisor(object):
       try:
         hv._MigrateInstance(name, target, port, live, self.VALID_HVPARAMS,
                             _ping_fn=NotImplemented)
-      except errors.HypervisorError, err:
+      except errors.HypervisorError as err:
         self.assertEqual(str(err), "Instance not running, cannot migrate")
       else:
         self.fail("Exception was not raised")
@@ -947,7 +947,7 @@ class _TestXenHypervisor(object):
           hv._MigrateInstance(name, target, port, live, hvparams,
                               _ping_fn=compat.partial(self._FakeTcpPing,
                                                       (target, port), False))
-        except errors.HypervisorError, err:
+        except errors.HypervisorError as err:
           wanted = "Remote host %s not" % target
           self.assertTrue(str(err).startswith(wanted))
         else:
@@ -1008,7 +1008,7 @@ class _TestXenHypervisor(object):
           try:
             hv._MigrateInstance(instname, target, port, live, hvparams,
                                 _ping_fn=ping_fn)
-          except errors.HypervisorError, err:
+          except errors.HypervisorError as err:
             self.assertTrue(str(err).startswith("Failed to migrate instance"))
           else:
             self.fail("Exception was not raised")

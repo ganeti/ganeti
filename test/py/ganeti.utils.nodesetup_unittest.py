@@ -53,7 +53,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       handle.write("192.0.2.1 router gw\n")
     finally:
       handle.close()
-    os.chmod(self.tmpname, 0644)
+    os.chmod(self.tmpname, 0o644)
 
   def testSettingNewIp(self):
     utils.SetEtcHostsEntry(self.tmpname, "198.51.100.4", "myhost.example.com",
@@ -64,7 +64,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1 router gw\n"
       "198.51.100.4\tmyhost.example.com myhost\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testSettingExistingIp(self):
     utils.SetEtcHostsEntry(self.tmpname, "192.0.2.1", "myhost.example.com",
@@ -74,7 +74,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1\tmyhost.example.com myhost\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testSettingDuplicateName(self):
     utils.SetEtcHostsEntry(self.tmpname, "198.51.100.4", "myhost", ["myhost"])
@@ -84,7 +84,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1 router gw\n"
       "198.51.100.4\tmyhost\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testSettingOrdering(self):
     utils.SetEtcHostsEntry(self.tmpname, "127.0.0.1", "localhost.localdomain",
@@ -94,7 +94,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost.localdomain localhost\n"
       "192.0.2.1 router gw\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testRemovingExistingHost(self):
     utils.RemoveEtcHostsEntry(self.tmpname, "router")
@@ -103,7 +103,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1 gw\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testRemovingSingleExistingHost(self):
     utils.RemoveEtcHostsEntry(self.tmpname, "localhost")
@@ -111,7 +111,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
     self.assertFileContent(self.tmpname,
       "# This is a test file for /etc/hosts\n"
       "192.0.2.1 router gw\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testRemovingNonExistingHost(self):
     utils.RemoveEtcHostsEntry(self.tmpname, "myhost")
@@ -120,7 +120,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1 router gw\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
   def testRemovingAlias(self):
     utils.RemoveEtcHostsEntry(self.tmpname, "gw")
@@ -129,7 +129,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1 router\n")
-    self.assertFileMode(self.tmpname, 0644)
+    self.assertFileMode(self.tmpname, 0o644)
 
 
 if __name__ == "__main__":

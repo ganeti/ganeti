@@ -279,7 +279,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         hv_class = hypervisor.GetHypervisorClass(hv_name)
         utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
         hv_class.CheckParameterSyntax(hv_params)
-      except errors.GenericError, err:
+      except errors.GenericError as err:
         self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg % str(err))
 
   def ExpandNames(self):
@@ -914,7 +914,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                            groupinfo[group].name)
         # Sort so that we always list the primary node first.
         for group, nodes in sorted(instance_groups.items(),
-                                   key=lambda (_, nodes): pnode_uuid in nodes,
+                                   key=lambda g_n: pnode_uuid in g_n[1],
                                    reverse=True)]
 
       self._ErrorIf(len(instance_groups) > 1,
@@ -1130,8 +1130,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           self._ErrorIf(result,
                         constants.CV_ENODESSH, None, error_msg)
 
-  def _VerifyFiles(self, nodes, master_node_uuid, all_nvinfo,
-                   (files_all, files_opt, files_mc, files_vm)):
+  def _VerifyFiles(self, nodes, master_node_uuid, all_nvinfo, filemap):
     """Verifies file checksums collected from all nodes.
 
     @param nodes: List of L{objects.Node} objects
@@ -1139,7 +1138,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param all_nvinfo: RPC results
 
     """
-    # Define functions determining which nodes to consider for a file
+    (files_all, files_opt, files_mc, files_vm) = filemap
     files2nodefn = [
       (files_all, None),
       (files_mc, lambda node: (node.master_candidate or
@@ -1779,7 +1778,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     sel = cls._SshNodeSelector(group_uuid, all_nodes)
 
     return (online_nodes,
-            dict((name, sorted([i.next() for i in sel]))
+            dict((name, sorted([next(i) for i in sel]))
                  for name in online_nodes),
             online_mcs)
 

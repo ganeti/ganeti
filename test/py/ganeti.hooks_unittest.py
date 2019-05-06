@@ -113,7 +113,7 @@ class TestHooksRunner(unittest.TestCase):
       f = open(fname, "w")
       f.write("#!/bin/sh\nexit 0\n")
       f.close()
-      os.chmod(fname, 0700)
+      os.chmod(fname, 0o700)
       self.torm.append((fname, False))
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SKIP, "")])
@@ -135,7 +135,7 @@ class TestHooksRunner(unittest.TestCase):
       f.write("#!/bin/sh\nexit 0\n")
       f.close()
       self.torm.append((fname, False))
-      os.chmod(fname, 0700)
+      os.chmod(fname, 0o700)
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_SUCCESS, "")])
 
@@ -156,7 +156,7 @@ class TestHooksRunner(unittest.TestCase):
       f.write("#!/bin/sh\nexit 1\n")
       f.close()
       self.torm.append((fname, False))
-      os.chmod(fname, 0700)
+      os.chmod(fname, 0o700)
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
                            [(self._rname(fname), HKR_FAIL, "")])
 
@@ -173,7 +173,7 @@ class TestHooksRunner(unittest.TestCase):
         f.write("#!/bin/sh\nexit %d\n" % ecode)
         f.close()
         self.torm.append((fname, False))
-        os.chmod(fname, 0700)
+        os.chmod(fname, 0o700)
         expect.append((self._rname(fname), rs, ""))
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
 

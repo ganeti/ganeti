@@ -135,7 +135,7 @@ class LUTagsSearch(NoHooksLU):
     """
     try:
       self.re = re.compile(self.op.pattern)
-    except re.error, err:
+    except re.error as err:
       raise errors.OpPrereqError("Invalid search pattern '%s': %s" %
                                  (self.op.pattern, err), errors.ECODE_INVAL)
 
@@ -190,7 +190,7 @@ class LUTagsSet(TagsLU):
     try:
       for tag in self.op.tags:
         self.target.AddTag(tag)
-    except errors.TagError, err:
+    except errors.TagError as err:
       raise errors.OpExecError("Error while setting tag: %s" % str(err))
     self.cfg.Update(self.target, feedback_fn)
 

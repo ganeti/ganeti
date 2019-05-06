@@ -70,7 +70,7 @@ def CloseFdNoError(fd, retries=5):
   """
   try:
     os.close(fd)
-  except OSError, err:
+  except OSError as err:
     if err.errno != errno.EBADF:
       if retries > 0:
         CloseFdNoError(fd, retries - 1)
@@ -123,10 +123,10 @@ def RetryOnSignal(fn, *args, **kwargs):
   while True:
     try:
       return fn(*args, **kwargs)
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       if err.errno != errno.EINTR:
         raise
-    except (socket.error, select.error), err:
+    except (socket.error, select.error) as err:
       # In python 2.6 and above select.error is an IOError, so it's handled
       # above, in 2.5 and below it's not, and it's handled here.
       if not (err.args and err.args[0] == errno.EINTR):
@@ -144,7 +144,7 @@ def IgnoreProcessNotFound(fn, *args, **kwargs):
   """
   try:
     fn(*args, **kwargs)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     # Ignore ESRCH
     if err.errno == errno.ESRCH:
       return False
@@ -159,12 +159,12 @@ def IgnoreSignals(fn, *args, **kwargs):
   """
   try:
     return fn(*args, **kwargs)
-  except EnvironmentError, err:
+  except EnvironmentError as err:
     if err.errno == errno.EINTR:
       return None
     else:
       raise
-  except (select.error, socket.error), err:
+  except (select.error, socket.error) as err:
     # In python 2.6 and above select.error is an IOError, so it's handled
     # above, in 2.5 and below it's not, and it's handled here.
     if err.args and err.args[0] == errno.EINTR:

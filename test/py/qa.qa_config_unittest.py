@@ -177,7 +177,7 @@ class TestQaConfigLoad(unittest.TestCase):
 
     try:
       qa_config._QaConfig.Load(filename)
-    except qa_error.Error, err:
+    except qa_error.Error as err:
       self.assertTrue(str(err).startswith(expected))
     else:
       self.fail("Exception was not raised")
@@ -408,11 +408,11 @@ class TestQaConfig(unittest.TestCase):
       for i in range(iterations):
         node = qa_config.AcquireNode(_cfg=self.config)
         self.assertTrue(node.use_count > 0)
-        self.assertEqual(node.use_count, (i / nodecount + 1))
+        self.assertEqual(node.use_count, (i // nodecount + 1))
         acquired.append((node.use_count, node.primary, node))
 
       # Check if returned nodes were in correct order
-      key_fn = lambda (a, b, c): (a, utils.NiceSortKey(b), c)
+      key_fn = lambda a_b_c: (a_b_c[0], utils.NiceSortKey(a_b_c[1]), a_b_c[2])
       self.assertEqual(acquired, sorted(acquired, key=key_fn))
 
       # Release previously acquired nodes

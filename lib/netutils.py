@@ -161,7 +161,7 @@ def GetHostname(name=None, family=None):
   """
   try:
     return Hostname(name=name, family=family)
-  except errors.ResolverError, err:
+  except errors.ResolverError as err:
     raise errors.OpPrereqError("The given name (%s) does not resolve: %s" %
                                (err[0], err[2]), errors.ECODE_RESOLVER)
 
@@ -236,7 +236,7 @@ class Hostname(object):
         result = socket.getaddrinfo(hostname, None, family)
       else:
         result = socket.getaddrinfo(hostname, None)
-    except (socket.gaierror, socket.herror, socket.error), err:
+    except (socket.gaierror, socket.herror, socket.error) as err:
       # hostname not found in DNS, or other socket exception in the
       # (code, description format)
       raise errors.ResolverError(hostname, err.args[0], err.args[1])
@@ -246,7 +246,7 @@ class Hostname(object):
     # sockaddr
     try:
       return result[0][4][0]
-    except IndexError, err:
+    except IndexError as err:
       # we don't have here an actual error code, it's just that the
       # data type returned by getaddrinfo is not what we expected;
       # let's keep the same format in the exception arguments with a
@@ -327,7 +327,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
 
   try:
     family = IPAddress.GetAddressFamily(target)
-  except errors.IPAddressError, err:
+  except errors.IPAddressError as err:
     raise errors.ProgrammerError("Family of IP address given in parameter"
                                  " 'target' can't be determined: %s" % err)
 
@@ -337,7 +337,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   if source is not None:
     try:
       sock.bind((source, 0))
-    except socket.error, err:
+    except socket.error as err:
       if err[0] == errno.EADDRNOTAVAIL:
         success = False
 
@@ -349,7 +349,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
     success = True
   except socket.timeout:
     success = False
-  except socket.error, err:
+  except socket.error as err:
     success = (not live_port_needed) and (err[0] == errno.ECONNREFUSED)
 
   return success

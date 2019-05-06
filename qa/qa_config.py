@@ -251,10 +251,11 @@ _RESOURCE_CONVERTER = {
   }
 
 
-def _ConvertResources((key, value)):
+def _ConvertResources(key_value):
   """Converts cluster resources in configuration to Python objects.
 
   """
+  (key, value) = key_value
   fn = _RESOURCE_CONVERTER.get(key, None)
   if fn:
     return (key, map(fn, value))
@@ -321,10 +322,10 @@ class _QaConfig(object):
 
     """
     patch_content = patches[patch_path]
-    print qa_logging.FormatInfo("Applying patch %s" % patch_path)
+    print(qa_logging.FormatInfo("Applying patch %s" % patch_path))
     if not patch_content and patch_path != _QA_DEFAULT_PATCH:
-      print qa_logging.FormatWarning("The patch %s added by the user is empty" %
-                                     patch_path)
+      print(qa_logging.FormatWarning("The patch %s added by the user is empty" %
+                                     patch_path))
     patch_module.apply_patch(data, patch_content, in_place=True)
 
   @staticmethod
@@ -431,7 +432,7 @@ class _QaConfig(object):
     if check:
       try:
         os.stat(check)
-      except EnvironmentError, err:
+      except EnvironmentError as err:
         raise qa_error.Error("Can't find instance check script '%s': %s" %
                              (check, err))
 

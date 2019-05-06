@@ -121,7 +121,7 @@ class TestCanRead(testutils.GanetiTestCase):
     target = utils.PathJoin(self.tmpdir, "target1")
     f=open(target, "w")
     f.close()
-    utils.EnforcePermission(target, 0400, uid=self.confdUid,
+    utils.EnforcePermission(target, 0o400, uid=self.confdUid,
                             gid=self.masterdGid)
     self.assertTrue(utils.CanRead(constants.CONFD_USER, target))
     if constants.CONFD_USER != constants.MASTERD_USER:
@@ -131,13 +131,13 @@ class TestCanRead(testutils.GanetiTestCase):
     target = utils.PathJoin(self.tmpdir, "target2")
     f=open(target, "w")
     f.close()
-    utils.EnforcePermission(target, 0040, uid=self.confdUid,
+    utils.EnforcePermission(target, 0o040, uid=self.confdUid,
                             gid=self.masterdGid)
     self.assertFalse(utils.CanRead(constants.CONFD_USER, target))
     if constants.CONFD_USER != constants.MASTERD_USER:
       self.assertTrue(utils.CanRead(constants.MASTERD_USER, target))
 
-    utils.EnforcePermission(target, 0040, uid=self.masterdUid+1,
+    utils.EnforcePermission(target, 0o040, uid=self.masterdUid+1,
                             gid=self.masterdGid)
     self.assertTrue(utils.CanRead(constants.MASTERD_USER, target))
 

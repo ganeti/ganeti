@@ -189,7 +189,7 @@ def main():
       converter = ovf.OVFExporter(input_path, options)
     converter.Parse()
     converter.Save()
-  except errors.OpPrereqError, err:
+  except errors.OpPrereqError as err:
     if converter:
       converter.Cleanup()
     logging.exception(err)

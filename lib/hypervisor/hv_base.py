@@ -66,7 +66,7 @@ def _IsCpuMaskWellFormed(cpu_mask):
   """
   try:
     cpu_list = utils.ParseCpuMask(cpu_mask)
-  except errors.ParseError, _:
+  except errors.ParseError:
     return False
   return isinstance(cpu_list, list) and len(cpu_list) > 0
 
@@ -80,7 +80,7 @@ def _IsMultiCpuMaskWellFormed(cpu_mask):
   """
   try:
     utils.ParseMultiCpuMask(cpu_mask)
-  except errors.ParseError, _:
+  except errors.ParseError:
     return False
 
   return True
@@ -690,7 +690,7 @@ class BaseHypervisor(object):
     """
     try:
       data = utils.ReadFile(meminfo).splitlines()
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
 
     result = {}
@@ -703,12 +703,12 @@ class BaseHypervisor(object):
           key = splitfields[0].strip()
           val = splitfields[1].strip()
           if key == "MemTotal":
-            result["memory_total"] = int(val.split()[0]) / 1024
+            result["memory_total"] = int(val.split()[0]) // 1024
           elif key in ("MemFree", "Buffers", "Cached"):
-            sum_free += int(val.split()[0]) / 1024
+            sum_free += int(val.split()[0]) // 1024
           elif key == "Active":
-            result["memory_dom0"] = int(val.split()[0]) / 1024
-    except (ValueError, TypeError), err:
+            result["memory_dom0"] = int(val.split()[0]) // 1024
+    except (ValueError, TypeError) as err:
       raise errors.HypervisorError("Failed to compute memory usage: %s" %
                                    (err,))
     result["memory_free"] = sum_free
@@ -721,7 +721,7 @@ class BaseHypervisor(object):
                                    fh.read()))
       finally:
         fh.close()
-    except EnvironmentError, err:
+    except EnvironmentError as err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
     result["cpu_total"] = cpu_total
     # We assume that the node OS can access all the CPUs

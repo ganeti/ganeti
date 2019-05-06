@@ -109,7 +109,7 @@ class FakeSshFileManager(object):
 
       pot_mc = i < num_pot_mcs
       mc = i < num_mcs
-      master = i == num_mcs / 2
+      master = i == num_mcs // 2
 
       self._all_node_data[name] = self._NodeInfo(uuid, key, pot_mc, mc, master)
 

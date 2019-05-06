@@ -910,7 +910,7 @@ def main():
   sw.Write("[[ -n \"$gnt_shopt_extglob\" ]] && $gnt_shopt_extglob")
   sw.Write("unset gnt_shopt_extglob")
 
-  print buf.getvalue()
+  print(buf.getvalue())
 
 
 if __name__ == "__main__":

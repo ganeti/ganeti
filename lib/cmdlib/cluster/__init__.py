@@ -936,7 +936,7 @@ class LUClusterSetParams(LogicalUnit):
       try:
         utils.VerifyDictOptions(self.op.diskparams, constants.DISK_DT_DEFAULTS)
         CheckDiskAccessModeValidity(self.op.diskparams)
-      except errors.OpPrereqError, err:
+      except errors.OpPrereqError as err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)
 
@@ -1319,7 +1319,7 @@ class LUClusterSetParams(LogicalUnit):
           # check parameter syntax
           try:
             objects.NIC.CheckParameterSyntax(params_filled)
-          except errors.ConfigurationError, err:
+          except errors.ConfigurationError as err:
             nic_errors.append("Instance %s, nic/%d: %s" %
                               (instance.name, nic_idx, err))
 

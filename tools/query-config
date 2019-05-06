@@ -72,8 +72,8 @@ def Usage():
 
   """
 
-  print >> sys.stderr, "Usage:"
-  print >> sys.stderr, USAGE
+  print("Usage:", file=sys.stderr)
+  print(USAGE, file=sys.stderr)
   sys.exit(2)
 
 
@@ -135,13 +135,13 @@ class QueryClient(object):
     table = zip(self.paths, responses)
     longest_path = max(len(p) for p in self.paths)
     for p, a in table:
-      print "%s\t%s" % (p.ljust(longest_path), a)
+      print("%s\t%s" % (p.ljust(longest_path), a))
 
   def DoConfdRequestReply(self, req):
     """Send request to Confd and await all responses.
 
     """
-    self.confd_client.SendRequest(req, async=False)
+    self.confd_client.SendRequest(req, async_=False)
     if not self.confd_client.ReceiveReply():
       Err("Did not receive all expected confd replies")
     return self.store_callback.GetResponse(req.rsalt)
