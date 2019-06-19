@@ -34,7 +34,7 @@
 import logging
 import threading
 
-from io import StringIO
+from io import BytesIO
 
 import pycurl
 
@@ -154,7 +154,7 @@ def _StartRequest(curl, req):
   assert compat.all(isinstance(i, str) for i in headers)
 
   # Buffer for response
-  resp_buffer = StringIO()
+  resp_buffer = BytesIO()
 
   # Configure client for request
   curl.setopt(pycurl.VERBOSE, False)
@@ -241,7 +241,7 @@ class _PendingRequest(object):
 
     # Get HTTP response code
     req.resp_status_code = curl.getinfo(pycurl.RESPONSE_CODE)
-    req.resp_body = self._resp_buffer_read()
+    req.resp_body = self._resp_buffer_read().decode("utf-8")
 
     # Ensure no potentially large variables are referenced
     curl.setopt(pycurl.POSTFIELDS, "")

@@ -479,7 +479,7 @@ class TestClientStartRequest(unittest.TestCase):
             offset = 0
             while offset < len(response_body):
               piece = response_body[offset:offset + 10]
-              write_fn(piece)
+              write_fn(piece.encode("utf-8"))
               offset += len(piece)
 
           curl.info = {
