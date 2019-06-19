@@ -17,6 +17,7 @@ AM_INIT_AUTOMAKE([1.9 foreign tar-ustar -Wall -Wno-portability]
                              *1.11*);;
                              *) echo serial-tests;;
                              esac]))
+AM_MAINTAINER_MODE([enable])
 
 AC_SUBST([VERSION_MAJOR], gnt_version_major)
 AC_SUBST([VERSION_MINOR], gnt_version_minor)
