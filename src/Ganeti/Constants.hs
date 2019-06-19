@@ -454,8 +454,8 @@ procMounts = "/proc/mounts"
 
 -- * Luxi (Local UniX Interface) related constants
 
-luxiEom :: PythonChar
-luxiEom = PythonChar '\x03'
+luxiEom :: BC.ByteString
+luxiEom = BC.pack "\x03"
 
 -- | Environment variable for the luxi override socket
 luxiOverride :: String
