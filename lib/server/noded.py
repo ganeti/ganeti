@@ -41,7 +41,6 @@ import os
 import sys
 import logging
 import signal
-import codecs
 
 from optparse import OptionParser
 
@@ -1294,14 +1293,6 @@ def CheckNoded(options, args):
   if options.max_clients < 1:
     print("%s --max-clients argument must be >= 1" %
                           sys.argv[0], file=sys.stderr)
-    sys.exit(constants.EXIT_FAILURE)
-
-  try:
-    codecs.lookup("string-escape")
-  except LookupError:
-    print("Can't load the string-escape code which is part"
-                          " of the Python installation. Is your installation"
-                          " complete/correct? Aborting.", file=sys.stderr)
     sys.exit(constants.EXIT_FAILURE)
 
 
