@@ -44,6 +44,7 @@ import pwd
 import time
 import itertools
 import select
+import socket
 import logging
 import signal
 
@@ -965,3 +966,35 @@ def GetDiskTemplate(disks_info):
 
   """
   return GetDiskTemplateString(d.dev_type for d in disks_info)
+
+def SendFds(sock, data, fds):
+  """Sends a set of file descriptors over a socket using sendmsg(2)
+
+  @type sock: socket.socket
+  @param sock: the socket over which the fds will be sent
+  @type data: bytes
+  @param data: actual data for the sendmsg(2) call
+  @type fds: list of file descriptors or file-like objects with fileno() methods
+  @param fds: the file descriptors to send
+
+  """
+  if not isinstance(data, bytes):
+    raise errors.TypeEnforcementError("expecting bytes for data")
+
+  _fds = array.array("i")
+
+  for fd in fds:
+    if isinstance(fd, int):
+      array.append(fd)
+      continue
+
+    try:
+      array.append(fd.fileno())
+      continue
+    except AttributeError:
+      pass
+
+    raise errors.TypeEnforcementError("expected int or file-like object"
+                                      " got %s" % type(fd).__name__)
+
+  return sock.sendmsg([data], [socket.SOL_SOCKET, socket.SCM_RIGHTS, fds])
