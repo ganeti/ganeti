@@ -55,10 +55,6 @@ try:
 except ImportError:
   psutil_err = "not found"
   psutil = None
-try:
-  import fdsend   # pylint: disable=F0401
-except ImportError:
-  fdsend = None
 
 from ganeti import utils
 from ganeti import constants

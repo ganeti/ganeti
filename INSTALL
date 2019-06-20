@@ -45,8 +45,6 @@ Before installing, please verify that you have the following programs:
   optional python package for supporting CPU pinning under KVM, versions
   2.x.x only; beware that versions from 2.0.0 to before 2.2.0 had a
   number of file handle leaks, so running at least 2.2.0 is advised
-- `fdsend Python module <https://gitorious.org/python-fdsend>`_,
-  optional Python package for supporting NIC hotplugging under KVM
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.sourceforge.net/>`_
 - `Bitarray Python library <http://pypi.python.org/pypi/bitarray/>`_

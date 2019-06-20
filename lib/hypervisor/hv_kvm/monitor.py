@@ -39,10 +39,6 @@ import errno
 import socket
 import io
 import logging
-try:
-  import fdsend   # pylint: disable=F0401
-except ImportError:
-  fdsend = None
 
 from bitarray import bitarray
 
@@ -676,16 +672,12 @@ class QmpConnection(MonitorSocket):
   def CheckDiskHotAddSupport(self):
     """Check if disk hotplug is possible
 
-    Hotplug is *not* supported in case:
-     - fdsend module is missing
-     - add-fd and blockdev-add qmp commands are not supported
+    Hotplug is *not* supported in case the add-fd and blockdev-add qmp commands
+    are not supported
 
     """
     def _raise(reason):
       raise errors.HotplugError("Cannot hot-add disk: %s." % reason)
-
-    if not fdsend:
-      _raise("fdsend python module is missing")
 
     if "add-fd" not in self.supported_commands:
       _raise("add-fd qmp command is not supported")
@@ -697,16 +689,12 @@ class QmpConnection(MonitorSocket):
   def CheckNicHotAddSupport(self):
     """Check if NIC hotplug is possible
 
-    Hotplug is *not* supported in case:
-     - fdsend module is missing
-     - getfd and netdev_add qmp commands are not supported
+    Hotplug is *not* supported in case the getfd and netdev_add qmp commands
+    are not supported
 
     """
     def _raise(reason):
       raise errors.HotplugError("Cannot hot-add NIC: %s." % reason)
-
-    if not fdsend:
-      _raise("fdsend python module is missing")
 
     if "getfd" not in self.supported_commands:
       _raise("getfd qmp command is not supported")
@@ -717,9 +705,9 @@ class QmpConnection(MonitorSocket):
   def _GetFd(self, fd, fdname):
     """Wrapper around the getfd qmp command
 
-    Use fdsend to send an fd to a running process via SCM_RIGHTS and then use
-    the getfd qmp command to name it properly so that it can be used
-    later by NIC hotplugging.
+    Send an fd to a running process via SCM_RIGHTS and then use the getfd qmp
+    command to name it properly so that it can be used later by NIC
+    hotplugging.
 
     @type fd: int
     @param fd: The file descriptor to pass
@@ -728,7 +716,7 @@ class QmpConnection(MonitorSocket):
     """
     self._check_connection()
     try:
-      fdsend.sendfds(self.sock, " ", fds=[fd])
+      utils.SendFds(self.sock, b" ", [fd])
       arguments = {
           "fdname": fdname,
           }
@@ -740,9 +728,8 @@ class QmpConnection(MonitorSocket):
   def _AddFd(self, fd):
     """Wrapper around add-fd qmp command
 
-    Use fdsend to send fd to a running process via SCM_RIGHTS and then add-fd
-    qmp command to add it to an fdset so that it can be used later by
-    disk hotplugging.
+    Send fd to a running process via SCM_RIGHTS and then add-fd qmp command to
+    add it to an fdset so that it can be used later by disk hotplugging.
 
     @type fd: int
     @param fd: The file descriptor to pass
@@ -753,7 +740,7 @@ class QmpConnection(MonitorSocket):
     """
     self._check_connection()
     try:
-      fdsend.sendfds(self.sock, " ", fds=[fd])
+      utils.SendFds(self.sock, b" ", [fd])
       # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
       response = self.Execute("add-fd")
       fdset = response["fdset-id"]
