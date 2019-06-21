@@ -707,7 +707,7 @@ class SignalWakeupFd(object):
     """Notifies the wakeup file descriptor.
 
     """
-    self._write_fh.write(chr(0))
+    self._write_fh.write(b"\x00")
 
   def __del__(self):
     """Called before object deletion.
@@ -801,6 +801,12 @@ class SignalHandler(object):
 
     if self._handler_fn:
       self._handler_fn(signum, frame)
+
+  def SetHandlerFn(self, fn):
+    """Set the signal handling function
+
+    """
+    self._handler_fn = fn
 
 
 class FieldSet(object):

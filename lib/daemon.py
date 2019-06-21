@@ -473,6 +473,7 @@ class Mainloop(object):
     """
     self._signal_wait = []
     self.scheduler = AsyncoreScheduler(time.time)
+    self.awaker = AsyncAwaker()
 
     # Resolve uid/gids used
     runtime.GetEnts()
@@ -494,6 +495,11 @@ class Mainloop(object):
     assert isinstance(signal_handlers, dict) and \
            len(signal_handlers) > 0, \
            "Broken SignalHandled decorator"
+
+    _sig_notify = lambda _, __: self.awaker.signal()
+
+    for handler in signal_handlers.values():
+      handler.SetHandlerFn(_sig_notify)
 
     # Counter for received signals
     shutdown_signals = 0
