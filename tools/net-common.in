@@ -63,6 +63,75 @@ function fix_mac {
   ip link set $INTERFACE address $FIXED_MAC || true
 }
 
+function log_info() {
+  echo "${@}" >&2
+  logger -p local1.info -t ${0}[$$] -- "${@}"
+}
+
+function bridge_vlan_add {
+  local VID="${1}"
+  shift
+
+  # when the VID is in use by traditional VLAN interface, then the
+  # tap on the VLAN aware bridge will not receive traffic
+  if [ -r /proc/net/vlan/config ]; then
+    local vlan_interface="$(awk -F '[| ]*' -v vlan="^${VID}$" 'match($2, vlan) { print $1 }' /proc/net/vlan/config)"
+    if [ -n "${vlan_interface}" ]; then
+      echo "VLAN ${VID} is in use by interface ${vlan_interface}"
+      exit 1
+    fi
+  fi
+
+  # add the VLAN to the tap
+  # $@ is either empty or contains "pvid untagged"
+  bridge vlan add dev ${INTERFACE} vid ${VID} "${@}" master
+  # add the VLAN to the bridge uplinks
+  local uplink
+  for uplink in ${BRIDGE_UPLINKS}; do
+    log_info "configuring VLAN ${VID} on interface ${uplink} (reason: instance ${INSTANCE})"
+    bridge vlan add dev ${uplink} vid ${VID} master
+  done
+}
+
+function setup_bridge_vlan_aware {
+  # enforce the admin to configure vlan filtering explicit
+  if [ $(</sys/class/net/${LINK}/bridge/vlan_filtering) -ne 1 ]; then
+    echo "Instance ${INSTANCE} NIC ${INTERFACE_INDEX} configured for VLAN support, but bridge ${LINK} has VLAN filtering disabled"
+    exit 1
+  fi
+
+  # VLANs must be added one by one to the bridge's uplink ports
+  # find them once here
+  local i dev
+  BRIDGE_UPLINKS=""
+  for i in /sys/class/net/${LINK}/lower_*; do
+    dev=${i#/sys/class/net/${LINK}/lower_}
+    case ${dev} in
+      tap*) :;;
+      *)    BRIDGE_UPLINKS="${BRIDGE_UPLINKS} ${dev}";;
+    esac
+  done
+
+  # array of VLANs to number them
+  local VLANS=( ${VLAN//:/ } )
+  local i
+  # loop over array keys
+  for i in "${!VLANS[@]}"; do
+    # handle the first VLAN special
+    if [ ${i} -eq 0 ]; then
+      # does not start with a colon? -> must be untagged (access or hybrid)
+      if [ "${VLAN:0:1}" != ":" ]; then
+        bridge_vlan_add ${VLANS[$i]#.} pvid untagged
+      else
+        bridge_vlan_add ${VLANS[$i]}
+      fi
+    # all other VLANs are tagged
+    else
+      bridge_vlan_add ${VLANS[$i]}
+    fi
+  done
+}
+
 function setup_bridge {
   if [ "$MODE" = "bridged" ]; then
     fix_mac
@@ -71,6 +140,12 @@ function setup_bridge {
 
     # Connect the interface to the bridge
     ip link set $INTERFACE master $LINK
+
+    # VLAN aware bridge?
+    # https://developers.redhat.com/blog/2017/09/14/vlan-filter-support-on-bridge/
+    if [ -n "${VLAN}" ]; then
+      setup_bridge_vlan_aware
+    fi
   fi
 }
 
