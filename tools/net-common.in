@@ -70,7 +70,7 @@ function setup_bridge {
     ip link set $INTERFACE mtu $(</sys/class/net/${LINK}/mtu)
 
     # Connect the interface to the bridge
-    brctl addif $LINK $INTERFACE
+    ip link set $INTERFACE master $LINK
   fi
 }
 
