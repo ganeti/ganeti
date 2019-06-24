@@ -168,7 +168,7 @@ def OpenTap(name="", features=None):
       flags |= IFF_ONE_QUEUE
 
     # The struct ifreq ioctl request (see netdevice(7))
-    ifr = struct.pack("16sh", name, flags)
+    ifr = struct.pack("16sh", name.encode("ascii"), flags)
 
     try:
       res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
@@ -193,9 +193,9 @@ def OpenTap(name="", features=None):
       # Set the tap device name after the first iteration of the loop going over
       # the number of net queues, if it is not already set. If we don't do this,
       # a new tap device will be created for each queue.
-      name = struct.unpack("16sh", res)[0].strip("\x00")
+      name = struct.unpack("16sh", res)[0].strip(b"\x00")
 
   # Get the interface name from the ioctl
-  ifname = struct.unpack("16sh", res)[0].strip("\x00")
+  ifname = struct.unpack("16sh", res)[0].strip(b"\x00")
 
   return (ifname, tapfds, vhostfds)
