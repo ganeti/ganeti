@@ -643,7 +643,7 @@ def AskUser(text, choices=None):
     new_text.append(textwrap.fill(line, 70, replace_whitespace=False))
   text = "\n".join(new_text)
   try:
-    f = file("/dev/tty", "a+")
+    f = utils.OpenTTY()
   except IOError:
     return answer
   try:
@@ -656,6 +656,7 @@ def AskUser(text, choices=None):
       f.write("\n")
       f.write("/".join(chars))
       f.write(": ")
+      f.flush()
       line = f.readline(2).strip().lower()
       if line in maps:
         answer = maps[line]

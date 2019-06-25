@@ -42,6 +42,8 @@ import stat
 import grp
 import pwd
 
+from io import FileIO, TextIOWrapper, BufferedRWPair
+
 from ganeti import errors
 from ganeti import constants
 from ganeti import pathutils
@@ -1054,3 +1056,20 @@ def CanRead(username, filename):
   return ((filestats.st_uid == uid and user_readable)
           or (filestats.st_uid != uid and
               IsUserInGroup(uid, filestats.st_gid) and group_readable))
+
+
+def OpenTTY(device="/dev/tty"):
+  """Returns a text I/O object pointing a TTY (/dev/tty by default)
+
+  As of Python 3.7, /dev/tty cannot be opened in buffered and/or text mode, see
+  https://bugs.python.org/issue20074. Work around this by using TextIOWrapper
+  over a BufferedRWPair to return a line-buffered TTY I/O object.
+
+  @type device: string
+  @param device: path to the TTY/PTY device to open
+
+  """
+  _tty = FileIO(device, "r+")
+  _buffered_tty = BufferedRWPair(_tty, _tty)
+
+  return TextIOWrapper(_buffered_tty, line_buffering=True)
