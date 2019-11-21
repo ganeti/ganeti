@@ -762,7 +762,7 @@ class HttpMessageWriter(object):
 
     # Add message body if needed
     if self.HasMessageBody():
-      buf.write(self._msg.body)
+      buf.write(self._msg.body.decode())
 
     elif self._msg.body:
       logging.warning("Ignoring message body")
@@ -821,7 +821,7 @@ class HttpMessageReader(object):
       data = SocketOperation(sock, SOCKOP_RECV, SOCK_BUF_SIZE, read_timeout)
 
       if data:
-        buf += data
+        buf += data.decode()
       else:
         eof = True
 
