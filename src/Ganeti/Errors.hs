@@ -55,6 +55,7 @@ import System.Exit
 
 import Ganeti.THH
 import Ganeti.BasicTypes
+import Ganeti.Compat()
 import qualified Ganeti.Constants as C
 
 -- | Error code types for 'OpPrereqError'.

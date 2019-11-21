@@ -91,6 +91,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)
 import qualified Text.JSON as JSON (readJSON, showJSON)
+import qualified Control.Monad.Fail as Fail
 
 -- Remove after we require >= 1.8.58
 -- See: https://github.com/ndmitchell/hlint/issues/24
@@ -145,6 +146,9 @@ instance Applicative (GenericResult a) where
   (Bad f) <*> _       = Bad f
   _       <*> (Bad x) = Bad x
   (Ok f)  <*> (Ok x)  = Ok $ f x
+
+instance (Error a) => Fail.MonadFail (GenericResult a) where
+  fail = Bad . strMsg
 
 -- | This is a monad transformation for Result. It's implementation is
 -- based on the implementations of MaybeT and ErrorT.
