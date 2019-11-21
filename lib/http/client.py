@@ -148,11 +148,6 @@ def _StartRequest(curl, req):
   post_data = req.post_data
   headers = req.headers
 
-  assert isinstance(method, str)
-  assert isinstance(url, str)
-  assert isinstance(post_data, str)
-  assert compat.all(isinstance(i, str) for i in headers)
-
   # Buffer for response
   resp_buffer = BytesIO()
 
