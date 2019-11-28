@@ -47,6 +47,8 @@ import qualified Data.ByteString.UTF8 as UTF8
 import System.FilePath (FilePath)
 import System.Posix.ByteString.FilePath (RawFilePath)
 import qualified System.INotify
+import qualified Text.JSON
+import qualified Control.Monad.Fail as Fail
 
 -- | Wrappers converting ByteString filepaths to Strings and vice versa
 --
@@ -71,3 +73,9 @@ maybeFilePath' = System.INotify.maybeFilePath
 toInotifyPath :: FilePath -> FilePath
 toInotifyPath = id
 #endif
+
+-- | MonadFail.Fail instance definitions for JSON results
+-- Required as of GHC 8.6 because of
+-- https://gitlab.haskell.org/ghc/ghc/wikis/migration/8.6#monadfaildesugaring-by-default
+instance Fail.MonadFail Text.JSON.Result where
+  fail = Fail.fail
