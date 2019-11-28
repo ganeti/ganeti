@@ -155,7 +155,7 @@ prop_ClientServer dnschars = monadicIO $ do
 case_AllDefined :: Assertion
 case_AllDefined = do
   py_stdout <- runPython "from ganeti import luxi\n\
-                         \print '\\n'.join(luxi.REQ_ALL)" "" >>=
+                         \print('\\n'.join(luxi.REQ_ALL))" "" >>=
                checkPythonResult
   let py_ops = sort $ lines py_stdout
       hs_ops = Luxi.allLuxiCalls

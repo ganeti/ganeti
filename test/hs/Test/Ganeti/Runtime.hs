@@ -60,7 +60,7 @@ case_LogFiles = do
               \import sys\n\
               \daemons = serializer.Load(sys.stdin.read())\n\
               \logfiles = [constants.DAEMONS_LOGFILES[d] for d in daemons]\n\
-              \print serializer.Dump(logfiles)" serialized
+              \sys.stdout.buffer.write(serializer.Dump(logfiles))" serialized
     >>= checkPythonResult
   let deserialised = J.decode py_stdout::J.Result [String]
   decoded <- case deserialised of
@@ -111,7 +111,7 @@ case_UsersGroups = do
               \          constants.ADMIN_GROUP,\n\
               \         ]\n\
               \encoded = (users, groups)\n\
-              \print serializer.Dump(encoded)" ""
+              \sys.stdout.buffer.write(serializer.Dump(encoded))" ""
     >>= checkPythonResult
   let deserialised = J.decode py_stdout::J.Result ([String], [String])
   (py_users, py_groups) <-
