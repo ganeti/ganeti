@@ -209,10 +209,10 @@ stableCover p percent s prop =
      cover' (10 + (percent * 9 / 10)) (basechance || p) newlabel prop
 
 -- | Return the python binary to use. If the PYTHON environment
--- variable is defined, use its value, otherwise use just \"python\".
+-- variable is defined, use its value, otherwise use just \"python3\".
 pythonCmd :: IO String
 pythonCmd = catchJust (guard . isDoesNotExistError)
-            (getEnv "PYTHON") (const (return "python"))
+            (getEnv "PYTHON") (const (return "python3"))
 
 -- | Run Python with an expression, returning the exit code, standard
 -- output and error.
