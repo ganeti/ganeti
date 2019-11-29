@@ -224,16 +224,16 @@ prop_reasonRateLimit =
         newSlotsNoLimits = slotMapFromJobWithStat (qRunning q ++ enqueued)
 
     in -- Ensure it's unlikely that jobs are all in different buckets.
-       cover
-         (any ((> 1) . slotOccupied) . Map.elems $ newSlotsNoLimits)
+       cover'
          50
+         (any ((> 1) . slotOccupied) . Map.elems $ newSlotsNoLimits)
          "some jobs have the same rate-limit bucket"
 
        -- Ensure it's likely that rate limiting has any effect.
-       . cover
+       . cover'
+           50
            (overfullKeys newSlotsNoLimits
               `difference` overfullKeys oldSlots /= Set.empty)
-           50
            "queued jobs cannot be started because of rate limiting"
 
        $ conjoin

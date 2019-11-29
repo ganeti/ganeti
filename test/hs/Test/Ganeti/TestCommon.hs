@@ -90,6 +90,7 @@ module Test.Ganeti.TestCommon
   , getTempFileName
   , listOfUniqueBy
   , counterexample
+  , cover'
   ) where
 
 import Control.Exception (catchJust)
@@ -185,17 +186,27 @@ failTest msg = counterexample msg False
 passTest :: Property
 passTest = property True
 
+-- | QuickCheck 2.12 swapped the order of the first two arguments, so provide a
+-- compatibility function here
+
+cover' :: Testable prop => Double -> Bool -> String -> prop -> Property
+#if MIN_VERSION_QuickCheck(2, 12, 0)
+cover' = cover
+#else
+cover' p x = cover x (round p)
+#endif
+
 -- | A stable version of QuickCheck's `cover`. In its current implementation,
 -- cover will not detect insufficient coverage if the actual coverage in the
 -- sample is 0. Work around this by lifting the probability to at least
 -- 10 percent.
 -- The underlying issue is tracked at
 -- https://github.com/nick8325/quickcheck/issues/26
-stableCover :: Testable prop => Bool -> Int -> String -> prop -> Property
+stableCover :: Testable prop => Bool -> Double -> String -> prop -> Property
 stableCover p percent s prop =
   let newlabel = "(stabilized to at least 10%) " ++ s
   in forAll (frequency [(1, return True), (9, return False)]) $ \ basechance ->
-     cover (basechance || p) (10 + (percent * 9 `div` 10)) newlabel prop
+     cover' (10 + (percent * 9 / 10)) (basechance || p) newlabel prop
 
 -- | Return the python binary to use. If the PYTHON environment
 -- variable is defined, use its value, otherwise use just \"python\".
