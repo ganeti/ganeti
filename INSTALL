@@ -173,7 +173,7 @@ Some of these are also available as package in Debian/Ubuntu::
                     libghc-parallel-dev \
                     libghc-utf8-string-dev libghc-curl-dev \
                     libghc-hslogger-dev \
-                    libghc-crypto-dev libghc-text-dev \
+                    libghc-cryptonite-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev \
                     libpcre3-dev \
                     libghc-attoparsec-dev libghc-vector-dev \
@@ -192,7 +192,7 @@ In Fedora, some of them are available via packages as well::
                     ghc-hslogger-devel ghc-text-devel \
                     ghc-regex-pcre-devel
 
-The most recent Fedora doesn't provide ``crypto``, ``inotify``. So these
+The most recent Fedora doesn't provide ``inotify``. So these
 need to be installed using ``cabal``.
 
 If using a distribution which does not provide these libraries, first
