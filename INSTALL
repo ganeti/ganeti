@@ -61,7 +61,7 @@ many of them will already be installed on a standard machine. On
 Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
-  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make m4 \
+  $ apt-get install lvm2 ssh iproute iputils-arping make m4 \
                     ndisc6 python python-openssl openssl \
                     python-pyparsing python-simplejson python-bitarray \
                     python-pyinotify python-pycurl python-ipaddr socat fping
@@ -84,7 +84,7 @@ For example::
 
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
-  $ yum install openssh openssh-clients bridge-utils iproute ndisc6 make \
+  $ yum install openssh openssh-clients iproute ndisc6 make \
                 pyOpenSSL pyparsing python-simplejson python-inotify \
                 python-lxm socat fping python-bitarray python-ipaddr
 
