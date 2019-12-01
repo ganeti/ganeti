@@ -170,7 +170,8 @@ fi
 # Note also that we don't have to check whether the interface is
 # already configured because reconfiguring the interface with the same
 # parameters does not produce an error.
-ifconfig $INTERFACE 169.254.169.254 netmask $NETMASK up
+ip link set $INTERFACE up
+ip addr add 169.254.169.254/$NETMASK dev $INTERFACE
 
 # There is a known bug where UDP packets comming from a host to a XEN
 # guest are missing checksums. There are several ways how to tackle the
@@ -197,7 +198,7 @@ ACTIVE_IP=$(ip route | grep "dev $INTERFACE" | awk '{ print $1 }')
 
 if [ -z "$ACTIVE_IP" -o "$ACTIVE_IP" != "$IP" ]
 then
-  route add -host $IP dev $INTERFACE
+  ip route add $IP/32 dev $INTERFACE
 fi
 
 # Ensure the DHCP server configuration files exist
