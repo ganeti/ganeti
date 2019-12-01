@@ -85,6 +85,7 @@ class TestCheckFileStoragePath(unittest.TestCase):
     self.assertRaises(errors.FileStoragePathError,
         filestorage._CheckFileStoragePathExistance, path)
 
+  @unittest.skipIf(os.getuid() == 0, "must be run as a regular user")
   def testCheckFileStoragePathNotWritable(self):
     path = os.path.join(self.tmpdir, "isnotwritable/")
     os.mkdir(path)
@@ -286,6 +287,7 @@ class TestFileDeviceHelper(testutils.GanetiTestCase):
     self.assertRaises(errors.BlockDeviceError, TestFileDeviceHelper._Make,
                       path, create_with_size=1)
 
+  @unittest.skipIf(os.getuid() == 0, "must be run as a regular user")
   def testFileCreation(self):
     with TestFileDeviceHelper.TempEnvironment() as env:
       TestFileDeviceHelper._Make(env.path, create_with_size=1)
