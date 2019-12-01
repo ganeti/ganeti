@@ -1,0 +1,34 @@
+---
+name: Build & Test
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: autogen
+        uses: docker://ganeti/ci:buster-py2
+        with:
+          args: ./autogen.sh
+
+      - name: configure
+        uses: docker://ganeti/ci:buster-py2
+        with:
+          args: ./configure --enable-haskell-tests
+
+      - name: Build
+        uses: docker://ganeti/ci:buster-py2
+        with:
+          args: make -j 2
+
+      - name: Python tests
+        uses: docker://ganeti/ci:buster-py2
+        with:
+          args: make py-tests
+
+      - name: Haskell tests
+        uses: docker://ganeti/ci:buster-py2
+        with:
+          args: make -j 2 hs-tests
