@@ -441,7 +441,7 @@ rotate_all_logs() {
 
 # Reloads the SSH keys
 reload_ssh_keys() {
-  local ssh_initd_script=@RPL_SSH_INITD_SCRIPT@
+  local ssh_initd_script="@RPL_SSH_INITD_SCRIPT@"
 
   if use_systemctl; then
     systemctl restart ${ssh_initd_script##*/}.service
