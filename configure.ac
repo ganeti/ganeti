@@ -136,14 +136,14 @@ AC_ARG_WITH([haskell-flags],
   [hextra_configure=""])
 AC_SUBST(HEXTRA_CONFIGURE, $hextra_configure)
 
-# --with-ssh-initscript=...
-AC_ARG_WITH([ssh-initscript],
-  [AS_HELP_STRING([--with-ssh-initscript=SCRIPT],
-    [SSH init script to use (default is /etc/init.d/ssh)]
+# --with-sshd-restart-command=...
+AC_ARG_WITH([sshd-restart-command],
+  [AS_HELP_STRING([--with-sshd-restart-command=SCRIPT],
+    [SSH restart command to use (default is /usr/sbin/service ssh restart)]
   )],
-  [ssh_initd_script="$withval"],
-  [ssh_initd_script="/etc/init.d/ssh"])
-AC_SUBST(SSH_INITD_SCRIPT, $ssh_initd_script)
+  [sshd_restart_command="$withval"],
+  [sshd_restart_command="/usr/sbin/service ssh restart"])
+AC_SUBST(SSHD_RESTART_COMMAND, $sshd_restart_command)
 
 # --with-export-dir=...
 AC_ARG_WITH([export-dir],

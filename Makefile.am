@@ -2492,7 +2492,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
 	  echo 's#@''CUSTOM_IALLOCATOR_SEARCH_PATH@#$(IALLOCATOR_SEARCH_PATH)#g'; \
 	  echo 's#@''CUSTOM_EXPORT_DIR@#$(EXPORT_DIR)#g'; \
-	  echo 's#@''RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
+	  echo 's#@''RPL_SSHD_RESTART_COMMAND@#$(SSHD_RESTART_COMMAND)#g'; \
 	  echo 's#@''PKGLIBDIR@#$(libdir)/ganeti#g'; \
 	  echo 's#@''GNTMASTERUSER@#$(MASTERD_USER)#g'; \
 	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
