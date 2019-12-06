@@ -9,17 +9,9 @@ The protocol works as follows (MP = master process, FP = forked process):
 * MP updates the lock file name in the job file and confirms the FP it can
   start.
 
-* FP calls 'executeFile' and replaces the process with a Python process
+* FP requests any secret parameters.
 
-* FP sends an empty message to the MP to signal it's ready to receive
-  the necessary information.
-
-* MP sends the FP its job ID.
-
-* FP sends an empty message to the MP again.
-
-* MP sends the FP its live lock file name (since it was known only to the
-  Haskell process, but not the Python process).
+* MP sends the secret parameters, if any.
 
 * Both MP and FP close the communication channel.
 
@@ -62,21 +54,18 @@ module Ganeti.Query.Exec
 
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
-import Control.Exception (finally)
 import Control.Monad
 import Control.Monad.Error
 import qualified Data.Map as M
-import Data.Maybe (listToMaybe, mapMaybe)
-import System.Directory (getDirectoryContents)
+import Data.Maybe (mapMaybe, fromJust)
 import System.Environment
-import System.IO.Error (tryIOError, annotateIOError, modifyIOError)
+import System.IO.Error (annotateIOError, modifyIOError)
+import System.IO
+import System.Process
 import System.Posix.Process
-import System.Posix.IO
 import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)
-import System.Posix.Types (Fd, ProcessID)
-import System.Time
+import System.Posix.Types (ProcessID)
 import Text.JSON
-import Text.Printf
 
 import qualified AutoConf as AC
 import Ganeti.BasicTypes
@@ -101,23 +90,6 @@ connectConfig = ConnectConfig { recvTmo    = 30
                               , sendTmo    = 30
                               }
 
--- Returns the list of all open file descriptors of the current process.
-listOpenFds :: (Error e) => ResultT e IO [Fd]
-listOpenFds = liftM filterReadable
-                $ liftIO (getDirectoryContents "/proc/self/fd") `orElse`
-                  liftIO (getDirectoryContents "/dev/fd") `orElse`
-                  ([] <$ logInfo "Listing open file descriptors isn't\
-                                 \ supported by the system,\
-                                 \ not cleaning them up!")
-                  -- FIXME: If we can't get the list of file descriptors,
-                  -- try to determine the maximum value and just return
-                  -- the full range.
-                  -- See http://stackoverflow.com/a/918469/1333025
-  where
-    filterReadable :: (Read a) => [String] -> [a]
-    filterReadable = mapMaybe (fmap fst . listToMaybe . reads)
-
-
 -- | Catches a potential `IOError` and sets its description via
 -- `annotateIOError`. This makes exceptions more informative when they
 -- are thrown from an unnamed `Handle`.
@@ -125,70 +97,38 @@ rethrowAnnotateIOError :: String -> IO a -> IO a
 rethrowAnnotateIOError desc =
   modifyIOError (\e -> annotateIOError e desc Nothing Nothing)
 
--- Code that is executed in a @fork@-ed process and that the replaces iteself
--- with the actual job process
-runJobProcess :: JobId -> Client -> IO ()
-runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
+-- | Spawn a subprocess to execute a Job's actual code in the Python
+-- interpreter. The subprocess will have its standard input and output
+-- connected to a pair of pipes wrapped in a Client instance. Standard error
+-- will be inherited from the current process and can be used for early
+-- logging, before the executor sets up its own logging.
+spawnJobProcess :: JobId -> IO (ProcessID, Client)
+spawnJobProcess jid = withErrorLogAt CRITICAL (show jid) $
   do
-    -- Close the standard error to prevent anything being written there
-    -- (for example by exceptions when closing unneeded FDs).
-    closeFd stdError
-
-    -- Currently, we discard any logging messages to prevent problems
-    -- with GHC's fork implementation, and they're kept
-    -- in the code just to document what is happening.
-    -- Later we might direct them to an appropriate file.
-    let logLater _ = return ()
-
-    logLater $ "Forking a new process for job " ++ show (fromJobId jid)
-
-    -- Create a livelock file for the job
-    (TOD ts _) <- getClockTime
-    lockfile <- P.livelockFile $ printf "job_%06d_%d" (fromJobId jid) ts
-
-    -- Lock the livelock file
-    logLater $ "Locking livelock file " ++ show lockfile
-    fd <- lockFile lockfile >>= annotateResult "Can't lock the livelock file"
-    logLater "Sending the lockfile name to the master process"
-    sendMsg s lockfile
-
-    logLater "Waiting for the master process to confirm the lock"
-    _ <- recvMsg s
-
-    -- close the client
-    logLater "Closing the client"
-    (clFdR, clFdW) <- clientToFd s
-    -- .. and use its file descriptors as stdin/out for the job process;
-    -- this way the job process can communicate with the master process
-    -- using stdin/out.
-    logLater "Reconnecting the file descriptors to stdin/out"
-    _ <- dupTo clFdR stdInput
-    _ <- dupTo clFdW stdOutput
-    logLater "Closing the old file descriptors"
-    closeFd clFdR
-    closeFd clFdW
-
-    fds <- (filter (> 2) . filter (/= fd)) <$> toErrorBase listOpenFds
-    logLater $ "Closing every superfluous file descriptor: " ++ show fds
-    mapM_ (tryIOError . closeFd) fds
-
-    -- the master process will send the job id and the livelock file name
-    -- using the same protocol to the job process
-    -- we pass the job id as the first argument to the process;
-    -- while the process never uses it, it's very convenient when listing
-    -- job processes
     use_debug <- isDebugMode
-    env <- (M.insert "GNT_DEBUG" (if use_debug then "1" else "0")
+    env_ <- (M.toList . M.insert "GNT_DEBUG" (if use_debug then "1" else "0")
             . M.insert "PYTHONPATH" AC.versionedsharedir
             . M.fromList)
            `liftM` getEnvironment
     execPy <- P.jqueueExecutorPy
-    logLater $ "Executing " ++ AC.pythonPath ++ " " ++ execPy
+    logDebug $ "Executing " ++ AC.pythonPath ++ " " ++ execPy
                ++ " with PYTHONPATH=" ++ AC.versionedsharedir
-    () <- executeFile AC.pythonPath True [execPy, show (fromJobId jid)]
-                      (Just $ M.toList env)
 
-    failError $ "Failed to execute " ++ AC.pythonPath ++ " " ++ execPy
+    (master, child) <- pipeClient connectConfig
+    let (rh, wh) = clientToHandle child
+
+    let jobProc = (proc AC.pythonPath [execPy, show (fromJobId jid)]){
+        std_in = UseHandle rh,
+        std_out = UseHandle wh,
+        std_err = Inherit,
+        env = Just env_,
+        close_fds = True}
+
+    (_, _, _, hchild) <- createProcess jobProc
+    pid <- getPid hchild
+
+    return (fromJust pid, master)
+
 
 filterSecretParameters :: [QueuedOpCode] -> [MaybeForJSON (JSObject
                                                            (Private JSValue))]
@@ -208,18 +148,6 @@ filterSecretParameters =
         (OpInstanceReinstall {opOsparamsSecret = x}) -> x
         (OpTestOsParams {opOsparamsSecret = x}) -> x
         _ -> Nothing
-
--- | Forks a child POSIX process, creating a bi-directional communication
--- channel between the master and the child processes.
--- Supplies the child action with its part of the pipe and returns
--- the master part of the pipe as its result.
-forkWithPipe :: ConnectConfig -> (Client -> IO ()) -> IO (ProcessID, Client)
-forkWithPipe conf childAction = do
-  (master, child) <- pipeClient conf
-  pid <- finally
-           (forkProcess (closeClient master >> childAction child))
-           $ closeClient child
-  return (pid, master)
 
 -- | Forks the job process and starts processing of the given job.
 -- Returns the livelock of the job and its process ID.
@@ -250,8 +178,7 @@ forkJobProcess job luxiLivelock update = do
     let maxWaitUS = 2^(tryNo - 1) * C.luxidRetryForkStepUS
     when (tryNo >= 2) . liftIO $ delayRandom (0, maxWaitUS)
 
-    (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess
-                                                          . qjId $ job)
+    (pid, master) <- liftIO $ spawnJobProcess (qjId job)
 
     let jobLogPrefix = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
         logDebugJob = logDebug . (jobLogPrefix ++)
@@ -291,14 +218,6 @@ forkJobProcess job luxiLivelock update = do
       logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
       send "Confirming the client it can start" ""
-
-      -- from now on, we communicate with the job's Python process
-
-      _ <- recv "Waiting for the job to ask for the job id"
-      send "Writing job id to the client" jidStr
-
-      _ <- recv "Waiting for the job to ask for the lock file name"
-      send "Writing the lock file name to the client" lockfile
 
       _ <- recv "Waiting for the job to ask for secret parameters"
       send "Writing secret parameters to the client" secretParams
