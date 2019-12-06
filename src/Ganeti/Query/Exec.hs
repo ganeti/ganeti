@@ -48,11 +48,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.Query.Exec
-  ( isForkSupported
-  , forkJobProcess
+  ( forkJobProcess
   ) where
 
-import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Monad
 import Control.Monad.Error
@@ -77,9 +75,6 @@ import Ganeti.OpCodes
 import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
-
-isForkSupported :: IO Bool
-isForkSupported = return $ not rtsSupportsBoundThreads
 
 connectConfig :: ConnectConfig
 connectConfig = ConnectConfig { recvTmo    = 30

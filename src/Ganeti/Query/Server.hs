@@ -663,9 +663,6 @@ checkMain = handleMasterVerificationOptions
 -- | Prepare function for luxid.
 prepMain :: PrepFn () PrepResult
 prepMain _ _ = do
-  Exec.isForkSupported
-    >>= flip exitUnless "The daemon must be compiled without -threaded"
-
   socket_path <- Path.defaultQuerySocket
   cleanupSocket socket_path
   s <- describeError "binding to the Luxi socket"
