@@ -56,6 +56,7 @@ module Ganeti.UDSServer
   , acceptClient
   , closeClient
   , clientToFd
+  , clientToHandle
   , closeServer
   , buildResponse
   , parseResponse
@@ -282,6 +283,12 @@ clientToFd client | rh == wh  = join (,) <$> handleToFd rh
   where
     rh = rsocket client
     wh = wsocket client
+
+-- | Extracts the read (first) and the write (second) handles of a client.
+-- The purpose of this function is to allow using a client's handles as
+-- input/output streams elsewhere.
+clientToHandle :: Client -> (Handle, Handle)
+clientToHandle client = (rsocket client, wsocket client)
 
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
