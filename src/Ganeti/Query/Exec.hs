@@ -69,7 +69,6 @@ import Text.JSON
 
 import qualified AutoConf as AC
 import Ganeti.BasicTypes
-import qualified Ganeti.Constants as C
 import Ganeti.JQueue.Objects
 import Ganeti.JSON (MaybeForJSON(..))
 import Ganeti.Logging
@@ -78,9 +77,6 @@ import Ganeti.OpCodes
 import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
-import Ganeti.Utils
-import Ganeti.Utils.Monad
-import Ganeti.Utils.Random (delayRandom)
 
 isForkSupported :: IO Bool
 isForkSupported = return $ not rtsSupportsBoundThreads
@@ -168,16 +164,7 @@ forkJobProcess job luxiLivelock update = do
              ++ " for job " ++ jidStr
   update luxiLivelock
 
-  -- Due to a bug in GHC forking process, we want to retry,
-  -- if the forked process fails to start.
-  -- If it fails later on, the failure is handled by 'ResultT'
-  -- and no retry is performed.
-  let execWriterLogInside = ResultT . execWriterLogT . runResultT
-  retryErrorN C.luxidRetryForkCount
-               $ \tryNo -> execWriterLogInside $ do
-    let maxWaitUS = 2^(tryNo - 1) * C.luxidRetryForkStepUS
-    when (tryNo >= 2) . liftIO $ delayRandom (0, maxWaitUS)
-
+  ResultT . execWriterLogT . runResultT $ do
     (pid, master) <- liftIO $ spawnJobProcess (qjId job)
 
     let jobLogPrefix = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
