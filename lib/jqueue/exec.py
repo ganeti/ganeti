@@ -52,26 +52,28 @@ from ganeti.utils import livelock
 from ganeti.jqueue import _JobProcessor
 
 
-def _GetMasterInfo():
-  """Retrieve job id, lock file name and secret params from the master process
+def _SetupJob():
+  """Setup the process to execute the job
 
-  This also closes standard input/output
+  Retrieve the job id from argv, create a livelock and pass it to the master
+  process and finally obtain any secret parameters.
+
+  This also closes standard input/output.
 
   @rtype: (int, string, json encoding of a list of dicts)
 
   """
+  job_id = int(sys.argv[1])
+  ts = time.time()
+  llock = livelock.LiveLock("job_%06d" % job_id)
   logging.debug("Opening transport over stdin/out")
   with contextlib.closing(transport.FdTransport((0, 1))) as trans:
-    logging.debug("Reading job id from the master process")
-    job_id = int(trans.Call(""))
-    logging.debug("Got job id %d", job_id)
-    logging.debug("Reading the livelock name from the master process")
-    livelock_name = livelock.LiveLockName(trans.Call(""))
-    logging.debug("Got livelock %s", livelock_name)
+    logging.debug("Sending livelock name to master")
+    trans.Call(llock.GetPath())
     logging.debug("Reading secret parameters from the master process")
     secret_params = trans.Call("")
     logging.debug("Got secret parameters.")
-  return (job_id, livelock_name, secret_params)
+  return (job_id, llock, secret_params)
 
 
 def RestorePrivateValueWrapping(json):
@@ -98,7 +100,7 @@ def main():
   logname = pathutils.GetLogFilename("jobs")
   utils.SetupLogging(logname, "job-startup", debug=debug)
 
-  (job_id, livelock_name, secret_params_serialized) = _GetMasterInfo()
+  (job_id, llock, secret_params_serialized) = _SetupJob()
 
   secret_params = ""
   if secret_params_serialized:
@@ -109,7 +111,7 @@ def main():
 
   try:
     logging.debug("Preparing the context and the configuration")
-    context = masterd.GanetiContext(livelock_name)
+    context = masterd.GanetiContext(llock)
 
     logging.debug("Registering signal handlers")
 
@@ -179,8 +181,8 @@ def main():
     logging.exception("Exception when trying to run job %d", job_id)
   finally:
     logging.debug("Job %d finalized", job_id)
-    logging.debug("Removing livelock file %s", livelock_name.GetPath())
-    os.remove(livelock_name.GetPath())
+    logging.debug("Removing livelock file %s", llock.GetPath())
+    os.remove(llock.GetPath())
 
   sys.exit(0)
 
