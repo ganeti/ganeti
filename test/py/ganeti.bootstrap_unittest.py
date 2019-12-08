@@ -129,7 +129,8 @@ class TestRestrictIpolicyToEnabledDiskTemplates(unittest.TestCase):
     enabled_disk_templates = list(constants.DISK_TEMPLATES)
     bootstrap._RestrictIpolicyToEnabledDiskTemplates(
         ipolicy, enabled_disk_templates)
-    self.assertEqual(ipolicy[constants.IPOLICY_DTS], allowed_disk_templates)
+    self.assertCountEqual(ipolicy[constants.IPOLICY_DTS],
+                          allowed_disk_templates)
 
   def testRestriction(self):
     allowed_disk_templates = [constants.DT_DRBD8, constants.DT_PLAIN]
