@@ -1290,7 +1290,7 @@ def TestClusterRenewCrypto():
       AssertCommand(["rm", "-f", tmpcert])
 
     # Custom cluster domain secret
-    cds_fh = tempfile.NamedTemporaryFile()
+    cds_fh = tempfile.NamedTemporaryFile(mode="w")
     cds_fh.write(utils.GenerateSecret())
     cds_fh.write("\n")
     cds_fh.flush()
