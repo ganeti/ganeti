@@ -866,12 +866,12 @@ fi
 AC_SUBST(MAN_HAS_WARNINGS)
 
 # Check for Python
-# We need a Python3 interpreter, version at least 3.5.
+# We need a Python3 interpreter, version at least 3.6.
 # We  tune _AM_PYTHON_INTERPRETER_LIST to first check interpreters that are
 # likely interpreters for Python 3.
 m4_define_default([_AM_PYTHON_INTERPRETER_LIST],
-                  [python3 python3.6 python3.5 python])
-AM_PATH_PYTHON([3.5])
+                  [python3 python3.8 python3.7 python3.6 python])
+AM_PATH_PYTHON([3.6])
 AC_PYTHON_MODULE(OpenSSL, t)
 AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
