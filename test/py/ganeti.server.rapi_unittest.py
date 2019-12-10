@@ -33,7 +33,6 @@
 import re
 import unittest
 import random
-import base64
 from io import StringIO
 
 from ganeti import constants
@@ -147,8 +146,8 @@ class TestRemoteApiHandler(unittest.TestCase):
                      "Basic authentication requires credentials")
 
   def testInvalidBasicAuth(self):
-    for auth in ["!invalid=base!64.", base64.b64encode(b" ").decode("ascii"),
-                 base64.b64encode(b"missingcolonchar").decode("ascii")]:
+    for auth in ["!invalid=base!64.", testutils.b64encode_string(" "),
+                 testutils.b64encode_string("missingcolonchar")]:
       headers = rapi.testutils._FormatHeaders([
         "%s: Basic %s" % (http.HTTP_AUTHORIZATION, auth),
         ])
@@ -163,10 +162,10 @@ class TestRemoteApiHandler(unittest.TestCase):
     else:
       pw = "wrongpass"
 
-    authtok = ("%s:%s" % (username, pw)).encode("ascii")
+    authtok = "%s:%s" % (username, pw)
     return rapi.testutils._FormatHeaders([
       "%s: Basic %s" % (http.HTTP_AUTHORIZATION,
-                        base64.b64encode(authtok).decode("ascii")),
+                        testutils.b64encode_string(authtok)),
       "%s: %s" % (http.HTTP_CONTENT_TYPE, http.HTTP_APP_JSON),
       ])
 

@@ -34,6 +34,7 @@ import os
 import sys
 import stat
 import errno
+import base64
 import socket
 import tempfile
 import unittest
@@ -319,3 +320,14 @@ class CallCounter(object):
 
     """
     return self._count
+
+def b64encode_string(text, encoding="utf-8"):
+  """Utility to base64-encode a string
+
+  This exposes a string interface for Python3's b64encode
+
+  @type text: string
+  @param text: input string
+  """
+
+  return base64.b64encode(text.encode(encoding)).decode("ascii").strip()
