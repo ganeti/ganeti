@@ -56,9 +56,7 @@ import Ganeti.PyValue
 -- * Arbitrary instances
 
 instance Arbitrary BS.ByteString where
-  -- Generate valid UTF-8 strings without newlines, to make data exchange
-  -- between Python and Haskell a bit easier.
-  arbitrary = UTF8.fromString <$> arbitrary `suchThat` (not . isInfixOf "\n")
+  arbitrary = UTF8.fromString <$> arbitrary
 
 -- | Custom HUnit test to check the correspondence between ByteStrings and
 -- Python bytes. We use ast.literal_eval to evaluate the byte literals and then
