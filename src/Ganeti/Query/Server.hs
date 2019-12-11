@@ -507,7 +507,7 @@ handleCall _ qstat  cfg (CancelJob jid kill) = do
       return result
     Bad s -> return . Ok . showJSON $ (False, s)
 
-handleCall qlock _ cfg (ArchiveJob jid) =
+handleCall qlock qstat cfg (ArchiveJob jid) =
   -- By adding a layer of MaybeT, we can prematurely end a computation
   -- using 'mzero' or other 'MonadPlus' primitive and return 'Ok False'.
   runResultT . liftM (showJSON . fromMaybe False) . runMaybeT $ do
@@ -515,10 +515,18 @@ handleCall qlock _ cfg (ArchiveJob jid) =
     let mcs = Config.getMasterCandidates cfg
         live = liveJobFile qDir jid
         archive = archivedJobFile qDir jid
+        -- We want to wait for the Job process to actually finish executing to
+        -- make sure its file has been properly replicated to all master
+        -- candidates (GH #1266). We wait up to 2 * (RPC connect timeout) + 1
+        -- second to allow for up to two master candidates to be unreachable,
+        -- without the archival failing. For more than that we let the job
+        -- archival fail; it will eventually be autoarchived by the watcher.
+        exitTimeout = (2 * C.rpcConnectTimeout + 1) * 1000 -- milliseconds
+    (job, _) <- (lift . mkResultT $ loadJobFromDisk qDir False jid)
+                `orElse` mzero
+    guard $ jobFinalized job
+    _ <- lift $ waitUntilJobExited (jqLivelock qstat) job exitTimeout
     withLock qlock $ do
-      (job, _) <- (lift . mkResultT $ loadJobFromDisk qDir False jid)
-                  `orElse` mzero
-      guard $ jobFinalized job
       lift . withErrorT JobQueueError
            . annotateError "Archiving failed in an unexpected way"
            . mkResultT $ safeRenameFile queueDirPermissions live archive
