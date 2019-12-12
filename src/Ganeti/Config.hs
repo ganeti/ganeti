@@ -89,7 +89,7 @@ import Control.Monad.State
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
-import Data.List (foldl', nub)
+import Data.List (foldl', nub, any)
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Monoid
 import qualified Data.Map as M
@@ -185,10 +185,8 @@ getNodeInstances cfg nname =
         sec_insts :: [Instance]
         sec_insts = [inst |
           (inst, disks) <- inst_disks,
-          s_uuid <- mapMaybe (\d ->
-                              instPrimaryNode inst >>=
-                              computeDiskSecondaryNode d) disks,
-          s_uuid == nname]
+          any ((==) nname) $ mapMaybe (\d -> instPrimaryNode inst >>=
+                                       computeDiskSecondaryNode d) disks]
     in (pri_inst, sec_insts)
 
 -- | Computes the role of a node.
