@@ -357,7 +357,10 @@ def _VerifyDisks(cl, uuid, nodes, instances):
   job_id = cl.SubmitJob([op])
   ((_, offline_disk_instances, _), ) = \
     cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug)
-  cl.ArchiveJob(job_id)
+  try:
+    cl.ArchiveJob(job_id)
+  except Exception as err:
+    logging.exception("Error while archiving job %d" % job_id)
 
   if not offline_disk_instances:
     # nothing to do
