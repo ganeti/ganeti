@@ -264,7 +264,7 @@ class TestRunCmd(testutils.GanetiTestCase):
 
   def testSignal(self):
     """Test signal"""
-    result = utils.RunCmd(["python", "-c",
+    result = utils.RunCmd(["python3", "-c",
                            "import os; os.kill(os.getpid(), 15)"])
     self.assertEqual(result.signal, 15)
     self.assertEqual(result.output, "")
