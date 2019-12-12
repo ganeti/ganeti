@@ -106,17 +106,17 @@ _USER_STORAGE_TYPE = {
 _STORAGE_TYPE_OPT = \
   cli_option("-t", "--storage-type",
              dest="user_storage_type",
-             choices=_USER_STORAGE_TYPE.keys(),
+             choices=list(_USER_STORAGE_TYPE),
              default=None,
              metavar="STORAGE_TYPE",
              help=("Storage type (%s)" %
-                   utils.CommaJoin(_USER_STORAGE_TYPE.keys())))
+                   utils.CommaJoin(list(_USER_STORAGE_TYPE))))
 
 _REPAIRABLE_STORAGE_TYPES = \
-  [st for st, so in constants.VALID_STORAGE_OPERATIONS.iteritems()
+  [st for st, so in constants.VALID_STORAGE_OPERATIONS.items()
    if constants.SO_FIX_CONSISTENCY in so]
 
-_MODIFIABLE_STORAGE_TYPES = constants.MODIFIABLE_STORAGE_FIELDS.keys()
+_MODIFIABLE_STORAGE_TYPES = list(constants.MODIFIABLE_STORAGE_FIELDS)
 
 _OOB_COMMAND_ASK = compat.UniqueFrozenset([
   constants.OOB_POWER_OFF,

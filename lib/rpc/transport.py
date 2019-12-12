@@ -93,7 +93,7 @@ class Transport(object):
       self._ctimeout, self._rwtimeout = timeouts
 
     self.socket = None
-    self._buffer = ""
+    self._buffer = b""
     self._msgs = collections.deque()
 
     try:
@@ -155,6 +155,9 @@ class Transport(object):
     This just sends a message and doesn't wait for the response.
 
     """
+    if isinstance(msg, str):
+      msg = msg.encode("utf-8")
+
     if constants.LUXI_EOM in msg:
       raise errors.ProtocolError("Message terminator found in payload")
 
@@ -194,7 +197,7 @@ class Transport(object):
       new_msgs = (self._buffer + data).split(constants.LUXI_EOM)
       self._buffer = new_msgs.pop()
       self._msgs.extend(new_msgs)
-    return self._msgs.popleft()
+    return self._msgs.popleft().decode("utf-8")
 
   def Call(self, msg):
     """Send a message and wait for the response.
@@ -266,7 +269,7 @@ class FdTransport(object):
     self._rstream = io.open(fds[0], 'rb', 0)
     self._wstream = io.open(fds[1], 'wb', 0)
 
-    self._buffer = ""
+    self._buffer = b""
     self._msgs = collections.deque()
 
   def _CheckSocket(self):
@@ -282,6 +285,9 @@ class FdTransport(object):
     This just sends a message and doesn't wait for the response.
 
     """
+    if isinstance(msg, str):
+      msg = msg.encode("utf-8")
+
     if constants.LUXI_EOM in msg:
       raise errors.ProtocolError("Message terminator found in payload")
 
@@ -304,7 +310,7 @@ class FdTransport(object):
       new_msgs = (self._buffer + data).split(constants.LUXI_EOM)
       self._buffer = new_msgs.pop()
       self._msgs.extend(new_msgs)
-    return self._msgs.popleft()
+    return self._msgs.popleft().decode("utf-8")
 
   def Call(self, msg):
     """Send a message and wait for the response.

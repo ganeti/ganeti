@@ -670,7 +670,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
         ds_data[ds_name] = objects.Cluster.SimpleFillDiskState(state)
 
   # hvparams is a mapping of hypervisor->hvparams dict
-  for hv_name, hv_params in hvparams.iteritems():
+  for hv_name, hv_params in hvparams.items():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
     hv_class = hypervisor.GetHypervisor(hv_name)
     hv_class.CheckParameterSyntax(hv_params)
@@ -1175,7 +1175,7 @@ def _GatherMasterVotes(node_names):
     return [(None, len(node_names))]
 
   votes = {}
-  for (node_name, nres) in results.iteritems():
+  for (node_name, nres) in results.items():
     msg = nres.fail_msg
     if msg:
       logging.warning("Error contacting node %s: %s", node_name, msg)
@@ -1189,7 +1189,7 @@ def _GatherMasterVotes(node_names):
     else:
       votes[node] += 1
 
-  vote_list = votes.items()
+  vote_list = list(votes.items())
   vote_list.sort(key=lambda x: x[1], reverse=True)
   return vote_list
 

@@ -103,7 +103,7 @@ def VerifySsconf(data, cluster_name, _verify_fn=ssconf.VerifyKeys):
 
   # TODO: Should all keys be required? Right now any subset of valid keys is
   # accepted.
-  _verify_fn(items.keys())
+  _verify_fn(list(items))
 
   if items.get(constants.SS_CLUSTER_NAME) != cluster_name:
     raise SetupError("Cluster name in ssconf does not match")

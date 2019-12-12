@@ -596,7 +596,7 @@ class BaseHypervisor(object):
 
     """
     return param_value is None \
-      or isinstance(param_value, basestring) and param_value == ""
+      or isinstance(param_value, str) and param_value == ""
 
   @classmethod
   def CheckParameterSyntax(cls, hvparams):
@@ -740,7 +740,7 @@ class BaseHypervisor(object):
     try:
       fd = os.open("/proc/sysrq-trigger", os.O_WRONLY)
       try:
-        os.write(fd, "b")
+        os.write(fd, b"b")
       finally:
         fd.close()
     except OSError:

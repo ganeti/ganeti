@@ -37,9 +37,9 @@ from ganeti import constants
 from ganeti import query
 from ganeti import serializer
 
-import qa_config
-import qa_error
-import qa_utils
+from qa import qa_config
+from qa import qa_error
+from qa import qa_utils
 
 from qa_utils import AssertCommand, AssertRedirectedCommand, AssertEqual, \
   AssertIn, GetCommandOutput
@@ -486,12 +486,12 @@ def TestOutOfBand():
 
 def TestNodeList():
   """gnt-node list"""
-  qa_utils.GenericQueryTest("gnt-node", query.NODE_FIELDS.keys())
+  qa_utils.GenericQueryTest("gnt-node", list(query.NODE_FIELDS))
 
 
 def TestNodeListFields():
   """gnt-node list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-node", query.NODE_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-node", list(query.NODE_FIELDS))
 
 
 def TestNodeListDrbd(node, is_drbd):

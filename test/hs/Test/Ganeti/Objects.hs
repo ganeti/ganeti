@@ -392,9 +392,10 @@ genValidNetwork :: Gen Objects.Network
 genValidNetwork = do
   -- generate netmask for the IPv4 network
   netmask <- fromIntegral <$> choose (24::Int, 30)
+  let hostLen = 32-netmask
   name <- genName >>= mkNonEmpty
   mac_prefix <- genMaybe genName
-  net <- arbitrary
+  net <- Objects.ip4AddressFromNumber . (* 2^hostLen) . fromIntegral <$> choose (1::Int, 2^netmask-1)
   net6 <- genMaybe genIp6Net
   gateway <- genMaybe arbitrary
   gateway6 <- genMaybe genIp6Addr
@@ -569,7 +570,7 @@ casePyCompatNetworks = do
               \  a = network.AddressPool(net)\n\
               \  encoded.append((a.GetFreeCount(), a.GetReservedCount(), \\\n\
               \    net.ToDict()))\n\
-              \print serializer.Dump(encoded)" serialized
+              \sys.stdout.buffer.write(serializer.Dump(encoded))" serialized
     >>= checkPythonResult
   let deserialised = J.decode py_stdout::J.Result [(Int, Int, Network)]
   decoded <- case deserialised of
@@ -609,7 +610,7 @@ casePyCompatNodegroups = do
               \group_data = serializer.Load(sys.stdin.read())\n\
               \decoded = [objects.NodeGroup.FromDict(g) for g in group_data]\n\
               \encoded = [g.ToDict() for g in decoded]\n\
-              \print serializer.Dump(encoded)" serialized
+              \sys.stdout.buffer.write(serializer.Dump(encoded))" serialized
     >>= checkPythonResult
   let deserialised = J.decode py_stdout::J.Result [NodeGroup]
   decoded <- case deserialised of
@@ -713,7 +714,7 @@ casePyCompatInstances = do
               \inst_data = serializer.Load(sys.stdin.read())\n\
               \decoded = [objects.Instance.FromDict(i) for i in inst_data]\n\
               \encoded = [i.ToDict() for i in decoded]\n\
-              \print serializer.Dump(encoded)" serialized
+              \sys.stdout.buffer.write(serializer.Dump(encoded))" serialized
     >>= checkPythonResult
   let deserialised = J.decode py_stdout::J.Result [Instance]
   decoded <- case deserialised of

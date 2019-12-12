@@ -57,7 +57,7 @@ def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
   cert_plain = io.ReadFile(cert_filename)
   cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                          cert_plain)
-  return cert.digest("sha1")
+  return cert.digest("sha1").decode("ascii")
 
 
 def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,

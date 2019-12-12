@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2008, 2011, 2012, 2013 Google Inc.
@@ -35,7 +35,7 @@ import testutils
 import time
 import unittest
 import yaml
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import cli
@@ -62,7 +62,7 @@ class TestParseTimespec(unittest.TestCase):
       ("61m", 61 * 60),
       ]
     for value, expected_result in test_data:
-      self.failUnlessEqual(cli.ParseTimespec(value), expected_result)
+      self.assertEqual(cli.ParseTimespec(value), expected_result)
 
   def testInvalidTime(self):
     """Test invalid timespecs"""
@@ -73,7 +73,7 @@ class TestParseTimespec(unittest.TestCase):
       "s",
       ]
     for value in test_data:
-      self.failUnlessRaises(OpPrereqError, cli.ParseTimespec, value)
+      self.assertRaises(OpPrereqError, cli.ParseTimespec, value)
 
 
 class TestToStream(unittest.TestCase):
@@ -88,18 +88,18 @@ class TestToStream(unittest.TestCase):
                  ]:
       buf = StringIO()
       cli._ToStream(buf, data)
-      self.failUnlessEqual(buf.getvalue(), data + "\n")
+      self.assertEqual(buf.getvalue(), data + "\n")
 
   def testParams(self):
       buf = StringIO()
       cli._ToStream(buf, "foo %s", 1)
-      self.failUnlessEqual(buf.getvalue(), "foo 1\n")
+      self.assertEqual(buf.getvalue(), "foo 1\n")
       buf = StringIO()
       cli._ToStream(buf, "foo %s", (15,16))
-      self.failUnlessEqual(buf.getvalue(), "foo (15, 16)\n")
+      self.assertEqual(buf.getvalue(), "foo (15, 16)\n")
       buf = StringIO()
       cli._ToStream(buf, "foo %s %s", "a", "b")
-      self.failUnlessEqual(buf.getvalue(), "foo a b\n")
+      self.assertEqual(buf.getvalue(), "foo a b\n")
 
 
 class TestGenerateTable(unittest.TestCase):
@@ -542,7 +542,7 @@ class _MockJobPollCb(cli.JobPollCbBase, cli.JobPollReportCbBase):
 
   def ReportNotChanged(self, job_id, status):
     self.tc.assertEqual(job_id, self.job_id)
-    self.tc.assert_(self._expect_notchanged)
+    self.tc.assertTrue(self._expect_notchanged)
     self._expect_notchanged = False
 
 
@@ -696,7 +696,7 @@ class TestFormatLogMessage(unittest.TestCase):
     self.assertRaises(TypeError, cli.FormatLogMessage,
                       constants.ELOG_MESSAGE, [1, 2, 3])
 
-    self.assert_(cli.FormatLogMessage("some other type", (1, 2, 3)))
+    self.assertTrue(cli.FormatLogMessage("some other type", (1, 2, 3)))
 
 
 class TestParseFields(unittest.TestCase):
@@ -1160,8 +1160,8 @@ class TestFormatPolicyInfo(unittest.TestCase):
       self.assertTrue(isinstance(cluster, dict))
       if skip is None:
         skip = frozenset()
-      self.assertEqual(frozenset(cluster.keys()).difference(skip),
-                       frozenset(group.keys()))
+      self.assertEqual(frozenset(cluster).difference(skip),
+                       frozenset(group))
       for key in group:
         self._CompareClusterGroupItems(cluster[key], group[key])
     elif isinstance(group, list):
@@ -1170,7 +1170,7 @@ class TestFormatPolicyInfo(unittest.TestCase):
       for (cval, gval) in zip(cluster, group):
         self._CompareClusterGroupItems(cval, gval)
     else:
-      self.assertTrue(isinstance(group, basestring))
+      self.assertTrue(isinstance(group, str))
       self.assertEqual("default (%s)" % cluster, group)
 
   def _TestClusterVsGroup(self, policy):
@@ -1194,8 +1194,8 @@ class TestCreateIPolicyFromOpts(unittest.TestCase):
     self.assertTrue(type(default_pol) is dict)
     self.assertTrue(type(diff_pol) is dict)
     self.assertTrue(type(merged_pol) is dict)
-    self.assertEqual(frozenset(default_pol.keys()),
-                     frozenset(merged_pol.keys()))
+    self.assertEqual(frozenset(default_pol),
+                     frozenset(merged_pol))
     for (key, val) in merged_pol.items():
       if key in diff_pol:
         if type(val) is dict:

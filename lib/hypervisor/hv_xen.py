@@ -38,7 +38,7 @@ import os
 import string # pylint: disable=W0402
 import shutil
 import time
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import errors
@@ -651,7 +651,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     data.write("TAGS=\"%s\"\n" % r"\ ".join(instance.GetTags()))
     if nic.netinfo:
       netinfo = objects.Network.FromDict(nic.netinfo)
-      for k, v in netinfo.HooksDict().iteritems():
+      for k, v in netinfo.HooksDict().items():
         data.write("%s=\"%s\"\n" % (k, v))
 
     data.write("MAC=%s\n" % nic.mac)
@@ -1696,7 +1696,8 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       config.write("vnclisten = '%s'\n" % hvp[constants.HV_VNC_BIND_ADDRESS])
 
-    if instance.network_port > constants.VNC_BASE_PORT:
+    if (instance.network_port is not None
+        and instance.network_port > constants.VNC_BASE_PORT):
       display = instance.network_port - constants.VNC_BASE_PORT
       config.write("vncdisplay = %s\n" % display)
       config.write("vncunused = 0\n")

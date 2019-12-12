@@ -34,7 +34,7 @@
 import logging
 import threading
 
-from cStringIO import StringIO
+from io import BytesIO
 
 import pycurl
 
@@ -148,21 +148,15 @@ def _StartRequest(curl, req):
   post_data = req.post_data
   headers = req.headers
 
-  # PycURL requires strings to be non-unicode
-  assert isinstance(method, str)
-  assert isinstance(url, str)
-  assert isinstance(post_data, str)
-  assert compat.all(isinstance(i, str) for i in headers)
-
   # Buffer for response
-  resp_buffer = StringIO()
+  resp_buffer = BytesIO()
 
   # Configure client for request
   curl.setopt(pycurl.VERBOSE, False)
   curl.setopt(pycurl.NOSIGNAL, True)
   curl.setopt(pycurl.USERAGENT, http.HTTP_GANETI_VERSION)
   curl.setopt(pycurl.PROXY, "")
-  curl.setopt(pycurl.CUSTOMREQUEST, str(method))
+  curl.setopt(pycurl.CUSTOMREQUEST, method)
   curl.setopt(pycurl.URL, url)
   curl.setopt(pycurl.POSTFIELDS, post_data)
   curl.setopt(pycurl.HTTPHEADER, headers)
@@ -242,7 +236,7 @@ class _PendingRequest(object):
 
     # Get HTTP response code
     req.resp_status_code = curl.getinfo(pycurl.RESPONSE_CODE)
-    req.resp_body = self._resp_buffer_read()
+    req.resp_body = self._resp_buffer_read().decode("utf-8")
 
     # Ensure no potentially large variables are referenced
     curl.setopt(pycurl.POSTFIELDS, "")
@@ -393,7 +387,7 @@ def ProcessRequests(requests, lock_monitor_cb=None, _curl=pycurl.Curl,
     monitor = _NoOpRequestMonitor
 
   # Process all requests and act based on the returned values
-  for (curl, msg) in _curl_process(_curl_multi(), curl_to_client.keys()):
+  for (curl, msg) in _curl_process(_curl_multi(), list(curl_to_client)):
     monitor.acquire(shared=0)
     try:
       curl_to_client.pop(curl).Done(msg)

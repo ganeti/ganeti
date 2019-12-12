@@ -302,7 +302,7 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
 
   # this method is overriding an asyncore.dispatcher method
   def handle_read(self):
-    recv_result = utils.IgnoreSignals(self.recvfrom,
+    recv_result = utils.IgnoreSignals(self.socket.recvfrom,
                                       constants.MAX_UDP_DATA_SIZE)
     if recv_result is not None:
       payload, address = recv_result
@@ -332,13 +332,15 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
       logging.error("handle_write called with empty output queue")
       return
     (ip, port, payload) = self._out_queue[0]
-    utils.IgnoreSignals(self.sendto, payload, 0, (ip, port))
+    utils.IgnoreSignals(self.socket.sendto, payload, 0, (ip, port))
     self._out_queue.pop(0)
 
   def enqueue_send(self, ip, port, payload):
     """Enqueue a datagram to be sent when possible
 
     """
+    if isinstance(payload, str):
+      payload = payload.encode("utf-8")
     if len(payload) > constants.MAX_UDP_DATA_SIZE:
       raise errors.UdpDataSizeError("Packet too big: %s > %s" % (len(payload),
                                     constants.MAX_UDP_DATA_SIZE))
@@ -353,7 +355,7 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
     @return: True if some data has been handled, False otherwise
 
     """
-    result = utils.WaitForFdCondition(self, select.POLLIN, timeout)
+    result = utils.WaitForFdCondition(self.socket, select.POLLIN, timeout)
     if result is not None and result & select.POLLIN:
       self.handle_read()
       return True
@@ -412,7 +414,7 @@ class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
     # sending more than one wakeup token, which doesn't harm at all.
     if self.need_signal:
       self.need_signal = False
-      self.out_socket.send(chr(0))
+      self.out_socket.send(b"\x00")
 
 
 class _ShutdownCheck(object):
@@ -463,7 +465,7 @@ class Mainloop(object):
     timed events
 
   """
-  _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxint - 1)
+  _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxsize - 1)
 
   def __init__(self):
     """Constructs a new Mainloop instance.
@@ -471,6 +473,7 @@ class Mainloop(object):
     """
     self._signal_wait = []
     self.scheduler = AsyncoreScheduler(time.time)
+    self.awaker = AsyncAwaker()
 
     # Resolve uid/gids used
     runtime.GetEnts()
@@ -492,6 +495,11 @@ class Mainloop(object):
     assert isinstance(signal_handlers, dict) and \
            len(signal_handlers) > 0, \
            "Broken SignalHandled decorator"
+
+    _sig_notify = lambda _, __: self.awaker.signal()
+
+    for handler in signal_handlers.values():
+      handler.SetHandlerFn(_sig_notify)
 
     # Counter for received signals
     shutdown_signals = 0
@@ -742,7 +750,7 @@ def GenericMain(daemon_name, optionparser,
       "key": options.ssl_key,
       }
 
-    for name, path in ssl_paths.iteritems():
+    for name, path in ssl_paths.items():
       if not os.path.isfile(path):
         print("SSL %s file '%s' was not found" % (name, path), file=sys.stderr)
         sys.exit(constants.EXIT_FAILURE)

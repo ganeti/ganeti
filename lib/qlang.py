@@ -170,7 +170,7 @@ def BuildFilterParser():
     ">=": OP_GE,
     }
 
-  binary_cond = (field_name + pyp.oneOf(binopstbl.keys()) + rval)
+  binary_cond = (field_name + pyp.oneOf(list(binopstbl)) + rval)
   binary_cond.setParseAction(lambda lhs_op_rhs: [[binopstbl[lhs_op_rhs[1]],
                                                  lhs_op_rhs[0],
                                                  lhs_op_rhs[2]]])

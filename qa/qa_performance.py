@@ -40,12 +40,12 @@ import time
 
 from ganeti import constants
 
-import qa_config
-import qa_error
+from qa import qa_config
+from qa import qa_error
 from qa_instance_utils import GetGenericAddParameters
-import qa_job_utils
-import qa_logging
-import qa_utils
+from qa import qa_job_utils
+from qa import qa_logging
+from qa import qa_utils
 
 
 MAX_JOB_SUBMISSION_DURATION = 15.0
@@ -114,7 +114,7 @@ class _JobQueueDriver(object):
     self._jobs_per_status = new_statuses
 
   def _GetJobIds(self):
-    return list(self._jobs.keys())
+    return list(self._jobs)
 
   def _GetJobsInStatuses(self, statuses):
     """Returns a list of L{_JobEntry} of all jobs in the given statuses.

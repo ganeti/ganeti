@@ -40,7 +40,7 @@ import os
 import time
 import tempfile
 
-from cStringIO import StringIO
+from io import StringIO
 
 import OpenSSL
 
@@ -553,7 +553,7 @@ def ShowClusterConfig(opts, args):
     reserved_lvs = "(none)"
 
   enabled_hv = result["enabled_hypervisors"]
-  hvparams = dict((k, v) for k, v in result["hvparams"].iteritems()
+  hvparams = dict((k, v) for k, v in result["hvparams"].items()
                   if k in enabled_hv)
 
   info = [
@@ -835,7 +835,7 @@ def VerifyDisks(opts, args):
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
     if missing:
-      for iname, ival in missing.iteritems():
+      for iname, ival in missing.items():
         all_missing = compat.all(x[0] in bad_nodes for x in ival)
         if all_missing:
           ToStdout("Instance %s cannot be verified as it lives on"
@@ -1063,7 +1063,8 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
       spice_cert_pem = _ReadAndVerifyCert(spice_cert_filename, True)
       spice_cacert_pem = _ReadAndVerifyCert(spice_cacert_filename)
   except errors.X509CertError as err:
-    ToStderr("Unable to load X509 certificate from %s: %s", err[0], err[1])
+    ToStderr("Unable to load X509 certificate from %s: %s",
+             err.args[0], err.args[1])
     return 1
 
   if cds_filename:
@@ -1489,7 +1490,7 @@ def SetClusterParams(opts, args):
       for k, v in opts.enabled_data_collectors.items())
 
   unrecognized_data_collectors = [
-      k for k in enabled_data_collectors.keys()
+      k for k in enabled_data_collectors
       if k not in constants.DATA_COLLECTOR_NAMES]
   if unrecognized_data_collectors:
     ToStderr("Data collector names not recognized: %s" %
@@ -1497,7 +1498,7 @@ def SetClusterParams(opts, args):
 
   try:
     data_collector_interval = dict(
-        (k, long(1e6 * float(v)))
+        (k, int(1e6 * float(v)))
         for (k, v) in opts.data_collector_interval.items())
   except ValueError:
     ToStderr("Can't transform all values to integers: {}".format(
@@ -1855,7 +1856,7 @@ def _EpoOff(opts, node_list, inst_map):
   @return: The desired exit status
 
   """
-  if not _InstanceStart(opts, inst_map.keys(), False, no_remember=True):
+  if not _InstanceStart(opts, list(inst_map), False, no_remember=True):
     ToStderr("Please investigate and stop instances manually before continuing")
     return constants.EXIT_FAILURE
 
@@ -1901,7 +1902,7 @@ def Epo(opts, args, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
                                             "sinst_list", "powered", "offline"],
                           False)
 
-  all_nodes = map(compat.fst, result)
+  all_nodes = [r[0] for r in result]
   node_list = []
   inst_map = {}
   for (node, master, pinsts, sinsts, powered, offline) in result:

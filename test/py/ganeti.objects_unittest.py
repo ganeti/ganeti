@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2008, 2010, 2012, 2013 Google Inc.
@@ -52,14 +52,14 @@ class TestDictState(unittest.TestCase):
 
   def testSimpleObjectToDict(self):
     o1 = SimpleObject(a="1")
-    self.assertEquals(o1.ToDict(), {"a": "1"})
-    self.assertEquals(o1.__getstate__(), {"a": "1"})
-    self.assertEquals(o1.__getstate__(), o1.ToDict())
+    self.assertEqual(o1.ToDict(), {"a": "1"})
+    self.assertEqual(o1.__getstate__(), {"a": "1"})
+    self.assertEqual(o1.__getstate__(), o1.ToDict())
     o1.a = 2
     o1.b = 5
-    self.assertEquals(o1.ToDict(), {"a": 2, "b": 5})
+    self.assertEqual(o1.ToDict(), {"a": 2, "b": 5})
     o2 = SimpleObject.FromDict(o1.ToDict())
-    self.assertEquals(o1.ToDict(), {"a": 2, "b": 5})
+    self.assertEqual(o1.ToDict(), {"a": 2, "b": 5})
 
 
 class TestClusterObject(unittest.TestCase):
@@ -101,9 +101,9 @@ class TestClusterObject(unittest.TestCase):
 
   def testGetHVDefaults(self):
     cl = self.fake_cl
-    self.failUnlessEqual(cl.GetHVDefaults(constants.HT_FAKE),
+    self.assertEqual(cl.GetHVDefaults(constants.HT_FAKE),
                          cl.hvparams[constants.HT_FAKE])
-    self.failUnlessEqual(cl.GetHVDefaults(None), {})
+    self.assertEqual(cl.GetHVDefaults(None), {})
     defaults = cl.GetHVDefaults(constants.HT_XEN_PVM,
                                           os_name="lenny-image")
     for param, value in cl.os_hvp["lenny-image"][constants.HT_XEN_PVM].items():
@@ -304,7 +304,7 @@ class TestClusterObjectTcpUdpPortPool(unittest.TestCase):
     cluster.tcpudp_port_pool.add(62511)
 
     data = cluster.ToDict()
-    self.assertEqual(data.keys(), ["tcpudp_port_pool"])
+    self.assertEqual(list(data), ["tcpudp_port_pool"])
     self.assertEqual(sorted(data["tcpudp_port_pool"]), sorted([3546, 62511]))
 
   def testDeserializingEmpty(self):
@@ -427,14 +427,14 @@ class TestInstancePolicy(unittest.TestCase):
     self.maxDiff = None
 
   def _AssertIPolicyIsFull(self, policy):
-    self.assertEqual(frozenset(policy.keys()), constants.IPOLICY_ALL_KEYS)
+    self.assertEqual(frozenset(policy), constants.IPOLICY_ALL_KEYS)
     self.assertTrue(len(policy[constants.ISPECS_MINMAX]) > 0)
     for minmax in policy[constants.ISPECS_MINMAX]:
-      self.assertEqual(frozenset(minmax.keys()), constants.ISPECS_MINMAX_KEYS)
+      self.assertEqual(frozenset(minmax), constants.ISPECS_MINMAX_KEYS)
       for key in constants.ISPECS_MINMAX_KEYS:
-        self.assertEqual(frozenset(minmax[key].keys()),
+        self.assertEqual(frozenset(minmax[key]),
                          constants.ISPECS_PARAMETERS)
-    self.assertEqual(frozenset(policy[constants.ISPECS_STD].keys()),
+    self.assertEqual(frozenset(policy[constants.ISPECS_STD]),
                      constants.ISPECS_PARAMETERS)
 
   def testDefaultIPolicy(self):

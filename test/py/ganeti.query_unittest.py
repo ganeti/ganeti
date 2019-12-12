@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
@@ -259,7 +259,7 @@ class TestQuery(unittest.TestCase):
                      ["name1", "other", "foo"]]:
       q = query.Query(fielddef, selected)
       self.assertEqual(len(q._fields), len(selected))
-      self.assert_(compat.all(len(row) == len(selected)
+      self.assertTrue(compat.all(len(row) == len(selected)
                               for row in q.Query(_QueryData(range(1, 10)))))
       self.assertEqual(q.Query(_QueryData(range(1, 10))),
                        [[(constants.RS_UNKNOWN, None)] * len(selected)
@@ -389,7 +389,7 @@ class TestNodeQuery(unittest.TestCase):
                        ])
 
   def test(self):
-    selected = query.NODE_FIELDS.keys()
+    selected = list(query.NODE_FIELDS)
     field_index = dict((field, idx) for idx, field in enumerate(selected))
 
     q = self._Create(selected)
@@ -496,7 +496,7 @@ class TestNodeQuery(unittest.TestCase):
                               inst_uuid_to_inst_name, groups, oob_support,
                               cluster)
     result = q.Query(nqd)
-    self.assert_(compat.all(len(row) == len(selected) for row in result))
+    self.assertTrue(compat.all(len(row) == len(selected) for row in result))
     self.assertEqual([row[field_index["name"]] for row in result],
                      [(constants.RS_NORMAL, name) for name in node_names])
 
@@ -504,8 +504,8 @@ class TestNodeQuery(unittest.TestCase):
                        for idx, row in enumerate(result))
 
     master_row = result[node_to_row[master_name]]
-    self.assert_(master_row[field_index["master"]])
-    self.assert_(master_row[field_index["role"]], "M")
+    self.assertTrue(master_row[field_index["master"]])
+    self.assertTrue(master_row[field_index["role"]], "M")
     self.assertEqual(master_row[field_index["group"]],
                      (constants.RS_NORMAL, "ng1"))
     self.assertEqual(master_row[field_index["group.uuid"]],
@@ -515,7 +515,7 @@ class TestNodeQuery(unittest.TestCase):
     self.assertEqual(master_row[field_index["mtime"]],
                      (constants.RS_UNAVAIL, None))
 
-    self.assert_(row[field_index["pip"]] == node.primary_ip and
+    self.assertTrue(row[field_index["pip"]] == node.primary_ip and
                  row[field_index["sip"]] == node.secondary_ip and
                  set(row[field_index["tags"]]) == node.GetTags() and
                  row[field_index["serial_no"]] == node.serial_no and
@@ -546,10 +546,12 @@ class TestNodeQuery(unittest.TestCase):
                      (constants.RS_NORMAL, 2))
     self.assertEqual(live_data_row[field_index["sinst_cnt"]],
                      (constants.RS_NORMAL, 3))
-    self.assertEqual(master_row[field_index["pinst_list"]],
-                     (constants.RS_NORMAL,
-                      [inst_uuid_to_inst_name[uuid] for uuid in
-                       node_to_primary_uuid[master_node.uuid]]))
+    self.assertEqual(len(master_row[field_index["pinst_list"]]), 2)
+    self.assertEqual(master_row[field_index["pinst_list"]][0],
+                     constants.RS_NORMAL)
+    self.assertCountEqual(master_row[field_index["pinst_list"]][1],
+                          [inst_uuid_to_inst_name[uuid] for uuid in
+                           node_to_primary_uuid[master_node.uuid]])
     self.assertEqual(live_data_row[field_index["sinst_list"]],
                      (constants.RS_NORMAL,
                       utils.NiceSort(
@@ -668,7 +670,7 @@ class TestInstanceQuery(unittest.TestCase):
        ["inst3", 128, "192.0.2.99"]])
 
   def test(self):
-    selected = query.INSTANCE_FIELDS.keys()
+    selected = list(query.INSTANCE_FIELDS)
     fieldidx = dict((field, idx) for idx, field in enumerate(selected))
 
     macs = ["00:11:22:%02x:%02x:%02x" % (i % 255, i % 3, (i * 123) % 255)
@@ -923,7 +925,7 @@ class TestInstanceQuery(unittest.TestCase):
                                   wrongnode_inst, consinfo, nodes, {}, {})
     result = q.Query(iqd)
     self.assertEqual(len(result), len(instances))
-    self.assert_(compat.all(len(row) == len(selected)
+    self.assertTrue(compat.all(len(row) == len(selected)
                             for row in result))
 
     assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
@@ -1269,7 +1271,7 @@ class TestQueryFields(unittest.TestCase):
   def testAllFields(self):
     for fielddefs in query.ALL_FIELD_LISTS:
       result = query.QueryFields(fielddefs, None)
-      self.assert_(isinstance(result, dict))
+      self.assertTrue(isinstance(result, dict))
       response = objects.QueryFieldsResponse.FromDict(result)
       self.assertEqual([(fdef.name, fdef.title) for fdef in response.fields],
         [(fdef2.name, fdef2.title)
@@ -1285,10 +1287,10 @@ class TestQueryFields(unittest.TestCase):
           sample_size = rnd.randint(5, 20)
         else:
           sample_size = rnd.randint(1, max(1, len(fielddefs) - 1))
-        fields = [fdef for (fdef, _, _, _) in rnd.sample(fielddefs.values(),
-                                                         sample_size)]
+        fields = [fdef for (fdef, _, _, _)
+                  in rnd.sample(list(fielddefs.values()), sample_size)]
         result = query.QueryFields(fielddefs, [fdef.name for fdef in fields])
-        self.assert_(isinstance(result, dict))
+        self.assertTrue(isinstance(result, dict))
         response = objects.QueryFieldsResponse.FromDict(result)
         self.assertEqual([(fdef.name, fdef.title) for fdef in response.fields],
                          [(fdef2.name, fdef2.title) for fdef2 in fields])

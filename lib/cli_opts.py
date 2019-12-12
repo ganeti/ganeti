@@ -1370,7 +1370,7 @@ def _PriorityOptionCb(option, _, value, parser):
 
 PRIORITY_OPT = cli_option("--priority", default=None, dest="priority",
                           metavar="|".join(name for name, _ in _PRIORITY_NAMES),
-                          choices=_PRIONAME_TO_VALUE.keys(),
+                          choices=list(_PRIONAME_TO_VALUE),
                           action="callback", type="choice",
                           callback=_PriorityOptionCb,
                           help="Priority for opcode processing")

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2014 Google Inc.
@@ -35,7 +35,7 @@ import testutils
 import time
 import unittest
 import yaml
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import cli_opts
@@ -54,18 +54,18 @@ class TestSplitKeyVal(unittest.TestCase):
 
   def testSplitKeyVal(self):
     """Test splitting"""
-    self.failUnlessEqual(cli_opts._SplitKeyVal("option", self.DATA, True),
+    self.assertEqual(cli_opts._SplitKeyVal("option", self.DATA, True),
                          self.RESULT)
 
   def testDuplicateParam(self):
     """Test duplicate parameters"""
     for data in ("a=1,a=2", "a,no_a"):
-      self.failUnlessRaises(ParameterError, cli_opts._SplitKeyVal,
+      self.assertRaises(ParameterError, cli_opts._SplitKeyVal,
                             "option", data, True)
 
   def testEmptyData(self):
     """Test how we handle splitting an empty string"""
-    self.failUnlessEqual(cli_opts._SplitKeyVal("option", "", True), {})
+    self.assertEqual(cli_opts._SplitKeyVal("option", "", True), {})
 
 
 class TestIdentKeyVal(unittest.TestCase):

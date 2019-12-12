@@ -157,7 +157,7 @@ class SimpleStore(object):
     # Get lock while writing files
     ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
     try:
-      for name, value in values.iteritems():
+      for name, value in values.items():
         if isinstance(value, (list, tuple)):
           value = "\n".join(value)
         if value and not value.endswith("\n"):

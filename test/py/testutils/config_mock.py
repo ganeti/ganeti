@@ -1005,3 +1005,20 @@ class ConfigMock(config.ConfigWriter):
 
   def AddTcpUdpPort(self, port):
     self._ConfigData().cluster.tcpudp_port_pool.add(port)
+
+
+class ConfigObjectMatcher(object):
+  """Wraps a ConfigObject to provide __eq__
+
+  """
+  def __init__(self, obj):
+    if not isinstance(obj, objects.ConfigObject):
+      raise TypeError
+
+    self.obj = obj
+
+  def __eq__(self, other):
+    if not isinstance(other, objects.ConfigObject):
+      return False
+
+    return self.obj.ToDict() == other.ToDict()

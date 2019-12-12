@@ -179,7 +179,7 @@ class HooksMaster(object):
       env = utils.algo.JoinDisjointDicts(env, phase_env)
 
     # Convert everything to strings
-    env = dict([(str(key), str(val)) for key, val in env.iteritems()])
+    env = dict([(str(key), str(val)) for key, val in env.items()])
 
     assert compat.all(key == "PATH" or key.startswith("GANETI_")
                       for key in env)

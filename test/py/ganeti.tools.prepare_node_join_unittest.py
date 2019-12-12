@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2012 Google Inc.
@@ -244,7 +244,7 @@ class TestUpdateSshRoot(unittest.TestCase):
                     is not None)
     pub_key = utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa.pub"))
     self.assertTrue(pub_key is not None)
-    self.assertEquals(utils.ReadFile(utils.PathJoin(self.sshdir,
+    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
                                                     "authorized_keys")),
                       pub_key)
 

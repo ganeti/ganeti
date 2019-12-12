@@ -38,9 +38,9 @@ from ganeti import pathutils
 
 from ganeti.utils import retry
 
-import qa_config
-import qa_error
-import qa_utils
+from qa import qa_config
+from qa import qa_error
+from qa import qa_utils
 
 from qa_utils import AssertIn, AssertCommand
 

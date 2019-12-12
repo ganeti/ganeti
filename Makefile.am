@@ -1110,6 +1110,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Locking/Waiting.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/PartialParams.hs \
+	test/hs/Test/Ganeti/PyValue.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/Objects/BitArray.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
@@ -1524,7 +1525,7 @@ python_scripts_shebang = \
 
 tools/shebang/%: tools/%
 	mkdir -p tools/shebang
-	head -1 $< | sed 's|#!/usr/bin/python|#!$(PYTHON)|' > $@
+	head -1 $< | sed 's|#!/usr/bin/python3|#!$(PYTHON)|' > $@
 	echo '# Generated file; do not edit.' >> $@
 	tail -n +2 $< >> $@
 

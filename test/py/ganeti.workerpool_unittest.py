@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2008, 2009, 2010 Google Inc.
@@ -66,7 +66,7 @@ class CountingContext(object):
 
   @staticmethod
   def UpdateChecksum(current, value):
-    return zlib.adler32(str(value), current)
+    return zlib.adler32(str(value).encode("utf-8"), current)
 
 
 class CountingBaseWorker(workerpool.BaseWorker):
@@ -75,7 +75,7 @@ class CountingBaseWorker(workerpool.BaseWorker):
 
 
 class ChecksumContext:
-  CHECKSUM_START = zlib.adler32("")
+  CHECKSUM_START = zlib.adler32(b"")
 
   def __init__(self):
     self.lock = threading.Condition(threading.Lock())
@@ -83,7 +83,7 @@ class ChecksumContext:
 
   @staticmethod
   def UpdateChecksum(current, value):
-    return zlib.adler32(str(value), current)
+    return zlib.adler32(str(value).encode("utf-8"), current)
 
 
 class ChecksumBaseWorker(workerpool.BaseWorker):
@@ -183,7 +183,7 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-    self.assertEquals(ctx.GetDoneTasks(), 10)
+    self.assertEqual(ctx.GetDoneTasks(), 10)
 
   def testNoTasks(self):
     wp = workerpool.WorkerPool("Test", 3, CountingBaseWorker)
@@ -250,7 +250,7 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-    self.assertEquals(ctx.GetDoneTasks(), 22)
+    self.assertEqual(ctx.GetDoneTasks(), 22)
 
   def testManyTasksSequence(self):
     ctx = CountingContext()
@@ -273,7 +273,7 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
-    self.assertEquals(ctx.GetDoneTasks(), 11)
+    self.assertEqual(ctx.GetDoneTasks(), 11)
 
   def _CheckNoTasks(self, wp):
     wp._lock.acquire()
@@ -466,7 +466,7 @@ class TestWorkerpool(unittest.TestCase):
         all_order_ids = []
 
         for (num, numordertaskid) in ctx.num2ordertaskid.items():
-          order_ids = map(compat.fst, numordertaskid)
+          order_ids = [n[0] for n in numordertaskid]
           self.assertFalse(utils.FindDuplicates(order_ids),
                            msg="Order ID has been reused")
           all_order_ids.extend(order_ids)

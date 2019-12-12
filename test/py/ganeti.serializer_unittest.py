@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2008 Google Inc.
@@ -70,7 +70,7 @@ class TestSerializer(testutils.GanetiTestCase):
       private_encoder=serializer.EncodeWithPrivateFields
     )
     for data in self._TESTDATA:
-      self.failUnless(_dump_fn(data).endswith("\n"))
+      self.assertTrue(_dump_fn(data).endswith(b"\n"))
       self.assertEqualValues(load_fn(_dump_fn(data)), data)
 
   def testGeneric(self):
@@ -165,7 +165,7 @@ class TestPrivate(unittest.TestCase):
     pDict["bar"] = "egg"
     uDict = pDict.Unprivate()
     nDict = {"bar": "egg"}
-    self.assertEquals(type(uDict), dict,
+    self.assertEqual(type(uDict), dict,
                       "PrivateDict.Unprivate() did not return a dict")
     self.assertEqual(pDict, uDict, "PrivateDict.Unprivate() equality failure")
     self.assertEqual(nDict, uDict, "PrivateDict.Unprivate() failed to return")
@@ -195,7 +195,7 @@ class TestPrivate(unittest.TestCase):
     self.assertTrue("egg" not in repr(pDict), "Value leak in repr(PrivateDict)")
     self.assertTrue("egg" not in "{0}".format(pDict),
                      "Value leaked in PrivateDict.__format__")
-    self.assertTrue("egg" not in serializer.Dump(pDict),
+    self.assertTrue(b"egg" not in serializer.Dump(pDict),
                      "Value leaked in serializer.Dump(PrivateDict)")
 
   def testProperAccess(self):
@@ -211,7 +211,7 @@ class TestPrivate(unittest.TestCase):
 
     json = serializer.Dump(pDict,
                            private_encoder=serializer.EncodeWithPrivateFields)
-    self.assertTrue("egg" in json)
+    self.assertTrue(b"egg" in json)
 
   def testDictGet(self):
     result = serializer.PrivateDict().GetPrivate("bar", "tar")
@@ -228,7 +228,7 @@ class TestCheckDoctests(unittest.TestCase):
 
   def testCheckSerializer(self):
     results = doctest.testmod(serializer)
-    self.assertEquals(results.failed, 0, "Doctest failures detected")
+    self.assertEqual(results.failed, 0, "Doctest failures detected")
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

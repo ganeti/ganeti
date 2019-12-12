@@ -36,7 +36,8 @@ import re
 import base64
 import binascii
 
-from cStringIO import StringIO
+from io import StringIO
+from hashlib import md5
 
 from ganeti import compat
 from ganeti import http
@@ -65,7 +66,7 @@ def _FormatAuthHeader(scheme, params):
 
   buf.write(scheme)
 
-  for name, value in params.iteritems():
+  for name, value in params.items():
     buf.write(" ")
     buf.write(name)
     buf.write("=")
@@ -275,8 +276,8 @@ class HttpServerRequestAuthentication(object):
         # There can not be a valid password for this case
         raise AssertionError("No authentication realm")
 
-      expha1 = compat.md5_hash()
-      expha1.update("%s:%s:%s" % (username, realm, password))
+      digest = "%s:%s:%s" % (username, realm, password)
+      expha1 = md5(digest.encode("ascii"))
 
       return (expected_password.lower() == expha1.hexdigest().lower())
 

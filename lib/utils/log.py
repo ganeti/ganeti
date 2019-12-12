@@ -34,7 +34,7 @@
 import os.path
 import logging
 import logging.handlers
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import compat
@@ -259,7 +259,7 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
     # exception since otherwise we could run but without any logs at all
     try:
       if console_logging:
-        logfile_handler = _LogHandler(open(constants.DEV_CONSOLE, "a"),
+        logfile_handler = _LogHandler(open(constants.DEV_CONSOLE, "w"),
                                       logfile)
       else:
         logfile_handler = _ReopenableLogHandler(logfile)

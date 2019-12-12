@@ -239,7 +239,7 @@ def _CheckInstances(cl, notepad, instances, locks):
   """Make a pass over the list of instances, restarting downed ones.
 
   """
-  notepad.MaintainInstanceList(instances.keys())
+  notepad.MaintainInstanceList(list(instances))
 
   started = set()
 
@@ -771,7 +771,7 @@ def _GetGroupData(qcl, uuid):
       ht.TListOf(ht.TListOf(ht.TIsLength(2)))(d) for d in results_data)
 
   # Extract values ignoring result status
-  (raw_instances, raw_nodes) = [[map(compat.snd, values)
+  (raw_instances, raw_nodes) = [[[v[1] for v in values]
                                  for values in res]
                                 for res in results_data]
 
@@ -858,7 +858,7 @@ def _GroupWatcher(opts):
     (nodes, instances, locks) = _GetGroupData(client, group_uuid)
 
     # Update per-group instance status file
-    _UpdateInstanceStatus(inst_status_path, instances.values())
+    _UpdateInstanceStatus(inst_status_path, list(instances.values()))
 
     _MergeInstanceStatus(pathutils.INSTANCE_STATUS_FILE,
                          pathutils.WATCHER_GROUP_INSTANCE_STATUS_FILE,

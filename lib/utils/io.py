@@ -42,6 +42,8 @@ import stat
 import grp
 import pwd
 
+from io import FileIO, TextIOWrapper, BufferedRWPair
+
 from ganeti import errors
 from ganeti import constants
 from ganeti import pathutils
@@ -100,8 +102,30 @@ class FileStatHelper(object):
     self.st = os.fstat(fh.fileno())
 
 
+def ReadBinaryFile(file_name, size=-1, preread=None):
+  """Reads a binary file.
+
+  @type size: int
+  @param size: Read at most size bytes (if negative, entire file)
+  @type preread: callable receiving file handle as single parameter
+  @param preread: Function called before file is read
+  @rtype: bytes
+  @return: the (possibly partial) content of the file
+  @raise IOError: if the file cannot be opened
+
+  """
+  f = open(file_name, "rb")
+  try:
+    if preread:
+      preread(f)
+
+    return f.read(size)
+  finally:
+    f.close()
+
+
 def ReadFile(file_name, size=-1, preread=None):
-  """Reads a file.
+  """Reads a text file.
 
   @type size: int
   @param size: Read at most size bytes (if negative, entire file)
@@ -112,7 +136,7 @@ def ReadFile(file_name, size=-1, preread=None):
   @raise IOError: if the file cannot be opened
 
   """
-  f = open(file_name, "r")
+  f = open(file_name, "r", encoding="utf-8")
   try:
     if preread:
       preread(f)
@@ -145,7 +169,7 @@ def WriteFile(file_name, fn=None, data=None,
   @type fn: callable
   @param fn: content writing function, called with
       file descriptor as parameter
-  @type data: str
+  @type data: str or bytes
   @param data: contents of the file
   @type mode: int
   @param mode: file mode
@@ -230,17 +254,16 @@ def WriteFile(file_name, fn=None, data=None,
       if callable(prewrite):
         prewrite(fd)
       if data is not None:
-        if isinstance(data, unicode):
-          data = data.encode()
-        assert isinstance(data, str)
-        to_write = len(data)
-        offset = 0
-        while offset < to_write:
-          written = os.write(fd, buffer(data, offset))
-          assert written >= 0
-          assert written <= to_write - offset
-          offset += written
-        assert offset == to_write
+        assert isinstance(data, (str, bytes))
+        if isinstance(data, str):
+          open_mode = "w"
+          encoding = "utf-8"
+        else:
+          open_mode = "wb"
+          encoding = None
+        with open(fd, open_mode, closefd=False,
+                  encoding=encoding, buffering=8192) as out:
+          out.write(data)
       else:
         fn(fd)
       if callable(postwrite):
@@ -341,7 +364,7 @@ def ReadOneLineFile(file_name, strict=False):
 
   """
   file_lines = ReadFile(file_name).splitlines()
-  full_lines = filter(bool, file_lines)
+  full_lines = [l for l in file_lines if l]
   if not file_lines or not full_lines:
     raise errors.GenericError("No data in one-liner file %s" % file_name)
   elif strict and len(full_lines) > 1:
@@ -584,7 +607,7 @@ def ListVisibleFiles(path, _is_mountpoint=os.path.ismount):
                 (mountpoint and name == _LOST_AND_FOUND and
                  os.path.isdir(os.path.join(path, name))))
 
-  return filter(fn, os.listdir(path))
+  return [f for f in os.listdir(path) if fn(f)]
 
 
 def EnsureDirs(dirs):
@@ -904,7 +927,7 @@ def WritePidFile(pidfile):
       msg.append(", PID read from file is %s" % pid)
     raise errors.PidFileLockError("".join(msg))
 
-  os.write(fd_pidfile, "%d\n" % os.getpid())
+  os.write(fd_pidfile, b"%d\n" % os.getpid())
 
   return fd_pidfile
 
@@ -1033,3 +1056,20 @@ def CanRead(username, filename):
   return ((filestats.st_uid == uid and user_readable)
           or (filestats.st_uid != uid and
               IsUserInGroup(uid, filestats.st_gid) and group_readable))
+
+
+def OpenTTY(device="/dev/tty"):
+  """Returns a text I/O object pointing a TTY (/dev/tty by default)
+
+  As of Python 3.7, /dev/tty cannot be opened in buffered and/or text mode, see
+  https://bugs.python.org/issue20074. Work around this by using TextIOWrapper
+  over a BufferedRWPair to return a line-buffered TTY I/O object.
+
+  @type device: string
+  @param device: path to the TTY/PTY device to open
+
+  """
+  _tty = FileIO(device, "r+")
+  _buffered_tty = BufferedRWPair(_tty, _tty)
+
+  return TextIOWrapper(_buffered_tty, line_buffering=True)

@@ -34,7 +34,7 @@
 
 from ganeti import constants
 
-import qa_rapi
+from qa import qa_rapi
 
 from qa_utils import AssertCommand
 

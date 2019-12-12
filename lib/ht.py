@@ -32,7 +32,7 @@
 
 import re
 import operator
-import ipaddr
+import ipaddress
 
 from ganeti import compat
 from ganeti import utils
@@ -223,7 +223,7 @@ def TInt(val):
   #
   # >>> (isinstance(False, int), isinstance(True, int))
   # (True, True)
-  return isinstance(val, (int, long)) and not isinstance(val, bool)
+  return isinstance(val, int) and not isinstance(val, bool)
 
 
 @WithDesc("Float")
@@ -239,7 +239,7 @@ def TString(val):
   """Checks if the given value is a string.
 
   """
-  return isinstance(val, basestring)
+  return isinstance(val, str)
 
 
 @WithDesc("EvalToTrue")
@@ -333,7 +333,7 @@ def TRegex(pobj):
 
   """
   desc = WithDesc("String matching regex \"%s\"" %
-                  pobj.pattern.encode("string_escape"))
+                  pobj.pattern.encode("unicode_escape"))
 
   return desc(TAnd(TString, pobj.match))
 
@@ -506,7 +506,7 @@ def _TStrictDictCheck(require_all, exclusive, items, val):
   """
   notfound_fn = lambda _: not exclusive
 
-  if require_all and not frozenset(val.keys()).issuperset(items.keys()):
+  if require_all and not frozenset(val).issuperset(items):
     # Requires items not found in value
     return False
 
@@ -660,8 +660,8 @@ def _CheckCIDRNetNotation(value):
 
   """
   try:
-    ipaddr.IPv4Network(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv4Network(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
@@ -672,8 +672,8 @@ def _CheckCIDRAddrNotation(value):
 
   """
   try:
-    ipaddr.IPv4Address(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv4Address(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
@@ -684,8 +684,8 @@ def _CheckCIDR6AddrNotation(value):
 
   """
   try:
-    ipaddr.IPv6Address(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv6Address(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 
@@ -696,8 +696,8 @@ def _CheckCIDR6NetNotation(value):
 
   """
   try:
-    ipaddr.IPv6Network(value)
-  except ipaddr.AddressValueError:
+    ipaddress.IPv6Network(value)
+  except ipaddress.AddressValueError:
     return False
   return True
 

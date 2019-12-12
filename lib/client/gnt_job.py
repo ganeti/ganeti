@@ -81,8 +81,8 @@ _JOB_LIST_FORMAT = {
   "summary": (_FormatSummary, False),
   }
 _JOB_LIST_FORMAT.update(dict.fromkeys(["opstart", "opexec", "opend"],
-                                      (lambda value: map(FormatTimestamp,
-                                                         value),
+                                      (lambda value: [FormatTimestamp(v)
+                                                      for v in value],
                                        None)))
 
 

@@ -139,7 +139,7 @@ case_JobStatusPri_py_equiv = do
                \           for o in job_data]\n\
                \encoded = [(job.CalcStatus(), job.CalcPriority())\n\
                \           for job in decoded]\n\
-               \print serializer.Dump(encoded)" serialized
+               \sys.stdout.buffer.write(serializer.Dump(encoded))" serialized
      >>= checkPythonResult
   let deserialised = decode py_stdout::Text.JSON.Result [(String, Int)]
   decoded <- case deserialised of

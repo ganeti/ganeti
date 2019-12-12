@@ -44,6 +44,7 @@ import pwd
 import time
 import itertools
 import select
+import socket
 import logging
 import signal
 
@@ -113,14 +114,14 @@ def ForceDictType(target, key_types, allowed_values=None):
     if ktype in (constants.VTYPE_STRING, constants.VTYPE_MAYBE_STRING):
       if target[key] is None and ktype == constants.VTYPE_MAYBE_STRING:
         pass
-      elif not isinstance(target[key], basestring):
+      elif not isinstance(target[key], str):
         if isinstance(target[key], bool) and not target[key]:
           target[key] = ""
         else:
           msg = "'%s' (value %s) is not a valid string" % (key, target[key])
           raise errors.TypeEnforcementError(msg)
     elif ktype == constants.VTYPE_BOOL:
-      if isinstance(target[key], basestring) and target[key]:
+      if isinstance(target[key], str) and target[key]:
         if target[key].lower() == constants.VALUE_FALSE:
           target[key] = False
         elif target[key].lower() == constants.VALUE_TRUE:
@@ -186,7 +187,7 @@ def _ComputeMissingKeys(key_path, options, defaults):
   @return: A list of invalid keys
 
   """
-  defaults_keys = frozenset(defaults.keys())
+  defaults_keys = frozenset(defaults)
   invalid = []
   for key, value in options.items():
     if key_path:
@@ -353,9 +354,9 @@ def GetHomeDir(user, default=None):
 
   """
   try:
-    if isinstance(user, basestring):
+    if isinstance(user, str):
       result = pwd.getpwnam(user)
-    elif isinstance(user, (int, long)):
+    elif isinstance(user, int):
       result = pwd.getpwuid(user)
     else:
       raise errors.ProgrammerError("Invalid type passed to GetHomeDir (%s)" %
@@ -423,7 +424,7 @@ def SingleWaitForFdCondition(fdobj, event, timeout):
     # every so often.
     io_events = poller.poll(timeout)
   except select.error as err:
-    if err[0] != errno.EINTR:
+    if err.errno != errno.EINTR:
       raise
     io_events = []
   if io_events and io_events[0][1] & check:
@@ -706,7 +707,7 @@ class SignalWakeupFd(object):
     """Notifies the wakeup file descriptor.
 
     """
-    self._write_fh.write(chr(0))
+    self._write_fh.write(b"\x00")
 
   def __del__(self):
     """Called before object deletion.
@@ -773,7 +774,7 @@ class SignalHandler(object):
     This will reset all the signals to their previous handlers.
 
     """
-    for signum, prev_handler in self._previous.items():
+    for signum, prev_handler in list(self._previous.items()):
       signal.signal(signum, prev_handler)
       # If successful, remove from dict
       del self._previous[signum]
@@ -800,6 +801,12 @@ class SignalHandler(object):
 
     if self._handler_fn:
       self._handler_fn(signum, frame)
+
+  def SetHandlerFn(self, fn):
+    """Set the signal handling function
+
+    """
+    self._handler_fn = fn
 
 
 class FieldSet(object):
@@ -828,7 +835,7 @@ class FieldSet(object):
     @return: either None or a regular expression match object
 
     """
-    for m in itertools.ifilter(None, (val.match(field) for val in self.items)):
+    for m in filter(None, (val.match(field) for val in self.items)):
       return m
     return None
 
@@ -965,3 +972,35 @@ def GetDiskTemplate(disks_info):
 
   """
   return GetDiskTemplateString(d.dev_type for d in disks_info)
+
+def SendFds(sock, data, fds):
+  """Sends a set of file descriptors over a socket using sendmsg(2)
+
+  @type sock: socket.socket
+  @param sock: the socket over which the fds will be sent
+  @type data: bytes
+  @param data: actual data for the sendmsg(2) call
+  @type fds: list of file descriptors or file-like objects with fileno() methods
+  @param fds: the file descriptors to send
+
+  """
+  if not isinstance(data, bytes):
+    raise errors.TypeEnforcementError("expecting bytes for data")
+
+  _fds = array.array("i")
+
+  for fd in fds:
+    if isinstance(fd, int):
+      array.append(fd)
+      continue
+
+    try:
+      array.append(fd.fileno())
+      continue
+    except AttributeError:
+      pass
+
+    raise errors.TypeEnforcementError("expected int or file-like object"
+                                      " got %s" % type(fd).__name__)
+
+  return sock.sendmsg([data], [socket.SOL_SOCKET, socket.SCM_RIGHTS, fds])

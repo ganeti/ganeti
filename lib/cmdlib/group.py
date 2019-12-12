@@ -410,7 +410,7 @@ class LUGroupSetParams(LogicalUnit):
       violations = \
           ComputeNewInstanceViolations(gmi.CalculateGroupIPolicy(cluster,
                                                                  self.group),
-                                       new_ipolicy, instances.values(),
+                                       new_ipolicy, list(instances.values()),
                                        self.cfg)
 
       if violations:
@@ -660,8 +660,8 @@ class LUGroupEvacuate(LogicalUnit):
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
     if self.op.target_groups:
-      self.req_target_uuids = map(self.cfg.LookupNodeGroup,
-                                  self.op.target_groups)
+      self.req_target_uuids = [self.cfg.LookupNodeGroup(g)
+                               for g in self.op.target_groups]
     else:
       self.req_target_uuids = []
 
@@ -932,7 +932,7 @@ class LUGroupVerifyDisks(NoHooksLU):
 
       # any leftover items in nv_dict are missing LVs, let's arrange the data
       # better
-      for key, inst in node_lv_to_inst.iteritems():
+      for key, inst in node_lv_to_inst.items():
         missing_disks.setdefault(inst.name, []).append(list(key))
 
   def _VerifyDrbdStates(self, node_errors, offline_disk_instance_names):

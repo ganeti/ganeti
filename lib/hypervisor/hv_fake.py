@@ -149,7 +149,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
     """
     file_name = self._InstanceFile(instance.name)
-    fh = file(file_name, "w")
+    fh = open(file_name, "w")
     try:
       fh.write("0\n%d\n%d\n" %
                (memory,

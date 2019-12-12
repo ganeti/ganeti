@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2009 Google Inc.
@@ -241,10 +241,10 @@ class TestRapiDocs(unittest.TestCase):
     undocumented = []
     used_uris = []
 
-    for key, handler in resources.iteritems():
+    for key, handler in resources.items():
       # Regex objects
       if hasattr(key, "match"):
-        self.assert_(key.pattern.startswith("^/2/"),
+        self.assertTrue(key.pattern.startswith("^/2/"),
                      msg="Pattern %r does not start with '^/2/'" % key.pattern)
         self.assertEqual(key.pattern[-1], "$")
 
@@ -263,7 +263,7 @@ class TestRapiDocs(unittest.TestCase):
           undocumented.append(key.pattern)
 
       else:
-        self.assert_(key.startswith("/2/") or key in prefix_exception,
+        self.assertTrue(key.startswith("/2/") or key in prefix_exception,
                      msg="Path %r does not start with '/2/'" % key)
 
         if ("``%s``" % key) in titles:
@@ -272,12 +272,12 @@ class TestRapiDocs(unittest.TestCase):
         else:
           undocumented.append(key)
 
-    self.failIf(undocumented,
+    self.assertFalse(undocumented,
                 msg=("Missing RAPI resource documentation for %s" %
                      utils.CommaJoin(undocumented)))
 
     uri_dups = utils.FindDuplicates(used_uris)
-    self.failIf(uri_dups,
+    self.assertFalse(uri_dups,
                 msg=("URIs matched by more than one resource: %s" %
                      utils.CommaJoin(uri_dups)))
 
@@ -285,8 +285,8 @@ class TestRapiDocs(unittest.TestCase):
     self._CheckTagHandlers(resources.values())
 
   def _FindRapiMissing(self, handlers):
-    used = frozenset(itertools.chain(*map(baserlib.GetResourceOpcodes,
-                                          handlers)))
+    used = frozenset(itertools.chain(*list(map(baserlib.GetResourceOpcodes,
+                                               handlers))))
 
     unexpected = used & RAPI_OPCODE_EXCLUDE
     self.assertFalse(unexpected,
@@ -300,7 +300,7 @@ class TestRapiDocs(unittest.TestCase):
            utils.CommaJoin(_GetOpIds(missing))))
 
   def _CheckTagHandlers(self, handlers):
-    tag_handlers = filter(lambda x: issubclass(x, rlib2._R_Tags), handlers)
+    tag_handlers = [x for x in handlers if issubclass(x, rlib2._R_Tags)]
     self.assertEqual(frozenset(tag.TAG_LEVEL for tag in tag_handlers),
                      constants.VALID_TAG_TYPES)
 
@@ -328,7 +328,7 @@ class TestManpages(unittest.TestCase):
     for script in _constants.GNT_SCRIPTS:
       self._CheckManpage(script,
                          self._ReadManFile(script),
-                         self._LoadScript(script).commands.keys())
+                         list(self._LoadScript(script).commands))
 
   def _CheckManpage(self, script, mantext, commands):
     missing = []
@@ -338,7 +338,7 @@ class TestManpages(unittest.TestCase):
       if not re.findall(pattern, mantext, re.DOTALL | re.MULTILINE):
         missing.append(cmd)
 
-    self.failIf(missing,
+    self.assertFalse(missing,
                 msg=("Manpage for '%s' missing documentation for %s" %
                      (script, utils.CommaJoin(missing))))
 

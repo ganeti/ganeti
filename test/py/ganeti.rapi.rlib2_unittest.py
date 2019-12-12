@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2010, 2012, 2013 Google Inc.
@@ -882,7 +882,7 @@ class TestInstanceCreation(RAPITestCase):
       }
 
     for name in reqfields.keys():
-      data = dict(i for i in reqfields.iteritems() if i[0] != name)
+      data = dict(i for i in reqfields.items() if i[0] != name)
 
       handler = _CreateHandler(rlib2.R_2_instances, [], {}, data,
                                self._clfactory)
@@ -1129,9 +1129,9 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
       opcodes.OpInstanceStartup,
       ]
 
-    self.assert_(compat.all(isinstance(op, exp)
+    self.assertTrue(compat.all(isinstance(op, exp)
                             for op, exp in zip(ops, expcls)))
-    self.assert_(compat.all(op.instance_name == name for op in ops))
+    self.assertTrue(compat.all(op.instance_name == name for op in ops))
 
   def test(self):
     name = "shoo0tihohma"
@@ -1206,7 +1206,7 @@ class TestInstanceReplaceDisks(RAPITestCase):
   def test(self):
     name = "inst22568"
 
-    for disks in [range(1, 4), "1,2,3", "1, 2, 3"]:
+    for disks in [list(range(1, 4)), "1,2,3", "1, 2, 3"]:
       data = {
         "mode": constants.REPLACE_DISK_SEC,
         "disks": disks,
@@ -1414,7 +1414,7 @@ class TestNodeRole(RAPITestCase):
         else:
           self.fail("Unknown role '%s'" % role)
 
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+        self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestSimpleResources(RAPITestCase):

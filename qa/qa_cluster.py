@@ -43,14 +43,14 @@ from ganeti import compat
 from ganeti import utils
 from ganeti import pathutils
 
-import qa_config
-import qa_daemon
-import qa_error
-import qa_instance
-import qa_job_utils
-import qa_logging
-import qa_rapi
-import qa_utils
+from qa import qa_config
+from qa import qa_daemon
+from qa import qa_error
+from qa import qa_instance
+from qa import qa_job_utils
+from qa import qa_logging
+from qa import qa_rapi
+from qa import qa_utils
 
 from qa_utils import AssertEqual, AssertCommand, AssertRedirectedCommand, \
   GetCommandOutput, CheckFileUnmodified
@@ -1290,7 +1290,7 @@ def TestClusterRenewCrypto():
       AssertCommand(["rm", "-f", tmpcert])
 
     # Custom cluster domain secret
-    cds_fh = tempfile.NamedTemporaryFile()
+    cds_fh = tempfile.NamedTemporaryFile(mode="w")
     cds_fh.write(utils.GenerateSecret())
     cds_fh.write("\n")
     cds_fh.flush()

@@ -322,8 +322,9 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
     feedback_fn("* Verifying hypervisor parameters")
 
+    instances_info = list(self.all_inst_info.values())
     self._VerifyHVP(_GetAllHypervisorParameters(self.cfg.GetClusterInfo(),
-                                                self.all_inst_info.values()))
+                                                instances_info))
 
     feedback_fn("* Verifying all nodes belong to an existing group")
 
@@ -520,7 +521,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             else:
               extra_lv_nodes[nuuid] = [inst.name]
 
-    extra_lv_nodes_set = set(extra_lv_nodes.iterkeys())
+    extra_lv_nodes_set = set(extra_lv_nodes)
     unlocked_lv_nodes = \
         extra_lv_nodes_set.difference(self.owned_locks(locking.LEVEL_NODE))
 
@@ -584,7 +585,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     hyp_result = nresult.get(constants.NV_HYPERVISOR, None)
     if ninfo.vm_capable and isinstance(hyp_result, dict):
-      for hv_name, hv_result in hyp_result.iteritems():
+      for hv_name, hv_result in hyp_result.items():
         test = hv_result is not None
         self._ErrorIf(test, constants.CV_ENODEHV, ninfo.name,
                       "hypervisor %s verify failure: '%s'", hv_name, hv_result)
@@ -776,7 +777,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._ErrorMsg(constants.CV_ENODENET, ninfo.name,
                      "node hasn't returned node tcp connectivity data")
     elif nresult[constants.NV_NODENETTEST]:
-      nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST].keys())
+      nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST])
       msglist = []
       for node in nlist:
         msglist.append("tcp communication with node '%s': %s" %
@@ -1152,7 +1153,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if fn is None:
         filenodes = nodes
       else:
-        filenodes = filter(fn, nodes)
+        filenodes = [n for n in nodes if fn(n)]
       nodefiles.update((filename, frozenset(fn.uuid for fn in filenodes))
                        for filename in files)
 
@@ -1429,7 +1430,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       self.cfg.GetNodeName(base.uuid), a, b)
 
     # check any missing OSes
-    missing = set(base.oslist.keys()).difference(nimg.oslist.keys())
+    missing = set(base.oslist).difference(nimg.oslist)
     self._ErrorIf(missing, constants.CV_ENODEOS, ninfo.name,
                   "OSes present on reference node %s"
                   " but missing on this node: %s",
@@ -1560,7 +1561,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
     if vg_name is None:
       pass
-    elif isinstance(lvdata, basestring):
+    elif isinstance(lvdata, str):
       self._ErrorIf(True, constants.CV_ENODELVM, ninfo.name,
                     "LVM problem on node: %s", utils.SafeEncode(lvdata))
     elif not isinstance(lvdata, dict):
@@ -1680,7 +1681,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # Collect data from all nodes with disks
     result = self.rpc.call_blockdev_getmirrorstatus_multi(
-               node_disks.keys(), node_disks_dev_inst_only)
+               list(node_disks), node_disks_dev_inst_only)
 
     assert len(result) == len(node_disks)
 
@@ -1749,10 +1750,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                  not node.offline)]
     keyfunc = operator.attrgetter("group")
 
-    return map(itertools.cycle,
-               [sorted(n.name for n in names)
-                for _, names in itertools.groupby(sorted(nodes, key=keyfunc),
-                                                  keyfunc)])
+    nodes_by_group = itertools.groupby(sorted(nodes, key=keyfunc), keyfunc)
+    node_names = (sorted(n.name for n in names) for _, names in nodes_by_group)
+
+    return [itertools.cycle(ns) for ns in node_names]
 
   @classmethod
   def _SelectSshCheckNodes(cls, group_nodes, group_uuid, all_nodes):
@@ -1814,7 +1815,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """Build hooks nodes.
 
     """
-    return ([], list(self.my_node_info.keys()))
+    return ([], list(self.my_node_info))
 
   @staticmethod
   def _VerifyOtherNotes(feedback_fn, i_non_redundant, i_non_a_balanced,
@@ -1887,7 +1888,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     drbd_helper = self.cfg.GetDRBDHelper()
     cluster = self.cfg.GetClusterInfo()
     hypervisors = cluster.enabled_hypervisors
-    node_data_list = self.my_node_info.values()
+    node_data_list = list(self.my_node_info.values())
 
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
@@ -1927,10 +1928,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                        for filename in files)],
       constants.NV_NODELIST:
         self._SelectSshCheckNodes(node_data_list, self.group_uuid,
-                                  self.all_node_info.values()),
+                                  list(self.all_node_info.values())),
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS:
-        _GetAllHypervisorParameters(cluster, self.all_inst_info.values()),
+        _GetAllHypervisorParameters(cluster, list(self.all_inst_info.values())),
       constants.NV_NODENETTEST: node_nettest_params,
       constants.NV_INSTANCELIST: hypervisors,
       constants.NV_VERSION: None,
@@ -2030,7 +2031,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         nimg.sbp[pnode].append(instance.uuid)
 
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg,
-                                               self.my_node_info.keys())
+                                               list(self.my_node_info))
     # The value of exclusive_storage should be the same across the group, so if
     # it's True for at least a node, we act as if it were set for all the nodes
     self._exclusive_storage = compat.any(es_flags.values())
@@ -2112,20 +2113,20 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
            self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams))
       else:
         vf_nvinfo = all_nvinfo
-        vf_node_info = self.my_node_info.values()
+        vf_node_info = list(self.my_node_info.values())
 
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
     feedback_fn("* Gathering disk information (%s nodes)" %
                 len(self.my_node_uuids))
-    instdisk = self._CollectDiskInfo(self.my_node_info.keys(), node_image,
+    instdisk = self._CollectDiskInfo(list(self.my_node_info), node_image,
                                      self.my_inst_info)
 
     feedback_fn("* Verifying configuration file consistency")
 
-    self._VerifyClientCertificates(self.my_node_info.values(), all_nvinfo)
+    self._VerifyClientCertificates(list(self.my_node_info.values()), all_nvinfo)
     if self.cfg.GetClusterInfo().modify_ssh_setup:
-      self._VerifySshSetup(self.my_node_info.values(), all_nvinfo)
+      self._VerifySshSetup(list(self.my_node_info.values()), all_nvinfo)
     self._VerifyFiles(vf_node_info, master_node_uuid, vf_nvinfo, filemap)
 
     feedback_fn("* Verifying node status")

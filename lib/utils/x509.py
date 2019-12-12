@@ -67,11 +67,17 @@ _ASN1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
 def _ParseAsn1Generalizedtime(value):
   """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
 
-  @type value: string
+  @type value: string or bytes
   @param value: ASN1 GENERALIZEDTIME timestamp
   @return: Seconds since the Epoch (1970-01-01 00:00:00 UTC)
 
   """
+  if value is None:
+    return None
+
+  if isinstance(value, bytes):
+    value = value.decode("ascii")
+
   m = _ASN1_TIME_REGEX.match(value)
   if m:
     # We have an offset
@@ -99,31 +105,8 @@ def GetX509CertValidity(cert):
   @param cert: X509 certificate object
 
   """
-  # The get_notBefore and get_notAfter functions are only supported in
-  # pyOpenSSL 0.7 and above.
-  try:
-    get_notbefore_fn = cert.get_notBefore
-  except AttributeError:
-    not_before = None
-  else:
-    not_before_asn1 = get_notbefore_fn()
-
-    if not_before_asn1 is None:
-      not_before = None
-    else:
-      not_before = _ParseAsn1Generalizedtime(not_before_asn1)
-
-  try:
-    get_notafter_fn = cert.get_notAfter
-  except AttributeError:
-    not_after = None
-  else:
-    not_after_asn1 = get_notafter_fn()
-
-    if not_after_asn1 is None:
-      not_after = None
-    else:
-      not_after = _ParseAsn1Generalizedtime(not_after_asn1)
+  not_before = _ParseAsn1Generalizedtime(cert.get_notBefore())
+  not_after = _ParseAsn1Generalizedtime(cert.get_notAfter())
 
   return (not_before, not_after)
 
@@ -218,7 +201,8 @@ def SignX509Certificate(cert, key, salt):
     raise errors.GenericError("Invalid salt: %r" % salt)
 
   # Dumping as PEM here ensures the certificate is in a sane format
-  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                             cert).decode("ascii")
 
   return ("%s: %s/%s\n\n%s" %
           (constants.X509_CERT_SIGNATURE_HEADER, salt,
@@ -230,6 +214,9 @@ def _ExtractX509CertificateSignature(cert_pem):
   """Helper function to extract signature from X509 certificate.
 
   """
+  if isinstance(cert_pem, bytes):
+    cert_pem = cert_pem.decode("ascii")
+
   # Extract signature from original PEM data
   for line in cert_pem.splitlines():
     if line.startswith("---"):

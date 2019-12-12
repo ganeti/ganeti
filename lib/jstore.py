@@ -205,7 +205,7 @@ def FormatJobID(job_id):
   @return: the formatted job id
 
   """
-  if not isinstance(job_id, (int, long)):
+  if not isinstance(job_id, int):
     raise errors.ProgrammerError("Job ID '%s' not numeric" % job_id)
   if job_id < 0:
     raise errors.ProgrammerError("Job ID %s is negative" % job_id)

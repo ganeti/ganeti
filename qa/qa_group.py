@@ -37,9 +37,9 @@ from ganeti import netutils
 from ganeti import query
 from ganeti import utils
 
-import qa_iptables
-import qa_config
-import qa_utils
+from qa import qa_iptables
+from qa import qa_config
+from qa import qa_utils
 
 from qa_utils import AssertCommand, AssertEqual, GetCommandOutput
 
@@ -320,12 +320,12 @@ def TestGroupModify():
 
 def TestGroupList():
   """gnt-group list"""
-  qa_utils.GenericQueryTest("gnt-group", query.GROUP_FIELDS.keys())
+  qa_utils.GenericQueryTest("gnt-group", list(query.GROUP_FIELDS))
 
 
 def TestGroupListFields():
   """gnt-group list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-group", query.GROUP_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-group", list(query.GROUP_FIELDS))
 
 
 def TestAssignNodesIncludingSplit(orig_group, node1, node2):

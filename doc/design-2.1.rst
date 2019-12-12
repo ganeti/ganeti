@@ -471,7 +471,7 @@ actual production code.
 
 ::
 
-  #!/usr/bin/python
+  #!/usr/bin/python3
 
   import sys
   from ganeti import config

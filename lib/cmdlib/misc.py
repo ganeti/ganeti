@@ -351,7 +351,7 @@ class ExtStorageQuery(QueryBase):
       data[es_name] = info
 
     # Prepare data in requested order
-    return [data[name] for name in self._GetNames(lu, pol.keys(), None)
+    return [data[name] for name in self._GetNames(lu, list(pol), None)
             if name in data]
 
 

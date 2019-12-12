@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
@@ -96,7 +96,7 @@ class TestRpcProcessor(unittest.TestCase):
     proc = rpc._RpcProcessor(resolver, 24094)
     result = proc(["localhost"], "version", {"localhost": ""}, 60,
                   NotImplemented, _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), ["localhost"])
+    self.assertEqual(list(result), ["localhost"])
     lhresp = result["localhost"]
     self.assertFalse(lhresp.offline)
     self.assertEqual(lhresp.node, "localhost")
@@ -123,7 +123,7 @@ class TestRpcProcessor(unittest.TestCase):
     body = {host: ""}
     result = proc([host], "version", body, 12356, NotImplemented,
                   _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), [host])
+    self.assertEqual(list(result), [host])
     lhresp = result[host]
     self.assertFalse(lhresp.offline)
     self.assertEqual(lhresp.node, host)
@@ -141,7 +141,7 @@ class TestRpcProcessor(unittest.TestCase):
     body = {host: ""}
     result = proc([host], "version", body, 60, NotImplemented,
                   _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), [host])
+    self.assertEqual(list(result), [host])
     lhresp = result[host]
     self.assertTrue(lhresp.offline)
     self.assertEqual(lhresp.node, host)
@@ -158,7 +158,7 @@ class TestRpcProcessor(unittest.TestCase):
     self.assertEqual(http_proc.reqcount, 0)
 
   def _GetMultiVersionResponse(self, req):
-    self.assert_(req.host.startswith("node"))
+    self.assertTrue(req.host.startswith("node"))
     self.assertEqual(req.port, 23245)
     self.assertEqual(req.path, "/version")
     req.success = True
@@ -201,13 +201,13 @@ class TestRpcProcessor(unittest.TestCase):
                                              errinfo))
       host = "aef9ur4i.example.com"
       body = {host: ""}
-      result = proc(body.keys(), "version", body, 60, NotImplemented,
+      result = proc(list(body), "version", body, 60, NotImplemented,
                     _req_process_fn=http_proc)
-      self.assertEqual(result.keys(), [host])
+      self.assertEqual(list(result), [host])
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
       self.assertEqual(lhresp.node, host)
-      self.assert_(lhresp.fail_msg)
+      self.assertTrue(lhresp.fail_msg)
       self.assertFalse(lhresp.payload)
       self.assertEqual(lhresp.call, "version")
       self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")
@@ -263,10 +263,10 @@ class TestRpcProcessor(unittest.TestCase):
       self.assertEqual(lhresp.call, "vg_list")
 
       if name in httperrnodes:
-        self.assert_(lhresp.fail_msg)
+        self.assertTrue(lhresp.fail_msg)
         self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")
       elif name in failnodes:
-        self.assert_(lhresp.fail_msg)
+        self.assertTrue(lhresp.fail_msg)
         self.assertRaises(errors.OpPrereqError, lhresp.Raise, "failed",
                           prereq=True, ecode=errors.ECODE_INVAL)
       else:
@@ -299,11 +299,11 @@ class TestRpcProcessor(unittest.TestCase):
       body = {host: ""}
       result = proc([host], "version", body, 60, NotImplemented,
                     _req_process_fn=http_proc)
-      self.assertEqual(result.keys(), [host])
+      self.assertEqual(list(result), [host])
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
       self.assertEqual(lhresp.node, host)
-      self.assert_(lhresp.fail_msg)
+      self.assertTrue(lhresp.fail_msg)
       self.assertFalse(lhresp.payload)
       self.assertEqual(lhresp.call, "version")
       self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")
@@ -321,7 +321,7 @@ class TestRpcProcessor(unittest.TestCase):
   def testResponseBody(self):
     test_data = {
       "Hello": "World",
-      "xyz": range(10),
+      "xyz": list(range(10)),
       }
     resolver = rpc._StaticResolver(["192.0.2.84"])
     http_proc = _FakeRequestProcessor(compat.partial(self._GetBodyTestResponse,
@@ -331,7 +331,7 @@ class TestRpcProcessor(unittest.TestCase):
     body = {host: serializer.DumpJson(test_data)}
     result = proc([host], "upload_file", body, 30, NotImplemented,
                   _req_process_fn=http_proc)
-    self.assertEqual(result.keys(), [host])
+    self.assertEqual(list(result), [host])
     lhresp = result[host]
     self.assertFalse(lhresp.offline)
     self.assertEqual(lhresp.node, host)
@@ -350,27 +350,27 @@ class TestSsconfResolver(unittest.TestCase):
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=NotImplemented)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testNsLookup(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     ssc = GetFakeSimpleStoreClass(lambda _: [])
-    node_addr_map = dict(zip(node_list, addr_list))
+    node_addr_map = dict(list(zip(node_list, addr_list)))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testDisabledSsconfIp(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     ssc = GetFakeSimpleStoreClass(_RaiseNotImplemented)
-    node_addr_map = dict(zip(node_list, addr_list))
+    node_addr_map = dict(list(zip(node_list, addr_list)))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._SsconfResolver(False, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testBothLookups(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
@@ -378,11 +378,11 @@ class TestSsconfResolver(unittest.TestCase):
     n = len(addr_list) // 2
     node_addr_list = [" ".join(t) for t in zip(node_list[n:], addr_list[n:])]
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
-    node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
+    node_addr_map = dict(list(zip(node_list[:n], addr_list[:n])))
     nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=nslookup_fn)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
   def testAddressLookupIPv6(self):
     addr_list = ["2001:db8::%d" % n for n in range(0, 255, 11)]
@@ -391,7 +391,7 @@ class TestSsconfResolver(unittest.TestCase):
     ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     result = rpc._SsconfResolver(True, node_list, NotImplemented,
                                  ssc=ssc, nslookup_fn=NotImplemented)
-    self.assertEqual(result, zip(node_list, addr_list, node_list))
+    self.assertEqual(result, list(zip(node_list, addr_list, node_list)))
 
 
 class TestStaticResolver(unittest.TestCase):
@@ -399,7 +399,7 @@ class TestStaticResolver(unittest.TestCase):
     addresses = ["192.0.2.%d" % n for n in range(0, 123, 7)]
     nodes = ["node%s.example.com" % n for n in range(0, 123, 7)]
     res = rpc._StaticResolver(addresses)
-    self.assertEqual(res(nodes, NotImplemented), zip(nodes, addresses, nodes))
+    self.assertEqual(res(nodes, NotImplemented), list(zip(nodes, addresses, nodes)))
 
   def testWrongLength(self):
     res = rpc._StaticResolver([])
@@ -493,7 +493,7 @@ class TestCompress(unittest.TestCase):
       self.assertEqual(rpc._Compress(NotImplemented, data),
                        (constants.RPC_ENCODING_NONE, data))
 
-    for data in [512 * " ", 5242 * "Hello World!\n"]:
+    for data in [512 * b" ", 5242 * b"Hello World!\n"]:
       compressed = rpc._Compress(NotImplemented, data)
       self.assertEqual(len(compressed), 2)
       self.assertEqual(backend._Decompress(compressed), data)
@@ -690,7 +690,7 @@ class TestRpcClientBase(unittest.TestCase):
     def _Resolver(expected, hosts, options):
       self.assertEqual(hosts, nodes)
       self.assertEqual(options, expected)
-      return zip(hosts, nodes, hosts)
+      return list(zip(hosts, nodes, hosts))
 
     def _DynamicResolverOptions(args):
       (arg0, ) = args
@@ -703,7 +703,7 @@ class TestRpcClientBase(unittest.TestCase):
       (True, None, True),
       (0, None, 0),
       (_DynamicResolverOptions, [1, 2, 3], 6),
-      (_DynamicResolverOptions, range(4, 19), 165),
+      (_DynamicResolverOptions, list(range(4, 19)), 165),
       ]
 
     for (resolver_opts, arg0, expected) in tests:
@@ -759,7 +759,7 @@ class _FakeConfigForRpcRunner:
 
 class TestRpcRunner(unittest.TestCase):
   def testUploadFile(self):
-    data = 1779 * "Hello World\n"
+    data = 1779 * b"Hello World\n"
 
     tmpfile = tempfile.NamedTemporaryFile()
     tmpfile.write(data)
@@ -774,7 +774,9 @@ class TestRpcRunner(unittest.TestCase):
       (uldata, ) = serializer.LoadJson(req.post_data)
       self.assertEqual(len(uldata), 7)
       self.assertEqual(uldata[0], tmpfile.name)
-      self.assertEqual(list(uldata[1]), list(rpc._Compress(nodes[0], data)))
+      compressed = [x.decode("ascii") if isinstance(x, bytes) else x
+                    for x in rpc._Compress(nodes[0], data)]
+      self.assertEqual(list(uldata[1]), compressed)
       self.assertEqual(uldata[2], st.st_mode)
       self.assertEqual(uldata[3], "user%s" % os.getuid())
       self.assertEqual(uldata[4], "group%s" % os.getgid())
@@ -985,7 +987,7 @@ class TestLegacyNodeInfo(unittest.TestCase):
   def testNoSpindles(self):
     my_lst = [self.VAL_BOOT, [self.DICT_VG], [self.DICT_HV]]
     result = rpc.MakeLegacyNodeInfo(my_lst, constants.DT_PLAIN)
-    expected_dict = dict((k,v) for k, v in self.STD_DICT.iteritems())
+    expected_dict = dict((k,v) for k, v in self.STD_DICT.items())
     expected_dict[self.KEY_SPINDLES_FREE] = 0
     expected_dict[self.KEY_SPINDLES_TOTAL] = 0
     self.assertEqual(result, expected_dict)

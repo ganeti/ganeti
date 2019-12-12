@@ -31,14 +31,15 @@
 
 """
 
-import BaseHTTPServer
-import cgi
+import html
 import logging
 import os
 import socket
 import time
 import signal
 import asyncore
+
+from http.server import BaseHTTPRequestHandler
 
 from ganeti import http
 from ganeti import utils
@@ -255,7 +256,7 @@ def _HandleServerRequestInner(handler, req_msg, reader):
       logging.exception("Unknown exception")
       raise http.HttpInternalServerError(message="Unknown error")
 
-    if not isinstance(result, basestring):
+    if not isinstance(result, (str, bytes)):
       raise http.HttpError("Handler function didn't return string type")
 
     return (http.HTTP_OK, handler_context.resp_headers, result)
@@ -271,7 +272,7 @@ class HttpResponder(object):
   # Most web servers default to HTTP 0.9, i.e. don't send a status line.
   default_request_version = http.HTTP_0_9
 
-  responses = BaseHTTPServer.BaseHTTPRequestHandler.responses
+  responses = BaseHTTPRequestHandler.responses
 
   def __init__(self, handler):
     """Initializes this class.
@@ -340,7 +341,7 @@ class HttpResponder(object):
 
     values = {
       "code": err.code,
-      "message": cgi.escape(message),
+      "message": html.escape(message),
       "explain": longmsg,
       }
 

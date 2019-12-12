@@ -1201,7 +1201,7 @@ def ComputeFullBeParams(op, cluster):
 
   """
   default_beparams = cluster.beparams[constants.PP_DEFAULT]
-  for param, value in op.beparams.iteritems():
+  for param, value in op.beparams.items():
     if value == constants.VALUE_AUTO:
       op.beparams[param] = default_beparams[param]
   objects.UpgradeBeParams(op.beparams)

@@ -42,10 +42,10 @@ from ganeti import pathutils
 from ganeti import query
 from ganeti.netutils import IP4Address
 
-import qa_config
-import qa_daemon
-import qa_utils
-import qa_error
+from qa import qa_config
+from qa import qa_daemon
+from qa import qa_utils
+from qa import qa_error
 
 from qa_filters import stdout_of
 from qa_utils import AssertCommand, AssertEqual, AssertIn
@@ -94,7 +94,7 @@ def GetInstanceInfo(instance):
       if nodestr:
         m = re_nodelist.match(nodestr)
         if m:
-          nodes.extend(filter(None, m.groups()))
+          nodes.extend([n for n in m.groups() if n])
         else:
           nodes.append(nodestr)
 
@@ -901,12 +901,12 @@ def TestInstanceDeviceNames(instance):
 
 def TestInstanceList():
   """gnt-instance list"""
-  qa_utils.GenericQueryTest("gnt-instance", query.INSTANCE_FIELDS.keys())
+  qa_utils.GenericQueryTest("gnt-instance", list(query.INSTANCE_FIELDS))
 
 
 def TestInstanceListFields():
   """gnt-instance list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-instance", query.INSTANCE_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-instance", list(query.INSTANCE_FIELDS))
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -1009,7 +1009,7 @@ def _BuildRecreateDisksOpts(en_disks, with_spindles, with_growth,
   build_disk_opt = (lambda idx_dsk:
                     "--disk=%s:%s%s" % (idx_dsk[0], build_size_opt(idx_dsk[1]),
                                         build_spindles_opt(idx_dsk[1])))
-  return map(build_disk_opt, en_disks)
+  return [build_disk_opt(d) for d in en_disks]
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
@@ -1131,13 +1131,13 @@ def TestBackupList(expnode):
   """gnt-backup list"""
   AssertCommand(["gnt-backup", "list", "--node=%s" % expnode.primary])
 
-  qa_utils.GenericQueryTest("gnt-backup", query.EXPORT_FIELDS.keys(),
+  qa_utils.GenericQueryTest("gnt-backup", list(query.EXPORT_FIELDS),
                             namefield=None, test_unknown=False)
 
 
 def TestBackupListFields():
   """gnt-backup list-fields"""
-  qa_utils.GenericQueryFieldsTest("gnt-backup", query.EXPORT_FIELDS.keys())
+  qa_utils.GenericQueryFieldsTest("gnt-backup", list(query.EXPORT_FIELDS))
 
 
 def TestRemoveInstanceOfflineNode(instance, snode, set_offline, set_online):
@@ -1439,7 +1439,7 @@ def TestInstanceCommunication(instance, master):
 
   ## Check the output of 'gnt-instance list'
   nic_names = _GetInstanceField(instance.name, "nic.names")
-  nic_names = map(lambda x: x.strip(" '"), nic_names.strip("[]").split(","))
+  nic_names = [x.strip(" '") for x in nic_names.strip("[]").split(",")]
 
   AssertIn(nic_name, nic_names,
            msg="Looking for instance communication TAP interface")
