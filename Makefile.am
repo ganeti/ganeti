@@ -2777,7 +2777,7 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
 	@rm -f doc/hs-lint.html
 	if tty -s; then C="-c"; else C=""; fi; \
-	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
+	$(HLINT) --report=doc/hs-lint.html --cross $$C \
 	  --hint src/lint-hints \
 	  --cpp-file=$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
