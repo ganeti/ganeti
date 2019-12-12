@@ -571,9 +571,9 @@ then
                             documentation rebuild not possible]))
 fi
 
-# Check for pylint
-AC_ARG_VAR(PYLINT, [pylint path])
-AC_PATH_PROG(PYLINT, [pylint], [])
+# Check for pylint3
+AC_ARG_VAR(PYLINT, [pylint3 path])
+AC_PATH_PROG(PYLINT, [pylint3], [])
 if test -z "$PYLINT"
 then
   AC_MSG_WARN([pylint not found, checking code will not be possible])
@@ -588,9 +588,9 @@ then
 fi
 AM_CONDITIONAL([HAS_PEP8], [test -n "$PEP8"])
 
-# Check for python-coverage
-AC_ARG_VAR(PYCOVERAGE, [python-coverage path])
-AC_PATH_PROGS(PYCOVERAGE, [python-coverage coverage], [])
+# Check for python3-coverage
+AC_ARG_VAR(PYCOVERAGE, [python3-coverage path])
+AC_PATH_PROGS(PYCOVERAGE, [python3-coverage coverage], [])
 if test -z "$PYCOVERAGE"
 then
   AC_MSG_WARN(m4_normalize([python-coverage or coverage not found, evaluating
