@@ -519,7 +519,7 @@ def _GetPassword(use_agent, password, username):
     pass
   elif password:
     try:
-      fh = file(password)
+      fh = open(password)
       pwvalue = fh.readline().strip()
       fh.close()
     except IOError as e:
