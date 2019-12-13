@@ -2233,7 +2233,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   # Some distributions (e.g. Debian) may set EXPORT_DIR to a subdirectory of
   # DATA_DIR. Avoid backing up the EXPORT_DIR, as it might contain significant
   # amounts of data.
-  if IsBelowDir(pathutils.DATA_DIR, pathutils.EXPORT_DIR):
+  if utils.IsBelowDir(pathutils.DATA_DIR, pathutils.EXPORT_DIR):
     tar_cmd.append("--exclude=%s" %
                    os.path.relpath(pathutils.EXPORT_DIR,
                                    pathutils.DATA_DIR))
