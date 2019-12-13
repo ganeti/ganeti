@@ -26,7 +26,7 @@
 AC_DEFUN([AC_PYTHON_MODULE],[
     if test -z $PYTHON;
     then
-        PYTHON="python"
+        PYTHON="python3"
     fi
     PYTHON_NAME=`basename $PYTHON`
     AC_MSG_CHECKING($PYTHON_NAME module: $1)

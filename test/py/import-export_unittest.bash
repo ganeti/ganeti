@@ -30,7 +30,7 @@
 set -e
 set -o pipefail
 
-export PYTHON=${PYTHON:=python}
+export PYTHON=${PYTHON:=python3}
 
 impexpd="$PYTHON daemons/import-export -d"
 
