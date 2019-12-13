@@ -30,6 +30,7 @@
 
 """Script for unittesting the utils module"""
 
+import array
 import errno
 import fcntl
 import glob
@@ -501,6 +502,44 @@ class GetDiskTemplateTest(unittest.TestCase):
   def testMixed(self):
     self.assertEqual(utils.GetDiskTemplate([Rbd(), Drbd()]),
                      constants.DT_MIXED)
+
+
+class TestSendFds(unittest.TestCase):
+  def testSendFds(self):
+    sender, receiver = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+
+    # Attempt to send both, file-like objects and fds
+    tempfiles = [tempfile.TemporaryFile() for _ in range(3)]
+    tempfds = [tempfile.mkstemp()[0] for _ in range(3)]
+
+    utils.SendFds(sender, b" ", tempfiles + tempfds)
+
+    _, ancdata, __, ___ = receiver.recvmsg(10, 1024)
+
+    self.assertEqual(len(ancdata), 1)
+    cmsg_level, cmsg_type, cmsg_data = ancdata[0]
+
+    self.assertEqual(cmsg_level, socket.SOL_SOCKET)
+    self.assertEqual(cmsg_type, socket.SCM_RIGHTS)
+
+    received_fds = array.array("i")
+    received_fds.frombytes(cmsg_data)
+
+    sent_fds = tempfds + [f.fileno() for f in tempfiles]
+
+    # The received file descriptors are essentially dup()'d, so we can't
+    # compare them directly. Instead we need to check that they are referring
+    # to the same files.
+    received_inodes = set(os.fstat(fd) for fd in received_fds)
+    sent_inodes = set(os.fstat(fd) for fd in sent_fds)
+    self.assertSetEqual(sent_inodes, received_inodes)
+
+    sender.close()
+    receiver.close()
+    for fd in received_fds.tolist() + tempfds:
+      os.close(fd)
+    for file_ in tempfiles:
+      file_.close()
 
 
 if __name__ == "__main__":
