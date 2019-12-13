@@ -1275,7 +1275,7 @@ def TestClusterRenewCrypto():
                                          pathutils.RAPI_CERT_FILE)
   try:
     # Custom RAPI certificate
-    fh = tempfile.NamedTemporaryFile()
+    fh = tempfile.NamedTemporaryFile(mode="w")
 
     # Ensure certificate doesn't cause "gnt-cluster verify" to complain
     validity = constants.SSL_CERT_EXPIRATION_WARN * 3
@@ -1528,7 +1528,7 @@ def TestClusterCopyfile():
   uniqueid = utils.NewUUID()
 
   # Create temporary file
-  f = tempfile.NamedTemporaryFile()
+  f = tempfile.NamedTemporaryFile(mode="w")
   f.write(uniqueid)
   f.flush()
   f.seek(0)
