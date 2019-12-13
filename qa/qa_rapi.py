@@ -138,7 +138,7 @@ def ReloadCertificates(ensure_presence=True):
          qa_utils.MakeNodePath(master, pathutils.RAPI_CERT_FILE)]
 
   # Write to temporary file
-  _rapi_ca = tempfile.NamedTemporaryFile()
+  _rapi_ca = tempfile.NamedTemporaryFile(mode="w")
   _rapi_ca.write(qa_utils.GetCommandOutput(master.primary,
                                            utils.ShellQuoteArgs(cmd)))
   _rapi_ca.flush()
@@ -181,7 +181,7 @@ def _CreateRapiUser(rapi_user):
   rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
   rapi_dir = os.path.dirname(rapi_users_path)
 
-  fh = tempfile.NamedTemporaryFile()
+  fh = tempfile.NamedTemporaryFile(mode="w")
   try:
     fh.write("%s %s write\n" % (rapi_user, rapi_secret))
     fh.flush()
@@ -1222,7 +1222,7 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()
 
-  rapi_pw_file = tempfile.NamedTemporaryFile()
+  rapi_pw_file = tempfile.NamedTemporaryFile(mode="w")
   rapi_pw_file.write(_rapi_password)
   rapi_pw_file.flush()
 
