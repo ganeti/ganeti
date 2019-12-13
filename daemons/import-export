@@ -137,7 +137,7 @@ class StatusFile(object):
     @param port: TCP/UDP port
 
     """
-    assert isinstance(port, (int, long)) and 0 < port < (2 ** 16)
+    assert isinstance(port, int) and 0 < port < (2 ** 16)
     self._data.listen_port = port
 
   def GetListenPort(self):
