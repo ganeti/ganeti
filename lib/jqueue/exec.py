@@ -69,9 +69,9 @@ def _SetupJob():
   logging.debug("Opening transport over stdin/out")
   with contextlib.closing(transport.FdTransport((0, 1))) as trans:
     logging.debug("Sending livelock name to master")
-    trans.Call(llock.GetPath())
+    trans.Call(llock.GetPath()) # pylint: disable=E1101
     logging.debug("Reading secret parameters from the master process")
-    secret_params = trans.Call("")
+    secret_params = trans.Call("") # pylint: disable=E1101
     logging.debug("Got secret parameters.")
   return (job_id, llock, secret_params)
 
