@@ -93,6 +93,7 @@ class LXCVersion(tuple):
     return version
 
   def __str__(self):
+    # pylint: disable=E1101
     return self.original_string
 
 

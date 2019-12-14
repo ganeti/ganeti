@@ -41,6 +41,7 @@ import socket
 import urllib.request, urllib.parse, urllib.error
 import random
 import string # pylint: disable=W0402
+from functools import reduce
 from itertools import islice, cycle
 from io import StringIO
 from operator import or_

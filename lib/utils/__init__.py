@@ -39,6 +39,7 @@ the command line scripts.
 
 import os
 import re
+import array
 import errno
 import pwd
 import time
@@ -991,11 +992,11 @@ def SendFds(sock, data, fds):
 
   for fd in fds:
     if isinstance(fd, int):
-      array.append(fd)
+      _fds.append(fd)
       continue
 
     try:
-      array.append(fd.fileno())
+      _fds.append(fd.fileno())
       continue
     except AttributeError:
       pass
@@ -1003,4 +1004,4 @@ def SendFds(sock, data, fds):
     raise errors.TypeEnforcementError("expected int or file-like object"
                                       " got %s" % type(fd).__name__)
 
-  return sock.sendmsg([data], [socket.SOL_SOCKET, socket.SCM_RIGHTS, fds])
+  return sock.sendmsg([data], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, _fds)])

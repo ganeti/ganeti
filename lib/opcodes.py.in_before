@@ -157,7 +157,7 @@ class OpCode(opcodes_base.BaseOpCode):
       field_value = getattr(self, field_name, None)
       field_formatter = getattr(self, "OP_DSC_FORMATTER", None)
       if callable(field_formatter):
-        field_value = field_formatter(field_value)
+        field_value = field_formatter(field_value) # pylint: disable=E1102
       elif isinstance(field_value, (list, tuple)):
         field_value = ",".join(str(i) for i in field_value)
       txt = "%s(%s)" % (txt, field_value)

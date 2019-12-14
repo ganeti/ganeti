@@ -414,7 +414,7 @@ def ReadSize(syspath):
   f = open("%s/size" % syspath)
   data = f.read().strip()
   f.close()
-  size = 512L * int(data)
+  size = 512 * int(data)
   return size
 
 
