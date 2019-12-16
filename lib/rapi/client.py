@@ -55,11 +55,7 @@ except ImportError:
 import pycurl
 import simplejson
 
-try:
-  from io import StringIO
-except ImportError:
-  from io import StringIO
-
+from io import StringIO, BytesIO
 
 GANETI_RAPI_PORT = 5080
 GANETI_RAPI_VERSION = 2
@@ -386,6 +382,36 @@ def GenericCurlConfig(verbose=False, use_signal=False,
   return _ConfigCurl
 
 
+class _CompatIO(object):
+  """ Stream that lazy-allocates its buffer based on the first write's type
+
+  This is a wrapper around BytesIO/StringIO that will allocate the
+  respective internal buffer based on whether the first write is bytes or
+  not. It is intended to be used with PycURL, which returns the response as
+  bytes in Python 3 and string in Python 2.
+
+  """
+  def __init__(self):
+    self.buffer = None
+
+  def write(self, data, *args, **kwargs):
+    if self.buffer is None:
+      self.buffer = BytesIO() if isinstance(data, bytes) else StringIO()
+    return self.buffer.write(data, *args, **kwargs)
+
+  def read(self, *args, **kwargs):
+    return self.buffer.read(*args, **kwargs)
+
+  def tell(self):
+    if self.buffer is None:
+      # We were never written to
+      return 0
+    return self.buffer.tell()
+
+  def seek(self, *args, **kwargs):
+    return self.buffer.seek(*args, **kwargs)
+
+
 class GanetiRapiClient(object): # pylint: disable=R0904
   """Ganeti RAPI client.
 
@@ -540,7 +566,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                        method, url, encoded_content)
 
     # Buffer for response
-    encoded_resp_body = StringIO()
+    encoded_resp_body = _CompatIO()
 
     # Configure cURL
     curl.setopt(pycurl.CUSTOMREQUEST, str(method))
@@ -569,7 +595,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     # Was anything written to the response buffer?
     if encoded_resp_body.tell():
-      response_content = simplejson.loads(encoded_resp_body.getvalue())
+      encoded_resp_body.seek(0)
+      response_content = simplejson.load(encoded_resp_body)
     else:
       response_content = None
 
