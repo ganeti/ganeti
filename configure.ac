@@ -571,12 +571,24 @@ then
                             documentation rebuild not possible]))
 fi
 
-# Check for pylint3
-AC_ARG_VAR(PYLINT, [pylint3 path])
+# Check for pylint
+AC_ARG_VAR(PYLINT, [pylint path])
 AC_PATH_PROG(PYLINT, [pylint3], [])
 if test -z "$PYLINT"
 then
-  AC_MSG_WARN([pylint not found, checking code will not be possible])
+  AC_PATH_PROG(PYLINT, [pylint], [])
+  if test -z "$PYLINT"
+  then
+    AC_MSG_WARN([pylint not found, checking code will not be possible])
+  else
+    if $PYLINT --version 2>/dev/null | grep -q '^pylint 1\.'
+    then
+      # Make sure this is not pylint 1
+      AC_MSG_WARN([pylint 1.x found, checking code will not be possible.
+                   Please upgrade pylint to at least 2.0.])
+      PYLINT=
+    fi
+  fi
 fi
 
 # Check for pep8
