@@ -1087,7 +1087,7 @@ def _CanReadDevice(path):
 
   """
   try:
-    utils.ReadFile(path, size=_DEVICE_READ_SIZE)
+    utils.ReadBinaryFile(path, size=_DEVICE_READ_SIZE)
     return True
   except EnvironmentError:
     logging.warning("Can't read from device %s", path, exc_info=True)
