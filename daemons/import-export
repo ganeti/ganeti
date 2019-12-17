@@ -225,10 +225,10 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
   # Buffer size 0 is important, otherwise .read() with a specified length
   # might buffer data while poll(2) won't mark its file descriptor as
   # readable again.
-  socat_stderr_read = os.fdopen(socat_stderr_read_fd, "r", 0)
-  dd_stderr_read = os.fdopen(dd_stderr_read_fd, "r", 0)
-  dd_pid_read = os.fdopen(dd_pid_read_fd, "r", 0)
-  exp_size_read = os.fdopen(exp_size_read_fd, "r", 0)
+  socat_stderr_read = os.fdopen(socat_stderr_read_fd, "rb", 0)
+  dd_stderr_read = os.fdopen(dd_stderr_read_fd, "rb", 0)
+  dd_pid_read = os.fdopen(dd_pid_read_fd, "rb", 0)
+  exp_size_read = os.fdopen(exp_size_read_fd, "rb", 0)
 
   tp_samples = DD_THROUGHPUT_SAMPLES
 
