@@ -549,7 +549,7 @@ def FormatSeconds(secs):
 
 
 class LineSplitter(object):
-  """Splits data chunks into lines separated by newline.
+  """Splits byte data chunks into lines of text separated by newline.
 
   Instances provide a file-like interface.
 
@@ -571,12 +571,12 @@ class LineSplitter(object):
       self._line_fn = line_fn
 
     self._lines = collections.deque()
-    self._buffer = ""
+    self._buffer = b""
 
   def write(self, data):
-    parts = (self._buffer + data).split("\n")
+    parts = (self._buffer + data).split(b"\n")
     self._buffer = parts.pop()
-    self._lines.extend(parts)
+    self._lines.extend(p.decode() for p in parts)
 
   def flush(self):
     while self._lines:
@@ -585,7 +585,7 @@ class LineSplitter(object):
   def close(self):
     self.flush()
     if self._buffer:
-      self._line_fn(self._buffer)
+      self._line_fn(self._buffer.decode())
 
 
 def IsValidShellParam(word):
