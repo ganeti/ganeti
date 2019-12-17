@@ -687,8 +687,8 @@ class SignalWakeupFd(object):
     # Once these succeeded, the file descriptors will be closed automatically.
     # Buffer size 0 is important, otherwise .read() with a specified length
     # might buffer data and the file descriptors won't be marked readable.
-    self._read_fh = os.fdopen(read_fd, "r", 0)
-    self._write_fh = os.fdopen(write_fd, "w", 0)
+    self._read_fh = os.fdopen(read_fd, "rb", 0)
+    self._write_fh = os.fdopen(write_fd, "wb", 0)
 
     self._previous = self._SetWakeupFd(self._write_fh.fileno())
 
