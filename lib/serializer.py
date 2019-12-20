@@ -39,6 +39,7 @@ backend (currently json).
 # function and not a constant
 
 import re
+from copy import deepcopy
 
 # Python 2.6 and above contain a JSON module based on simplejson. Unfortunately
 # the standard library version is significantly slower than the external
@@ -274,6 +275,13 @@ class Private(object):
 
   def __format__(self, *_1, **_2):
     return self.__str__()
+
+  def __copy__(self):
+    return Private(self._item, self._descr)
+
+  def __deepcopy__(self, memo):
+    new_item = deepcopy(self._item, memo)
+    return Private(new_item, self._descr)
 
   def __getattr__(self, attr):
     return Private(getattr(self._item, attr),

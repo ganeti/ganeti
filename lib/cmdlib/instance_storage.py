@@ -1883,7 +1883,7 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     if wipe_disks:
       inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-      assert inst_disks[self.op.disk] == self.disk
+      assert inst_disks[self.op.disk].ToDict() == self.disk.ToDict()
 
       # Wipe newly added disk space
       WipeDisks(self, self.instance,

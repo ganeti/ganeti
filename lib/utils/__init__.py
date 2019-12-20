@@ -664,19 +664,8 @@ def TimeoutExpired(epoch, timeout, _time_fn=time.time):
 
 
 class SignalWakeupFd(object):
-  try:
-    # This is only supported in Python 2.5 and above (some distributions
-    # backported it to Python 2.4)
-    _set_wakeup_fd_fn = signal.set_wakeup_fd
-  except AttributeError:
-    # Not supported
-
-    def _SetWakeupFd(self, _): # pylint: disable=R0201
-      return -1
-  else:
-
-    def _SetWakeupFd(self, fd):
-      return self._set_wakeup_fd_fn(fd)
+  def _SetWakeupFd(self, fd):
+    return signal.set_wakeup_fd(fd)
 
   def __init__(self):
     """Initializes this class.
@@ -684,11 +673,14 @@ class SignalWakeupFd(object):
     """
     (read_fd, write_fd) = os.pipe()
 
+    # signal.set_wakeup_fd requires the FD to be non-blocking
+    SetNonblockFlag(write_fd, True)
+
     # Once these succeeded, the file descriptors will be closed automatically.
     # Buffer size 0 is important, otherwise .read() with a specified length
     # might buffer data and the file descriptors won't be marked readable.
-    self._read_fh = os.fdopen(read_fd, "r", 0)
-    self._write_fh = os.fdopen(write_fd, "w", 0)
+    self._read_fh = os.fdopen(read_fd, "rb", 0)
+    self._write_fh = os.fdopen(write_fd, "wb", 0)
 
     self._previous = self._SetWakeupFd(self._write_fh.fileno())
 
