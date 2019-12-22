@@ -225,7 +225,7 @@ configuring ``/etc/modules`` or when inserting it manually. When using
 Xen and DRBD 8.3.2 or higher, it is recommended_ to use the
 ``disable_sendpage=1`` setting as well.
 
-.. _recommended: https://drbd.linbit.com/users-guide/s-xen-drbd-mod-params.html
+.. _recommended: https://docs.linbit.com/docs/users-guide-8.4/#s-xen-drbd-mod-params
 
 Now the bad news: unless your distribution already provides it
 installing DRBD might involve recompiling your kernel or anyway fiddling
@@ -313,7 +313,7 @@ RADOS Cluster
 
 You will need a working RADOS Cluster accesible by all VM-capable nodes
 to use the RBD template. For more information on setting up a RADOS
-Cluster, refer to the `official docs <http://ceph.newdream.net/>`_.
+Cluster, refer to the `official docs <https://ceph.io/>`_.
 
 If you want to use a pool for storing RBD disk images other than the
 default (``rbd``), you should first create the pool in the RADOS
@@ -394,7 +394,7 @@ only need to specify the IP addresses of the RADOS Cluster monitors.
            mon addr = 1.2.3.6:6789
 
 For more information, please see the `Ceph Docs
-<http://ceph.newdream.net/docs/latest/>`_
+<https://docs.ceph.com/docs/master/>`_
 
 Installing Gluster
 ++++++++++++++++++
@@ -403,7 +403,7 @@ For Gluster integration, Ganeti requires that ``mount.glusterfs`` is
 installed on each and every node. On Debian Wheezy and newer, you can
 satisfy this requirement with the ``glusterfs-client`` package; see
 `this guide
-<http://gluster.org/community/documentation/index.php/Gluster_3.2:_Installing_the_Gluster_Native_Client>`_
+<https://docs.gluster.org/en/latest/Administrator%20Guide/Setting%20Up%20Clients/>`_
 for details.
 
 KVM userspace access
