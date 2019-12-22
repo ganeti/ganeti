@@ -47,7 +47,7 @@ Before installing, please verify that you have the following programs:
   number of file handle leaks, so running at least 2.2.0 is advised
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.org/>`_
-- `Bitarray Python library <>https://github.com/ilanschnell/bitarray`_
+- `Bitarray Python library <https://github.com/ilanschnell/bitarray>`_
 - `GNU Make <http://www.gnu.org/software/make/>`_
 - `GNU M4 <http://www.gnu.org/software/m4/>`_
 
