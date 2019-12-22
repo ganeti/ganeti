@@ -30,24 +30,24 @@ Before installing, please verify that you have the following programs:
 - `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_
 - `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
 - `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
-- `Python <http://www.python.org/>`_, version 2.6 or above, not 3.0
-- `Python OpenSSL bindings <http://pyopenssl.sourceforge.net/>`_
-- `simplejson Python module <http://code.google.com/p/simplejson/>`_
-- `pyparsing Python module <http://pyparsing.wikispaces.com/>`_, version
+- `Python <http://www.python.org/>`_, version 3.6 or above
+- `Python OpenSSL bindings <https://www.pyopenssl.org/>`_
+- `simplejson Python module <https://simplejson.readthedocs.io/>`_
+- `pyparsing Python module <https://pyparsing-docs.readthedocs.io/>`_, version
   1.4.6 or above
 - `pyinotify Python module <https://github.com/seb-m/pyinotify>`_
-- `PycURL Python module <http://pycurl.sourceforge.net/>`_
+- `PycURL Python module <http://pycurl.io/>`_
 - `socat <http://www.dest-unreach.org/socat/>`_, see :ref:`note
   <socat-note>` below
-- `Paramiko <http://www.lag.net/paramiko/>`_, if you want to use
+- `Paramiko <http://www.paramiko.org/>`_, if you want to use
   ``ganeti-listrunner``
-- `psutil Python module <https://github.com/giampaolo/psutil>`_,
+- `psutil Python module <https://psutil.readthedocs.io/>`_,
   optional python package for supporting CPU pinning under KVM, versions
   2.x.x only; beware that versions from 2.0.0 to before 2.2.0 had a
   number of file handle leaks, so running at least 2.2.0 is advised
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
-- `fping <http://fping.sourceforge.net/>`_
-- `Bitarray Python library <http://pypi.python.org/pypi/bitarray/>`_
+- `fping <http://fping.org/>`_
+- `Bitarray Python library <>https://github.com/ilanschnell/bitarray`_
 - `GNU Make <http://www.gnu.org/software/make/>`_
 - `GNU M4 <http://www.gnu.org/software/m4/>`_
 
