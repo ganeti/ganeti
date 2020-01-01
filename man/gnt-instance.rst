@@ -1270,7 +1270,7 @@ even in the presence of errors during the removal of the instance
 (e.g. during the shutdown or the disk removal). If this option is not
 given, the command will stop at the first error.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
+The ``--shutdown-timeout`` is used to specify how many minutes to wait
 before forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the
 kvm process for KVM, etc.). By default two minutes are given to each
 instance to stop.
@@ -1701,7 +1701,7 @@ during a hardcoded interval (currently 2 minutes), it will forcibly
 stop the instance (equivalent to switching off the power on a physical
 machine).
 
-The ``--timeout`` is used to specify how much time to wait before
+The ``--timeout`` is used to specify how many minutes to wait before
 forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the kvm
 process for KVM, etc.). By default two minutes are given to each
 instance to stop.
@@ -1765,7 +1765,7 @@ The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 ``--sec-node-tags`` options are similar as for the **startup** command
 and they influence the actual instances being rebooted.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
+The ``--shutdown-timeout`` is used to specify how many minutes to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm
 process, for kvm). By default two minutes are given to each instance
 to stop.
@@ -2066,7 +2066,7 @@ having the instance running on two machines in parallel (on
 disconnected DRBD drives). This flag requires the source node to be
 marked offline first to succeed.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
+The ``--shutdown-timeout`` is used to specify how many minutes to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm
 process, for kvm). By default two minutes are given to each instance
 to stop.
@@ -2209,7 +2209,7 @@ The ``--compress`` option is used to specify which compression mode
 is used during the move. Valid values are 'none' (the default) and any
 values specified in the 'compression_tools' cluster parameter.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
+The ``--shutdown-timeout`` is used to specify how many minutes to wait
 before forcing the shutdown (e.g. ``xm destroy`` in XEN, killing the
 kvm process for KVM, etc.). By default two minutes are given to each
 instance to stop.
