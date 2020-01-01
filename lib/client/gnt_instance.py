@@ -757,7 +757,7 @@ def FailoverInstance(opts, args):
 
   if ignore_consistency:
     usertext = ("To failover instance %s, the source node must be marked"
-                " offline first. Is this aready the case?") % instance_name
+                " offline first. Is this already the case?") % instance_name
     if not AskUser(usertext):
       return 1
 
