@@ -41,10 +41,10 @@ compression mode is used to try and speed up moves during the export.
 Valid values are 'none', and any values defined in the
 'compression_tools' cluster parameter.
 
-The ``--shutdown-timeout`` is used to specify how many minutes to wait
-before forcing the shutdown (xm destroy in xen, killing the kvm
-process, for kvm). By default two minutes are given to each
-instance to stop.
+The ``--shutdown-timeout`` is used to specify how much time (in
+minutes) to wait before forcing the shutdown (xm destroy in xen,
+killing the kvm process, for kvm). By default two minutes are given
+to each instance to stop.
 
 The ``--noshutdown`` option will create a snapshot disk of the
 instance without shutting it down first. While this is faster and
