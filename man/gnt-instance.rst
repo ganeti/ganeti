@@ -1716,7 +1716,7 @@ force the instance to be marked as stopped. This option should be used
 with care as it can lead to an inconsistent cluster state.
 
 Use ``--force`` to be able to shutdown an instance even when it's marked
-as offline. This is useful is an offline instance ends up in the
+as offline. This is useful if an offline instance ends up in the
 ``ERROR_up`` state, for example.
 
 The ``--no-remember`` option will perform the shutdown but not change
