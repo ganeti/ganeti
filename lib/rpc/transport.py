@@ -232,7 +232,7 @@ class Transport(object):
         # we retry on a network error, unless it's the last try
         if try_no == retries - 1:
           raise
-        logging.error("Network error: %s, retring (retry attempt number %d)",
+        logging.error("Network error: %s, retrying (retry attempt number %d)",
                       ex, try_no + 1)
         time.sleep(wait_on_error * try_no)
       except Exception as ex:
