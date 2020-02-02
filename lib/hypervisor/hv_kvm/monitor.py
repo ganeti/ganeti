@@ -702,6 +702,72 @@ class QmpConnection(MonitorSocket):
     if "netdev_add" not in self.supported_commands:
       _raise("netdev_add qmp command is not supported")
 
+  @_ensure_connection
+  def SetMigrationParameters(self, max_bandwidth, downtime_limit):
+    """Configute live migration parameters
+
+    """
+
+    arguments = {
+      "max-bandwidth": max_bandwidth,
+      "downtime-limit": downtime_limit,
+    }
+
+    self.Execute("migrate-set-parameters", arguments)
+
+  @_ensure_connection
+  def SetMigrationCapabilities(self, capabilities):
+    """Configure live migration capabilities
+
+    """
+
+    arguments = {
+      "capabilities": []
+    }
+    for capability in capabilities:
+      arguments["capabilities"].append({
+        "capability": capability,
+        "state": True
+      })
+
+    self.Execute("migrate-set-capabilities", arguments)
+
+  @_ensure_connection
+  def StopGuestEmulation(self):
+    """Pause the running guest
+
+    """
+
+    self.Execute("stop")
+
+  @_ensure_connection
+  def ContinueGuestEmulation(self):
+    """Continue the previously paused guest
+
+    """
+
+    self.Execute("cont")
+
+  @_ensure_connection
+  def StartMigration(self, target, port):
+    """Start migration of an instance
+
+    """
+
+    arguments = {
+      "uri": "tcp:%s:%s" % (target, port)
+    }
+
+    self.Execute("migrate", arguments)
+
+  @_ensure_connection
+  def GetMigrationStatus(self):
+    """Retrieve the current migration status
+
+    """
+
+    return self.Execute("query-migrate")
+
   def _GetFd(self, fd, fdname):
     """Wrapper around the getfd qmp command
 
