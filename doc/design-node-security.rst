@@ -26,7 +26,7 @@ design is to limit the set of nodes that can establish ssh and RPC
 connections to the master and master candidates.
 
 As pointed out in
-`issue 377 <https://code.google.com/p/ganeti/issues/detail?id=377>`_, this
+`issue 433 <https://github.com/ganeti/ganeti/issues/433>`_, this
 is a security risk. Since all nodes have these keys, compromising
 any of those nodes would possibly give an attacker access to all other
 machines in the cluster. Reducing the set of nodes that are able to
