@@ -566,7 +566,7 @@ class LUNodeSetParams(LogicalUnit):
     if self.lock_instances:
       self.needed_locks[locking.LEVEL_INSTANCE] = \
         self.cfg.GetInstanceNames(
-          self.cfg.GetInstancesInfoByFilter(self._InstanceFilter).keys())
+          list(self.cfg.GetInstancesInfoByFilter(self._InstanceFilter)))
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -1331,7 +1331,7 @@ class LUNodeQueryvols(NoHooksLU):
     volumes = self.rpc.call_node_volumes(node_uuids)
 
     ilist = self.cfg.GetAllInstancesInfo()
-    vol2inst = MapInstanceLvsToNodes(self.cfg, ilist.values())
+    vol2inst = MapInstanceLvsToNodes(self.cfg, list(ilist.values()))
 
     output = []
     for node_uuid in node_uuids:
@@ -1471,7 +1471,7 @@ class LUNodeQueryStorage(NoHooksLU):
 
       rows = dict([(row[name_idx], row) for row in nresult.payload])
 
-      for name in utils.NiceSort(rows.keys()):
+      for name in utils.NiceSort(rows):
         row = rows[name]
 
         out = []

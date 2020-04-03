@@ -23,7 +23,7 @@ section of the :doc:`admin`. Please refer to that document if you are
 uncertain about the terms we are using.
 
 Ganeti has been developed for Linux and should be distribution-agnostic.
-This documentation will use Debian Squeeze as an example system but the
+This documentation will use Debian Buster as an example system but the
 examples can be translated to any other distribution. You are expected
 to be familiar with your distribution, its package management system,
 and Xen or KVM before trying to use Ganeti.
@@ -51,7 +51,7 @@ are better as they can support more memory.
 Any disk drive recognized by Linux (``IDE``/``SCSI``/``SATA``/etc.) is
 supported in Ganeti. Note that no shared storage (e.g. ``SAN``) is
 needed to get high-availability features (but of course, one can be used
-to store the images). Whilte it is highly recommended to use more than
+to store the images). While it is highly recommended to use more than
 one disk drive in order to improve speed, Ganeti also works with one
 disk per machine.
 
@@ -225,7 +225,7 @@ configuring ``/etc/modules`` or when inserting it manually. When using
 Xen and DRBD 8.3.2 or higher, it is recommended_ to use the
 ``disable_sendpage=1`` setting as well.
 
-.. _recommended: https://drbd.linbit.com/users-guide/s-xen-drbd-mod-params.html
+.. _recommended: https://docs.linbit.com/docs/users-guide-8.4/#s-xen-drbd-mod-params
 
 Now the bad news: unless your distribution already provides it
 installing DRBD might involve recompiling your kernel or anyway fiddling
@@ -246,15 +246,9 @@ instances on a node.
 
 .. admonition:: Debian
 
-   On Debian, you can just install (build) the DRBD module with the
-   following commands, making sure you are running the target (Xen or
+   On Debian, you only need to install the drbd utils with the
+   following command, making sure you are running the target (Xen or
    KVM) kernel::
-
-     $ apt-get install drbd8-source drbd8-utils
-     $ m-a update
-     $ m-a a-i drbd8
-
-   Or on newer versions, if the kernel already has modules:
 
      $ apt-get install drbd8-utils
 
@@ -313,7 +307,7 @@ RADOS Cluster
 
 You will need a working RADOS Cluster accesible by all VM-capable nodes
 to use the RBD template. For more information on setting up a RADOS
-Cluster, refer to the `official docs <http://ceph.newdream.net/>`_.
+Cluster, refer to the `official docs <https://ceph.io/>`_.
 
 If you want to use a pool for storing RBD disk images other than the
 default (``rbd``), you should first create the pool in the RADOS
@@ -394,7 +388,7 @@ only need to specify the IP addresses of the RADOS Cluster monitors.
            mon addr = 1.2.3.6:6789
 
 For more information, please see the `Ceph Docs
-<http://ceph.newdream.net/docs/latest/>`_
+<https://docs.ceph.com/docs/master/>`_
 
 Installing Gluster
 ++++++++++++++++++
@@ -403,7 +397,7 @@ For Gluster integration, Ganeti requires that ``mount.glusterfs`` is
 installed on each and every node. On Debian Wheezy and newer, you can
 satisfy this requirement with the ``glusterfs-client`` package; see
 `this guide
-<http://gluster.org/community/documentation/index.php/Gluster_3.2:_Installing_the_Gluster_Native_Client>`_
+<https://docs.gluster.org/en/latest/Administrator%20Guide/Setting%20Up%20Clients/>`_
 for details.
 
 KVM userspace access
@@ -413,11 +407,6 @@ If your cluster uses a sufficiently new version of KVM (you will need at
 least QEMU 1.3 with Gluster support compiled in), you can take advantage
 of KVM's native support for gluster in order to have better performance
 and avoid potential deadlocks in low memory scenarios.
-
-Please be aware that QEMU 1.3 was released in December 3, 2012, and as
-such this feature is not available out of the box in any distribution
-older than Ubuntu 13.04; this excludes Ubuntu 12.04 LTS and Debian
-Wheezy.
 
 Other required software
 +++++++++++++++++++++++
@@ -588,11 +577,11 @@ Installing Ganeti
 **Mandatory** on all nodes.
 
 It's now time to install the Ganeti software itself.  Download the
-source from the project page at `<http://downloads.ganeti.org/releases/>`_,
-and install it (replace 2.6.0 with the latest version)::
+source from the project page at `<https://github.com/ganeti/ganeti/releases>`_,
+and install it (replace 2.16.1 with the latest version)::
 
-  $ tar xvzf ganeti-%2.6.0%.tar.gz
-  $ cd ganeti-%2.6.0%
+  $ tar xvzf ganeti-%2.16.1%.tar.gz
+  $ cd ganeti-%2.16.1%
   $ ./configure --localstatedir=/var --sysconfdir=/etc
   $ make
   $ make install
@@ -604,6 +593,8 @@ distribution's startup scripts, for example in Debian::
 
   $ chmod +x /etc/init.d/ganeti
   $ update-rc.d ganeti defaults 20 80
+
+There are also unit files provided for use with systemd: ``doc/examples/systemd``
 
 In order to automatically restart failed instances, you need to setup a
 cron job run the *ganeti-watcher* command. A sample cron file is
@@ -630,7 +621,7 @@ distribution mechanisms, will install on the system:
 - an example iallocator script (see the admin guide for details) under
   ``lib/ganeti/iallocators``
 - a cron job that is needed for cluster maintenance
-- an init script for automatic startup of Ganeti daemons
+- an init script or systemd unit files for automatic startup of Ganeti daemons
 - provided but not installed automatically by ``make install`` is a bash
   completion script that hopefully will ease working with the many
   cluster commands
@@ -648,9 +639,9 @@ the ``README`` file.  Here is the installation procedure (replace 0.14
 with the latest version that is compatible with your ganeti version)::
 
   $ cd /usr/local/src/
-  $ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-%0.14%.tar.gz
-  $ tar xzf ganeti-instance-debootstrap-%0.14%.tar.gz
-  $ cd ganeti-instance-debootstrap-%0.14%
+  $ wget https://github.com/ganeti/instance-debootstrap/archive/v%0.16%.tar.gz
+  $ tar xzf v%0.16%.tar.gz
+  $ cd instance-debootstrap-%0.16%
   $ ./configure --with-os-dir=/srv/ganeti/os
   $ make
   $ make install

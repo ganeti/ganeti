@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
@@ -38,11 +38,12 @@ import sys
 import optparse
 import time
 import socket
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import random
 import string # pylint: disable=W0402
-from itertools import izip, islice, cycle
-from cStringIO import StringIO
+from functools import reduce
+from itertools import islice, cycle
+from io import StringIO
 from operator import or_
 
 from ganeti import opcodes
@@ -139,7 +140,7 @@ def RandomString(size=8, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for x in range(size))
 
 
-class SimpleOpener(urllib.FancyURLopener):
+class SimpleOpener(urllib.request.FancyURLopener):
   """A simple url opener"""
   # pylint: disable=W0221
 
@@ -626,7 +627,7 @@ class Burner(JobHandler):
   def FindMatchingDisk(self, instance):
     """Find a disk whose nodes match the instance's disk nodes."""
     instance_nodes = self.instance_nodes[instance]
-    for disk, disk_nodes in self.disk_nodes.iteritems():
+    for disk, disk_nodes in self.disk_nodes.items():
       if instance_nodes == disk_nodes:
         # Erase that disk from the dictionary so that we don't pick it again.
         del self.disk_nodes[disk]
@@ -640,7 +641,7 @@ class Burner(JobHandler):
 
     """
     self.to_rem = []
-    mytor = izip(cycle(self.nodes),
+    mytor = zip(cycle(self.nodes),
                  islice(cycle(self.nodes), 1, None),
                  self.instances)
 
@@ -733,7 +734,7 @@ class Burner(JobHandler):
     Log("Changing the secondary node")
     mode = constants.REPLACE_DISK_CHG
 
-    mytor = izip(islice(cycle(self.nodes), 2, None),
+    mytor = zip(islice(cycle(self.nodes), 2, None),
                  self.instances)
     for tnode, instance in mytor:
       Log("instance %s", instance, indent=1)
@@ -767,7 +768,7 @@ class Burner(JobHandler):
   def BurnMove(self):
     """Move the instances."""
     Log("Moving instances")
-    mytor = izip(islice(cycle(self.nodes), 1, None),
+    mytor = zip(islice(cycle(self.nodes), 1, None),
                  self.instances)
     for tnode, instance in mytor:
       Log("instance %s", instance, indent=1)
@@ -796,7 +797,7 @@ class Burner(JobHandler):
 
     """
     Log("Exporting and re-importing instances")
-    mytor = izip(cycle(self.nodes),
+    mytor = zip(cycle(self.nodes),
                  islice(cycle(self.nodes), 1, None),
                  islice(cycle(self.nodes), 2, None),
                  self.instances)

@@ -70,10 +70,10 @@ def _FormatStatus(value):
 
 
 def _FormatSummary(value):
-  """Formats a job's summary. Takes possible non-ascii encoding into account.
+  """Formats a job's summary.
 
   """
-  return ','.encode('utf-8').join(item.encode('utf-8') for item in value)
+  return ','.join(value)
 
 
 _JOB_LIST_FORMAT = {
@@ -81,8 +81,8 @@ _JOB_LIST_FORMAT = {
   "summary": (_FormatSummary, False),
   }
 _JOB_LIST_FORMAT.update(dict.fromkeys(["opstart", "opexec", "opend"],
-                                      (lambda value: map(FormatTimestamp,
-                                                         value),
+                                      (lambda value: [FormatTimestamp(v)
+                                                      for v in value],
                                        None)))
 
 

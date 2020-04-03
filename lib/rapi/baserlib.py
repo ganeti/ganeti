@@ -125,7 +125,7 @@ def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   # unittests.
   ids.sort()
 
-  return map(_MapId, ids)
+  return [_MapId(id) for id in ids]
 
 
 def MapFields(names, data):
@@ -444,8 +444,8 @@ def GetResourceOpcodes(cls):
   """Returns all opcodes used by a resource.
 
   """
-  return frozenset(filter(None, (getattr(cls, method_attrs.opcode, None)
-                                 for method_attrs in OPCODE_ATTRS)))
+  return frozenset(opcode for opcode in (getattr(cls, method_attrs.opcode, None)
+                       for method_attrs in OPCODE_ATTRS) if opcode)
 
 
 def GetHandlerAccess(handler, method):
@@ -503,7 +503,7 @@ def ProduceForbiddenParamDict(class_name, method_name, param_list):
 
   param_dict = {}
   for value in param_list:
-    if isinstance(value, basestring):
+    if isinstance(value, str):
       param_dict[value] = ALL_VALUES_FORBIDDEN
     elif isinstance(value, tuple):
       if len(value) != 2:
@@ -606,7 +606,7 @@ class _MetaOpcodeResource(type):
     return obj
 
 
-class OpcodeResource(ResourceBase):
+class OpcodeResource(ResourceBase, metaclass=_MetaOpcodeResource):
   """Base class for opcode-based RAPI resources.
 
   Instances of this class automatically gain handler functions through
@@ -665,7 +665,6 @@ class OpcodeResource(ResourceBase):
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
   """
-  __metaclass__ = _MetaOpcodeResource
 
   def _ForbiddenHandler(self, method_fn, forbidden_params, rename_dict):
     """Examines provided parameters for forbidden values.

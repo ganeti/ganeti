@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/python3 -u
 #
 
 # Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
@@ -40,25 +40,25 @@ import datetime
 import optparse
 import sys
 
-import colors
-import qa_cluster
-import qa_config
-import qa_daemon
-import qa_env
-import qa_error
-import qa_filters
-import qa_group
-import qa_instance
-import qa_iptables
-import qa_monitoring
-import qa_network
-import qa_node
-import qa_os
-import qa_performance
-import qa_job
-import qa_rapi
-import qa_tags
-import qa_utils
+from qa import colors
+from qa import qa_cluster
+from qa import qa_config
+from qa import qa_daemon
+from qa import qa_env
+from qa import qa_error
+from qa import qa_filters
+from qa import qa_group
+from qa import qa_instance
+from qa import qa_iptables
+from qa import qa_monitoring
+from qa import qa_network
+from qa import qa_node
+from qa import qa_os
+from qa import qa_performance
+from qa import qa_job
+from qa import qa_rapi
+from qa import qa_tags
+from qa import qa_utils
 
 from ganeti import utils
 from ganeti import rapi # pylint: disable=W0611
@@ -931,7 +931,7 @@ def RunPerformanceTests():
 
   # Preparations need to be made only if some of these tests are enabled
   if qa_config.IsTemplateSupported(constants.DT_DRBD8) and \
-     qa_config.TestEnabled(qa_config.Either(PARALLEL_TEST_DICT.keys())):
+     qa_config.TestEnabled(qa_config.Either(list(PARALLEL_TEST_DICT))):
     inodes = qa_config.AcquireManyNodes(2)
     try:
       instance = qa_instance.TestInstanceAddWithDrbdDisk(inodes)

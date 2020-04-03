@@ -160,7 +160,7 @@ _NR_MAP = {
   constants.NR_REGULAR: _NR_REGULAR,
   }
 
-assert frozenset(_NR_MAP.keys()) == constants.NR_ALL
+assert frozenset(_NR_MAP) == constants.NR_ALL
 
 # Request data version field
 _REQ_DATA_VERSION = "__version__"
@@ -395,7 +395,7 @@ class R_2_filters(baserlib.ResourceBase):
       bulkdata = client.QueryFilters(None, FILTER_RULE_FIELDS)
       return baserlib.MapBulkFields(bulkdata, FILTER_RULE_FIELDS)
     else:
-      jobdata = map(compat.fst, client.QueryFilters(None, ["uuid"]))
+      jobdata = [f[0] for f in client.QueryFilters(None, ["uuid"])]
       return baserlib.BuildUriList(jobdata, "/2/filters/%s",
                                    uri_fields=("uuid", "uri"))
 
@@ -480,7 +480,7 @@ class R_2_jobs(baserlib.ResourceBase):
       bulkdata = client.QueryJobs(None, J_FIELDS_BULK)
       return baserlib.MapBulkFields(bulkdata, J_FIELDS_BULK)
     else:
-      jobdata = map(compat.fst, client.QueryJobs(None, ["id"]))
+      jobdata = [j[0] for j in client.QueryJobs(None, ["id"])]
       return baserlib.BuildUriList(jobdata, "/2/jobs/%s",
                                    uri_fields=("id", "uri"))
 
@@ -543,7 +543,7 @@ class R_2_jobs_id_wait(baserlib.ResourceBase):
                                 " be a list")
 
     if not (prev_log_serial is None or
-            isinstance(prev_log_serial, (int, long))):
+            isinstance(prev_log_serial, int)):
       raise http.HttpBadRequest("The 'previous_log_serial' parameter should"
                                 " be a number")
 
@@ -648,7 +648,7 @@ class R_2_nodes_name_role(baserlib.OpcodeResource):
     """Sets the node role.
 
     """
-    baserlib.CheckType(self.request_body, basestring, "Body contents")
+    baserlib.CheckType(self.request_body, str, "Body contents")
 
     role = self.request_body
 
@@ -1108,7 +1108,8 @@ class R_2_instances(baserlib.OpcodeResource):
     use_locking = self.useLocking()
     if self.useBulk():
       bulkdata = client.QueryInstances([], I_FIELDS, use_locking)
-      return map(_UpdateBeparams, baserlib.MapBulkFields(bulkdata, I_FIELDS))
+      return [_UpdateBeparams(f)
+              for f in baserlib.MapBulkFields(bulkdata, I_FIELDS)]
     else:
       instancesdata = client.QueryInstances([], ["name"], use_locking)
       instanceslist = [row[0] for row in instancesdata]

@@ -115,7 +115,7 @@ class DRBD8(object):
     @rtype: int
 
     """
-    highest = None
+    highest = -1
     info = DRBD8.GetProcInfo()
     for minor in info.GetMinors():
       status = info.GetMinorStatus(minor)
@@ -123,8 +123,6 @@ class DRBD8(object):
         return minor
       highest = max(highest, minor)
 
-    if highest is None: # there are no minors in use at all
-      return 0
     if highest >= DRBD8._MAX_MINORS:
       logging.error("Error: no free drbd minors!")
       raise errors.BlockDeviceError("Can't find a free DRBD minor")
@@ -1087,7 +1085,7 @@ def _CanReadDevice(path):
 
   """
   try:
-    utils.ReadFile(path, size=_DEVICE_READ_SIZE)
+    utils.ReadBinaryFile(path, size=_DEVICE_READ_SIZE)
     return True
   except EnvironmentError:
     logging.warning("Can't read from device %s", path, exc_info=True)

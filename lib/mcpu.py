@@ -269,7 +269,7 @@ def _LockList(names):
   """
   if names == locking.ALL_SET:
     return names
-  elif isinstance(names, basestring):
+  elif isinstance(names, str):
     return [names]
   else:
     return list(names)

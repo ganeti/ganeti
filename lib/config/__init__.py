@@ -389,7 +389,7 @@ class ConfigWriter(object):
     """
     disk = None
     count = 0
-    for d in self._ConfigData().disks.itervalues():
+    for d in self._ConfigData().disks.values():
       if d.name == disk_name:
         count += 1
         disk = d
@@ -415,7 +415,7 @@ class ConfigWriter(object):
     @return: array of disks, ex. ['disk2-uuid', 'disk1-uuid']
 
     """
-    return self._ConfigData().disks.keys()
+    return list(self._ConfigData().disks)
 
   @ConfigSync(shared=1)
   def GetAllDisksInfo(self):
@@ -705,8 +705,8 @@ class ConfigWriter(object):
     if include_temporary:
       existing.update(self._temporary_ids.GetReserved())
     existing.update(self._AllLVs())
-    existing.update(self._ConfigData().instances.keys())
-    existing.update(self._ConfigData().nodes.keys())
+    existing.update(self._ConfigData().instances)
+    existing.update(self._ConfigData().nodes)
     existing.update([i.uuid for i in self._AllUUIDObjects() if i.uuid])
     return existing
 
@@ -912,7 +912,7 @@ class ConfigWriter(object):
       ports[free_port].append(("cluster", "port marked as free"))
 
     # compute tcp/udp duplicate ports
-    keys = ports.keys()
+    keys = list(ports)
     keys.sort()
     for pnum in keys:
       pdata = ports[pnum]
@@ -1127,7 +1127,7 @@ class ConfigWriter(object):
     @return: A list of minors in the same order as the passed nodes
 
     """
-    assert isinstance(disk_uuid, basestring), \
+    assert isinstance(disk_uuid, str), \
            "Invalid argument '%s' passed to AllocateDRBDMinor" % disk_uuid
 
     if self._offline:
@@ -1148,7 +1148,7 @@ class ConfigWriter(object):
     @param disk_uuid: the disk for which temporary minors should be released
 
     """
-    assert isinstance(disk_uuid, basestring), \
+    assert isinstance(disk_uuid, str), \
            "Invalid argument passed to ReleaseDRBDMinors"
     # in offline mode we allow the calls to release DRBD minors,
     # because then nothing can be allocated anyway;
@@ -1492,7 +1492,7 @@ class ConfigWriter(object):
         raise errors.OpPrereqError("More than one node group exists. Target"
                                    " group must be specified explicitly.")
       else:
-        return self._ConfigData().nodegroups.keys()[0]
+        return list(self._ConfigData().nodegroups)[0]
     if target in self._ConfigData().nodegroups:
       return target
     for nodegroup in self._ConfigData().nodegroups.values():
@@ -1568,7 +1568,7 @@ class ConfigWriter(object):
     """Get a list of node groups.
 
     """
-    return self._ConfigData().nodegroups.keys()
+    return list(self._ConfigData().nodegroups)
 
   @ConfigSync(shared=1)
   def GetNodeGroupMembersByNodes(self, nodes):
@@ -1781,7 +1781,7 @@ class ConfigWriter(object):
     This function is for internal use, when the config lock is already held.
 
     """
-    return self._ConfigData().instances.keys()
+    return list(self._ConfigData().instances)
 
   @ConfigSync(shared=1)
   def GetInstanceList(self):
@@ -2198,7 +2198,7 @@ class ConfigWriter(object):
     @rtype: list
 
     """
-    return self._ConfigData().nodes.keys()
+    return list(self._ConfigData().nodes)
 
   @ConfigSync(shared=1)
   def GetNodeList(self):
@@ -2318,7 +2318,7 @@ class ConfigWriter(object):
   def _UnlockedGetNodeName(self, node_spec):
     if isinstance(node_spec, objects.Node):
       return node_spec.name
-    elif isinstance(node_spec, basestring):
+    elif isinstance(node_spec, str):
       node_info = self._UnlockedGetNodeInfo(node_spec)
       if node_info is None:
         raise errors.OpExecError("Unknown node: %s" % node_spec)
@@ -2402,7 +2402,8 @@ class ConfigWriter(object):
         mc_max += 1
       if node.master_candidate:
         mc_now += 1
-    mc_should = min(mc_max, self._ConfigData().cluster.candidate_pool_size)
+    pool_size = self._ConfigData().cluster.candidate_pool_size
+    mc_should = mc_max if pool_size is None else min(mc_max, pool_size)
     return (mc_now, mc_should, mc_max)
 
   @ConfigSync(shared=1)
@@ -2433,7 +2434,7 @@ class ConfigWriter(object):
                           exception_node_uuids)
     mod_list = []
     if mc_now < mc_max:
-      node_list = self._ConfigData().nodes.keys()
+      node_list = list(self._ConfigData().nodes)
       random.shuffle(node_list)
       for uuid in node_list:
         if mc_now >= mc_max:
@@ -2565,11 +2566,11 @@ class ConfigWriter(object):
     """Returns all objects with uuid attributes.
 
     """
-    return (self._ConfigData().instances.values() +
-            self._ConfigData().nodes.values() +
-            self._ConfigData().nodegroups.values() +
-            self._ConfigData().networks.values() +
-            self._ConfigData().disks.values() +
+    return (list(self._ConfigData().instances.values()) +
+            list(self._ConfigData().nodes.values()) +
+            list(self._ConfigData().nodegroups.values()) +
+            list(self._ConfigData().networks.values()) +
+            list(self._ConfigData().disks.values()) +
             self._AllNICs() +
             [self._ConfigData().cluster])
 
@@ -2843,7 +2844,7 @@ class ConfigWriter(object):
     instance_names = utils.NiceSort(
                        [inst.name for inst in
                         self._UnlockedGetAllInstancesInfo().values()])
-    node_infos = self._UnlockedGetAllNodesInfo().values()
+    node_infos = list(self._UnlockedGetAllNodesInfo().values())
     node_names = [node.name for node in node_infos]
     node_pri_ips = ["%s %s" % (ninfo.name, ninfo.primary_ip)
                     for ninfo in node_infos]
@@ -2919,7 +2920,7 @@ class ConfigWriter(object):
     ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
                                                      all_hvparams)
     bad_values = [(k, v) for k, v in ssconf_values.items()
-                  if not isinstance(v, (str, basestring))]
+                  if not isinstance(v, str)]
     if bad_values:
       err = utils.CommaJoin("%s=%s" % (k, v) for k, v in bad_values)
       raise errors.ConfigurationError("Some ssconf key(s) have non-string"
@@ -3089,7 +3090,7 @@ class ConfigWriter(object):
     This function is for internal use, when the config lock is already held.
 
     """
-    return self._ConfigData().networks.keys()
+    return list(self._ConfigData().networks)
 
   @ConfigSync(shared=1)
   def GetNetworkList(self):
@@ -3256,7 +3257,7 @@ class ConfigWriter(object):
       return (None, None)
     node_info = self._UnlockedGetNodeInfo(node_uuid)
     nodegroup_info = self._UnlockedGetNodeGroup(node_info.group)
-    for net_uuid in nodegroup_info.networks.keys():
+    for net_uuid in nodegroup_info.networks:
       net_info = self._UnlockedGetNetwork(net_uuid)
       pool = network.AddressPool(net_info)
       if pool.Contains(ip):

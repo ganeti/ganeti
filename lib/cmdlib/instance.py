@@ -659,7 +659,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
     """
     if self.op.iallocator:
       (allocatable, failed_insts) = self.ia_result # pylint: disable=W0633
-      allocatable_insts = map(compat.fst, allocatable)
+      allocatable_insts = [i[0] for i in allocatable]
     else:
       allocatable_insts = [op.instance_name for op in self.op.instances]
       failed_insts = []
@@ -715,8 +715,8 @@ class LUInstanceChangeGroup(LogicalUnit):
     self._ExpandAndLockInstance()
 
     if self.op.target_groups:
-      self.req_target_uuids = map(self.cfg.LookupNodeGroup,
-                                  self.op.target_groups)
+      self.req_target_uuids = [self.cfg.LookupNodeGroup(g)
+                               for g in self.op.target_groups]
     else:
       self.req_target_uuids = None
 

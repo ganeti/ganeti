@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2012 Google Inc.
@@ -33,9 +33,7 @@
 import re
 import unittest
 import random
-import mimetools
-import base64
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import utils
@@ -148,8 +146,8 @@ class TestRemoteApiHandler(unittest.TestCase):
                      "Basic authentication requires credentials")
 
   def testInvalidBasicAuth(self):
-    for auth in ["!invalid=base!64.", base64.b64encode(" "),
-                 base64.b64encode("missingcolonchar")]:
+    for auth in ["!invalid=base!64.", testutils.b64encode_string(" "),
+                 testutils.b64encode_string("missingcolonchar")]:
       headers = rapi.testutils._FormatHeaders([
         "%s: Basic %s" % (http.HTTP_AUTHORIZATION, auth),
         ])
@@ -164,9 +162,10 @@ class TestRemoteApiHandler(unittest.TestCase):
     else:
       pw = "wrongpass"
 
+    authtok = "%s:%s" % (username, pw)
     return rapi.testutils._FormatHeaders([
       "%s: Basic %s" % (http.HTTP_AUTHORIZATION,
-                        base64.b64encode("%s:%s" % (username, pw))),
+                        testutils.b64encode_string(authtok)),
       "%s: %s" % (http.HTTP_CONTENT_TYPE, http.HTTP_APP_JSON),
       ])
 

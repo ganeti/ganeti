@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2011 Google Inc.
@@ -39,7 +39,7 @@ import sys
 import re
 import itertools
 import textwrap
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import utils
 from ganeti import compat
@@ -144,7 +144,7 @@ def _WriteBaseClass(sw, clsname, calls):
       else:
         raise Exception("Unknown kind '%s'" % kind)
 
-      funcargs.extend(map(compat.fst, args))
+      funcargs.extend([arg[0] for arg in args])
 
       funcargs.append("_def=_CALLS[%r]" % name)
 

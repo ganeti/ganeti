@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
@@ -124,17 +124,17 @@ class TestSignX509Certificate(unittest.TestCase):
     self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
                       "X-Ganeti-Signature: $1234567890$abcdef\n", self.KEY)
     self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
-                      "X-Ganeti-Signature: $1234$abc\n\n" + cert_pem, self.KEY)
+                      b"X-Ganeti-Signature: $1234$abc\n\n" + cert_pem, self.KEY)
 
     # Invalid salt
     for salt in list("-_@$,:;/\\ \t\n"):
       self.assertRaises(errors.GenericError, utils.SignX509Certificate,
                         cert_pem, self.KEY, "foo%sbar" % salt)
 
-    for salt in ["HelloWorld", "salt", string.letters, string.digits,
+    for salt in ["HelloWorld", "salt", string.ascii_letters, string.digits,
                  utils.GenerateSecret(numbytes=4),
                  utils.GenerateSecret(numbytes=16),
-                 "{123:456}".encode("hex")]:
+                 "{123:456}".encode("ascii").hex()]:
       signed_pem = utils.SignX509Certificate(cert, self.KEY, salt)
 
       self._Check(cert, salt, signed_pem)
@@ -273,13 +273,13 @@ class TestGenerateX509Certs(unittest.TestCase):
 
       key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
                                            key_pem)
-      self.assert_(key.bits() >= 1024)
+      self.assertTrue(key.bits() >= 1024)
       self.assertEqual(key.bits(), constants.RSA_KEY_BITS)
       self.assertEqual(key.type(), OpenSSL.crypto.TYPE_RSA)
 
       x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                              cert_pem)
-      self.failIf(x509.has_expired())
+      self.assertFalse(x509.has_expired())
       self.assertEqual(x509.get_issuer().CN, common_name)
       self.assertEqual(x509.get_subject().CN, common_name)
       self.assertEqual(x509.get_pubkey().bits(), constants.RSA_KEY_BITS)
@@ -291,8 +291,8 @@ class TestGenerateX509Certs(unittest.TestCase):
 
     cert1 = utils.ReadFile(cert1_filename)
 
-    self.assert_(self._checkRsaPrivateKey(cert1))
-    self.assert_(self._checkCertificate(cert1))
+    self.assertTrue(self._checkRsaPrivateKey(cert1))
+    self.assertTrue(self._checkCertificate(cert1))
 
   def _checkKeyMatchesCert(self, key, cert):
     ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)

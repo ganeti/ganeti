@@ -146,6 +146,7 @@ class _AutoOpParamSlots(outils.AutoSlots):
 
     attrs["OP_ID"] = _NameToId(name)
 
+    # pylint: disable=E1121
     return outils.AutoSlots.__new__(mcs, name, bases, attrs)
 
   @classmethod
@@ -160,16 +161,13 @@ class _AutoOpParamSlots(outils.AutoSlots):
     return [pname for (pname, _, _, _) in params]
 
 
-class BaseOpCode(outils.ValidatedSlots):
+class BaseOpCode(outils.ValidatedSlots, metaclass=_AutoOpParamSlots):
   """A simple serializable object.
 
   This object serves as a parent class for OpCode without any custom
   field handling.
 
   """
-  # pylint: disable=E1101
-  # as OP_ID is dynamically defined
-  __metaclass__ = _AutoOpParamSlots
 
   def __init__(self, **kwargs):
     outils.ValidatedSlots.__init__(self, **kwargs)
@@ -251,19 +249,20 @@ class BaseOpCode(outils.ValidatedSlots):
         if set_defaults:
           setattr(self, attr_name, float(attr_val))
       else:
+        op_id = self.OP_ID # pylint: disable=E1101
         logging.error("OpCode %s, parameter %s, has invalid type %s/value"
                       " '%s' expecting type %s",
-                      self.OP_ID, attr_name, type(attr_val), attr_val, test)
+                      op_id, attr_name, type(attr_val), attr_val, test)
 
         if attr_val is None:
           logging.error("OpCode %s, parameter %s, has default value None which"
                         " is does not check against the parameter's type: this"
                         " means this parameter is required but no value was"
                         " given",
-                        self.OP_ID, attr_name)
+                        op_id, attr_name)
 
         raise errors.OpPrereqError("Parameter '%s.%s' fails validation" %
-                                   (self.OP_ID, attr_name),
+                                   (op_id, attr_name),
                                    errors.ECODE_INVAL)
 
 

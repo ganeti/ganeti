@@ -35,6 +35,7 @@
 import re
 import os
 import time
+import numbers
 import collections
 
 from ganeti import errors
@@ -159,7 +160,7 @@ def FormatUnit(value, units, roman=False):
   if units not in ("m", "g", "t", "h"):
     raise errors.ProgrammerError("Invalid unit specified '%s'" % str(units))
 
-  if not isinstance(value, (int, long, float)):
+  if not isinstance(value, numbers.Real):
     raise errors.ProgrammerError("Invalid value specified '%s (%s)'" % (
         value, type(value)))
 
@@ -321,7 +322,7 @@ def GenerateSecret(numbytes=20):
   @return: an hex representation of the pseudo-random sequence
 
   """
-  return os.urandom(numbytes).encode("hex")
+  return os.urandom(numbytes).hex()
 
 
 def _MakeMacAddrRegexp(octets):
@@ -413,9 +414,10 @@ def SafeEncode(text):
   @return: a safe version of text
 
   """
-  if isinstance(text, unicode):
-    # only if unicode; if str already, we handle it below
-    text = text.encode("ascii", "backslashreplace")
+  if not isinstance(text, str):
+    raise TypeError("Only str can be SafeEncoded")
+
+  text = text.encode("ascii", "backslashreplace").decode("ascii")
   resu = ""
   for char in text:
     c = ord(char)
@@ -547,7 +549,7 @@ def FormatSeconds(secs):
 
 
 class LineSplitter(object):
-  """Splits data chunks into lines separated by newline.
+  """Splits byte data chunks into lines of text separated by newline.
 
   Instances provide a file-like interface.
 
@@ -569,12 +571,12 @@ class LineSplitter(object):
       self._line_fn = line_fn
 
     self._lines = collections.deque()
-    self._buffer = ""
+    self._buffer = b""
 
   def write(self, data):
-    parts = (self._buffer + data).split("\n")
+    parts = (self._buffer + data).split(b"\n")
     self._buffer = parts.pop()
-    self._lines.extend(parts)
+    self._lines.extend(p.decode() for p in parts)
 
   def flush(self):
     while self._lines:
@@ -583,7 +585,7 @@ class LineSplitter(object):
   def close(self):
     self.flush()
     if self._buffer:
-      self._line_fn(self._buffer)
+      self._line_fn(self._buffer.decode())
 
 
 def IsValidShellParam(word):
@@ -667,7 +669,7 @@ def Truncate(text, length):
   assert length > len(_ASCII_ELLIPSIS)
 
   # Serialize if necessary
-  if not isinstance(text, basestring):
+  if not isinstance(text, str):
     text = str(text)
 
   if len(text) <= length:

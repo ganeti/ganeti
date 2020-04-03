@@ -126,7 +126,7 @@ def ShowOSInfo(opts, args):
     ToStdout("")
 
   if args:
-    all_names = total_os_hvp.keys() + total_osparams.keys()
+    all_names = set(total_os_hvp) | set(total_osparams)
     for name in args:
       if not name in all_names:
         ToStdout("%s: ", name)
@@ -185,7 +185,7 @@ def DiagnoseOS(opts, args):
     nodes_valid = {}
     nodes_bad = {}
     nodes_hidden = {}
-    for node_name, node_info in node_data.iteritems():
+    for node_name, node_info in node_data.items():
       nodes_hidden[node_name] = []
       if node_info: # at least one entry in the per-node list
         (fo_path, fo_status, fo_msg, fo_variants,
@@ -243,7 +243,7 @@ def DiagnoseOS(opts, args):
       ToStdout("  Variants: [%s]" % utils.CommaJoin(os_variants))
 
     for msg_map in (nodes_valid, nodes_bad):
-      map_k = utils.NiceSort(msg_map.keys())
+      map_k = utils.NiceSort(msg_map)
       for node_name in map_k:
         ToStdout("  Node: %s, status: %s", node_name, msg_map[node_name])
         for msg in nodes_hidden[node_name]:

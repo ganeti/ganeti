@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2011, 2012 Google Inc.
@@ -39,7 +39,7 @@
 # C0413 Wrong import position
 
 
-import ConfigParser
+import configparser
 import errno
 import logging
 import os
@@ -281,7 +281,7 @@ class OVFReader(object):
     """
     current_list = self.tree.findall(path)
     results = [x.get(attribute) for x in current_list]
-    return filter(None, results)
+    return [r for r in results if r]
 
   def _GetElementMatchingAttr(self, path, match_attr):
     """Searches for element on a path that matches certain attribute value.
@@ -370,7 +370,7 @@ class OVFReader(object):
       files_with_paths = [utils.PathJoin(self.input_dir, file_name)
                           for file_name in self.files_list]
       sha1_sums = utils.FingerprintFiles(files_with_paths)
-      for file_name, value in manifest_files.iteritems():
+      for file_name, value in manifest_files.items():
         if sha1_sums.get(utils.PathJoin(self.input_dir, file_name)) != value:
           raise errors.OpPrereqError("SHA1 checksum of %s does not match the"
                                      " value in manifest file" % file_name,
@@ -563,7 +563,7 @@ class OVFReader(object):
       results["nic%s_mac" % counter] = mac_data
 
       # GanetiSection data overrides 'manually' collected data
-      for name, value in ganeti_data.iteritems():
+      for name, value in ganeti_data.items():
         results["nic%s_%s" % (counter, name)] = value
 
       # Bridged network has no IP - unless specifically stated otherwise
@@ -733,7 +733,7 @@ class OVFWriter(object):
     assert(data.get("name"))
     name = SubElementText(root, "gnt:Name", data["name"])
     params = ET.SubElement(root, "gnt:Parameters")
-    for name, value in data.iteritems():
+    for name, value in data.items():
       if name != "name":
         SubElementText(params, "gnt:%s" % name, value)
 
@@ -840,7 +840,7 @@ class OVFWriter(object):
     @return: XML tree in the form of nicely-formatted string
 
     """
-    raw_string = ET.tostring(self.tree)
+    raw_string = ET.tostring(self.tree, encoding="unicode")
     parsed_xml = xml.dom.minidom.parseString(raw_string)
     xml_string = parsed_xml.toprettyxml(indent="  ")
     text_re = re.compile(r">\n\s+([^<>\s].*?)\n\s+</", re.DOTALL)
@@ -1474,9 +1474,9 @@ class OVFImporter(Converter):
                                       constants.EXPORT_CONF_FILE)
 
     output = []
-    for section, options in results.iteritems():
+    for section, options in results.items():
       output.append("[%s]" % section)
-      for name, value in options.iteritems():
+      for name, value in options.items():
         if value is None:
           value = ""
         output.append("%s = %s" % (name, value))
@@ -1492,22 +1492,21 @@ class OVFImporter(Converter):
     self.Cleanup()
 
 
-class ConfigParserWithDefaults(ConfigParser.SafeConfigParser):
-  """This is just a wrapper on SafeConfigParser, that uses default values
+class ConfigParserWithDefaults(configparser.ConfigParser):
+  """This is just a wrapper on ConfigParser, that uses default values
 
   """
-  def get(self, section, options, raw=None, vars=None): # pylint: disable=W0622
+  def get(self, section, options, **kwargs): # pylint: disable=W0622
     try:
-      result = ConfigParser.SafeConfigParser.get(self, section, options,
-                                                 raw=raw, vars=vars)
-    except ConfigParser.NoOptionError:
+      result = configparser.ConfigParser.get(self, section, options, **kwargs)
+    except configparser.NoOptionError:
       result = None
     return result
 
-  def getint(self, section, options):
+  def getint(self, section, options, **kwargs):
     try:
-      result = ConfigParser.SafeConfigParser.get(self, section, options)
-    except ConfigParser.NoOptionError:
+      result = configparser.ConfigParser.get(self, section, options, **kwargs)
+    except configparser.NoOptionError:
       result = 0
     return int(result)
 
@@ -1565,7 +1564,7 @@ class OVFExporter(Converter):
     logging.info("Reading configuration from %s file", input_path)
     try:
       self.config_parser.read(input_path)
-    except ConfigParser.MissingSectionHeaderError as err:
+    except configparser.MissingSectionHeaderError as err:
       raise errors.OpPrereqError("Error when trying to read %s: %s" %
                                  (input_path, err), errors.ECODE_ENVIRON)
     if self.options.ova_package:
@@ -1787,7 +1786,7 @@ class OVFExporter(Converter):
     files_list.extend(self.references_files)
     logging.warning("Calculating SHA1 checksums, this may take a while")
     sha1_sums = utils.FingerprintFiles(files_list)
-    for file_path, value in sha1_sums.iteritems():
+    for file_path, value in sha1_sums.items():
       file_name = os.path.basename(file_path)
       lines.append("SHA1(%s)= %s" % (file_name, value))
     lines.append("")

@@ -32,7 +32,7 @@
 
 """
 
-import ipaddr
+import ipaddress
 
 from bitarray import bitarray
 
@@ -78,60 +78,60 @@ class AddressPool(object):
 
     self.net = network
 
-    self.network = ipaddr.IPNetwork(self.net.network)
-    if self.network.numhosts > IPV4_NETWORK_MAX_NUM_HOSTS:
+    self.network = ipaddress.ip_network(self.net.network)
+    if self.network.num_addresses > IPV4_NETWORK_MAX_NUM_HOSTS:
       raise errors.AddressPoolError("A big network with %s host(s) is currently"
                                     " not supported. please specify at most a"
                                     " /%s network" %
-                                    (str(self.network.numhosts),
+                                    (str(self.network.num_addresses),
                                      IPV4_NETWORK_MAX_SIZE))
 
-    if self.network.numhosts < IPV4_NETWORK_MIN_NUM_HOSTS:
+    if self.network.num_addresses < IPV4_NETWORK_MIN_NUM_HOSTS:
       raise errors.AddressPoolError("A network with only %s host(s) is too"
                                     " small, please specify at least a /%s"
                                     " network" %
-                                    (str(self.network.numhosts),
+                                    (str(self.network.num_addresses),
                                      IPV4_NETWORK_MIN_SIZE))
     if self.net.gateway:
-      self.gateway = ipaddr.IPAddress(self.net.gateway)
+      self.gateway = ipaddress.ip_address(self.net.gateway)
 
     if self.net.network6:
-      self.network6 = ipaddr.IPv6Network(self.net.network6)
+      self.network6 = ipaddress.IPv6Network(self.net.network6)
     if self.net.gateway6:
-      self.gateway6 = ipaddr.IPv6Address(self.net.gateway6)
+      self.gateway6 = ipaddress.IPv6Address(self.net.gateway6)
 
     if self.net.reservations:
       self.reservations = bitarray(self.net.reservations)
     else:
-      self.reservations = bitarray(self.network.numhosts)
+      self.reservations = bitarray(self.network.num_addresses)
       # pylint: disable=E1103
       self.reservations.setall(False)
 
     if self.net.ext_reservations:
       self.ext_reservations = bitarray(self.net.ext_reservations)
     else:
-      self.ext_reservations = bitarray(self.network.numhosts)
+      self.ext_reservations = bitarray(self.network.num_addresses)
       # pylint: disable=E1103
       self.ext_reservations.setall(False)
 
-    assert len(self.reservations) == self.network.numhosts
-    assert len(self.ext_reservations) == self.network.numhosts
+    assert len(self.reservations) == self.network.num_addresses
+    assert len(self.ext_reservations) == self.network.num_addresses
 
   def Contains(self, address):
     if address is None:
       return False
-    addr = ipaddr.IPAddress(address)
+    addr = ipaddress.ip_address(address)
 
     return addr in self.network
 
   def _GetAddrIndex(self, address):
-    addr = ipaddr.IPAddress(address)
+    addr = ipaddress.ip_address(address)
 
     if not addr in self.network:
       raise errors.AddressPoolError("%s does not contain %s" %
                                     (self.network, addr))
 
-    return int(addr) - int(self.network.network)
+    return int(addr) - int(self.network.network_address)
 
   def Update(self):
     """Write address pools back to the network object.

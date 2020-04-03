@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
@@ -519,7 +519,7 @@ def _GetPassword(use_agent, password, username):
     pass
   elif password:
     try:
-      fh = file(password)
+      fh = open(password)
       pwvalue = fh.readline().strip()
       fh.close()
     except IOError as e:

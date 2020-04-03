@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2008, 2011, 2012, 2013 Google Inc.
@@ -148,7 +148,7 @@ class TestLUClusterActivateMasterIp(CmdlibTestCase):
     self.ExecOpCode(op)
 
     self.rpc.call_node_activate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
 
   def testFailure(self):
     op = opcodes.OpClusterActivateMasterIp()
@@ -171,7 +171,7 @@ class TestLUClusterDeactivateMasterIp(CmdlibTestCase):
     self.ExecOpCode(op)
 
     self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
 
   def testFailure(self):
     op = opcodes.OpClusterDeactivateMasterIp()
@@ -190,7 +190,7 @@ class TestLUClusterConfigQuery(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(op, "pinky_bunny")
 
   def testAllFields(self):
-    op = opcodes.OpClusterConfigQuery(output_fields=query.CLUSTER_FIELDS.keys())
+    op = opcodes.OpClusterConfigQuery(output_fields=list(query.CLUSTER_FIELDS))
 
     self.rpc.call_get_watcher_pause.return_value = \
       self.RpcResultsBuilder() \
@@ -297,9 +297,9 @@ class TestLUClusterRename(CmdlibTestCase):
 
     self.assertEqual(1, self.ssh_mod.WriteKnownHostsFile.call_count)
     self.rpc.call_node_deactivate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
     self.rpc.call_node_activate_master_ip.assert_called_once_with(
-      self.master_uuid, self.cfg.GetMasterNetworkParameters(), False)
+      self.master_uuid, self._MatchMasterParams(), False)
 
   def testRenameOfflineMaster(self):
     op = opcodes.OpClusterRename(name=self.NEW_NAME)
@@ -1215,7 +1215,7 @@ class TestLUClusterVerifyGroup(CmdlibTestCase):
     drbd_map = {ninfo.uuid: {0: disk.uuid}}
     minors = verify.LUClusterVerifyGroup._ComputeDrbdMinors(
       ninfo, instanceinfo, disks_info, drbd_map, lambda *args: None)
-    self.assertEquals(minors, {0: (disk.uuid, instance.uuid, False)})
+    self.assertEqual(minors, {0: (disk.uuid, instance.uuid, False)})
 
 
 class TestLUClusterVerifyClientCerts(CmdlibTestCase):
@@ -2027,7 +2027,7 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
 
     expected_msgs = [
       "Extra OS only_on_test not present on reference node",
-      "OSes present on reference node .* but missing on this node:" +
+      "OSes present on reference node .* but missing on this node:.*" +
         " only_on_root",
       "OS API version for diffing_os differs",
       "OS variants list for diffing_os differs",
@@ -2314,7 +2314,7 @@ class TestLUClusterVerifyGroupHooksCallBack(TestLUClusterVerifyGroupMethods):
   def PrepareLU(self, lu):
     super(TestLUClusterVerifyGroupHooksCallBack, self).PrepareLU(lu)
 
-    lu.my_node_uuids = list(self.cfg.GetAllNodesInfo().keys())
+    lu.my_node_uuids = list(self.cfg.GetAllNodesInfo())
 
   @withLockedLU
   def testEmptyGroup(self, lu):
@@ -2584,7 +2584,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
   @patchPathutils("cluster")
   def testNonMasterRetriesSuccess(self, pathutils):
     cluster = self._NonMasterRetries(pathutils, 2)
-    self.assertEqual(2, len(cluster.candidate_certs.values()))
+    self.assertEqual(2, len(cluster.candidate_certs))
 
   @patchPathutils("cluster")
   def testNonMasterRetriesFail(self, pathutils):

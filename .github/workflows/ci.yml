@@ -9,26 +9,26 @@ jobs:
       - uses: actions/checkout@v1
 
       - name: autogen
-        uses: docker://ganeti/ci:buster-py2
+        uses: docker://ganeti/ci:buster-py3
         with:
           args: ./autogen.sh
 
       - name: configure
-        uses: docker://ganeti/ci:buster-py2
+        uses: docker://ganeti/ci:buster-py3
         with:
           args: ./configure --enable-haskell-tests
 
       - name: Build
-        uses: docker://ganeti/ci:buster-py2
+        uses: docker://ganeti/ci:buster-py3
         with:
           args: make -j 2
 
       - name: Python tests
-        uses: docker://ganeti/ci:buster-py2
+        uses: docker://ganeti/ci:buster-py3
         with:
           args: make py-tests
 
       - name: Haskell tests
-        uses: docker://ganeti/ci:buster-py2
+        uses: docker://ganeti/ci:buster-py3
         with:
           args: make -j 2 hs-tests

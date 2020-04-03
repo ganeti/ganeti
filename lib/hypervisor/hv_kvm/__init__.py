@@ -41,7 +41,7 @@ import time
 import logging
 import pwd
 import shutil
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from bitarray import bitarray
 try:
   import psutil   # pylint: disable=F0401
@@ -55,10 +55,6 @@ try:
 except ImportError:
   psutil_err = "not found"
   psutil = None
-try:
-  import fdsend   # pylint: disable=F0401
-except ImportError:
-  fdsend = None
 
 from ganeti import utils
 from ganeti import constants
@@ -456,7 +452,7 @@ def _AnalyzeSerializedRuntime(serialized_runtime):
   return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
 
 
-class HeadRequest(urllib2.Request):
+class HeadRequest(urllib.request.Request):
   def get_method(self):
     return "HEAD"
 
@@ -466,9 +462,9 @@ def _CheckUrl(url):
 
   """
   try:
-    urllib2.urlopen(HeadRequest(url))
+    urllib.request.urlopen(HeadRequest(url))
     return True
-  except urllib2.URLError:
+  except urllib.error.URLError:
     return False
 
 
@@ -1024,7 +1020,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       match = self._CPU_INFO_RE.search(line)
       if not match:
         continue
-      grp = map(int, match.groups())
+      grp = [int(g) for g in match.groups()]
       result[grp[0]] = grp[1]
 
     return result

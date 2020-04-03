@@ -31,7 +31,7 @@
 
 """
 
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import pathutils
 

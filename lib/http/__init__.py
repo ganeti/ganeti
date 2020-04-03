@@ -32,12 +32,12 @@
 """
 
 import errno
+import email
 import logging
-import mimetools
 import select
 import socket
 
-from cStringIO import StringIO
+from io import StringIO
 
 import OpenSSL
 
@@ -336,10 +336,10 @@ class HttpVersionNotSupported(HttpException):
 def ParseHeaders(buf):
   """Parses HTTP headers.
 
-  @note: This is just a trivial wrapper around C{mimetools.Message}
+  @note: This is just a trivial wrapper around C{email.message_from_file}
 
   """
-  return mimetools.Message(buf, 0)
+  return email.message_from_file(buf)
 
 
 def SocketOperation(sock, op, arg1, timeout):
@@ -755,14 +755,14 @@ class HttpMessageWriter(object):
 
     # Add headers
     if self._msg.start_line.version != HTTP_0_9:
-      for name, value in self._msg.headers.iteritems():
+      for name, value in self._msg.headers.items():
         buf.write("%s: %s\r\n" % (name, value))
 
     buf.write("\r\n")
 
     # Add message body if needed
     if self.HasMessageBody():
-      buf.write(self._msg.body)
+      buf.write(self._msg.body.decode())
 
     elif self._msg.body:
       logging.warning("Ignoring message body")
@@ -821,7 +821,7 @@ class HttpMessageReader(object):
       data = SocketOperation(sock, SOCKOP_RECV, SOCK_BUF_SIZE, read_timeout)
 
       if data:
-        buf += data
+        buf += data.decode()
       else:
         eof = True
 

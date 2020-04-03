@@ -732,15 +732,15 @@ def _GetHvInfoAll(hv_specs, get_hv_fn=hypervisor.GetHypervisor):
 
 
 def _GetNamedNodeInfo(names, fn):
-  """Calls C{fn} for all names in C{names} and returns a dictionary.
+  """Calls C{fn} for all names in C{names} and returns a list of dictionaries.
 
-  @rtype: None or dict
+  @rtype: None or list of dict
 
   """
   if names is None:
     return None
   else:
-    return map(fn, names)
+    return [fn(n) for n in names]
 
 
 def GetNodeInfo(storage_units, hv_specs):
@@ -753,7 +753,7 @@ def GetNodeInfo(storage_units, hv_specs):
     parameters, for example exclusive storage for lvm storage.
   @type hv_specs: list of pairs (string, dict of strings)
   @param hv_specs: list of pairs of a hypervisor's name and its hvparams
-  @rtype: tuple; (string, None/dict, None/dict)
+  @rtype: tuple; (string, None/list of dict, None/dict)
   @return: Tuple containing boot ID, volume group information and hypervisor
     information
 
@@ -1016,7 +1016,7 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
   if potential_master_candidate:
     # Check that the set of potential master candidates matches the
     # public key file
-    pub_uuids_set = set(pub_keys.keys()) - set(offline_nodes)
+    pub_uuids_set = set(pub_keys) - set(offline_nodes)
     pot_mc_uuids_set = set(pot_mc_uuids) - set(offline_nodes)
     missing_uuids = set([])
     if pub_uuids_set != pot_mc_uuids_set:
@@ -1049,7 +1049,7 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
       result.append("There is more than one key for node %s in the node public"
                     " key file %s." % (my_name, node_pub_key_path))
   else:
-    if len(pub_keys.keys()) > 0:
+    if len(pub_keys) > 0:
       result.append("The public key file %s is not empty, although"
                     " the node is not a potential master candidate." %
                     node_pub_key_path)
@@ -1296,7 +1296,7 @@ def VerifyNode(what, cluster_name, all_hvparams):
 
   if constants.NV_LVLIST in what and vm_capable:
     try:
-      val = GetVolumeList(utils.ListVolumeGroups().keys())
+      val = GetVolumeList(list(utils.ListVolumeGroups()))
     except RPCFail as err:
       val = str(err)
     result[constants.NV_LVLIST] = val
@@ -1316,7 +1316,7 @@ def VerifyNode(what, cluster_name, all_hvparams):
       for pvi in val:
         # Avoid sending useless data on the wire
         pvi.lv_list = []
-    result[constants.NV_PVLIST] = map(objects.LvmPvInfo.ToDict, val)
+    result[constants.NV_PVLIST] = [objects.LvmPvInfo.ToDict(v) for v in val]
 
   if constants.NV_VERSION in what:
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,
@@ -2144,7 +2144,7 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   (_, new_pub_keyfile) = root_keyfiles[new_key_type]
   old_master_key = utils.ReadFile(old_pub_keyfile)
 
-  node_uuid_name_map = zip(node_uuids, node_names)
+  node_uuid_name_map = list(zip(node_uuids, node_names))
 
   master_node_name = ssconf_store.GetMasterNode()
   master_node_uuid = _GetMasterNodeUUID(node_uuid_name_map, master_node_name)
@@ -3964,7 +3964,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   raw_data = _Decompress(data)
 
-  if not (isinstance(uid, basestring) and isinstance(gid, basestring)):
+  if not (isinstance(uid, str) and isinstance(gid, str)):
     _Fail("Invalid username/groupname type")
 
   getents = runtime.GetEnts()
@@ -4134,7 +4134,7 @@ def _TryOSFromDisk(name, base_dir=None):
   else:
     del os_files[constants.OS_SCRIPT_VERIFY]
 
-  for (filename, required) in os_files.items():
+  for (filename, required) in list(os_files.items()):
     os_files[filename] = utils.PathJoin(os_dir, filename)
 
     try:
@@ -4997,7 +4997,7 @@ def ValidateOS(required, osname, checks, osparams, force_variant):
     return True
 
   if constants.OS_VALIDATE_PARAMETERS in checks:
-    _CheckOSPList(tbv, osparams.keys())
+    _CheckOSPList(tbv, list(osparams))
 
   validate_env = OSCoreEnv(osname, tbv, osparams)
   result = utils.RunCmd([tbv.verify_script] + checks, env=validate_env,
@@ -5212,7 +5212,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
   elif ieio == constants.IEIO_SCRIPT:
     (disk, disk_index, ) = ieargs
 
-    assert isinstance(disk_index, (int, long))
+    assert isinstance(disk_index, int)
 
     inst_os = OSFromDisk(instance.os)
     env = OSEnvironment(instance, inst_os)
@@ -6028,7 +6028,7 @@ class IAllocatorRunner(object):
 
     fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
     try:
-      os.write(fd, idata)
+      os.write(fd, idata.encode("utf-8"))
       os.close(fd)
       result = utils.RunCmd([alloc_script, fin_name] + ial_params)
       if result.failed:

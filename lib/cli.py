@@ -40,7 +40,7 @@ import errno
 import itertools
 import shlex
 
-from cStringIO import StringIO
+from io import StringIO
 from optparse import (OptionParser, TitledHelpFormatter)
 
 from ganeti import utils
@@ -643,7 +643,7 @@ def AskUser(text, choices=None):
     new_text.append(textwrap.fill(line, 70, replace_whitespace=False))
   text = "\n".join(new_text)
   try:
-    f = file("/dev/tty", "a+")
+    f = utils.OpenTTY()
   except IOError:
     return answer
   try:
@@ -656,6 +656,7 @@ def AskUser(text, choices=None):
       f.write("\n")
       f.write("/".join(chars))
       f.write(": ")
+      f.flush()
       line = f.readline(2).strip().lower()
       if line in maps:
         answer = maps[line]
@@ -754,7 +755,8 @@ def GenericPollJob(job_id, cbs, report_cbs, cancel_fn=None,
         (serial, timestamp, log_type, message) = log_entry
         report_cbs.ReportLogMessage(job_id, serial, timestamp,
                                     log_type, message)
-        prev_logmsg_serial = max(prev_logmsg_serial, serial)
+        prev_logmsg_serial = serial if prev_logmsg_serial is None \
+            else max(prev_logmsg_serial, serial)
 
     # TODO: Handle canceled and archived jobs
     elif status in (constants.JOB_STATUS_SUCCESS,
@@ -1241,7 +1243,7 @@ def GenericMain(commands, override=None, aliases=None,
     return 1
 
   if override is not None:
-    for key, val in override.iteritems():
+    for key, val in override.items():
       setattr(options, key, val)
 
   utils.SetupLogging(pathutils.LOG_COMMANDS, logname, debug=options.debug,
@@ -2098,7 +2100,7 @@ def GenericListFields(resource, fields, separator, header, cl=None):
     TableColumn("Description", str, False),
     ]
 
-  rows = map(_FieldDescValues, response.fields)
+  rows = [_FieldDescValues(f) for f in response.fields]
 
   for line in FormatTable(rows, columns, header, separator):
     ToStdout(line)
@@ -2327,7 +2329,7 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
   else:
     fn = _GetName
 
-  return map(fn, online)
+  return [fn(node) for node in online]
 
 
 def GetNodesSshPorts(nodes, cl):
@@ -2788,7 +2790,7 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
     constants.ISPECS_MAX: {},
     constants.ISPECS_STD: {},
     }
-  for (name, specs) in ispecs_transposed.iteritems():
+  for (name, specs) in ispecs_transposed.items():
     assert name in constants.ISPECS_PARAMETERS
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       assert key in ispecs
@@ -2825,7 +2827,7 @@ def _ParseSpecUnit(spec, keyname):
 def _ParseISpec(spec, keyname, required):
   ret = _ParseSpecUnit(spec, keyname)
   utils.ForceDictType(ret, constants.ISPECS_PARAMETER_TYPES)
-  missing = constants.ISPECS_PARAMETERS - frozenset(ret.keys())
+  missing = constants.ISPECS_PARAMETERS - frozenset(ret)
   if required and missing:
     raise errors.OpPrereqError("Missing parameters in ipolicy spec %s: %s" %
                                (keyname, utils.CommaJoin(missing)),
@@ -2913,7 +2915,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   if ipolicy_spindle_ratio is not None:
     ipolicy_out[constants.IPOLICY_SPINDLE_RATIO] = ipolicy_spindle_ratio
 
-  assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
+  assert not (frozenset(ipolicy_out) - constants.IPOLICY_ALL_KEYS)
 
   if not group_ipolicy and fill_all:
     ipolicy_out = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy_out)

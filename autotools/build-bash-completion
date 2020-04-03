@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
@@ -40,7 +40,7 @@ import os.path
 import re
 import itertools
 import optparse
-from cStringIO import StringIO
+from io import StringIO
 
 # _constants shouldn't be imported from anywhere except constants.py, but we're
 # making an exception here because this script is only used at build time.
@@ -310,7 +310,7 @@ class CompletionWriter(object):
       # pylint. pylint: disable=W0212
       opt.all_names = sorted(opt._short_opts + opt._long_opts)
 
-      invalid = list(itertools.ifilterfalse(_OPT_NAME_RE.match, opt.all_names))
+      invalid = list(itertools.filterfalse(_OPT_NAME_RE.match, opt.all_names))
       if invalid:
         raise Exception("Option names don't match regular expression '%s': %s" %
                         (_OPT_NAME_RE.pattern, utils.CommaJoin(invalid)))
@@ -362,7 +362,7 @@ class CompletionWriter(object):
       if not suggest:
         suggest = opt.choices
 
-      if (isinstance(suggest, (int, long)) and
+      if (isinstance(suggest, int) and
           suggest in cli.OPT_COMPL_ALL):
         key = suggest
       elif suggest:
@@ -634,7 +634,7 @@ def WriteCompletion(sw, scriptname, funcname, support_debug,
       # We're doing options and arguments to commands
       sw.Write("""case "${COMP_WORDS[1]}" in""")
       sort_grouped = sorted(grouped_cmds.items(),
-                            key=lambda (_, y): sorted(y)[0])
+                            key=lambda _y: sorted(_y[1])[0])
       for ((argdef, optdef), cmds) in sort_grouped:
         assert argdef or optdef
         sw.Write("%s)", "|".join(map(utils.ShellQuote, sorted(cmds))))

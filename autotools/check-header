@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2011, 2014 Google Inc.
@@ -138,7 +138,7 @@ def Main():
     lines = zip(itertools.count(1), content.splitlines())
 
     try:
-      _CheckHeader(compat.partial(lines.pop, 0))
+      _CheckHeader(compat.partial(next(lines), 0))
     except HeaderError as err:
       report = str(err)
       print("%s: %s" % (filename, report))

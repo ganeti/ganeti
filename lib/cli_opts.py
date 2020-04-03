@@ -1204,7 +1204,7 @@ NOSHUTDOWN_OPT = cli_option("--noshutdown", dest="shutdown",
 
 TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                         help="Maximum time to wait")
+                         help="Maximum time (in minutes) to wait")
 
 COMPRESS_OPT = cli_option("--compress", dest="compress",
                           type="string", default=constants.IEC_NONE,
@@ -1218,8 +1218,8 @@ TRANSPORT_COMPRESSION_OPT = \
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                                   dest="shutdown_timeout", type="int",
                                   default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                                  help="Maximum time to wait for instance"
-                                  " shutdown")
+                                  help="Maximum time (in minutes) to wait for"
+                                  " instance shutdown")
 
 INTERVAL_OPT = cli_option("--interval", dest="interval", type="int",
                           default=None,
@@ -1370,7 +1370,7 @@ def _PriorityOptionCb(option, _, value, parser):
 
 PRIORITY_OPT = cli_option("--priority", default=None, dest="priority",
                           metavar="|".join(name for name, _ in _PRIORITY_NAMES),
-                          choices=_PRIONAME_TO_VALUE.keys(),
+                          choices=list(_PRIONAME_TO_VALUE),
                           action="callback", type="choice",
                           callback=_PriorityOptionCb,
                           help="Priority for opcode processing")

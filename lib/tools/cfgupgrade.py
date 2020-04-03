@@ -42,7 +42,7 @@ import logging
 import optparse
 import time
 import functools
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import cli
 from ganeti import constants
@@ -678,7 +678,7 @@ class CfgUpgrade(object):
     consist only of the primary instance node.
     """
     disks = self.config_data["disks"]
-    for instance in self.config_data["instances"].itervalues():
+    for instance in self.config_data["instances"].values():
       # Get all disk nodes for an instance
       instance_node = set([instance["primary_node"]])
       disk_nodes = set()

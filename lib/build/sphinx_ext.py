@@ -36,7 +36,7 @@
 # C0413: Wrong import position
 
 import re
-from cStringIO import StringIO
+from io import StringIO
 
 import docutils.statemachine
 import docutils.nodes
@@ -290,7 +290,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
                                  line=lineno)
     return ([inliner.problematic(rawtext, rawtext, msg)], [msg])
 
-  node = docutils.nodes.literal("", unicode(result), **options)
+  node = docutils.nodes.literal("", str(result), **options)
 
   return ([node], [])
 
@@ -451,7 +451,7 @@ def _EncodeRapiResourceLink(method, uri):
   if method is not None:
     parts.append(method.lower())
 
-  return "rapi-res-%s" % "+".join(filter(None, parts))
+  return "rapi-res-%s" % "+".join([p for p in parts if p])
 
 
 def _MakeRapiResourceLink(method, uri):

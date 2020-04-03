@@ -57,10 +57,10 @@ from ganeti.http.auth import ParsePasswordFile
 import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
 
-import qa_config
-import qa_error
-import qa_logging
-import qa_utils
+from qa import qa_config
+from qa import qa_error
+from qa import qa_logging
+from qa import qa_utils
 
 from qa_instance import GetInstanceInfo
 from qa_instance import IsDiskReplacingSupported
@@ -138,7 +138,7 @@ def ReloadCertificates(ensure_presence=True):
          qa_utils.MakeNodePath(master, pathutils.RAPI_CERT_FILE)]
 
   # Write to temporary file
-  _rapi_ca = tempfile.NamedTemporaryFile()
+  _rapi_ca = tempfile.NamedTemporaryFile(mode="w")
   _rapi_ca.write(qa_utils.GetCommandOutput(master.primary,
                                            utils.ShellQuoteArgs(cmd)))
   _rapi_ca.flush()
@@ -181,7 +181,7 @@ def _CreateRapiUser(rapi_user):
   rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
   rapi_dir = os.path.dirname(rapi_users_path)
 
-  fh = tempfile.NamedTemporaryFile()
+  fh = tempfile.NamedTemporaryFile(mode="w")
   try:
     fh.write("%s %s write\n" % (rapi_user, rapi_secret))
     fh.flush()
@@ -395,7 +395,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
   print("Testing get/modify symmetry of %s and %s" % (get_uri, modify_uri))
 
   # First we see if all parameters of the opcode are returned through RAPI
-  params_of_interest = map(lambda x: x[0], opcode_params)
+  params_of_interest = [x[0] for x in opcode_params]
 
   # The RAPI-specific aliases are to be checked as well
   if rapi_only_aliases is not None:
@@ -403,8 +403,7 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
 
   info = _rapi_client._SendRequest("GET", get_uri, None, {})
 
-  missing_params = filter(lambda x: x not in info and x not in exceptions,
-                          params_of_interest)
+  missing_params = [x for x in params_of_interest if x not in info and x not in exceptions]
   if missing_params:
     raise qa_error.Error("The parameters %s which can be set through the "
                          "appropriate opcode are not present in the response "
@@ -550,7 +549,7 @@ def TestRapiQuery():
       constants.QR_FILTER: "uuid",
     }.get(what, "name")
 
-    all_fields = query.ALL_FIELDS[what].keys()
+    all_fields = list(query.ALL_FIELDS[what])
     rnd.shuffle(all_fields)
 
     # No fields, should return everything
@@ -745,7 +744,7 @@ def _FilterTags(seq):
   ignore_re = qa_config.get("ignore-tags-re", None)
 
   if ignore_re:
-    return itertools.ifilterfalse(re.compile(ignore_re).match, seq)
+    return itertools.filterfalse(re.compile(ignore_re).match, seq)
   else:
     return seq
 
@@ -1223,7 +1222,7 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()
 
-  rapi_pw_file = tempfile.NamedTemporaryFile()
+  rapi_pw_file = tempfile.NamedTemporaryFile(mode="w")
   rapi_pw_file.write(_rapi_password)
   rapi_pw_file.flush()
 

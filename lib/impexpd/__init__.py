@@ -39,7 +39,7 @@ import logging
 import signal
 import errno
 import time
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import errors
@@ -442,14 +442,14 @@ class ChildIOProcessor(object):
     """Flushes all line splitters.
 
     """
-    for ls in self._splitter.itervalues():
+    for ls in self._splitter.values():
       ls.flush()
 
   def CloseAll(self):
     """Closes all line splitters.
 
     """
-    for ls in self._splitter.itervalues():
+    for ls in self._splitter.values():
       ls.close()
     self._splitter.clear()
 

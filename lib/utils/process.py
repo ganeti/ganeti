@@ -41,7 +41,7 @@ import logging
 import signal
 import resource
 
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import errors
 from ganeti import constants
@@ -207,7 +207,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
     raise errors.ProgrammerError("Parameters 'output' and 'input_fd' can"
                                  " not be used at the same time")
 
-  if isinstance(cmd, basestring):
+  if isinstance(cmd, str):
     strcmd = cmd
     shell = True
   else:
@@ -337,7 +337,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
     raise errors.ProgrammerError("Only one of 'output' and 'output_fd' can be"
                                  " specified")
 
-  if isinstance(cmd, basestring):
+  if isinstance(cmd, str):
     cmd = ["/bin/sh", "-c", cmd]
 
   strcmd = utils_text.ShellQuoteArgs(cmd)
@@ -371,7 +371,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
         # Wait for daemon to be started (or an error message to
         # arrive) and read up to 100 KB as an error message
         errormsg = utils_wrapper.RetryOnSignal(os.read, errpipe_read,
-                                               100 * 1024)
+                                               100 * 1024).decode("utf-8")
       finally:
         utils_wrapper.CloseFdNoError(errpipe_read)
     finally:
@@ -441,7 +441,8 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
     SetupDaemonFDs(output, fd_output)
 
     # Send daemon PID to parent
-    utils_wrapper.RetryOnSignal(os.write, pidpipe_write, str(os.getpid()))
+    utils_wrapper.RetryOnSignal(os.write, pidpipe_write,
+                                b"%d" % os.getpid())
 
     # Close all file descriptors except stdio and error message pipe
     CloseFDs(noclose_fds=noclose_fds)
@@ -478,7 +479,7 @@ def WriteErrorToFD(fd, err):
   if not err:
     err = "<unknown error>"
 
-  utils_wrapper.RetryOnSignal(os.write, fd, err)
+  utils_wrapper.RetryOnSignal(os.write, fd, err.encode("utf-8"))
 
 
 def _CheckIfAlive(child):
@@ -548,19 +549,18 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
     stdin = subprocess.PIPE
 
   if noclose_fds:
-    preexec_fn = lambda: CloseFDs(noclose_fds)
-    close_fds = False
+    pass_fds = noclose_fds
   else:
-    preexec_fn = None
-    close_fds = True
+    pass_fds = []
 
   child = subprocess.Popen(cmd, shell=via_shell,
                            stderr=stderr,
                            stdout=stdout,
                            stdin=stdin,
-                           close_fds=close_fds, env=env,
+                           pass_fds=pass_fds,
+                           env=env,
                            cwd=cwd,
-                           preexec_fn=preexec_fn)
+                           encoding="utf-8")
 
   if postfork_fn:
     postfork_fn(child.pid)
@@ -625,13 +625,19 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
           # no data from read signifies EOF (the same as POLLHUP)
           if not data:
             poller.unregister(fd)
+            fdmap[fd][1].close()
             del fdmap[fd]
             continue
           fdmap[fd][0].write(data)
         if (event & select.POLLNVAL or event & select.POLLHUP or
             event & select.POLLERR):
           poller.unregister(fd)
+          fdmap[fd][1].close()
           del fdmap[fd]
+
+    if fdmap:
+      for (_, handle) in fdmap.values():
+        handle.close()
 
   if timeout is not None:
     assert callable(poll_timeout)
@@ -687,20 +693,19 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd, noclose_fds):
   fh = open(output, "a")
 
   if noclose_fds:
-    preexec_fn = lambda: CloseFDs(noclose_fds + [fh.fileno()])
-    close_fds = False
+    pass_fds = noclose_fds
   else:
-    preexec_fn = None
-    close_fds = True
+    pass_fds = []
 
   try:
     child = subprocess.Popen(cmd, shell=via_shell,
                              stderr=subprocess.STDOUT,
                              stdout=fh,
                              stdin=subprocess.PIPE,
-                             close_fds=close_fds, env=env,
+                             pass_fds=pass_fds,
+                             env=env,
                              cwd=cwd,
-                             preexec_fn=preexec_fn)
+                             encoding="utf-8")
 
     child.stdin.close()
     status = child.wait()

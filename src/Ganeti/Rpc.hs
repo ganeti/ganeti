@@ -150,6 +150,7 @@ curlOpts = [ CurlFollowLocation False
            , CurlSSLCertType "PEM"
            , CurlSSLKeyType "PEM"
            , CurlConnectTimeout (fromIntegral C.rpcConnectTimeout)
+           , CurlHttpHeaders ["Expect:"]
            ]
 
 -- | Data type for RPC error reporting.

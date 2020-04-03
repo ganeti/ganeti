@@ -39,11 +39,13 @@ the command line scripts.
 
 import os
 import re
+import array
 import errno
 import pwd
 import time
 import itertools
 import select
+import socket
 import logging
 import signal
 
@@ -113,14 +115,14 @@ def ForceDictType(target, key_types, allowed_values=None):
     if ktype in (constants.VTYPE_STRING, constants.VTYPE_MAYBE_STRING):
       if target[key] is None and ktype == constants.VTYPE_MAYBE_STRING:
         pass
-      elif not isinstance(target[key], basestring):
+      elif not isinstance(target[key], str):
         if isinstance(target[key], bool) and not target[key]:
           target[key] = ""
         else:
           msg = "'%s' (value %s) is not a valid string" % (key, target[key])
           raise errors.TypeEnforcementError(msg)
     elif ktype == constants.VTYPE_BOOL:
-      if isinstance(target[key], basestring) and target[key]:
+      if isinstance(target[key], str) and target[key]:
         if target[key].lower() == constants.VALUE_FALSE:
           target[key] = False
         elif target[key].lower() == constants.VALUE_TRUE:
@@ -186,7 +188,7 @@ def _ComputeMissingKeys(key_path, options, defaults):
   @return: A list of invalid keys
 
   """
-  defaults_keys = frozenset(defaults.keys())
+  defaults_keys = frozenset(defaults)
   invalid = []
   for key, value in options.items():
     if key_path:
@@ -353,9 +355,9 @@ def GetHomeDir(user, default=None):
 
   """
   try:
-    if isinstance(user, basestring):
+    if isinstance(user, str):
       result = pwd.getpwnam(user)
-    elif isinstance(user, (int, long)):
+    elif isinstance(user, int):
       result = pwd.getpwuid(user)
     else:
       raise errors.ProgrammerError("Invalid type passed to GetHomeDir (%s)" %
@@ -423,7 +425,7 @@ def SingleWaitForFdCondition(fdobj, event, timeout):
     # every so often.
     io_events = poller.poll(timeout)
   except select.error as err:
-    if err[0] != errno.EINTR:
+    if err.errno != errno.EINTR:
       raise
     io_events = []
   if io_events and io_events[0][1] & check:
@@ -662,19 +664,8 @@ def TimeoutExpired(epoch, timeout, _time_fn=time.time):
 
 
 class SignalWakeupFd(object):
-  try:
-    # This is only supported in Python 2.5 and above (some distributions
-    # backported it to Python 2.4)
-    _set_wakeup_fd_fn = signal.set_wakeup_fd
-  except AttributeError:
-    # Not supported
-
-    def _SetWakeupFd(self, _): # pylint: disable=R0201
-      return -1
-  else:
-
-    def _SetWakeupFd(self, fd):
-      return self._set_wakeup_fd_fn(fd)
+  def _SetWakeupFd(self, fd):
+    return signal.set_wakeup_fd(fd)
 
   def __init__(self):
     """Initializes this class.
@@ -682,11 +673,14 @@ class SignalWakeupFd(object):
     """
     (read_fd, write_fd) = os.pipe()
 
+    # signal.set_wakeup_fd requires the FD to be non-blocking
+    SetNonblockFlag(write_fd, True)
+
     # Once these succeeded, the file descriptors will be closed automatically.
     # Buffer size 0 is important, otherwise .read() with a specified length
     # might buffer data and the file descriptors won't be marked readable.
-    self._read_fh = os.fdopen(read_fd, "r", 0)
-    self._write_fh = os.fdopen(write_fd, "w", 0)
+    self._read_fh = os.fdopen(read_fd, "rb", 0)
+    self._write_fh = os.fdopen(write_fd, "wb", 0)
 
     self._previous = self._SetWakeupFd(self._write_fh.fileno())
 
@@ -706,7 +700,7 @@ class SignalWakeupFd(object):
     """Notifies the wakeup file descriptor.
 
     """
-    self._write_fh.write(chr(0))
+    self._write_fh.write(b"\x00")
 
   def __del__(self):
     """Called before object deletion.
@@ -773,7 +767,7 @@ class SignalHandler(object):
     This will reset all the signals to their previous handlers.
 
     """
-    for signum, prev_handler in self._previous.items():
+    for signum, prev_handler in list(self._previous.items()):
       signal.signal(signum, prev_handler)
       # If successful, remove from dict
       del self._previous[signum]
@@ -800,6 +794,12 @@ class SignalHandler(object):
 
     if self._handler_fn:
       self._handler_fn(signum, frame)
+
+  def SetHandlerFn(self, fn):
+    """Set the signal handling function
+
+    """
+    self._handler_fn = fn
 
 
 class FieldSet(object):
@@ -828,7 +828,7 @@ class FieldSet(object):
     @return: either None or a regular expression match object
 
     """
-    for m in itertools.ifilter(None, (val.match(field) for val in self.items)):
+    for m in filter(None, (val.match(field) for val in self.items)):
       return m
     return None
 
@@ -965,3 +965,35 @@ def GetDiskTemplate(disks_info):
 
   """
   return GetDiskTemplateString(d.dev_type for d in disks_info)
+
+def SendFds(sock, data, fds):
+  """Sends a set of file descriptors over a socket using sendmsg(2)
+
+  @type sock: socket.socket
+  @param sock: the socket over which the fds will be sent
+  @type data: bytes
+  @param data: actual data for the sendmsg(2) call
+  @type fds: list of file descriptors or file-like objects with fileno() methods
+  @param fds: the file descriptors to send
+
+  """
+  if not isinstance(data, bytes):
+    raise errors.TypeEnforcementError("expecting bytes for data")
+
+  _fds = array.array("i")
+
+  for fd in fds:
+    if isinstance(fd, int):
+      _fds.append(fd)
+      continue
+
+    try:
+      _fds.append(fd.fileno())
+      continue
+    except AttributeError:
+      pass
+
+    raise errors.TypeEnforcementError("expected int or file-like object"
+                                      " got %s" % type(fd).__name__)
+
+  return sock.sendmsg([data], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, _fds)])

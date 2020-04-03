@@ -41,7 +41,6 @@ import os
 import re
 import socket
 import struct
-import IN
 import logging
 
 from ganeti import constants
@@ -61,12 +60,6 @@ from ganeti import vcluster
 _STRUCT_UCRED = "iII"
 _STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
 
-# Workaround a bug in some linux distributions that don't define SO_PEERCRED
-try:
-  # pylint: disable=E1101
-  _SO_PEERCRED = IN.SO_PEERCRED
-except AttributeError:
-  _SO_PEERCRED = 17
 
 # Regexes used to find IP addresses in the output of ip.
 _IP_RE_TEXT = r"[.:a-z0-9]+"      # separate for testing purposes
@@ -109,7 +102,7 @@ def GetSocketCredentials(sock):
   @return: The PID, UID and GID of the connected foreign process.
 
   """
-  peercred = sock.getsockopt(socket.SOL_SOCKET, _SO_PEERCRED,
+  peercred = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED,
                              _STRUCT_UCRED_SIZE)
   return struct.unpack(_STRUCT_UCRED, peercred)
 
@@ -163,7 +156,8 @@ def GetHostname(name=None, family=None):
     return Hostname(name=name, family=family)
   except errors.ResolverError as err:
     raise errors.OpPrereqError("The given name (%s) does not resolve: %s" %
-                               (err[0], err[2]), errors.ECODE_RESOLVER)
+                               (err.args[0], err.args[2]),
+                               errors.ECODE_RESOLVER)
 
 
 class Hostname(object):
@@ -338,19 +332,20 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
     try:
       sock.bind((source, 0))
     except socket.error as err:
-      if err[0] == errno.EADDRNOTAVAIL:
+      if err.errno == errno.EADDRNOTAVAIL:
         success = False
 
   sock.settimeout(timeout)
 
   try:
     sock.connect((target, port))
-    sock.close()
     success = True
   except socket.timeout:
     success = False
   except socket.error as err:
-    success = (not live_port_needed) and (err[0] == errno.ECONNREFUSED)
+    success = (not live_port_needed) and (err.errno == errno.ECONNREFUSED)
+  finally:
+    sock.close()
 
   return success
 
@@ -428,7 +423,7 @@ class IPAddress(object):
     @return: True if valid, False otherwise
 
     """
-    assert isinstance(netmask, (int, long))
+    assert isinstance(netmask, int)
 
     return 0 < netmask <= cls.iplen
 

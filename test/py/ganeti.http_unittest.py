@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2007, 2008 Google Inc.
@@ -38,7 +38,7 @@ import tempfile
 import pycurl
 import itertools
 import threading
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import http
 from ganeti import compat
@@ -89,18 +89,18 @@ class TestMisc(unittest.TestCase):
         http.server._HttpServerRequest("GET", "/", None, None, None)
 
     # These are expected by users of the HTTP server
-    self.assert_(hasattr(server_request, "request_method"))
-    self.assert_(hasattr(server_request, "request_path"))
-    self.assert_(hasattr(server_request, "request_headers"))
-    self.assert_(hasattr(server_request, "request_body"))
-    self.assert_(isinstance(server_request.resp_headers, dict))
-    self.assert_(hasattr(server_request, "private"))
+    self.assertTrue(hasattr(server_request, "request_method"))
+    self.assertTrue(hasattr(server_request, "request_path"))
+    self.assertTrue(hasattr(server_request, "request_headers"))
+    self.assertTrue(hasattr(server_request, "request_body"))
+    self.assertTrue(isinstance(server_request.resp_headers, dict))
+    self.assertTrue(hasattr(server_request, "private"))
 
   def testServerSizeLimits(self):
     """Test HTTP server size limits"""
     message_reader_class = http.server._HttpClientToServerMessageReader
-    self.assert_(message_reader_class.START_LINE_LENGTH_MAX > 0)
-    self.assert_(message_reader_class.HEADER_LENGTH_MAX > 0)
+    self.assertTrue(message_reader_class.START_LINE_LENGTH_MAX > 0)
+    self.assertTrue(message_reader_class.HEADER_LENGTH_MAX > 0)
 
   def testFormatAuthHeader(self):
     self.assertEqual(http.auth._FormatAuthHeader("Basic", {}),
@@ -116,7 +116,7 @@ class TestMisc(unittest.TestCase):
       "realm": "secure",
       }
     # It's a dict whose order isn't guaranteed, hence checking a list
-    self.assert_(http.auth._FormatAuthHeader("Digest", params) in
+    self.assertTrue(http.auth._FormatAuthHeader("Digest", params) in
                  ("Digest foo=\"x,y\" realm=secure",
                   "Digest realm=secure foo=\"x,y\""))
 
@@ -149,8 +149,8 @@ class TestAuth(unittest.TestCase):
   def testConstants(self):
     for scheme in [self.hsra._CLEARTEXT_SCHEME, self.hsra._HA1_SCHEME]:
       self.assertEqual(scheme, scheme.upper())
-      self.assert_(scheme.startswith("{"))
-      self.assert_(scheme.endswith("}"))
+      self.assertTrue(scheme.startswith("{"))
+      self.assertTrue(scheme.endswith("}"))
 
   def _testVerifyBasicAuthPassword(self, realm, user, password, expected):
     ra = _FakeRequestAuth(realm, False, None)
@@ -165,36 +165,36 @@ class TestAuth(unittest.TestCase):
 
     for pw in good_pws:
       # Try cleartext passwords
-      self.assert_(tvbap("abc", "user", pw, pw))
-      self.assert_(tvbap("abc", "user", pw, "{cleartext}" + pw))
-      self.assert_(tvbap("abc", "user", pw, "{ClearText}" + pw))
-      self.assert_(tvbap("abc", "user", pw, "{CLEARTEXT}" + pw))
+      self.assertTrue(tvbap("abc", "user", pw, pw))
+      self.assertTrue(tvbap("abc", "user", pw, "{cleartext}" + pw))
+      self.assertTrue(tvbap("abc", "user", pw, "{ClearText}" + pw))
+      self.assertTrue(tvbap("abc", "user", pw, "{CLEARTEXT}" + pw))
 
       # Try with invalid password
-      self.failIf(tvbap("abc", "user", pw, "something"))
+      self.assertFalse(tvbap("abc", "user", pw, "something"))
 
       # Try with invalid scheme
-      self.failIf(tvbap("abc", "user", pw, "{000}" + pw))
-      self.failIf(tvbap("abc", "user", pw, "{unk}" + pw))
-      self.failIf(tvbap("abc", "user", pw, "{Unk}" + pw))
-      self.failIf(tvbap("abc", "user", pw, "{UNK}" + pw))
+      self.assertFalse(tvbap("abc", "user", pw, "{000}" + pw))
+      self.assertFalse(tvbap("abc", "user", pw, "{unk}" + pw))
+      self.assertFalse(tvbap("abc", "user", pw, "{Unk}" + pw))
+      self.assertFalse(tvbap("abc", "user", pw, "{UNK}" + pw))
 
     # Try with invalid scheme format
-    self.failIf(tvbap("abc", "user", "pw", "{something"))
+    self.assertFalse(tvbap("abc", "user", "pw", "{something"))
 
     # Hash is MD5("user:This is only a test:pw")
-    self.assert_(tvbap("This is only a test", "user", "pw",
+    self.assertTrue(tvbap("This is only a test", "user", "pw",
                        "{ha1}92ea58ae804481498c257b2f65561a17"))
-    self.assert_(tvbap("This is only a test", "user", "pw",
+    self.assertTrue(tvbap("This is only a test", "user", "pw",
                        "{HA1}92ea58ae804481498c257b2f65561a17"))
 
-    self.failUnlessRaises(AssertionError, tvbap, None, "user", "pw",
+    self.assertRaises(AssertionError, tvbap, None, "user", "pw",
                           "{HA1}92ea58ae804481498c257b2f65561a17")
-    self.failIf(tvbap("Admin area", "user", "pw",
+    self.assertFalse(tvbap("Admin area", "user", "pw",
                       "{HA1}92ea58ae804481498c257b2f65561a17"))
-    self.failIf(tvbap("This is only a test", "someone", "pw",
+    self.assertFalse(tvbap("This is only a test", "someone", "pw",
                       "{HA1}92ea58ae804481498c257b2f65561a17"))
-    self.failIf(tvbap("This is only a test", "user", "something",
+    self.assertFalse(tvbap("This is only a test", "user", "something",
                       "{HA1}92ea58ae804481498c257b2f65561a17"))
 
 
@@ -240,7 +240,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
 
   def testAuthForPublicResource(self):
     headers = {
-      http.HTTP_AUTHORIZATION: "Basic %s" % ("foo".encode("base64").strip(), ),
+      http.HTTP_AUTHORIZATION: "Basic %s" % testutils.b64encode_string("foo"),
       }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ra = _FakeRequestAuth("area1", False, None)
@@ -249,7 +249,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
   def testAuthForPublicResource(self):
     headers = {
       http.HTTP_AUTHORIZATION:
-        "Basic %s" % ("foo:bar".encode("base64").strip(), ),
+        "Basic %s" % testutils.b64encode_string("foo:bar"),
       }
     req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
@@ -264,7 +264,8 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
   def testInvalidRequestHeader(self):
     checks = {
       http.HttpUnauthorized: ["", "\t", "-", ".", "@", "<", ">", "Digest",
-                              "basic %s" % "foobar".encode("base64").strip()],
+                              "basic %s" %
+                               testutils.b64encode_string("foobar")],
       http.HttpBadRequest: ["Basic"],
       }
 
@@ -285,7 +286,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
             basic_auth += "WRONG"
           headers = {
               http.HTTP_AUTHORIZATION:
-                "Basic %s" % (basic_auth.encode("base64").strip(), ),
+                "Basic %s" % testutils.b64encode_string(basic_auth),
             }
           req = http.server._HttpServerRequest("GET", "/", headers, None, None)
 
@@ -297,12 +298,12 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
               ra.PreHandleRequest(req)
             except http.HttpUnauthorized as err:
               www_auth = err.headers[http.HTTP_WWW_AUTHENTICATE]
-              self.assert_(www_auth.startswith(http.auth.HTTP_BASIC_AUTH))
+              self.assertTrue(www_auth.startswith(http.auth.HTTP_BASIC_AUTH))
             else:
               self.fail("Didn't raise HttpUnauthorized")
           else:
             ra.PreHandleRequest(req)
-          self.assert_(ac.called)
+          self.assertTrue(ac.called)
 
 
 class TestReadPasswordFile(unittest.TestCase):
@@ -335,12 +336,12 @@ class TestClientRequest(unittest.TestCase):
   def testRepr(self):
     cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
                                        headers=[], post_data="Hello World")
-    self.assert_(repr(cr).startswith("<"))
+    self.assertTrue(repr(cr).startswith("<"))
 
   def testNoHeaders(self):
     cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
                                        headers=None)
-    self.assert_(isinstance(cr.headers, list))
+    self.assertTrue(isinstance(cr.headers, list))
     self.assertEqual(cr.headers, [])
     self.assertEqual(cr.url, "https://localhost:1234/version")
 
@@ -359,7 +360,7 @@ class TestClientRequest(unittest.TestCase):
       }
     cr = http.client.HttpClientRequest("localhost", 16481, "GET", "/vg_list",
                                        headers=headers)
-    self.assert_(isinstance(cr.headers, list))
+    self.assertTrue(isinstance(cr.headers, list))
     self.assertEqual(sorted(cr.headers), [
       "Accept: text/html",
       "Content-type: text/plain",
@@ -374,7 +375,7 @@ class TestClientRequest(unittest.TestCase):
       ]
     cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
                                        headers=headers)
-    self.assert_(isinstance(cr.headers, list))
+    self.assertTrue(isinstance(cr.headers, list))
     self.assertEqual(sorted(cr.headers), sorted(headers))
     self.assertEqual(cr.url, "https://localhost:1234/version")
 
@@ -474,7 +475,7 @@ class TestClientStartRequest(unittest.TestCase):
             offset = 0
             while offset < len(response_body):
               piece = response_body[offset:offset + 10]
-              write_fn(piece)
+              write_fn(piece.encode("utf-8"))
               offset += len(piece)
 
           curl.info = {
@@ -514,30 +515,6 @@ class TestClientStartRequest(unittest.TestCase):
           self.assertFalse(curl.opts,
                            msg="Previous checks did not consume all options")
           assert id(opts) == id(curl.opts)
-
-  def _TestWrongTypes(self, *args, **kwargs):
-    req = http.client.HttpClientRequest(*args, **kwargs)
-    self.assertRaises(AssertionError, http.client._StartRequest,
-                      _FakeCurl(), req)
-
-  def testWrongHostType(self):
-    self._TestWrongTypes(unicode("localhost"), 8080, "GET", "/version")
-
-  def testWrongUrlType(self):
-    self._TestWrongTypes("localhost", 8080, "GET", unicode("/version"))
-
-  def testWrongMethodType(self):
-    self._TestWrongTypes("localhost", 8080, unicode("GET"), "/version")
-
-  def testWrongHeaderType(self):
-    self._TestWrongTypes("localhost", 8080, "GET", "/version",
-                         headers={
-                           unicode("foo"): "bar",
-                           })
-
-  def testWrongPostDataType(self):
-    self._TestWrongTypes("localhost", 8080, "GET", "/version",
-                         post_data=unicode("verylongdata" * 100))
 
 
 class _EmptyCurlMulti:

@@ -451,7 +451,7 @@ class DRBD84ShowInfo(BaseShowInfo):
   def _TransformVolumeSection(cls, vol_content, retval):
     for entry in vol_content:
       if entry[0] == "disk" and len(entry) == 2 and \
-          isinstance(entry[1], basestring):
+          isinstance(entry[1], str):
         retval["local_dev"] = entry[1]
       elif entry[0] == "meta-disk":
         if len(entry) > 1:

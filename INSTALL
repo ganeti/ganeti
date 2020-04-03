@@ -30,28 +30,24 @@ Before installing, please verify that you have the following programs:
 - `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_
 - `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
 - `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
-- `Python <http://www.python.org/>`_, version 2.6 or above, not 3.0
-- `Python OpenSSL bindings <http://pyopenssl.sourceforge.net/>`_
-- `simplejson Python module <http://code.google.com/p/simplejson/>`_
-- `pyparsing Python module <http://pyparsing.wikispaces.com/>`_, version
+- `Python <http://www.python.org/>`_, version 3.6 or above
+- `Python OpenSSL bindings <https://www.pyopenssl.org/>`_
+- `simplejson Python module <https://simplejson.readthedocs.io/>`_
+- `pyparsing Python module <https://pyparsing-docs.readthedocs.io/>`_, version
   1.4.6 or above
 - `pyinotify Python module <https://github.com/seb-m/pyinotify>`_
-- `PycURL Python module <http://pycurl.sourceforge.net/>`_
+- `PycURL Python module <http://pycurl.io/>`_
 - `socat <http://www.dest-unreach.org/socat/>`_, see :ref:`note
   <socat-note>` below
-- `Paramiko <http://www.lag.net/paramiko/>`_, if you want to use
+- `Paramiko <http://www.paramiko.org/>`_, if you want to use
   ``ganeti-listrunner``
-- `psutil Python module <https://github.com/giampaolo/psutil>`_,
+- `psutil Python module <https://psutil.readthedocs.io/>`_,
   optional python package for supporting CPU pinning under KVM, versions
   2.x.x only; beware that versions from 2.0.0 to before 2.2.0 had a
   number of file handle leaks, so running at least 2.2.0 is advised
-- `fdsend Python module <https://gitorious.org/python-fdsend>`_,
-  optional Python package for supporting NIC hotplugging under KVM
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
-- `fping <http://fping.sourceforge.net/>`_
-- `Python IP address manipulation library
-  <http://code.google.com/p/ipaddr-py/>`_
-- `Bitarray Python library <http://pypi.python.org/pypi/bitarray/>`_
+- `fping <http://fping.org/>`_
+- `Bitarray Python library <https://github.com/ilanschnell/bitarray>`_
 - `GNU Make <http://www.gnu.org/software/make/>`_
 - `GNU M4 <http://www.gnu.org/software/m4/>`_
 
@@ -61,15 +57,19 @@ many of them will already be installed on a standard machine. On
 Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
-  $ apt-get install lvm2 ssh iproute iputils-arping make m4 \
-                    ndisc6 python python-openssl openssl \
-                    python-pyparsing python-simplejson python-bitarray \
-                    python-pyinotify python-pycurl python-ipaddr socat fping
+  $ apt-get install lvm2 ssh iproute iputils-arping bridge-utils make m4 \
+                    ndisc6 python3 python3-openssl openssl \
+                    python3-pyparsing python3-simplejson python3-bitarray \
+                    python3-pyinotify python3-pycurl socat fping
 
 Note that the previous instructions don't install optional packages.
 To install the optional package, run the following line.::
 
-  $ apt-get install python-paramiko python-psutil qemu-utils
+  $ apt-get install python3-paramiko python3-psutil qemu-utils
+
+If you want to run the QA suite, you also need the follwing packages::
+
+  $ apt-get install python3-yaml python3-mock
 
 If some of the python packages are not available in your system,
 you can try installing them using ``easy_install`` command.
@@ -79,8 +79,6 @@ For example::
   $ cd / && easy_install \
             psutil \
             bitarray \
-            ipaddr
-
 
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
@@ -168,22 +166,19 @@ deploy Ganeti on production machines). More specifically:
 
 Some of these are also available as package in Debian/Ubuntu::
 
-  $ apt-get install ghc cabal-install libghc-cabal-dev \
-                    libghc-json-dev libghc-network-dev \
-                    libghc-parallel-dev \
-                    libghc-utf8-string-dev libghc-curl-dev \
-                    libghc-hslogger-dev \
-                    libghc-cryptonite-dev libghc-text-dev \
-                    libghc-hinotify-dev libghc-regex-pcre-dev \
-                    libpcre3-dev \
-                    libghc-attoparsec-dev libghc-vector-dev \
-                    libghc-zlib-dev
-
-Debian Jessie also includes recent enough versions of these libraries::
-
-  $ apt-get install libghc-base64-bytestring-dev \
-                    libghc-lens-dev \
-                    libghc-lifted-base-dev
+  $ apt-get install ghc ghc-ghci cabal-install \
+                    libghc-case-insensitive-dev  libghc-curl-dev \
+                    libghc-json-dev libghc-lens-dev \
+                    libghc-network-dev libghc-parallel-dev \
+                    libghc-utf8-string-dev libghc-deepseq-dev \
+                    libghc-hslogger-dev libghc-cryptonite-dev \
+                    libghc-text-dev libghc-hinotify-dev \
+                    libghc-base64-bytestring-dev libghc-zlib-dev \
+                    libghc-regex-pcre-dev libghc-attoparsec-dev
+                    libghc-vector-dev libghc-lifted-base-dev \
+                    libghc-test-framework-quickcheck2-dev \
+                    libghc-test-framework-hunit-dev libghc-temporary-dev \
+                    libghc-old-time-dev libpcre3-dev
 
 In Fedora, some of them are available via packages as well::
 
@@ -253,10 +248,11 @@ To install, simply run the following command::
     make && \
     make install
 
-This will install the software under ``/usr/local``. You then need to
-copy ``doc/examples/ganeti.initd`` to ``/etc/init.d/ganeti`` and
-integrate it into your boot sequence (``chkconfig``, ``update-rc.d``,
-etc.). Also, Ganeti uses symbolic links in the sysconfdir to determine,
+This will install the software under ``/usr/local``. Depending on
+your init system you then need to copy ``doc/examples/ganeti.initd``
+to ``/etc/init.d/ganeti`` or install the respective systemd unit
+files provided in ``doc/examples/systemd/``.
+Also, Ganeti uses symbolic links in the sysconfdir to determine,
 which of potentially many installed versions currently is used. If these
 symbolic links should be added by the install as well, add the
 option ``--enable-symlinks`` to the ``configure`` call.

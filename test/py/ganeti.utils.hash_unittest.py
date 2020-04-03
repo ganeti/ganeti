@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
@@ -63,27 +63,27 @@ class TestHmacFunctions(unittest.TestCase):
                      "7f264f8114c9066afc9bb7636e1786d996d3cc0d")
 
   def testVerifySha1Hmac(self):
-    self.assert_(utils.VerifySha1Hmac("", "", ("fbdb1d1b18aa6c08324b"
+    self.assertTrue(utils.VerifySha1Hmac("", "", ("fbdb1d1b18aa6c08324b"
                                                "7d64b71fb76370690e1d")))
-    self.assert_(utils.VerifySha1Hmac("TguMTA2K", "",
+    self.assertTrue(utils.VerifySha1Hmac("TguMTA2K", "",
                                       ("f904c2476527c6d3e660"
                                        "9ab683c66fa0652cb1dc")))
 
     digest = "ef4f3bda82212ecb2f7ce868888a19092481f1fd"
-    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World", digest))
-    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+    self.assertTrue(utils.VerifySha1Hmac("3YzMxZWE", "Hello World", digest))
+    self.assertTrue(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
                                       digest.lower()))
-    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+    self.assertTrue(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
                                       digest.upper()))
-    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+    self.assertTrue(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
                                       digest.title()))
 
   def testVerifySha1HmacSalt(self):
-    self.assert_(utils.VerifySha1Hmac("TguMTA2K", "",
+    self.assertTrue(utils.VerifySha1Hmac("TguMTA2K", "",
                                       ("17a4adc34d69c0d367d4"
                                        "ffbef96fd41d4df7a6e8"),
                                       salt="abc9"))
-    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+    self.assertTrue(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
                                       ("7f264f8114c9066afc9b"
                                        "b7636e1786d996d3cc0d"),
                                       salt="xyz0"))
@@ -106,15 +106,15 @@ class TestFingerprintFiles(unittest.TestCase):
     self.assertEqual(utils.hash._FingerprintFile("/no/such/file"), None)
 
   def testBigFile(self):
-    self.tmpfile.write("A" * 8192)
+    self.tmpfile.write(b"A" * 8192)
     self.tmpfile.flush()
     self.assertEqual(utils.hash._FingerprintFile(self.tmpfile.name),
                      "35b6795ca20d6dc0aff8c7c110c96cd1070b8c38")
 
   def testMultiple(self):
-    all_files = self.results.keys()
+    all_files = list(self.results)
     all_files.append("/no/such/file")
-    self.assertEqual(utils.FingerprintFiles(self.results.keys()), self.results)
+    self.assertEqual(utils.FingerprintFiles(list(self.results)), self.results)
 
 
 if __name__ == "__main__":

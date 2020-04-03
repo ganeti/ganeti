@@ -34,7 +34,7 @@
 
 from ganeti import utils
 
-import qa_config
+from qa import qa_config
 
 from qa_utils import AssertCommand
 

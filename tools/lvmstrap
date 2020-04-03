@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2011, 2012 Google Inc.
@@ -414,7 +414,7 @@ def ReadSize(syspath):
   f = open("%s/size" % syspath)
   data = f.read().strip()
   f.close()
-  size = 512L * int(data)
+  size = 512 * int(data)
   return size
 
 
@@ -721,7 +721,7 @@ def WipeDisk(name):
     raise OperationalError("CRITICAL: Can't read partition table information"
                            " from /dev/%s (needed 512 bytes, got %d" %
                            (name, len(olddata)))
-  newdata = chr(0) * 512
+  newdata = b"\x00" * 512
   os.lseek(fd, 0, 0)
   bytes_written = os.write(fd, newdata)
   os.close(fd)

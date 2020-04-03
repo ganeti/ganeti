@@ -79,7 +79,7 @@ class _Base(object):
     # Don't raise an error if no changes are requested
     if changes:
       raise errors.ProgrammerError("Unable to modify the following"
-                                   "fields: %r" % (changes.keys(), ))
+                                   "fields: %r" % (list(changes), ))
 
   def Execute(self, name, op):
     """Executes an operation on an entity within the storage unit.

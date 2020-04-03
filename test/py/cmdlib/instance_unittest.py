@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2008, 2011, 2012, 2013 Google Inc.
@@ -542,7 +542,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
                          identify_defaults=True)
     self.ExecOpCode(op)
 
-    inst = self.cfg.GetAllInstancesInfo().values()[0]
+    inst = list(self.cfg.GetAllInstancesInfo().values())[0]
     self.assertEqual(0, len(inst.hvparams))
     self.assertEqual(0, len(inst.beparams))
     assert self.os_name_variant not in inst.osparams or \
@@ -819,7 +819,7 @@ class TestDiskTemplateDiskTypeBijection(TestLUInstanceCreate):
     instances = self.cfg.GetInstancesInfoByFilter(lambda _: True)
     self.assertEqual(len(instances), 1,
       "Expected 1 instance, got\n%s" % instances)
-    return instances.values()[0]
+    return list(instances.values())[0]
 
   def testDiskTemplateLogicalIdBijectionDiskless(self):
     op = self.CopyOpCode(self.diskless_op)
@@ -1583,8 +1583,8 @@ class _DiskWipeProgressTracker:
 
   def __call__(self, disk_info, offset, size):
     (disk, _) = disk_info
-    assert isinstance(offset, (long, int))
-    assert isinstance(size, (long, int))
+    assert isinstance(offset, int)
+    assert isinstance(size, int)
 
     max_chunk_size = (disk.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT)
 

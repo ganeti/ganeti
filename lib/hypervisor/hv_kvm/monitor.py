@@ -37,12 +37,8 @@ import os
 import stat
 import errno
 import socket
-import StringIO
+import io
 import logging
-try:
-  import fdsend   # pylint: disable=F0401
-except ImportError:
-  fdsend = None
 
 from bitarray import bitarray
 
@@ -121,7 +117,7 @@ class QmpMessage(object):
     data = serializer.LoadJson(json_string)
     return QmpMessage(data)
 
-  def __str__(self):
+  def to_bytes(self):
     # The protocol expects the JSON object to be sent as a single line.
     return serializer.DumpJson(self.data)
 
@@ -255,7 +251,7 @@ class QmpConnection(MonitorSocket):
   _QEMU_KEY = "qemu"
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _QUERY_COMMANDS = "query-commands"
-  _MESSAGE_END_TOKEN = "\r\n"
+  _MESSAGE_END_TOKEN = b"\r\n"
   # List of valid attributes for the device_add QMP command.
   # Extra attributes found in device's hvinfo will be ignored.
   _DEVICE_ATTRIBUTES = [
@@ -264,7 +260,7 @@ class QmpConnection(MonitorSocket):
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
-    self._buf = ""
+    self._buf = b""
     self.supported_commands = None
 
   def __enter__(self):
@@ -304,7 +300,7 @@ class QmpConnection(MonitorSocket):
 
     # This is needed because QMP can return more than one greetings
     # see https://groups.google.com/d/msg/ganeti-devel/gZYcvHKDooU/SnukC8dgS5AJ
-    self._buf = ""
+    self._buf = b""
 
     # Let's put the monitor in command mode using the qmp_capabilities
     # command, or else no command will be executable.
@@ -351,7 +347,7 @@ class QmpConnection(MonitorSocket):
     if message:
       return message
 
-    recv_buffer = StringIO.StringIO(self._buf)
+    recv_buffer = io.BytesIO(self._buf)
     recv_buffer.seek(len(self._buf))
     try:
       while True:
@@ -382,12 +378,7 @@ class QmpConnection(MonitorSocket):
     """
     self._check_connection()
     try:
-      message_str = str(message)
-    except Exception as err:
-      raise errors.ProgrammerError("QMP data deserialization error: %s" % err)
-
-    try:
-      self.sock.sendall(message_str)
+      self.sock.sendall(message.to_bytes())
     except socket.timeout as err:
       raise errors.HypervisorError("Timeout while sending a QMP message: "
                                    "%s" % err)
@@ -681,16 +672,12 @@ class QmpConnection(MonitorSocket):
   def CheckDiskHotAddSupport(self):
     """Check if disk hotplug is possible
 
-    Hotplug is *not* supported in case:
-     - fdsend module is missing
-     - add-fd and blockdev-add qmp commands are not supported
+    Hotplug is *not* supported in case the add-fd and blockdev-add qmp commands
+    are not supported
 
     """
     def _raise(reason):
       raise errors.HotplugError("Cannot hot-add disk: %s." % reason)
-
-    if not fdsend:
-      _raise("fdsend python module is missing")
 
     if "add-fd" not in self.supported_commands:
       _raise("add-fd qmp command is not supported")
@@ -702,16 +689,12 @@ class QmpConnection(MonitorSocket):
   def CheckNicHotAddSupport(self):
     """Check if NIC hotplug is possible
 
-    Hotplug is *not* supported in case:
-     - fdsend module is missing
-     - getfd and netdev_add qmp commands are not supported
+    Hotplug is *not* supported in case the getfd and netdev_add qmp commands
+    are not supported
 
     """
     def _raise(reason):
       raise errors.HotplugError("Cannot hot-add NIC: %s." % reason)
-
-    if not fdsend:
-      _raise("fdsend python module is missing")
 
     if "getfd" not in self.supported_commands:
       _raise("getfd qmp command is not supported")
@@ -722,9 +705,9 @@ class QmpConnection(MonitorSocket):
   def _GetFd(self, fd, fdname):
     """Wrapper around the getfd qmp command
 
-    Use fdsend to send an fd to a running process via SCM_RIGHTS and then use
-    the getfd qmp command to name it properly so that it can be used
-    later by NIC hotplugging.
+    Send an fd to a running process via SCM_RIGHTS and then use the getfd qmp
+    command to name it properly so that it can be used later by NIC
+    hotplugging.
 
     @type fd: int
     @param fd: The file descriptor to pass
@@ -733,7 +716,7 @@ class QmpConnection(MonitorSocket):
     """
     self._check_connection()
     try:
-      fdsend.sendfds(self.sock, " ", fds=[fd])
+      utils.SendFds(self.sock, b" ", [fd])
       arguments = {
           "fdname": fdname,
           }
@@ -745,9 +728,8 @@ class QmpConnection(MonitorSocket):
   def _AddFd(self, fd):
     """Wrapper around add-fd qmp command
 
-    Use fdsend to send fd to a running process via SCM_RIGHTS and then add-fd
-    qmp command to add it to an fdset so that it can be used later by
-    disk hotplugging.
+    Send fd to a running process via SCM_RIGHTS and then add-fd qmp command to
+    add it to an fdset so that it can be used later by disk hotplugging.
 
     @type fd: int
     @param fd: The file descriptor to pass
@@ -758,7 +740,7 @@ class QmpConnection(MonitorSocket):
     """
     self._check_connection()
     try:
-      fdsend.sendfds(self.sock, " ", fds=[fd])
+      utils.SendFds(self.sock, b" ", [fd])
       # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
       response = self.Execute("add-fd")
       fdset = response["fdset-id"]

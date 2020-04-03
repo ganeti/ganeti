@@ -70,7 +70,7 @@ def ShowExtStorageInfo(opts, args):
         args.remove(name)
 
     nodegroups_valid = []
-    for nodegroup_name, nodegroup_status in nodegroup_data.iteritems():
+    for nodegroup_name, nodegroup_status in nodegroup_data.items():
       if nodegroup_status:
         nodegroups_valid.append(nodegroup_name)
 
@@ -141,7 +141,7 @@ def DiagnoseExtStorage(opts, args):
     nodegroups_bad = {}
 
     # Per node diagnose
-    for node_name, node_info in node_data.iteritems():
+    for node_name, node_info in node_data.items():
       if node_info: # at least one entry in the per-node list
         (fo_path, fo_status, fo_msg, fo_params) = node_info.pop(0)
         fo_msg = "%s (path: %s)" % (_ExtStorageStatus(fo_status, fo_msg),
@@ -159,7 +159,7 @@ def DiagnoseExtStorage(opts, args):
         nodes_bad[node_name] = "ExtStorage provider not found"
 
     # Per nodegroup diagnose
-    for nodegroup_name, nodegroup_status in nodegroup_data.iteritems():
+    for nodegroup_name, nodegroup_status in nodegroup_data.items():
       status = nodegroup_status
       if status:
         nodegroups_valid[nodegroup_name] = "valid"
@@ -167,13 +167,13 @@ def DiagnoseExtStorage(opts, args):
         nodegroups_bad[nodegroup_name] = "invalid"
 
     def _OutputPerNodegroupStatus(msg_map):
-      map_k = utils.NiceSort(msg_map.keys())
+      map_k = utils.NiceSort(msg_map)
       for nodegroup in map_k:
         ToStdout("  For nodegroup: %s --> %s", nodegroup,
                  msg_map[nodegroup])
 
     def _OutputPerNodeStatus(msg_map):
-      map_k = utils.NiceSort(msg_map.keys())
+      map_k = utils.NiceSort(msg_map)
       for node_name in map_k:
         ToStdout("  Node: %s, status: %s", node_name, msg_map[node_name])
 

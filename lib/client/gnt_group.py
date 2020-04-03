@@ -33,7 +33,7 @@
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti.cli import *
 from ganeti import constants

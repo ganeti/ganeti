@@ -209,10 +209,10 @@ stableCover p percent s prop =
      cover' (10 + (percent * 9 / 10)) (basechance || p) newlabel prop
 
 -- | Return the python binary to use. If the PYTHON environment
--- variable is defined, use its value, otherwise use just \"python\".
+-- variable is defined, use its value, otherwise use just \"python3\".
 pythonCmd :: IO String
 pythonCmd = catchJust (guard . isDoesNotExistError)
-            (getEnv "PYTHON") (const (return "python"))
+            (getEnv "PYTHON") (const (return "python3"))
 
 -- | Run Python with an expression, returning the exit code, standard
 -- output and error.
@@ -414,9 +414,15 @@ genIPv4Address = mkIPv4Address =<< genIPv4
 -- | Generate an arbitrary IPv4 network in textual form.
 genIPv4AddrRange :: Gen String
 genIPv4AddrRange = do
-  ip <- genIPv4
-  netmask <- choose (8::Int, 30)
-  return $ ip ++ "/" ++ show netmask
+  pfxLen <- choose (8::Int, 30)
+  -- Generate a number that fits in pfxLen bits
+  addr <- choose(1::Int, 2^pfxLen-1)
+  let hostLen = 32 - pfxLen
+      -- ...and shift it left until it becomes a 32-bit number
+      -- with the low hostLen bits unset
+      net = addr * 2^hostLen
+      netBytes = [(net `div` 2^x) `mod` 256 | x <- [24::Int, 16, 8, 0]]
+  return $ intercalate "." (map show netBytes) ++ "/" ++ show pfxLen
 
 genIPv4Network :: Gen IPv4Network
 genIPv4Network = mkIPv4Network =<< genIPv4AddrRange
@@ -435,12 +441,31 @@ genIp6Addr = do
   rawIp <- vectorOf 8 $ choose (0::Integer, 65535)
   return $ intercalate ":" (map (`showHex` "") rawIp)
 
+-- | Helper function to convert an integer in to an IPv6 address in textual
+-- form
+ip6AddressFromNumber :: Integer -> [Char]
+ip6AddressFromNumber ipInt =
+  -- chunksOf splits a sequence in chunks of n elements length each
+  -- chunksOf 4 "20010db80000" = ["2001", "0db8", "0000"]
+  let chunksOf :: Int -> [a] -> [[a]]
+      chunksOf _ [] = []
+      chunksOf n lst = take n lst : (chunksOf n $ drop n lst)
+      -- Left-pad a sequence with a fixed element if it's shorter than n
+      -- elements, or trim it to the first n elements otherwise
+      -- e.g. lPadTrim 6 '0' "abcd" = "00abcd"
+      lPadTrim :: Int -> a -> [a] -> [a]
+      lPadTrim n p lst
+        | length lst < n = lPadTrim n p $ p : lst
+        | otherwise = take n lst
+      rawIp = lPadTrim 32 '0' $ (`showHex` "") ipInt
+  in intercalate ":" $ chunksOf 4 rawIp
+
 -- | Generates an arbitrary IPv6 network in textual form.
 genIp6Net :: Gen String
 genIp6Net = do
   netmask <- choose (8::Int, 126)
-  ip <- genIp6Addr
-  return $ ip ++ "/" ++ show netmask
+  raw_ip <- (* 2^(128-netmask)) <$> choose(1::Integer, 2^netmask-1)
+  return $ ip6AddressFromNumber raw_ip ++ "/" ++ show netmask
 
 -- | Generates a valid, arbitrary tag name with respect to the given
 -- 'TagKind' for opcodes.

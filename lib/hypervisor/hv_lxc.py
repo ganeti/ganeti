@@ -93,6 +93,7 @@ class LXCVersion(tuple):
     return version
 
   def __str__(self):
+    # pylint: disable=E1101
     return self.original_string
 
 
@@ -409,7 +410,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     fd = -1
     try:
       fd = os.open(param_path, os.O_WRONLY)
-      os.write(fd, param_value)
+      os.write(fd, param_value.encode("ascii"))
     finally:
       if fd != -1:
         os.close(fd)

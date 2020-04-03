@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
@@ -30,6 +30,7 @@
 
 """Script for unittesting the utils module"""
 
+import array
 import errno
 import fcntl
 import glob
@@ -113,11 +114,11 @@ class TestFirstFree(unittest.TestCase):
 
   def test(self):
     """Test FirstFree"""
-    self.failUnlessEqual(FirstFree([0, 1, 3]), 2)
-    self.failUnlessEqual(FirstFree([]), None)
-    self.failUnlessEqual(FirstFree([3, 4, 6]), 0)
-    self.failUnlessEqual(FirstFree([3, 4, 6], base=3), 5)
-    self.failUnlessRaises(AssertionError, FirstFree, [0, 3, 4, 6], base=3)
+    self.assertEqual(FirstFree([0, 1, 3]), 2)
+    self.assertEqual(FirstFree([]), None)
+    self.assertEqual(FirstFree([3, 4, 6]), 0)
+    self.assertEqual(FirstFree([3, 4, 6], base=3), 5)
+    self.assertRaises(AssertionError, FirstFree, [0, 3, 4, 6], base=3)
 
 
 class TestTimeFunctions(unittest.TestCase):
@@ -155,20 +156,20 @@ class FieldSetTestCase(unittest.TestCase):
 
   def testSimpleMatch(self):
     f = utils.FieldSet("a", "b", "c", "def")
-    self.failUnless(f.Matches("a"))
-    self.failIf(f.Matches("d"), "Substring matched")
-    self.failIf(f.Matches("defghi"), "Prefix string matched")
-    self.failIf(f.NonMatching(["b", "c"]))
-    self.failIf(f.NonMatching(["a", "b", "c", "def"]))
-    self.failUnless(f.NonMatching(["a", "d"]))
+    self.assertTrue(f.Matches("a"))
+    self.assertFalse(f.Matches("d"), "Substring matched")
+    self.assertFalse(f.Matches("defghi"), "Prefix string matched")
+    self.assertFalse(f.NonMatching(["b", "c"]))
+    self.assertFalse(f.NonMatching(["a", "b", "c", "def"]))
+    self.assertTrue(f.NonMatching(["a", "d"]))
 
   def testRegexMatch(self):
     f = utils.FieldSet("a", "b([0-9]+)", "c")
-    self.failUnless(f.Matches("b1"))
-    self.failUnless(f.Matches("b99"))
-    self.failIf(f.Matches("b/1"))
-    self.failIf(f.NonMatching(["b12", "c"]))
-    self.failUnless(f.NonMatching(["a", "1"]))
+    self.assertTrue(f.Matches("b1"))
+    self.assertTrue(f.Matches("b99"))
+    self.assertFalse(f.Matches("b/1"))
+    self.assertFalse(f.NonMatching(["b12", "c"]))
+    self.assertTrue(f.NonMatching(["a", "1"]))
 
 
 class TestForceDictType(unittest.TestCase):
@@ -257,12 +258,12 @@ class TestReadLockedPidFile(unittest.TestCase):
 
   def testNonExistent(self):
     path = utils.PathJoin(self.tmpdir, "nonexist")
-    self.assert_(utils.ReadLockedPidFile(path) is None)
+    self.assertTrue(utils.ReadLockedPidFile(path) is None)
 
   def testUnlocked(self):
     path = utils.PathJoin(self.tmpdir, "pid")
     utils.WriteFile(path, data="123")
-    self.assert_(utils.ReadLockedPidFile(path) is None)
+    self.assertTrue(utils.ReadLockedPidFile(path) is None)
 
   def testLocked(self):
     path = utils.PathJoin(self.tmpdir, "pid")
@@ -276,7 +277,7 @@ class TestReadLockedPidFile(unittest.TestCase):
     finally:
       fl.Close()
 
-    self.assert_(utils.ReadLockedPidFile(path) is None)
+    self.assertTrue(utils.ReadLockedPidFile(path) is None)
 
   def testError(self):
     path = utils.PathJoin(self.tmpdir, "foobar", "pid")
@@ -302,17 +303,17 @@ class TestFindMatch(unittest.TestCase):
                          ((1, 2, 3), [i, str(j)]))
 
   def testNoMatch(self):
-    self.assert_(utils.FindMatch({}, "") is None)
-    self.assert_(utils.FindMatch({}, "foo") is None)
-    self.assert_(utils.FindMatch({}, 1234) is None)
+    self.assertTrue(utils.FindMatch({}, "") is None)
+    self.assertTrue(utils.FindMatch({}, "foo") is None)
+    self.assertTrue(utils.FindMatch({}, 1234) is None)
 
     data = {
       "X": "Hello World",
       re.compile("^(something)$"): "Hello World",
       }
 
-    self.assert_(utils.FindMatch(data, "") is None)
-    self.assert_(utils.FindMatch(data, "Hello World") is None)
+    self.assertTrue(utils.FindMatch(data, "") is None)
+    self.assertTrue(utils.FindMatch(data, "Hello World") is None)
 
 
 class TestTryConvert(unittest.TestCase):
@@ -501,6 +502,44 @@ class GetDiskTemplateTest(unittest.TestCase):
   def testMixed(self):
     self.assertEqual(utils.GetDiskTemplate([Rbd(), Drbd()]),
                      constants.DT_MIXED)
+
+
+class TestSendFds(unittest.TestCase):
+  def testSendFds(self):
+    sender, receiver = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+
+    # Attempt to send both, file-like objects and fds
+    tempfiles = [tempfile.TemporaryFile() for _ in range(3)]
+    tempfds = [tempfile.mkstemp()[0] for _ in range(3)]
+
+    utils.SendFds(sender, b" ", tempfiles + tempfds)
+
+    _, ancdata, __, ___ = receiver.recvmsg(10, 1024)
+
+    self.assertEqual(len(ancdata), 1)
+    cmsg_level, cmsg_type, cmsg_data = ancdata[0]
+
+    self.assertEqual(cmsg_level, socket.SOL_SOCKET)
+    self.assertEqual(cmsg_type, socket.SCM_RIGHTS)
+
+    received_fds = array.array("i")
+    received_fds.frombytes(cmsg_data)
+
+    sent_fds = tempfds + [f.fileno() for f in tempfiles]
+
+    # The received file descriptors are essentially dup()'d, so we can't
+    # compare them directly. Instead we need to check that they are referring
+    # to the same files.
+    received_inodes = set(os.fstat(fd) for fd in received_fds)
+    sent_inodes = set(os.fstat(fd) for fd in sent_fds)
+    self.assertSetEqual(sent_inodes, received_inodes)
+
+    sender.close()
+    receiver.close()
+    for fd in received_fds.tolist() + tempfds:
+      os.close(fd)
+    for file_ in tempfiles:
+      file_.close()
 
 
 if __name__ == "__main__":

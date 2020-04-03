@@ -47,12 +47,12 @@ pass to and from external parties.
 
 # R0902: Allow instances of these objects to have more than 20 attributes
 
-import ConfigParser
+import configparser
 import re
 import copy
 import logging
 import time
-from cStringIO import StringIO
+from io import StringIO
 from socket import AF_INET
 
 from ganeti import errors
@@ -97,7 +97,7 @@ def FillIPolicy(default_ipolicy, custom_ipolicy):
   """Fills an instance policy with defaults.
 
   """
-  assert frozenset(default_ipolicy.keys()) == constants.IPOLICY_ALL_KEYS
+  assert frozenset(default_ipolicy) == constants.IPOLICY_ALL_KEYS
   ret_dict = copy.deepcopy(custom_ipolicy)
   for key in default_ipolicy:
     if key not in ret_dict:
@@ -279,7 +279,7 @@ class ConfigObject(outils.ValidatedSlots):
     if not isinstance(val, dict):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
-    val_str = dict([(str(k), v) for k, v in val.iteritems()])
+    val_str = dict([(str(k), v) for k, v in val.items()])
     obj = cls(**val_str)
     return obj
 
@@ -294,10 +294,6 @@ class ConfigObject(outils.ValidatedSlots):
   def __repr__(self):
     """Implement __repr__ for ConfigObjects."""
     return repr(self.ToDict())
-
-  def __eq__(self, other):
-    """Implement __eq__ for ConfigObjects."""
-    return isinstance(other, self.__class__) and self.ToDict() == other.ToDict()
 
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.
@@ -324,7 +320,7 @@ class TaggableObject(ConfigObject):
     function has no return value.
 
     """
-    if not isinstance(tag, basestring):
+    if not isinstance(tag, str):
       raise errors.TagError("Invalid tag type (not a string)")
     if len(tag) > constants.MAX_TAG_LEN:
       raise errors.TagError("Tag too long (>%d characters)" %
@@ -1044,14 +1040,14 @@ class InstancePolicy(ConfigObject):
     for key in constants.IPOLICY_PARAMETERS:
       if key in ipolicy:
         InstancePolicy.CheckParameter(key, ipolicy[key])
-    wrong_keys = frozenset(ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
+    wrong_keys = frozenset(ipolicy) - constants.IPOLICY_ALL_KEYS
     if wrong_keys:
       raise errors.ConfigurationError("Invalid keys in ipolicy: %s" %
                                       utils.CommaJoin(wrong_keys))
 
   @classmethod
   def _CheckIncompleteSpec(cls, spec, keyname):
-    missing_params = constants.ISPECS_PARAMETERS - frozenset(spec.keys())
+    missing_params = constants.ISPECS_PARAMETERS - frozenset(spec)
     if missing_params:
       msg = ("Missing instance specs parameters for %s: %s" %
              (keyname, utils.CommaJoin(missing_params)))
@@ -1083,7 +1079,7 @@ class InstancePolicy(ConfigObject):
       raise errors.ConfigurationError("Empty minmax specifications")
     std_is_good = False
     for minmaxspecs in ipolicy[constants.ISPECS_MINMAX]:
-      missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs.keys())
+      missing = constants.ISPECS_MINMAX_KEYS - frozenset(minmaxspecs)
       if missing:
         msg = "Missing instance specification: %s" % utils.CommaJoin(missing)
         raise errors.ConfigurationError(msg)
@@ -1799,7 +1795,7 @@ class Cluster(TaggableObject):
       # we can either make sure to upgrade the ipolicy always, or only
       # do it in some corner cases (e.g. missing keys); note that this
       # will break any removal of keys from the ipolicy dict
-      wrongkeys = frozenset(self.ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
+      wrongkeys = frozenset(self.ipolicy) - constants.IPOLICY_ALL_KEYS
       if wrongkeys:
         # These keys would be silently removed by FillIPolicy()
         msg = ("Cluster instance policy contains spurious keys: %s" %
@@ -2419,10 +2415,10 @@ class Network(TaggableObject):
 
 
 # need to inherit object in order to use super()
-class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
+class SerializableConfigParser(configparser.ConfigParser, object):
   """Simple wrapper over ConfigParse that allows serialization.
 
-  This class is basically ConfigParser.SafeConfigParser with two
+  This class is basically configparser.ConfigParser with two
   additional methods that allow it to serialize/unserialize to/from a
   buffer.
 
@@ -2438,7 +2434,7 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
     """Load data from a string."""
     buf = StringIO(data)
     cfp = cls()
-    cfp.readfp(buf)
+    cfp.read_file(buf)
     return cfp
 
   def get(self, section, option, **kwargs):
@@ -2448,7 +2444,7 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
                                                         **kwargs)
       if value.lower() == constants.VALUE_NONE:
         value = None
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
       r = re.compile(r"(disk|nic)\d+_name|nic\d+_(network|vlan)")
       match = r.match(option)
       if match:

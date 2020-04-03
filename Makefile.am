@@ -1110,6 +1110,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Locking/Waiting.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/PartialParams.hs \
+	test/hs/Test/Ganeti/PyValue.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/Objects/BitArray.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
@@ -1524,7 +1525,7 @@ python_scripts_shebang = \
 
 tools/shebang/%: tools/%
 	mkdir -p tools/shebang
-	head -1 $< | sed 's|#!/usr/bin/python|#!$(PYTHON)|' > $@
+	head -1 $< | sed 's|#!/usr/bin/python3|#!$(PYTHON)|' > $@
 	echo '# Generated file; do not edit.' >> $@
 	tail -n +2 $< >> $@
 
@@ -2776,7 +2777,7 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@test -n "$(HLINT)" || { echo 'hlint' not found during configure; exit 1; }
 	@rm -f doc/hs-lint.html
 	if tty -s; then C="-c"; else C=""; fi; \
-	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
+	$(HLINT) --report=doc/hs-lint.html --cross $$C \
 	  --hint src/lint-hints \
 	  --cpp-file=$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
@@ -3029,7 +3030,7 @@ apps/%.hs.stamp: Makefile
 # Builds the cabal file
 ganeti.cabal: cabal/ganeti.template.cabal Makefile cabal/cabal-from-modules.py $(CABAL_EXECUTABLES_APPS_STAMPS)
 	@echo $(subst /,.,$(patsubst %.hs,%,$(patsubst test/hs/%,%,$(patsubst src/%,%,$(HS_SRCS))))) \
-	  | python $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
+	  | $(PYTHON) $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
 
 	for p in $(CABAL_EXECUTABLES); do \
 	  echo                                   >> $@; \

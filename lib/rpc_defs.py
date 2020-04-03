@@ -115,7 +115,8 @@ def _BlockdevGetMirrorStatusPostProc(result):
 
   """
   if not result.fail_msg:
-    result.payload = map(objects.BlockDevStatus.FromDict, result.payload)
+    result.payload = [objects.BlockDevStatus.FromDict(d)
+                      for d in result.payload]
   return result
 
 

@@ -60,8 +60,8 @@ from ganeti import pathutils
 from ganeti import vcluster
 
 import colors
-import qa_config
-import qa_error
+from qa import qa_config
+from qa import qa_error
 
 from qa_logging import FormatInfo
 
@@ -135,7 +135,7 @@ def _GetName(entity, fn):
   @param fn: Function retrieving name from entity
 
   """
-  if isinstance(entity, basestring):
+  if isinstance(entity, str):
     result = entity
   else:
     result = fn(entity)
@@ -207,7 +207,7 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, forward_agent=True,
 
   nodename = _GetName(node, operator.attrgetter("primary"))
 
-  if isinstance(cmd, basestring):
+  if isinstance(cmd, str):
     cmdstr = cmd
   else:
     cmdstr = utils.ShellQuoteArgs(cmd)
@@ -347,7 +347,7 @@ def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
       pcmd = cmd
     print("%s %s" % (colors.colorize("Command:", colors.CYAN),
                      utils.ShellQuoteArgs(pcmd)))
-  return subprocess.Popen(cmd, shell=False, **kwargs)
+  return subprocess.Popen(cmd, shell=False, encoding="utf-8", **kwargs)
 
 
 def StartSSH(node, cmd, strict=True, log_cmd=True, forward_agent=True):
@@ -382,7 +382,7 @@ def CloseMultiplexers():
   """Closes all current multiplexers and cleans up.
 
   """
-  for node in _MULTIPLEXERS.keys():
+  for node in list(_MULTIPLEXERS):
     (sname, child) = _MULTIPLEXERS.pop(node)
     utils.KillProcess(child.pid, timeout=10, waitpid=True)
     utils.RemoveFile(sname)
@@ -472,7 +472,7 @@ def UploadFile(node, src):
   f = open(src, "r")
   try:
     p = subprocess.Popen(GetSSHCommand(node, cmd), shell=False, stdin=f,
-                         stdout=subprocess.PIPE)
+                         stdout=subprocess.PIPE, encoding="utf-8")
     AssertEqual(p.wait(), 0)
 
     # Return temporary filename
@@ -499,7 +499,8 @@ def UploadData(node, data, mode=0o600, filename=None):
          "echo \"${tmp}\"") % tmp
 
   p = subprocess.Popen(GetSSHCommand(node, cmd), shell=False,
-                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                       encoding="utf-8", stdin=subprocess.PIPE,
+                       stdout=subprocess.PIPE)
   p.stdin.write(data)
   p.stdin.close()
   AssertEqual(p.wait(), 0)
@@ -878,7 +879,7 @@ def MakeNodePath(node, path):
   """
   (_, basedir) = qa_config.GetVclusterSettings()
 
-  if isinstance(node, basestring):
+  if isinstance(node, str):
     name = node
   else:
     name = node.primary

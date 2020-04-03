@@ -73,6 +73,7 @@ module Ganeti.JQueue
     , cancelJob
     , tellJobPriority
     , notifyJob
+    , waitUntilJobExited
     , queueDirPermissions
     , archiveJobs
     -- re-export
@@ -88,6 +89,7 @@ import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception
 import Control.Lens (over)
 import Control.Monad
+import Control.Monad.Fix
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
@@ -561,6 +563,34 @@ isQueuedJobDead ownlivelock =
   maybe (return False) (liftIO . isDead)
   . mfilter (/= ownlivelock)
   . qjLivelock
+
+-- | Waits for a job's process to exit
+waitUntilJobExited :: Livelock -- ^ LuxiD's own livelock
+                   -> QueuedJob -- ^ the job to wait for
+                   -> Int -- ^ timeout in milliseconds
+                   -> ResultG (Bool, String)
+waitUntilJobExited ownlivelock job tmout = do
+  let sleepDelay = 100 :: Int -- ms
+      jName = ("Job " ++) . show . fromJobId . qjId $ job
+  logDebug $ "Waiting for " ++ jName ++ " to exit"
+
+  start <- liftIO getClockTime
+  let tmoutPicosec :: Integer
+      tmoutPicosec = fromIntegral $ tmout * 1000 * 1000 * 1000
+      wait = noTimeDiff { tdPicosec = tmoutPicosec }
+      deadline = addToClockTime wait start
+
+  liftIO . fix $ \loop -> do
+    -- fail if the job is in the startup phase or has no livelock
+    dead <- maybe (fail $ jName ++ " has not yet started up")
+      (liftIO . isDead) . mfilter (/= ownlivelock) . qjLivelock $ job
+    curtime <- getClockTime
+    let elapsed = timeDiffToString $ System.Time.diffClockTimes
+                  curtime start
+    case dead of
+      True -> return (True, jName ++ " process exited after " ++ elapsed)
+      _ | curtime < deadline -> threadDelay (sleepDelay * 1000) >> loop
+      _ -> fail $ jName ++ " still running after " ++ elapsed
 
 -- | Waits for a job ordered to cancel to react, and returns whether it was
 -- canceled, and a user-intended description of the reason.

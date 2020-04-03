@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2010, 2011, 2012 Google Inc.
@@ -53,8 +53,8 @@ class TestOpcodes(unittest.TestCase):
     self.assertRaises(ValueError, opcodes.OpCode.LoadOpCode, {"OP_ID": ""})
 
     for cls in opcodes.OP_MAPPING.values():
-      self.assert_(cls.OP_ID.startswith("OP_"))
-      self.assert_(len(cls.OP_ID) > 3)
+      self.assertTrue(cls.OP_ID.startswith("OP_"))
+      self.assertTrue(len(cls.OP_ID) > 3)
       self.assertEqual(cls.OP_ID, cls.OP_ID.upper())
       self.assertEqual(cls.OP_ID, opcodes_base._NameToId(cls.__name__))
       self.assertFalse(
@@ -84,10 +84,10 @@ class TestOpcodes(unittest.TestCase):
 
         # Try a restore
         state = op.__getstate__()
-        self.assert_(isinstance(state, dict))
+        self.assertTrue(isinstance(state, dict))
 
         restored = opcodes.OpCode.LoadOpCode(state)
-        self.assert_(isinstance(restored, cls))
+        self.assertTrue(isinstance(restored, cls))
         self._checkSummary(restored)
 
         for name in ["x_y_z", "hello_world"]:
@@ -99,8 +99,8 @@ class TestOpcodes(unittest.TestCase):
     summary = op.Summary()
 
     if hasattr(op, "OP_DSC_FIELD"):
-      self.assert_(("OP_%s" % summary).startswith("%s(" % op.OP_ID))
-      self.assert_(summary.endswith(")"))
+      self.assertTrue(("OP_%s" % summary).startswith("%s(" % op.OP_ID))
+      self.assertTrue(summary.endswith(")"))
     else:
       self.assertEqual("OP_%s" % summary, op.OP_ID)
 
@@ -163,7 +163,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertTrue(opcodes_base.BaseOpCode not in opcodes.OP_MAPPING.values())
     self.assertTrue(opcodes.OpCode not in opcodes.OP_MAPPING.values())
 
-    for cls in opcodes.OP_MAPPING.values() + [opcodes.OpCode]:
+    for cls in list(opcodes.OP_MAPPING.values()) + [opcodes.OpCode]:
       all_slots = cls.GetAllSlots()
 
       self.assertEqual(len(set(all_slots) & supported_by_all), 3,
@@ -171,7 +171,7 @@ class TestOpcodes(unittest.TestCase):
                             " parameters (%r)" % (cls.OP_ID, supported_by_all)))
 
       # All opcodes must have OP_PARAMS
-      self.assert_(hasattr(cls, "OP_PARAMS"),
+      self.assertTrue(hasattr(cls, "OP_PARAMS"),
                    msg="%s doesn't have OP_PARAMS" % cls.OP_ID)
 
       param_names = [name for (name, _, _, _) in cls.GetAllParams()]
@@ -190,11 +190,11 @@ class TestOpcodes(unittest.TestCase):
 
       # Check parameter definitions
       for attr_name, aval, test, doc in cls.GetAllParams():
-        self.assert_(attr_name)
+        self.assertTrue(attr_name)
         self.assertTrue(callable(test),
                      msg=("Invalid type check for %s.%s" %
                           (cls.OP_ID, attr_name)))
-        self.assertTrue(doc is None or isinstance(doc, basestring))
+        self.assertTrue(doc is None or isinstance(doc, str))
 
         if callable(aval):
           default_value = aval()
@@ -285,8 +285,8 @@ class TestOpcodes(unittest.TestCase):
     op.Validate(True)
     self.assertEqual(op.value1, "default")
     self.assertEqual(op.value2, "result")
-    self.assert_(op.dry_run is None)
-    self.assert_(op.debug_level is None)
+    self.assertTrue(op.dry_run is None)
+    self.assertTrue(op.debug_level is None)
     self.assertEqual(op.priority, constants.OP_PRIO_DEFAULT)
 
     op = OpTest(value1="hello", value2="world", debug_level=123)
@@ -302,11 +302,11 @@ class TestOpcodes(unittest.TestCase):
 
     multialloc = opcodes.OpInstanceMultiAlloc(instances=[inst_op])
     state = multialloc.__getstate__()
-    self.assertEquals(state["instances"], [inst_state])
+    self.assertEqual(state["instances"], [inst_state])
     loaded_multialloc = opcodes.OpCode.LoadOpCode(state)
     (loaded_inst,) = loaded_multialloc.instances
-    self.assertNotEquals(loaded_inst, inst_op)
-    self.assertEquals(loaded_inst.__getstate__(), inst_state)
+    self.assertNotEqual(loaded_inst, inst_op)
+    self.assertEqual(loaded_inst.__getstate__(), inst_state)
 
 
 class TestOpcodeDepends(unittest.TestCase):

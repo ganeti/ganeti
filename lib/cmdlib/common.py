@@ -33,7 +33,7 @@
 import copy
 import math
 import os
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from ganeti import constants
 from ganeti import errors
@@ -529,7 +529,7 @@ def CheckNodePVs(nresult, exclusive_storage):
   pvlist_dict = nresult.get(constants.NV_PVLIST, None)
   if pvlist_dict is None:
     return (["Can't get PV list from node"], None)
-  pvlist = map(objects.LvmPvInfo.FromDict, pvlist_dict)
+  pvlist = [objects.LvmPvInfo.FromDict(d) for d in pvlist_dict]
   errlist = []
   # check that ':' is not present in PV names, since it's a
   # special character for lvcreate (denotes the range of PEs to
@@ -629,9 +629,8 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
 
   min_errs = None
   for minmax in ipolicy[constants.ISPECS_MINMAX]:
-    errs = filter(None,
-                  (_compute_fn(name, qualifier, minmax, value)
-                   for (name, qualifier, value) in test_settings))
+    errs = [err for err in (_compute_fn(name, qualifier, minmax, value)
+                for (name, qualifier, value) in test_settings) if err]
     if min_errs is None or len(errs) < len(min_errs):
       min_errs = errs
   assert min_errs is not None
@@ -761,7 +760,7 @@ def GetUpdatedParams(old_params, update_dict,
 
   """
   params_copy = copy.deepcopy(old_params)
-  for key, val in update_dict.iteritems():
+  for key, val in update_dict.items():
     if ((use_default and val == constants.VALUE_DEFAULT) or
           (use_none and val is None)):
       try:
@@ -805,7 +804,7 @@ def GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                      (key, value, err), errors.ECODE_INVAL)
       elif key == constants.ISPECS_MINMAX:
         for minmax in value:
-          for k in minmax.keys():
+          for k in minmax:
             utils.ForceDictType(minmax[k], constants.ISPECS_PARAMETER_TYPES)
         ipolicy[key] = value
       elif key == constants.ISPECS_STD:
@@ -1504,14 +1503,14 @@ def DetermineImageSize(lu, image, node_uuid):
 
   """
   # Check if we are dealing with a URL first
-  class _HeadRequest(urllib2.Request):
+  class _HeadRequest(urllib.request.Request):
     def get_method(self):
       return "HEAD"
 
   if utils.IsUrl(image):
     try:
-      response = urllib2.urlopen(_HeadRequest(image))
-    except urllib2.URLError:
+      response = urllib.request.urlopen(_HeadRequest(image))
+    except urllib.error.URLError:
       raise errors.OpExecError("Could not retrieve image from given url '%s'" %
                                image)
 

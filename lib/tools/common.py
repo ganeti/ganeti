@@ -35,7 +35,7 @@ import logging
 import os
 import time
 
-from cStringIO import StringIO
+from io import StringIO
 
 import OpenSSL
 

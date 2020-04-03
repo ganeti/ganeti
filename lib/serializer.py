@@ -39,6 +39,7 @@ backend (currently json).
 # function and not a constant
 
 import re
+from copy import deepcopy
 
 # Python 2.6 and above contain a JSON module based on simplejson. Unfortunately
 # the standard library version is significantly slower than the external
@@ -58,7 +59,7 @@ def DumpJson(data, private_encoder=None):
   """Serialize a given object.
 
   @param data: the data to serialize
-  @return: the string representation of data
+  @return: the bytes representation of data
   @param private_encoder: specify L{serializer.EncodeWithPrivateFields} if you
                           require the produced JSON to also contain private
                           parameters. Otherwise, they will encode to null.
@@ -73,18 +74,19 @@ def DumpJson(data, private_encoder=None):
   if not txt.endswith("\n"):
     txt += "\n"
 
-  return txt
+  return txt.encode("utf-8")
 
 
-def LoadJson(txt):
-  """Unserialize data from a string.
+def LoadJson(data):
+  """Unserialize data from bytes.
 
-  @param txt: the json-encoded form
+  @param data: the json-encoded form
+  @type data: str or bytes
   @return: the original data
   @raise JSONDecodeError: if L{txt} is not a valid JSON document
 
   """
-  values = simplejson.loads(txt)
+  values = simplejson.loads(data)
 
   # Hunt and seek for Private fields and wrap them.
   WrapPrivateValues(values)
@@ -274,6 +276,13 @@ class Private(object):
   def __format__(self, *_1, **_2):
     return self.__str__()
 
+  def __copy__(self):
+    return Private(self._item, self._descr)
+
+  def __deepcopy__(self, memo):
+    new_item = deepcopy(self._item, memo)
+    return Private(new_item, self._descr)
+
   def __getattr__(self, attr):
     return Private(getattr(self._item, attr),
                    descr="%s.%s" % (self._descr, attr))
@@ -288,7 +297,7 @@ class Private(object):
   def __getnewargs__(self):
     return tuple()
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self._item)
 
   # Get in the way of Pickle by implementing __slots__ but not __getstate__
@@ -334,7 +343,7 @@ class PrivateDict(dict):
     if other is None:
       pass
     elif hasattr(other, 'iteritems'):  # iteritems saves memory and lookups
-      for k, v in other.iteritems():
+      for k, v in other.items():
         self[k] = v
     elif hasattr(other, 'keys'):
       for k in other.keys():

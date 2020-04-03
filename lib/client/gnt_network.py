@@ -297,7 +297,7 @@ def SetNetworkParams(opts, args):
     "network6": opts.network6,
   }
 
-  if all_changes.values().count(None) == len(all_changes):
+  if list(all_changes.values()).count(None) == len(all_changes):
     ToStderr("Please give at least one of the parameters.")
     return 1
 

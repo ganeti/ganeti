@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 
 # Copyright (C) 2011 Google Inc.
@@ -36,7 +36,7 @@ import time
 import unittest
 import os
 
-from cStringIO import StringIO
+from io import StringIO
 
 from ganeti import constants
 from ganeti import utils
@@ -50,28 +50,28 @@ class TestMatchNameComponent(unittest.TestCase):
 
   def testEmptyList(self):
     """Test that there is no match against an empty list"""
-    self.failUnlessEqual(utils.MatchNameComponent("", []), None)
-    self.failUnlessEqual(utils.MatchNameComponent("test", []), None)
+    self.assertEqual(utils.MatchNameComponent("", []), None)
+    self.assertEqual(utils.MatchNameComponent("test", []), None)
 
   def testSingleMatch(self):
     """Test that a single match is performed correctly"""
     mlist = ["test1.example.com", "test2.example.com", "test3.example.com"]
     for key in "test2", "test2.example", "test2.example.com":
-      self.failUnlessEqual(utils.MatchNameComponent(key, mlist), mlist[1])
+      self.assertEqual(utils.MatchNameComponent(key, mlist), mlist[1])
 
   def testMultipleMatches(self):
     """Test that a multiple match is returned as None"""
     mlist = ["test1.example.com", "test1.example.org", "test1.example.net"]
     for key in "test1", "test1.example":
-      self.failUnlessEqual(utils.MatchNameComponent(key, mlist), None)
+      self.assertEqual(utils.MatchNameComponent(key, mlist), None)
 
   def testFullMatch(self):
     """Test that a full match is returned correctly"""
     key1 = "test1"
     key2 = "test1.example"
     mlist = [key2, key2 + ".com"]
-    self.failUnlessEqual(utils.MatchNameComponent(key1, mlist), None)
-    self.failUnlessEqual(utils.MatchNameComponent(key2, mlist), key2)
+    self.assertEqual(utils.MatchNameComponent(key1, mlist), None)
+    self.assertEqual(utils.MatchNameComponent(key2, mlist), key2)
 
   def testCaseInsensitivePartialMatch(self):
     """Test for the case_insensitive keyword"""
@@ -128,9 +128,9 @@ class TestDnsNameGlobPattern(unittest.TestCase):
       ]
 
   def _Test(self, pattern):
-    re_pat = utils.DnsNameGlobPattern(pattern)
+    re_pat = re.compile(utils.DnsNameGlobPattern(pattern))
 
-    return filter(re.compile(re_pat).match, self.names)
+    return [n for n in self.names if re_pat.match(n)]
 
   def test(self):
     for pattern in ["xyz", "node", " ", "example.net", "x*.example.*",
@@ -310,12 +310,12 @@ class TestShellWriter(unittest.TestCase):
 
     output = buf.getvalue()
 
-    self.assert_(output.endswith("\n"))
+    self.assertTrue(output.endswith("\n"))
 
     lines = output.splitlines()
     self.assertEqual(len(lines), 9)
     self.assertEqual(lines[0], "#!/bin/bash")
-    self.assert_(re.match(r"^\s+date$", lines[5]))
+    self.assertTrue(re.match(r"^\s+date$", lines[5]))
     self.assertEqual(lines[7], "echo 'Hello World'")
 
   def testEmpty(self):
@@ -391,19 +391,19 @@ class TestSafeEncode(unittest.TestCase):
   """Test case for SafeEncode"""
 
   def testAscii(self):
-    for txt in [string.digits, string.letters, string.punctuation]:
-      self.failUnlessEqual(txt, utils.SafeEncode(txt))
+    for txt in [string.digits, string.ascii_letters, string.punctuation]:
+      self.assertEqual(txt, utils.SafeEncode(txt))
 
   def testDoubleEncode(self):
     for i in range(255):
       txt = utils.SafeEncode(chr(i))
-      self.failUnlessEqual(txt, utils.SafeEncode(txt))
+      self.assertEqual(txt, utils.SafeEncode(txt))
 
   def testUnicode(self):
     # 1024 is high enough to catch non-direct ASCII mappings
     for i in range(1024):
-      txt = utils.SafeEncode(unichr(i))
-      self.failUnlessEqual(txt, utils.SafeEncode(txt))
+      txt = utils.SafeEncode(chr(i))
+      self.assertEqual(txt, utils.SafeEncode(txt))
 
 
 class TestUnescapeAndSplit(unittest.TestCase):
@@ -416,25 +416,25 @@ class TestUnescapeAndSplit(unittest.TestCase):
   def testSimple(self):
     a = ["a", "b", "c", "d"]
     for sep in self._seps:
-      self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), a)
+      self.assertEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), a)
 
   def testEscape(self):
     for sep in self._seps:
       a = ["a", "b\\" + sep + "c", "d"]
       b = ["a", "b" + sep + "c", "d"]
-      self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
+      self.assertEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
 
   def testDoubleEscape(self):
     for sep in self._seps:
       a = ["a", "b\\\\", "c", "d"]
       b = ["a", "b\\", "c", "d"]
-      self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
+      self.assertEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
 
   def testThreeEscape(self):
     for sep in self._seps:
       a = ["a", "b\\\\\\" + sep + "c", "d"]
       b = ["a", "b\\" + sep + "c", "d"]
-      self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
+      self.assertEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
 
   def testEscapeAtEnd(self):
     for sep in self._seps:
@@ -452,7 +452,7 @@ class TestUnescapeAndSplit(unittest.TestCase):
     for sep in self._seps:
       a = ["a", "b\\" + sep + "c", "d\\" + sep + "e\\" + sep + "f", "g"]
       b = ["a", "b" + sep + "c", "d" + sep + "e" + sep + "f", "g"]
-      self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
+      self.assertEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
 
 class TestEscapeAndJoin(unittest.TestCase):
   def verifyParsesCorrect(self, args):
@@ -494,7 +494,7 @@ class TestFormatTime(unittest.TestCase):
 
   def _Test(self, *args):
     # Need to use separate process as we want to change TZ
-    self.assert_(utils.RunInSeparateProcess(self._TestInProcess, *args))
+    self.assertTrue(utils.RunInSeparateProcess(self._TestInProcess, *args))
 
   def test(self):
     self._Test("UTC", 0, None, "1970-01-01 00:00:00")
@@ -508,10 +508,10 @@ class TestFormatTime(unittest.TestCase):
                "2010-12-18 04:28:46.999999")
 
   def testNone(self):
-    self.failUnlessEqual(utils.FormatTime(None), "N/A")
+    self.assertEqual(utils.FormatTime(None), "N/A")
 
   def testInvalid(self):
-    self.failUnlessEqual(utils.FormatTime(()), "N/A")
+    self.assertEqual(utils.FormatTime(()), "N/A")
 
   def testNow(self):
     # tests that we accept time.time input
@@ -545,11 +545,11 @@ class TestLineSplitter(unittest.TestCase):
   def test(self):
     lines = []
     ls = utils.LineSplitter(lines.append)
-    ls.write("Hello World\n")
+    ls.write(b"Hello World\n")
     self.assertEqual(lines, [])
-    ls.write("Foo\n Bar\r\n ")
-    ls.write("Baz")
-    ls.write("Moo")
+    ls.write(b"Foo\n Bar\r\n ")
+    ls.write(b"Baz")
+    ls.write(b"Moo")
     self.assertEqual(lines, [])
     ls.flush()
     self.assertEqual(lines, ["Hello World", "Foo", " Bar"])
@@ -564,11 +564,11 @@ class TestLineSplitter(unittest.TestCase):
   def testExtraArgsNoFlush(self):
     lines = []
     ls = utils.LineSplitter(self._testExtra, lines, 999, "extra")
-    ls.write("\n\nHello World\n")
-    ls.write("Foo\n Bar\r\n ")
-    ls.write("")
-    ls.write("Baz")
-    ls.write("Moo\n\nx\n")
+    ls.write(b"\n\nHello World\n")
+    ls.write(b"Foo\n Bar\r\n ")
+    ls.write(b"")
+    ls.write(b"Baz")
+    ls.write(b"Moo\n\nx\n")
     self.assertEqual(lines, [])
     ls.close()
     self.assertEqual(lines, ["", "", "Hello World", "Foo", " Bar", " BazMoo",
@@ -624,10 +624,10 @@ class TestTruncate(unittest.TestCase):
       data = i * "FooBarBaz"
       self.assertEqual(self._Test(data, len(data)), data)
 
-    for (length, exp) in [(8, u"T\u00e4st\u2026xyz"), (7, u"T\u00e4st...")]:
-      self.assertEqual(self._Test(u"T\u00e4st\u2026xyz", length), exp)
+    for (length, exp) in [(8, "T\u00e4st\u2026xyz"), (7, "T\u00e4st...")]:
+      self.assertEqual(self._Test("T\u00e4st\u2026xyz", length), exp)
 
-    self.assertEqual(self._Test(range(100), 20), "[0, 1, 2, 3, 4, 5...")
+    self.assertEqual(self._Test(list(range(100)), 20), "[0, 1, 2, 3, 4, 5...")
 
   def testError(self):
     for i in range(4):

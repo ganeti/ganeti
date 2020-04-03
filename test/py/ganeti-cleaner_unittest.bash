@@ -30,7 +30,7 @@
 set -e -u
 set -o pipefail
 
-export PYTHON=${PYTHON:=python}
+export PYTHON=${PYTHON:=python3}
 
 GNTC=daemons/ganeti-cleaner
 CCE=$PWD/tools/check-cert-expired

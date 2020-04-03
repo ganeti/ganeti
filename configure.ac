@@ -573,10 +573,22 @@ fi
 
 # Check for pylint
 AC_ARG_VAR(PYLINT, [pylint path])
-AC_PATH_PROG(PYLINT, [pylint], [])
+AC_PATH_PROG(PYLINT, [pylint3], [])
 if test -z "$PYLINT"
 then
-  AC_MSG_WARN([pylint not found, checking code will not be possible])
+  AC_PATH_PROG(PYLINT, [pylint], [])
+  if test -z "$PYLINT"
+  then
+    AC_MSG_WARN([pylint not found, checking code will not be possible])
+  else
+    if $PYLINT --version 2>/dev/null | grep -q '^pylint 1\.'
+    then
+      # Make sure this is not pylint 1
+      AC_MSG_WARN([pylint 1.x found, checking code will not be possible.
+                   Please upgrade pylint to at least 2.0.])
+      PYLINT=
+    fi
+  fi
 fi
 
 # Check for pep8
@@ -588,9 +600,9 @@ then
 fi
 AM_CONDITIONAL([HAS_PEP8], [test -n "$PEP8"])
 
-# Check for python-coverage
-AC_ARG_VAR(PYCOVERAGE, [python-coverage path])
-AC_PATH_PROGS(PYCOVERAGE, [python-coverage coverage], [])
+# Check for python3-coverage
+AC_ARG_VAR(PYCOVERAGE, [python3-coverage path])
+AC_PATH_PROGS(PYCOVERAGE, [python3-coverage coverage], [])
 if test -z "$PYCOVERAGE"
 then
   AC_MSG_WARN(m4_normalize([python-coverage or coverage not found, evaluating
@@ -866,29 +878,18 @@ fi
 AC_SUBST(MAN_HAS_WARNINGS)
 
 # Check for Python
-# We need a Python-2 interpreter, version at least 2.6. As AM_PATH_PYTHON
-# only supports a "minimal version" constraint, we check <3.0 afterwards.
+# We need a Python3 interpreter, version at least 3.6.
 # We  tune _AM_PYTHON_INTERPRETER_LIST to first check interpreters that are
-# likely interpreters for Python 2.
+# likely interpreters for Python 3.
 m4_define_default([_AM_PYTHON_INTERPRETER_LIST],
-                  [python2 python2.7 python2.6 python])
-AM_PATH_PYTHON(2.6)
-if $PYTHON -c "import sys
-if (sys.hexversion >> 24) < 3:
-  sys.exit(1)
-else:
-  sys.exit(0)
-"; then
-  AC_MSG_FAILURE([Can only work with an interpreter for Python 2])
-fi
-
+                  [python3 python3.8 python3.7 python3.6 python])
+AM_PATH_PYTHON([3.6])
 AC_PYTHON_MODULE(OpenSSL, t)
 AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 AC_PYTHON_MODULE(bitarray, t)
-AC_PYTHON_MODULE(ipaddr, t)
 AC_PYTHON_MODULE(mock)
 AC_PYTHON_MODULE(psutil)
 AC_PYTHON_MODULE(paramiko)

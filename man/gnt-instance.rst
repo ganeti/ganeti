@@ -1273,10 +1273,10 @@ even in the presence of errors during the removal of the instance
 (e.g. during the shutdown or the disk removal). If this option is not
 given, the command will stop at the first error.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
-before forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the
-kvm process for KVM, etc.). By default two minutes are given to each
-instance to stop.
+The ``--shutdown-timeout`` is used to specify how much time (in
+minutes) to wait before forcing the shutdown (e.g. ``xm destroy`` in
+Xen, killing the kvm process for KVM, etc.). By default two minutes
+are given to each instance to stop.
 
 The ``--force`` option is used to skip the interactive confirmation.
 
@@ -1508,11 +1508,10 @@ effect without the need of actual reboot. Please note that this feature
 is currently supported only for KVM hypervisor and there are some
 restrictions: a) NIC/Disk hot-remove should work for QEMU versions >= 1.0
 b) instances with chroot or pool/user security model support disk
-hot-add only for QEMU version > 1.7 where add-fd QMP command exists c) For
-the previous case as well as for NIC hot-add, python-fdsend package must
-be installed d) if hotplug fails (for any reason) a warning is printed
-but execution is continued e) for existing NIC modification interactive
-verification is needed unless ``--force`` option is passed.
+hot-add only for QEMU version > 1.7 where add-fd QMP command exists c)
+if hotplug fails (for any reason) a warning is printed but execution is
+continued d) for existing NIC modification interactive verification is
+needed unless ``--force`` option is passed.
 
 If ``--hotplug-if-possible`` is given then ganeti won't abort in case
 hotplug is not supported. It will continue execution and modification
@@ -1705,10 +1704,10 @@ during a hardcoded interval (currently 2 minutes), it will forcibly
 stop the instance (equivalent to switching off the power on a physical
 machine).
 
-The ``--timeout`` is used to specify how much time to wait before
-forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the kvm
-process for KVM, etc.). By default two minutes are given to each
-instance to stop.
+The ``--timeout`` is used to specify how much time (in minutes) to
+wait before forcing the shutdown (e.g. ``xm destroy`` in Xen, killing
+the kvm process for KVM, etc.). By default two minutes are given to
+each instance to stop.
 
 The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 ``--all``, ``--tags``, ``--node-tags``, ``--pri-node-tags`` and
@@ -1720,7 +1719,7 @@ force the instance to be marked as stopped. This option should be used
 with care as it can lead to an inconsistent cluster state.
 
 Use ``--force`` to be able to shutdown an instance even when it's marked
-as offline. This is useful is an offline instance ends up in the
+as offline. This is useful if an offline instance ends up in the
 ``ERROR_up`` state, for example.
 
 The ``--no-remember`` option will perform the shutdown but not change
@@ -1769,10 +1768,10 @@ The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 ``--sec-node-tags`` options are similar as for the **startup** command
 and they influence the actual instances being rebooted.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
-before forcing the shutdown (xm destroy in xen, killing the kvm
-process, for kvm). By default two minutes are given to each instance
-to stop.
+The ``--shutdown-timeout`` is used to specify how much time (in
+minutes) to wait before forcing the shutdown (xm destroy in xen,
+killing the kvm process, for kvm). By default two minutes are given
+to each instance to stop.
 
 The ``--force-multiple`` will skip the interactive confirmation in the
 case the more than one instance will be affected.
@@ -2070,10 +2069,10 @@ having the instance running on two machines in parallel (on
 disconnected DRBD drives). This flag requires the source node to be
 marked offline first to succeed.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
-before forcing the shutdown (xm destroy in xen, killing the kvm
-process, for kvm). By default two minutes are given to each instance
-to stop.
+The ``--shutdown-timeout`` is used to specify how much time (in
+minutes) to wait before forcing the shutdown (xm destroy in xen,
+killing the kvm process, for kvm). By default two minutes are given
+to each instance to stop.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
@@ -2213,10 +2212,10 @@ The ``--compress`` option is used to specify which compression mode
 is used during the move. Valid values are 'none' (the default) and any
 values specified in the 'compression_tools' cluster parameter.
 
-The ``--shutdown-timeout`` is used to specify how much time to wait
-before forcing the shutdown (e.g. ``xm destroy`` in XEN, killing the
-kvm process for KVM, etc.). By default two minutes are given to each
-instance to stop.
+The ``--shutdown-timeout`` is used to specify how much time (in
+minutes) to wait before forcing the shutdown (e.g. ``xm destroy`` in
+XEN, killing the kvm process for KVM, etc.). By default two minutes
+are given to each instance to stop.
 
 The ``--ignore-consistency`` option will make Ganeti ignore any errors
 in trying to shutdown the instance on its node; useful if the
