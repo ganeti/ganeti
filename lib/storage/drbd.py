@@ -1019,7 +1019,7 @@ class DRBD8Dev(base.BlockDev):
     """
     # Zero the metadata first, in order to make sure drbdmeta doesn't
     # try to auto-detect existing filesystems or similar (see
-    # http://code.google.com/p/ganeti/issues/detail?id=182); we only
+    # https://github.com/ganeti/ganeti/issues/238); we only
     # care about the first 128MB of data in the device, even though it
     # can be bigger
     result = utils.RunCmd([constants.DD_CMD,

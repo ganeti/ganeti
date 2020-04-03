@@ -16,10 +16,10 @@ Current state and shortcomings
 ==============================
 
 All SSH daemons are expected to be running on the default port 22. It has been
-requested by Ganeti users (`Issue 235`_) to allow SSH daemons run on
+requested by Ganeti users (`Issue 291`_) to allow SSH daemons run on
 non-standard ports as well.
 
-.. _`Issue 235`: https://code.google.com/p/ganeti/issues/detail?id=235
+.. _`Issue 291`: https://github.com/ganeti/ganeti/issues/291 
 
 
 Proposed Changes

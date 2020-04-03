@@ -1,7 +1,7 @@
 REPORTING BUGS
 --------------
 
-Report bugs to `project website <http://code.google.com/p/ganeti/>`_
+Report bugs to the `project's issue tracker <https://github.com/ganeti/ganeti/issues>`_
 or contact the developers using the `Ganeti mailing list
 <ganeti@googlegroups.com>`_.
 
