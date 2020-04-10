@@ -178,10 +178,13 @@ name
    identifier. An instance can not have two NICs with the same name.
 
 vlan
-   in openvswitch mode specifies the VLANs that the NIC will be
-   connected to. To connect as an access port use ``n`` or ``.n`` with
-   **n** being the VLAN ID. To connect as an trunk port use ``:n[:n]``.
-   A hybrid port can be created with ``.n:n[:n]``
+   in bridged and openvswitch mode specifies the VLANs that the NIC
+   will be connected to. To connect as an access port use ``n`` or 
+   ``.n`` with **n** being the VLAN ID. To connect as an trunk port
+   use ``:n[:n]``. A hybrid port can be created with ``.n:n[:n]``. For
+   bridged mode, the bridge needs VLAN filtering enabled. Assuming a
+   bridge named **gnt-br**, this is accomplished by running ``ip link
+   set dev gnt-br type bridge vlan_filtering 1``.
 
 Of these "mode" and "link" are NIC parameters, and inherit their
 default at cluster level.  Alternatively, if no network is desired for
