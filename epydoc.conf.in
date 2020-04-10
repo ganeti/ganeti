@@ -1,7 +1,7 @@
 [epydoc]
 
 name: Ganeti
-url: http://code.google.com/p/ganeti/
+url: https://github.com/ganeti/ganeti/
 
 output: html
 
