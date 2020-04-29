@@ -122,7 +122,16 @@ def UpgradeRange(target, current=CURRENT_VERSION):
     return "automatic upgrades only supported from 2.10 onwards"
 
   if target[0] != current[0]:
-    return "different major versions"
+    # allow major upgrade from 2.16 to 3.0
+    if current[0:2] == (2,16) and target[0:2] == (3,0):
+      return None
+    # allow major downgrade from 3.0 to 2.16
+    if current[0:2] == (3,0) and target[0:2] == (2,16):
+      return None
+
+    # forbid any other major version up-/downgrades
+    return "major version up- or downgrades are only supported between " \
+      "2.16 and 3.0"
 
   if target[1] < current[1] - 1:
     return "can only downgrade one minor version at a time"
