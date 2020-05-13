@@ -165,14 +165,19 @@ _MIGRATION_CAPS_DELIM = ":"
 
 def _with_qmp(fn):
   """Wrapper used on hotplug related methods"""
-  def wrapper(self, instance, *args, **kwargs):
+  def wrapper(self, *args, **kwargs):
     """Create a QmpConnection and run the wrapped method"""
     if not getattr(self, "qmp", None):
+      for arg in args:
+        if isinstance(arg, objects.Instance):
+          instance = arg
+          break
+      else:
+        raise(RuntimeError("QMP decorator could not find a valid ganeti instance object"))
       filename = self._InstanceQmpMonitor(instance.name)# pylint: disable=W0212
       self.qmp = QmpConnection(filename)
-    return fn(self, instance, *args, **kwargs)
+    return fn(self, *args, **kwargs)
   return wrapper
-
 
 def _GetDriveURI(disk, link, uri):
   """Helper function to get the drive uri to be used in --drive kvm option
@@ -592,13 +597,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
 
-  _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
-                                    re.M | re.I)
-  _MIGRATION_PROGRESS_RE = \
-    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
-               r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
-               r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
-
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
 
@@ -606,7 +604,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _CPU_INFO_RE = re.compile(r"cpu\s+\#(\d+).*thread_id\s*=\s*(\d+)", re.I)
   _CPU_INFO_CMD = "info cpus"
-  _CONT_CMD = "cont"
 
   _DEFAULT_MACHINE_VERSION_RE = re.compile(r"^(\S+).*\(default\)", re.M)
   _CHECK_MACHINE_VERSION_RE = \
@@ -1826,6 +1823,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   # too many local variables
   # pylint: disable=R0914
+  @_with_qmp
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
@@ -2049,7 +2047,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # To control CPU pinning, ballooning, and vnc/spice passwords
       # the VM was started in a frozen state. If freezing was not
       # explicitly requested resume the vm status.
-      self._CallMonitorCommand(instance.name, self._CONT_CMD)
+      self.qmp.ContinueGuestEmulation()
 
   @staticmethod
   def _StartKvmd(hvparams):
@@ -2530,6 +2528,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       self.StopInstance(instance, force=True)
 
+  @_with_qmp
   def MigrateInstance(self, cluster_name, instance, target, live_migration):
     """Migrate an instance to a target node.
 
@@ -2553,25 +2552,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
     if not live_migration:
-      self._CallMonitorCommand(instance_name, "stop")
+      self.qmp.StopGuestEmulation()
 
-    migrate_command = ("migrate_set_speed %dm" %
-                       instance.hvparams[constants.HV_MIGRATION_BANDWIDTH])
-    self._CallMonitorCommand(instance_name, migrate_command)
-
-    migrate_command = ("migrate_set_downtime %dms" %
-                       instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
-    self._CallMonitorCommand(instance_name, migrate_command)
+    max_bandwidth_in_bytes = instance.hvparams[constants.HV_MIGRATION_BANDWIDTH] * 1024 * 1024
+    self.qmp.SetMigrationParameters(max_bandwidth_in_bytes, instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
 
     migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
     if migration_caps:
-      for c in migration_caps.split(_MIGRATION_CAPS_DELIM):
-        migrate_command = ("migrate_set_capability %s on" % c)
-        self._CallMonitorCommand(instance_name, migrate_command)
+      self.qmp.SetMigrationCapabilities(migration_caps.split(_MIGRATION_CAPS_DELIM))
 
-    migrate_command = "migrate -d tcp:%s:%s" % (target, port)
-    self._CallMonitorCommand(instance_name, migrate_command)
+    self.qmp.StartMigration(target, port)
 
+  @_with_qmp
   def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
 
@@ -2591,10 +2583,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # migration.
       _, _, alive = self._InstancePidAlive(instance.name)
       if alive:
-        self._CallMonitorCommand(instance.name, self._CONT_CMD)
+        self.qmp.ContinueGuestEmulation()
       else:
         self.CleanupInstance(instance.name)
 
+  @_with_qmp
   def GetMigrationStatus(self, instance):
     """Get the migration status
 
@@ -2606,28 +2599,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
              progress info that can be retrieved from the hypervisor
 
     """
-    info_command = "info migrate"
+
     for _ in range(self._MIGRATION_INFO_MAX_BAD_ANSWERS):
-      result = self._CallMonitorCommand(instance.name, info_command)
-      match = self._MIGRATION_STATUS_RE.search(result.stdout)
-      if not match:
-        if not result.stdout:
-          logging.info("KVM: empty 'info migrate' result")
-        else:
-          logging.warning("KVM: unknown 'info migrate' result: %s",
-                          result.stdout)
-      else:
-        status = match.group(1)
-        if status in constants.HV_KVM_MIGRATION_VALID_STATUSES:
-          migration_status = objects.MigrationStatus(status=status)
-          match = self._MIGRATION_PROGRESS_RE.search(result.stdout)
-          if match:
-            migration_status.transferred_ram = match.group("transferred")
-            migration_status.total_ram = match.group("total")
+      query_migrate = self.qmp.GetMigrationStatus()
+
+      if "status" in query_migrate:
+        if query_migrate["status"] in constants.HV_KVM_MIGRATION_VALID_STATUSES:
+          migration_status = objects.MigrationStatus(status=
+                                                     query_migrate["status"])
+          if "ram" in query_migrate:
+            migration_status.transferred_ram = query_migrate["ram"]["transferred"]
+            migration_status.total_ram = query_migrate["ram"]["total"]
 
           return migration_status
-
-        logging.warning("KVM: unknown migration status '%s'", status)
+        else:
+          logging.warning("KVM: unknown migration status '%s'",
+                          query_migrate["status"])
+      else:
+        logging.warning("KVM: unknown 'query-migrate' result: %s",
+                        query_migrate)
 
       time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
 
