@@ -1,6 +1,7 @@
 News
 ====
 
+
 Version 2.16.2
 --------------
 
@@ -28,6 +29,7 @@ Bugfixes
  - RPC: remove 1-second wait introduced by ``Expect: 100-Continue``.
    This speeds up all RPC operations that pass through LuxiD (most
    notably queries like ``gnt-instance list``) by 1 second.
+
 
 Version 2.16.1
 --------------
