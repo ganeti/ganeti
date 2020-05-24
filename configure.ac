@@ -911,7 +911,7 @@ else
   AC_MSG_NOTICE([Python development modules found, unittests enabled])
 fi
 AC_SUBST(PY_NODEV)
-AM_CONDITIONAL([PY_UNIT], [test -n $PY_NODEV])
+AM_CONDITIONAL([PY_UNIT], [test -z $PY_NODEV])
 
 include_makefile_ghc='
 ifneq ($(MAKECMDGOALS),ganeti)
