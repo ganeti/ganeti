@@ -890,7 +890,6 @@ AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 AC_PYTHON_MODULE(bitarray, t)
-AC_PYTHON_MODULE(mock)
 AC_PYTHON_MODULE(psutil)
 AC_PYTHON_MODULE(paramiko)
 
@@ -899,6 +898,10 @@ PY_NODEV=
 AC_PYTHON_MODULE(yaml)
 if test $HAVE_PYMOD_YAML == "no"; then
   PY_NODEV="$PY_NODEV yaml"
+fi
+AC_PYTHON_MODULE(mock)
+if test $HAVE_PYMOD_MOCK == "no"; then
+  PY_NODEV="$PY_NODEV mock"
 fi
 
 if test -n "$PY_NODEV"; then
