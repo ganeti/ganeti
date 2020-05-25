@@ -890,7 +890,6 @@ AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 AC_PYTHON_MODULE(bitarray, t)
-AC_PYTHON_MODULE(mock)
 AC_PYTHON_MODULE(psutil)
 AC_PYTHON_MODULE(paramiko)
 
@@ -900,6 +899,10 @@ AC_PYTHON_MODULE(yaml)
 if test $HAVE_PYMOD_YAML == "no"; then
   PY_NODEV="$PY_NODEV yaml"
 fi
+AC_PYTHON_MODULE(mock)
+if test $HAVE_PYMOD_MOCK == "no"; then
+  PY_NODEV="$PY_NODEV mock"
+fi
 
 if test -n "$PY_NODEV"; then
   AC_MSG_WARN(m4_normalize([Required development modules ($PY_NODEV) were not
@@ -908,7 +911,7 @@ else
   AC_MSG_NOTICE([Python development modules found, unittests enabled])
 fi
 AC_SUBST(PY_NODEV)
-AM_CONDITIONAL([PY_UNIT], [test -n $PY_NODEV])
+AM_CONDITIONAL([PY_UNIT], [test -z $PY_NODEV])
 
 include_makefile_ghc='
 ifneq ($(MAKECMDGOALS),ganeti)

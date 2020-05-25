@@ -2670,6 +2670,11 @@ hs-tests: test/hs/htest
 
 .PHONY: py-tests
 py-tests: $(python_tests) ganeti $(built_python_sources)
+	@if [ "$(PY_NODEV)" ]; then \
+	  echo "Error: cannot run unittests without the development" \
+	       " libraries (see devnotes.rst)" 1>&2; \
+	  exit 1; \
+	fi
 	error=; \
 	for file in $(python_tests); \
 	  do if ! $(TESTS_ENVIRONMENT) $$file; then error=1; fi; \
