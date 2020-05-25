@@ -1,16 +1,56 @@
 News
 ====
 
+
 Version 3.0.0 beta1
 -------------------
 
-*(not yet released)*
+*(unreleased)*
+
+This is a major release, porting Ganeti to Python 3, fixing bugs and
+adding new features.
 
 Upgrade notes
 ~~~~~~~~~~~~~
-There is no supported upgrade path for users running Ganeti-2.17 (i.e.
-2.17.0 beta1). Ganeti-2.17 was never released, so hopefully no one uses
-it.
+
+Ganeti versions earlier than 2.16.2 will refuse to upgrade to 3.0 using
+``gnt-cluster upgrade``. If you are using your distribution packages, chances
+are their maintainers will provide a smooth upgrade path from older
+versions, so check the package release notes. If you build Ganeti from
+source, please upgrade to 2.16.2 as an intermediate step before
+upgrading to 3.0, or consult Github issue `#1423`_ for possible
+workarounds.
+
+.. _#1243: https://github.com/ganeti/ganeti/issues/1423
+
+Note that at this time there is no supported upgrade path for users
+running Ganeti-2.17 (i.e. 2.17.0 beta1). Ganeti-2.17 was never
+released, so hopefully no one uses it.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+Python >=3.6 required
++++++++++++++++++++++
+
+This release switches the whole Ganeti codebase (with the exception of
+the RAPI client) to Python 3. Python 2 has reached its end-of-life and
+is being removed from most distributions, so we opted to skip
+dual-version support and convert the code straight to Python 3-only.
+
+We have tested the code as well as we can, but there is still the
+possibility of breakage, as the conversion touches a big part of the
+codebase that cannot always be tested automatically. Please test this
+release if possible and report any bugs on GitHub.
+
+Note that the minimum required Python version is 3.6.
+
+GHC >= 8 required
++++++++++++++++++
+
+This release removes support for ancient versions of GHC and now
+requires at least GHC 8.0 to build.
+
 
 Version 2.16.1
 --------------
