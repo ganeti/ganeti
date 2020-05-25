@@ -98,7 +98,7 @@ def main():
   # Ensure "C" locale is used
   curlocale = locale.getlocale()
   if curlocale != (None, None):
-    Error("Invalid locale %s" % curlocale)
+    Error("Invalid locale %s" % str(curlocale))
 
   # Get the release version, but replace "~" with " " as the version
   # in the NEWS file uses spaces for beta and rc releases.
