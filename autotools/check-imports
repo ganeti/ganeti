@@ -87,16 +87,20 @@ def main():
         checkmodpath = getattr(checkmod, "__file__")
       except AttributeError:
         # Built-in module
-        pass
-      else:
-        abscheckmodpath = os.path.abspath(checkmodpath)
+        continue
 
-        if abscheckmodpath == script_path:
-          # Ignore check script
-          continue
+      if checkmodpath is None and hasattr(checkmod, "__path__"):
+        # Namespace module
+        continue
 
-        if commonprefix([abscheckmodpath, srcdir]) == srcdir:
-          result.append(name)
+      abscheckmodpath = os.path.abspath(checkmodpath)
+
+      if abscheckmodpath == script_path:
+        # Ignore check script
+        continue
+
+      if commonprefix([abscheckmodpath, srcdir]) == srcdir:
+        result.append(name)
 
     if result:
       raise Exception("Module '%s' has illegal imports: %s" %
