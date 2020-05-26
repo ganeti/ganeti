@@ -22,6 +22,10 @@
 *.stat
 .hpc/
 
+# files and folders belonging to common editors/IDEs
+/.vscode
+/.idea
+
 # /
 /.hsenv
 /Makefile
