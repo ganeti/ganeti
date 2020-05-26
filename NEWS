@@ -12,6 +12,35 @@ There is no supported upgrade path for users running Ganeti-2.17 (i.e.
 2.17.0 beta1). Ganeti-2.17 was never released, so hopefully no one uses
 it.
 
+Version 2.16.2
+--------------
+
+*(Released Fri, 22 May 2020)*
+
+This is a bugfix and compatibility release.
+
+Important note
+~~~~~~~~~~~~~~
+
+Due to the way the ``gnt-cluster upgrade`` mechanism is implemented,
+Ganeti versions earlier than 2.16.2 will refuse to upgrade to the
+upcoming 3.0 release. This release changes the upgrade logic to
+explicitly allow upgrades from 2.16.2 and later to 3.0.
+
+See `#1423`_ for more details and the relevant discussion.
+
+.. _#1423: https://github.com/ganeti/ganeti/issues/1423
+
+Bugfixes
+~~~~~~~~
+
+ - Fix node secondary instance count. Secondary instances were counted
+   as many times as their disk count (#1399)
+ - RPC: remove 1-second wait introduced by ``Expect: 100-Continue``.
+   This speeds up all RPC operations that pass through LuxiD (most
+   notably queries like ``gnt-instance list``) by 1 second.
+
+
 Version 2.16.1
 --------------
 
