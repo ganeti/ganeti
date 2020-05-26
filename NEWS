@@ -1,6 +1,7 @@
 News
 ====
 
+
 Version 3.0.0 beta1
 -------------------
 
@@ -11,6 +12,7 @@ Upgrade notes
 There is no supported upgrade path for users running Ganeti-2.17 (i.e.
 2.17.0 beta1). Ganeti-2.17 was never released, so hopefully no one uses
 it.
+
 
 Version 2.16.2
 --------------
