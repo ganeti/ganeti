@@ -53,7 +53,8 @@ type HashKey = [Word8]
 computeMac :: HashKey -> Maybe String -> String -> String
 computeMac key salt text =
   let hashable = maybe text (++ text) salt
-  in show . hmacGetDigest $ (hmac (B.pack key) (BU.fromString hashable) :: HMAC SHA1)
+  in show . hmacGetDigest $
+    (hmac (B.pack key) (BU.fromString hashable) :: HMAC SHA1)
 
 -- | Verifies the HMAC for a given message.
 verifyMac :: HashKey -> Maybe String -> String -> String -> Bool
