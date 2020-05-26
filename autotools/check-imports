@@ -40,7 +40,7 @@ import sys
 
 # All modules imported after this line are removed from the global list before
 # importing a module to be checked
-_STANDARD_MODULES = sys.modules.keys()
+_STANDARD_MODULES = set(sys.modules.keys())
 
 import os.path
 
