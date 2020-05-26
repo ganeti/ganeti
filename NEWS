@@ -21,7 +21,7 @@ source, please upgrade to 2.16.2 as an intermediate step before
 upgrading to 3.0, or consult Github issue `#1423`_ for possible
 workarounds.
 
-.. _#1243: https://github.com/ganeti/ganeti/issues/1423
+.. _#1423: https://github.com/ganeti/ganeti/issues/1423
 
 Note that at this time there is no supported upgrade path for users
 running Ganeti-2.17 (i.e. 2.17.0 beta1). Ganeti-2.17 was never
