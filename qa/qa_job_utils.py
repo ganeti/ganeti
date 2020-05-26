@@ -282,8 +282,10 @@ class QAThread(threading.Thread):
     """ Reraises any exceptions that might have occured during thread execution.
 
     """
-    if self._exc_info is not None:
-      raise self._exc_info[0](self._exc_info[1]).with_traceback(self._exc_info[2])
+    if self._exc_info is None:
+      return
+
+    raise self._exc_info[0](self._exc_info[1]).with_traceback(self._exc_info[2])
 
 
 class QAThreadGroup(object):

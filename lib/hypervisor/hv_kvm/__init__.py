@@ -173,7 +173,8 @@ def _with_qmp(fn):
           instance = arg
           break
       else:
-        raise(RuntimeError("QMP decorator could not find a valid ganeti instance object"))
+        raise(RuntimeError("QMP decorator could not find"
+                           " a valid ganeti instance object"))
       filename = self._InstanceQmpMonitor(instance.name)# pylint: disable=W0212
       self.qmp = QmpConnection(filename)
     return fn(self, *args, **kwargs)
@@ -2554,12 +2555,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not live_migration:
       self.qmp.StopGuestEmulation()
 
-    max_bandwidth_in_bytes = instance.hvparams[constants.HV_MIGRATION_BANDWIDTH] * 1024 * 1024
-    self.qmp.SetMigrationParameters(max_bandwidth_in_bytes, instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
+    max_bandwidth_in_bytes = \
+        instance.hvparams[constants.HV_MIGRATION_BANDWIDTH] * 1024 * 1024
+    self.qmp.SetMigrationParameters(max_bandwidth_in_bytes,
+        instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
 
     migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
+    migration_caps = migration_caps.split(_MIGRATION_CAPS_DELIM)
     if migration_caps:
-      self.qmp.SetMigrationCapabilities(migration_caps.split(_MIGRATION_CAPS_DELIM))
+      self.qmp.SetMigrationCapabilities(migration_caps)
 
     self.qmp.StartMigration(target, port)
 
@@ -2608,7 +2612,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           migration_status = objects.MigrationStatus(status=
                                                      query_migrate["status"])
           if "ram" in query_migrate:
-            migration_status.transferred_ram = query_migrate["ram"]["transferred"]
+            migration_status.transferred_ram = \
+                query_migrate["ram"]["transferred"]
             migration_status.total_ram = query_migrate["ram"]["total"]
 
           return migration_status
