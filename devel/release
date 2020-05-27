@@ -38,7 +38,7 @@
 
 set -e
 
-: ${URL:=git://git.ganeti.org/ganeti.git}
+: ${URL:=https://github.com/ganeti/ganeti}
 TAG="$1"
 : ${PARALLEL:=$(egrep -c "^processor\s+:" /proc/cpuinfo)}
 
