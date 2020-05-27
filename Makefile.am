@@ -2598,7 +2598,7 @@ ganeti:
 .PHONY: check-dirs
 check-dirs: $(GENERATED_FILES)
 	@set -e; \
-	find . -type d \( -name . -o -name .git -prune -o -print \) | { \
+	find . -type d -not -name '.' -not -path '*/\.*' | { \
 	  error=; \
 	  while read dir; do \
 	    case "$$dir" in \
@@ -2657,7 +2657,8 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	    error=1; \
 	  fi; \
 	done; \
-	test -z "$$error"
+	test -z "$$error" ; \
+	echo "All checks passed successfully"
 
 .PHONY: hs-test-%
 hs-test-%: test/hs/htest
