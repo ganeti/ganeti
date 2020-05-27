@@ -5,6 +5,8 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      LC_ALL: C
     steps:
       - uses: actions/checkout@v1
 
@@ -23,6 +25,11 @@ jobs:
         with:
           args: make -j 2
 
+      - name: Run local checks
+        uses: docker://ganeti/ci:buster-py3
+        with:
+          args: make -j 2 check-local
+
       - name: Python tests
         uses: docker://ganeti/ci:buster-py3
         with:
@@ -32,3 +39,4 @@ jobs:
         uses: docker://ganeti/ci:buster-py3
         with:
           args: make -j 2 hs-tests
+
