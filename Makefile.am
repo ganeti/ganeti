@@ -374,6 +374,7 @@ clean-local:
 	rm -rf tools/shebang
 	rm -rf apps
 	rm -rf dist
+	find -D exec . -type d -name __pycache__ -exec rm -rf {} +
 
 HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
 	src/hconfd src/ganeti-confd

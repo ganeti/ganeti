@@ -44,7 +44,7 @@ def ReportError(member, msg):
 
 
 def main():
-  tf = tarfile.open(fileobj=sys.stdin)
+  tf = tarfile.open(fileobj=sys.stdin.buffer)
 
   success = True
 

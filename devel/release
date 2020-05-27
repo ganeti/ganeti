@@ -38,8 +38,9 @@
 
 set -e
 
-: ${URL:=git://git.ganeti.org/ganeti.git}
+: ${URL:=https://github.com/ganeti/ganeti}
 TAG="$1"
+: ${PARALLEL:=$(egrep -c "^processor\s+:" /proc/cpuinfo)}
 
 if [[ -z "$TAG" ]]; then
   echo "Usage: $0 <tree-ish>" >&2
@@ -81,8 +82,8 @@ done
 VERSION=$(sed -n -e '/^PACKAGE_VERSION =/ s/^PACKAGE_VERSION = // p' Makefile)
 ARCHIVE="ganeti-${VERSION}.tar.gz"
 
-make distcheck-release
-fakeroot make dist-release
+make -j$PARALLEL distcheck-release
+fakeroot make -j$PARALLEL dist-release
 tar tzvf "$ARCHIVE"
 
 echo

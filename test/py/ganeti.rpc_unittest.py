@@ -399,7 +399,8 @@ class TestStaticResolver(unittest.TestCase):
     addresses = ["192.0.2.%d" % n for n in range(0, 123, 7)]
     nodes = ["node%s.example.com" % n for n in range(0, 123, 7)]
     res = rpc._StaticResolver(addresses)
-    self.assertEqual(res(nodes, NotImplemented), list(zip(nodes, addresses, nodes)))
+    self.assertEqual(res(nodes, NotImplemented),
+                     list(zip(nodes, addresses, nodes)))
 
   def testWrongLength(self):
     res = rpc._StaticResolver([])

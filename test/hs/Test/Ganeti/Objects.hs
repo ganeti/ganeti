@@ -395,7 +395,8 @@ genValidNetwork = do
   let hostLen = 32-netmask
   name <- genName >>= mkNonEmpty
   mac_prefix <- genMaybe genName
-  net <- Objects.ip4AddressFromNumber . (* 2^hostLen) . fromIntegral <$> choose (1::Int, 2^netmask-1)
+  net <- Objects.ip4AddressFromNumber . (* 2^hostLen) . fromIntegral <$>
+    choose (1::Int, 2^netmask-1)
   net6 <- genMaybe genIp6Net
   gateway <- genMaybe arbitrary
   gateway6 <- genMaybe genIp6Addr

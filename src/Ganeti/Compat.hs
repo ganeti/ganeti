@@ -75,7 +75,7 @@ toInotifyPath = id
 #endif
 
 -- | MonadFail.Fail instance definitions for JSON results
--- Required as of GHC 8.6 because of
--- https://gitlab.haskell.org/ghc/ghc/wikis/migration/8.6#monadfaildesugaring-by-default
+-- Required as of GHC 8.6 because MonadFailDesugaring is on by default:
+-- https://gitlab.haskell.org/ghc/ghc/wikis/migration/8.6
 instance Fail.MonadFail Text.JSON.Result where
   fail = Fail.fail

@@ -75,7 +75,7 @@ _BSD2 = [
   ]
 
 
-_SHEBANG = re.compile(r"^#(?:|!(?:/usr/bin/python(?:| -u)|/bin/(?:|ba)sh))$")
+_SHEBANG = re.compile(r"^#(?:|!(?:/usr/bin/python3?(?:| -u)|/bin/(?:|ba)sh))$")
 _COPYRIGHT_YEAR = r"20[01][0-9]"
 _COPYRIGHT = re.compile(r"# Copyright \(C\) (%s(?:, %s)*) Google Inc\.$" %
                         (_COPYRIGHT_YEAR, _COPYRIGHT_YEAR))
@@ -138,7 +138,7 @@ def Main():
     lines = zip(itertools.count(1), content.splitlines())
 
     try:
-      _CheckHeader(compat.partial(next(lines), 0))
+      _CheckHeader(compat.partial(next, lines))
     except HeaderError as err:
       report = str(err)
       print("%s: %s" % (filename, report))
