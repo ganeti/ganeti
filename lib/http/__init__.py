@@ -91,9 +91,9 @@ SOCK_BUF_SIZE = 32768
 
 # OpenSSL.SSL.ConnectionType was deprecated in pyopenssl-19.1.0:
 try:
-    ssl_conn_type = OpenSSL.SSL.Connection
+    SSL_CONN_TYPE = OpenSSL.SSL.Connection
 except AttributeError:
-    ssl_conn_type = OpenSSL.SSL.ConnectionType
+    SSL_CONN_TYPE = OpenSSL.SSL.ConnectionType
 
 
 class HttpError(Exception):
@@ -384,7 +384,7 @@ def SocketOperation(sock, op, arg1, timeout):
 
   # Handshake is only supported by SSL sockets
   if (op == SOCKOP_HANDSHAKE and
-      not isinstance(sock, ssl_conn_type)):
+      not isinstance(sock, SSL_CONN_TYPE)):
     return
 
   # No override by default
@@ -421,7 +421,7 @@ def SocketOperation(sock, op, arg1, timeout):
           return sock.recv(arg1)
 
         elif op == SOCKOP_SHUTDOWN:
-          if isinstance(sock, ssl_conn_type):
+          if isinstance(sock, SSL_CONN_TYPE):
             # PyOpenSSL's shutdown() doesn't take arguments
             return sock.shutdown()
           else:
