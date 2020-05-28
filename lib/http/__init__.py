@@ -89,6 +89,12 @@ _SSL_UNEXPECTED_EOF = "Unexpected EOF"
 # send/receive quantum
 SOCK_BUF_SIZE = 32768
 
+# OpenSSL.SSL.ConnectionType was deprecated in pyopenssl-19.1.0:
+try:
+    SSL_CONN_TYPE = OpenSSL.SSL.Connection
+except AttributeError:
+    SSL_CONN_TYPE = OpenSSL.SSL.ConnectionType
+
 
 class HttpError(Exception):
   """Internal exception for HTTP errors.
@@ -378,7 +384,7 @@ def SocketOperation(sock, op, arg1, timeout):
 
   # Handshake is only supported by SSL sockets
   if (op == SOCKOP_HANDSHAKE and
-      not isinstance(sock, OpenSSL.SSL.ConnectionType)):
+      not isinstance(sock, SSL_CONN_TYPE)):
     return
 
   # No override by default
@@ -415,7 +421,7 @@ def SocketOperation(sock, op, arg1, timeout):
           return sock.recv(arg1)
 
         elif op == SOCKOP_SHUTDOWN:
-          if isinstance(sock, OpenSSL.SSL.ConnectionType):
+          if isinstance(sock, SSL_CONN_TYPE):
             # PyOpenSSL's shutdown() doesn't take arguments
             return sock.shutdown()
           else:
