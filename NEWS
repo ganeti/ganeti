@@ -5,13 +5,95 @@ News
 Version 3.0.0 beta1
 -------------------
 
-*(not yet released)*
+*(unreleased)*
+
+This is a major version pre-release, porting Ganeti to Python 3, fixing
+bugs and adding new features.
+
+This is also the first major release to be created by community
+contributors exclusively. As of May 2020, Google transferred the
+maintenance of Ganeti to the community. We would like to thank Google
+for the support and resources it granted to the project and for allowing
+the community to carry it forward!
 
 Upgrade notes
 ~~~~~~~~~~~~~
-There is no supported upgrade path for users running Ganeti-2.17 (i.e.
-2.17.0 beta1). Ganeti-2.17 was never released, so hopefully no one uses
-it.
+
+Ganeti versions earlier than 2.16.2 will refuse to upgrade to 3.0 using
+``gnt-cluster upgrade``. If you are using your distribution packages, chances
+are their maintainers will provide a smooth upgrade path from older
+versions, so check the package release notes. If you build Ganeti from
+source, please upgrade to 2.16.2 as an intermediate step before
+upgrading to 3.0, or consult Github issue `#1423`_ for possible
+workarounds.
+
+.. _#1423: https://github.com/ganeti/ganeti/issues/1423
+
+Note that at this time there is no supported upgrade path for users
+running Ganeti-2.17 (i.e. 2.17.0 beta1). Ganeti-2.17 was never
+released, so hopefully no one uses it.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+Python >=3.6 required
++++++++++++++++++++++
+
+This release switches the whole Ganeti codebase over to Python 3. Python
+2 has reached its end-of-life and is being removed from most
+distributions, so we opted to skip dual-version support completely and
+convert the code straight to Python 3-only, the only exception being the
+RAPI client which remains Python-2 compatible.
+
+We have tested the code as well as we can, but there is still the
+possibility of breakage, as the conversion touches a big part of the
+codebase that cannot always be tested automatically. Please test this
+release if possible and report any bugs on GitHub.
+
+Note that the minimum required Python version is 3.6.
+
+GHC >= 8 required
++++++++++++++++++
+
+This release removes support for ancient versions of GHC and now
+requires at least GHC 8.0 to build.
+
+VLAN-aware bridging
++++++++++++++++++++
+
+This version adds support for VLAN-aware bridging. Traditionally setups
+using multiple VLANs had to create one Linux bridge per VLAN and assign
+instance NICs to the correct bridge. For large setups this usually
+incurred a fair amount of configuration that had to be kept in sync
+between nodes. An alternative was to use OpenVSwitch, for which Ganeti
+already included VLAN support.
+
+Beginning with 3.0, Ganeti supports VLAN-aware bridging: it is now
+possible to have a single bridge handling traffic for multiple VLANs and
+have instance NICs assigned to one or more VLANs using the ``vlan`` NIC
+parameter with the same syntax as for OpenVSwitch (see the manpage for
+``gnt-instance``). Note that Ganeti expects VLAN support for the bridge
+to be enabled externally, using ``ip link set dev <bridge> type bridge
+vlan_filtering 1``.
+
+Other notable changes
+~~~~~~~~~~~~~~~~~~~~~
+
+Bugfixes:
+ - Wait for a Luxi job to actually finish before archiving it. This
+   prevents job file accumulation in master candidate queues (#1266).
+ - This release includes all fixes from 2.16.2 as well, please read the
+   2.16.2 changelog below.
+ - Avoid accidentally backing up the export directory on cluster upgrade
+   (#1337).
+
+Compatibility changes:
+ - Orchestrate KVM live migrations using only QMP (and not the human
+   monitor), ensuring compatibility with QEMU 4.2 (#1433).
+ - Use iproute2 instead of brctl, removing the dependency on
+   bridge-utils (#1394).
+ - Enable ``AM_MAINTAINER_MODE``, supporting read-only VPATH builds
+   (#1391).
 
 
 Version 2.16.2
