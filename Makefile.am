@@ -668,6 +668,7 @@ docinput = \
 	doc/design-2.14.rst \
 	doc/design-2.15.rst \
 	doc/design-2.16.rst \
+	doc/design-3.0.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \

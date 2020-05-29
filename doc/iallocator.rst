@@ -1,7 +1,7 @@
 Ganeti automatic instance allocation
 ====================================
 
-Documents Ganeti version 2.16
+Documents Ganeti version 3.0
 
 .. contents::
 
