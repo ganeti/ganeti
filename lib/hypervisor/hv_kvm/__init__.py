@@ -2561,9 +2561,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
 
     migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
-    migration_caps = migration_caps.split(_MIGRATION_CAPS_DELIM)
     if migration_caps:
-      self.qmp.SetMigrationCapabilities(migration_caps)
+      migration_caps_list = migration_caps.split(_MIGRATION_CAPS_DELIM)
+      self.qmp.SetMigrationCapabilities(migration_caps_list)
 
     self.qmp.StartMigration(target, port)
 
