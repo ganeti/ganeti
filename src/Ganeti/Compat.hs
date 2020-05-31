@@ -41,6 +41,7 @@ module Ganeti.Compat
   ( filePath'
   , maybeFilePath'
   , toInotifyPath
+  , getPid'
   ) where
 
 import qualified Data.ByteString.UTF8 as UTF8
@@ -49,6 +50,13 @@ import System.Posix.ByteString.FilePath (RawFilePath)
 import qualified System.INotify
 import qualified Text.JSON
 import qualified Control.Monad.Fail as Fail
+import System.Process.Internals
+import System.Posix.Types (CPid (..))
+#if MIN_VERSION_process(1,6,3)
+import System.Process (getPid)
+#else
+import Control.Concurrent.Lifted (readMVar)
+#endif
 
 -- | Wrappers converting ByteString filepaths to Strings and vice versa
 --
@@ -79,3 +87,17 @@ toInotifyPath = id
 -- https://gitlab.haskell.org/ghc/ghc/wikis/migration/8.6
 instance Fail.MonadFail Text.JSON.Result where
   fail = Fail.fail
+
+-- | Process 1.6.3. introduced the getPid function, for older versions
+-- provide an implemention here (https://github.com/haskell/process/pull/109)
+type Pid = CPid
+getPid' :: ProcessHandle -> IO (Maybe Pid)
+#if MIN_VERSION_process(1,6,3)
+getPid' = getPid
+#else
+getPid' (ProcessHandle mh _) = do
+  p_ <- readMVar mh
+  case p_ of
+    OpenHandle pid -> return $ Just pid
+    _ -> return Nothing
+#endif

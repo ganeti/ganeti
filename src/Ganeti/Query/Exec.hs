@@ -75,6 +75,7 @@ import Ganeti.OpCodes
 import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
+import Ganeti.Compat (getPid')
 
 connectConfig :: ConnectConfig
 connectConfig = ConnectConfig { recvTmo    = 30
@@ -116,7 +117,7 @@ spawnJobProcess jid = withErrorLogAt CRITICAL (show jid) $
         close_fds = True}
 
     (_, _, _, hchild) <- createProcess jobProc
-    pid <- getPid hchild
+    pid <- getPid' hchild
 
     return (fromJust pid, master)
 
