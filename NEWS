@@ -5,7 +5,7 @@ News
 Version 3.0.0 beta1
 -------------------
 
-*(unreleased)*
+*(Released Fri, 5 Jun 2020)*
 
 This is a major version pre-release, porting Ganeti to Python 3, fixing
 bugs and adding new features.
@@ -94,6 +94,8 @@ Compatibility changes:
    bridge-utils (#1394).
  - Enable ``AM_MAINTAINER_MODE``, supporting read-only VPATH builds
    (#1391).
+ - Port from Haskell Crypto (unmaintained) to cryptonite (#1405)
+ - Enable compatibility with pyopenssl >=19.1.0 (#1446)
 
 
 Version 2.16.2
