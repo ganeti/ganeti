@@ -1135,7 +1135,7 @@ class TestFormatPolicyInfo(unittest.TestCase):
       ]:
       self._RenameDictItem(parsed, pretty, raw)
     for minmax in parsed[constants.ISPECS_MINMAX]:
-      for key in minmax:
+      for key in set(minmax.keys()):
         keyparts = key.split("/", 1)
         if len(keyparts) > 1:
           self._RenameDictItem(minmax, key, keyparts[0])
