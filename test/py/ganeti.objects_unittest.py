@@ -543,7 +543,7 @@ class TestInstancePolicy(unittest.TestCase):
     bad_ipolicy = copy.deepcopy(good_ipolicy)
     for minmax in bad_ipolicy[constants.ISPECS_MINMAX]:
       for (key, spec) in minmax.items():
-        for param in spec:
+        for param in set(spec.keys()):
           oldv = spec[param]
           del spec[param]
           self._AssertPolicyIsBad(bad_ipolicy)
@@ -554,7 +554,7 @@ class TestInstancePolicy(unittest.TestCase):
     assert bad_ipolicy == good_ipolicy
 
     stdspec = bad_ipolicy[constants.ISPECS_STD]
-    for param in stdspec:
+    for param in set(stdspec.keys()):
       oldv = stdspec[param]
       del stdspec[param]
       self._AssertPolicyIsBad(bad_ipolicy, True)

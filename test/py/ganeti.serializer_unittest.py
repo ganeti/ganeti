@@ -202,11 +202,11 @@ class TestPrivate(unittest.TestCase):
     pDict = serializer.PrivateDict()
     pDict["bar"] = "egg"
 
-    self.assertTrue("egg" is pDict["bar"].Get(),
+    self.assertTrue("egg" == pDict["bar"].Get(),
                     "Value not returned by Private.Get()")
-    self.assertTrue("egg" is pDict.GetPrivate("bar"),
+    self.assertTrue("egg" == pDict.GetPrivate("bar"),
                     "Value not returned by Private.GetPrivate()")
-    self.assertTrue("egg" is pDict.Unprivate()["bar"],
+    self.assertTrue("egg" == pDict.Unprivate()["bar"],
                     "Value not returned by PrivateDict.Unprivate()")
 
     json = serializer.Dump(pDict,
@@ -215,7 +215,7 @@ class TestPrivate(unittest.TestCase):
 
   def testDictGet(self):
     result = serializer.PrivateDict().GetPrivate("bar", "tar")
-    self.assertTrue("tar" is result,
+    self.assertTrue("tar" == result,
                     "Private.GetPrivate() did not handle the default case")
 
   def testZeronessPrivate(self):
