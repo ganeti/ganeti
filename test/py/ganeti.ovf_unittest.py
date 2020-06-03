@@ -347,6 +347,26 @@ def _GetArgs(args, with_name=False):
   return options
 
 
+def _SortAttrs(tree):
+  """Sort XML node attributes by name
+
+  As of Python 3.8, ElementTree will sort output according to insertion order,
+  leveraging the stable dict sorting available since Python 3.6. Some of the
+  tests in this file rely on the previous behavior of ElementTree, which
+  produced stable output by sorting the node attributes.
+
+  This function updates node attribute dictionaries so that the insertion order
+  matches the alphabetical order and the tree thus produces identical output in
+  all Python 3 versions.
+  """
+  for el in tree.iter():
+    attrib = el.attrib
+    if len(attrib) > 1:
+      attribs = sorted(attrib.items())
+      attrib.clear()
+      attrib.update(attribs)
+
+
 OPTS_EMPTY = _GetArgs(ARGS_EMPTY)
 OPTS_EXPORT_NO_NAME = _GetArgs(ARGS_EXPORT_DIR)
 OPTS_EXPORT = _GetArgs(ARGS_EXPORT_DIR, with_name=True)
@@ -789,46 +809,43 @@ class TestOVFWriter(BetterUnitTest):
   def tearDown(self):
     pass
 
-  def testOVFWriterInit(self):
+  def assertXMLOutputContains(self, text):
+    _SortAttrs(self.writer.tree)
     result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_EMPTY in result)
+    self.assertIn(text, result)
+
+  def testOVFWriterInit(self):
+    self.assertXMLOutputContains(EXPORT_EMPTY)
 
   def testSaveDisksDataEmpty(self):
     self.writer.SaveDisksData([])
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_DISKS_EMPTY in result)
+    self.assertXMLOutputContains(EXPORT_DISKS_EMPTY)
 
   def testSaveDisksData(self):
     self.writer.SaveDisksData(EXP_DISKS_LIST)
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_DISKS in result)
+    self.assertXMLOutputContains(EXPORT_DISKS)
 
   def testSaveNetworkDataEmpty(self):
     self.writer.SaveNetworksData([])
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_NETWORKS_EMPTY in result)
+    self.assertXMLOutputContains(EXPORT_NETWORKS_EMPTY)
 
   def testSaveNetworksData(self):
     self.writer.SaveNetworksData(EXP_NETWORKS_LIST)
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_NETWORKS in result)
+    self.assertXMLOutputContains(EXPORT_NETWORKS)
 
   def testSaveGanetiDataIncomplete(self):
     self.writer.SaveGanetiData(EXP_PARTIAL_GANETI_DICT, EXP_NETWORKS_LIST)
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_GANETI_INCOMPLETE in result)
+    self.assertXMLOutputContains(EXPORT_GANETI_INCOMPLETE)
 
   def testSaveGanetiDataComplete(self):
     self.writer.SaveGanetiData(EXP_GANETI_DICT, EXP_NETWORKS_LIST)
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_GANETI in result)
+    self.assertXMLOutputContains(EXPORT_GANETI)
 
   def testSaveVirtualSystem(self):
     self.writer.SaveDisksData(EXP_DISKS_LIST)
     self.writer.SaveNetworksData(EXP_NETWORKS_LIST)
     self.writer.SaveVirtualSystemData(EXP_NAME, EXP_VCPUS, EXP_MEMORY)
-    result = ET.tostring(self.writer.tree, encoding="unicode")
-    self.assertTrue(EXPORT_SYSTEM in result)
+    self.assertXMLOutputContains(EXPORT_SYSTEM)
 
 
 if __name__ == "__main__":
