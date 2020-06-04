@@ -80,12 +80,16 @@ Other notable changes
 ~~~~~~~~~~~~~~~~~~~~~
 
 Bugfixes:
+ - Refactor LuxiD's job forking code to make job process creation more
+   reliable. This fixes sporadic failures when polling jobs for status
+   changes, as well as randomly-appearing 30-second delays when
+   enqueueing a new job (#1411).
  - Wait for a Luxi job to actually finish before archiving it. This
    prevents job file accumulation in master candidate queues (#1266).
- - This release includes all fixes from 2.16.2 as well, please read the
-   2.16.2 changelog below.
  - Avoid accidentally backing up the export directory on cluster upgrade
    (#1337).
+ - This release includes all fixes from 2.16.2 as well, please refer to
+   the 2.16.2 changelog below.
 
 Compatibility changes:
  - Orchestrate KVM live migrations using only QMP (and not the human
