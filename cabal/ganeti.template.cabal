@@ -85,7 +85,7 @@ library
   if flag(htest)
     build-depends:
         HUnit                         >= 1.2.4.2    && < 1.7
-      , QuickCheck                    >= 2.8        && < 2.13
+      , QuickCheck                    >= 2.8        && < 2.14
       , test-framework                >= 0.6        && < 0.9
       , test-framework-hunit          >= 0.2.7      && < 0.4
       , test-framework-quickcheck2    >= 0.2.12.1   && < 0.4
