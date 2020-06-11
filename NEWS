@@ -31,7 +31,11 @@ workarounds.
 
 Note that at this time there is no supported upgrade path for users
 running Ganeti-2.17 (i.e. 2.17.0 beta1). Ganeti-2.17 was never
-released, so hopefully no one uses it.
+released, so hopefully no one uses it. In case you are using it, the best 
+option is to downgrade to 2.16 (either via a regular downgrade or manually).
+See Github issue `#1346`_ for a bit more discussion on this topic.
+
+.. _#1346: https://github.com/ganeti/ganeti/issues/1346#issuecomment-642763303
 
 Important changes
 ~~~~~~~~~~~~~~~~~
