@@ -96,7 +96,7 @@ AM_CONDITIONAL([HCOVERAGE], [test "$HCOVERAGE" = yes])
 # --enable-haskell-tests
 AC_ARG_ENABLE([haskell-tests],
   [AS_HELP_STRING([--enable-haskell-tests],
-                  m4_normalize([enable additinal Haskell development test code
+                  m4_normalize([enable additional Haskell development test code
                   (default: disabled)]))],
   [[if test "$enableval" != yes; then
       HTEST=no
@@ -112,7 +112,7 @@ AM_CONDITIONAL([HTEST], [test "$HTEST" = yes])
 # --enable-developer-mode
 AC_ARG_ENABLE([developer-mode],
   [AS_HELP_STRING([--enable-developer-mode],
-                  m4_normalize([do a developper build with additional
+                  m4_normalize([do a developer build with additional
                   checks and fatal warnings; this is implied by enabling
                   the haskell tests]))],
   [[if test "$enableval" != no; then
