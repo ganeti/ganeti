@@ -26,7 +26,6 @@ Before installing, please verify that you have the following programs:
   (``rbd.ko``/``libceph.ko``) and userspace utils (``ceph-common``)
 - `LVM2 <http://sourceware.org/lvm2/>`_
 - `OpenSSH <http://www.openssh.com/portable.html>`_
-- `bridge utilities <http://www.linuxfoundation.org/en/Net:Bridge>`_
 - `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_
 - `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
 - `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
@@ -57,7 +56,7 @@ many of them will already be installed on a standard machine. On
 Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
-  $ apt-get install lvm2 ssh iproute iputils-arping bridge-utils make m4 \
+  $ apt-get install lvm2 ssh iproute iputils-arping make m4 \
                     ndisc6 python3 python3-openssl openssl \
                     python3-pyparsing python3-simplejson python3-bitarray \
                     python3-pyinotify python3-pycurl socat fping
