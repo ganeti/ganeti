@@ -56,7 +56,7 @@ def main():
       for i in builder(fields):
         print(i)
     else:
-      print(line)
+      print(line, end='')
 
 
 if __name__ == "__main__":
