@@ -208,7 +208,7 @@ DESIRED LOCATION TAGS
 ~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes, administrators want specific instances located in a particular,
-typically geographic, location. To suppoer this desired location tags are
+typically geographic, location. To support this desired location tags are
 introduced.
 
 If the cluster is tagged *htools:desiredlocation:x* then tags starting with
@@ -265,7 +265,7 @@ cluster tags *htools:allowmigration:x::y* for migration tags *x* and *y*
 So in the simple case of a hypervisor upgrade, tagging all the nodes
 that have been upgraded with a migration tag suffices. In more complicated
 situations, it is always possible to use a different migration tag for
-each hypervisor used and explictly state the allowed migration directions
+each hypervisor used and explicitly state the allowed migration directions
 by means of *htools:allowmigration:* tags.
 
 LOCATION TAGS
@@ -273,10 +273,10 @@ LOCATION TAGS
 
 Within a node group, certain nodes might be more likely to fail simultaneously
 due to a common cause of error (e.g., if they share the same power supply unit).
-Ganeti can be made aware of thos common causes of failure by means of tags.
+Ganeti can be made aware of those common causes of failure by means of tags.
 
 cluster tags *htools:nlocation:a*, *htools:nlocation:b*, etc
-  This make make node tags of the form *a:\**, *b:\**, etc be considered
+  This make node tags of the form *a:\**, *b:\**, etc be considered
   to have a common cause of failure.
 
 Instances with primary and secondary node having a common cause of failure and
@@ -421,7 +421,7 @@ The options that can be passed to the program are as follows:
   the ``--mond-data`` option.
 
 \--ignore-soft-errors
-  If given, all checks for soft errors will be ommitted when considering
+  If given, all checks for soft errors will be omitted when considering
   balancing moves. In this way, progress can be made in a cluster where
   all nodes are in a policy-wise bad state, like exceeding oversubscription
   ratios on CPU or spindles.
@@ -455,7 +455,7 @@ The options that can be passed to the program are as follows:
 
 \--mond-data *datafile*
   The name of the file holding the data provided by MonD, to override
-  quering MonDs over the network. This is mostly used for debugging. The
+  querying MonDs over the network. This is mostly used for debugging. The
   file must be in JSON format and present an array of JSON objects ,
   one for every node, with two members. The first member named ``node``
   is the name of the node and the second member named ``reports`` is an
