@@ -111,7 +111,7 @@ instance. The numbering of disks starts at zero. For each disk, at
 least the size needs to be given, and optionally the access mode
 (read-only or the default of read-write) and LVM volume group can also
 be specified. The size is interpreted (when no unit is given) in
-mebibytes. You can also use one of the suffixes m, g or t to specificy
+mebibytes. You can also use one of the suffixes m, g or t to specify
 the exact the units used; these suffixes map to mebibytes, gibibytes
 and tebibytes.
 
@@ -222,7 +222,7 @@ is used for moves during the import. Valid values are 'none'
 The ``--src-dir`` option allows importing instances from a directory
 below ``@CUSTOM_EXPORT_DIR@``.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
+If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 Since many of the parameters are by default read from the exported

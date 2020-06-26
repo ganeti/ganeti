@@ -26,7 +26,7 @@ changed via the ``-C`` option and the key via the ``-K`` option.
 
 The daemon will listen to the "ganeti-rapi" TCP port, as listed in the
 system services database, or if not defined, to port 5080 by default.
-The port can be overridded by passing the ``-p`` option. The ``-b``
+The port can be overridden by passing the ``-p`` option. The ``-b``
 option can be used to specify the address to bind to (defaults to
 ``0.0.0.0``). Note that if you specify the address, the watcher
 needs to be informed about it using its option ``--rapi-ip``, otherwise

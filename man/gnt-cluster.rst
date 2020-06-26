@@ -231,7 +231,7 @@ second network.  If you initialise the cluster with ``-s``, all nodes
 added must have a secondary IP as well.
 
 Note that for Ganeti it doesn't matter if the secondary network is
-actually a separate physical network, or is done using tunneling,
+actually a separate physical network, or is done using tunnelling,
 etc. For performance reasons, it's recommended to use a separate
 network, of course.
 
@@ -1109,7 +1109,7 @@ SEARCH-TAGS
 Searches the tags on all objects in the cluster (the cluster
 itself, the nodes and the instances) for a given pattern. The
 pattern is interpreted as a regular expression and a search will be
-done on it (i.e. the given pattern is not anchored to the beggining
+done on it (i.e. the given pattern is not anchored to the beginning
 of the string; if you want that, prefix the pattern with ^).
 
 If no tags are matching the pattern, the exit code of the command

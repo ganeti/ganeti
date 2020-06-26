@@ -157,7 +157,7 @@ network interface will inherit those parameters if assigned to a network.
 The ``--no-conflicts-check`` option can be used to skip the check for
 conflicting IP addresses.
 
-Passing *mode* and *link* as possitional arguments along with
+Passing *mode* and *link* as positional arguments along with
 *network* and *groups* is deprecated and not supported any more.
 
 DISCONNECT

@@ -1668,7 +1668,7 @@ Limiting harep
 ++++++++++++++
 
 Sometimes it is useful to stop harep from performing its task temporarily,
-and it is useful to be able to do so without distrupting its configuration, that
+and it is useful to be able to do so without disrupting its configuration, that
 is, without removing the authorization tags. In order to do this, suspend tags
 are provided.
 

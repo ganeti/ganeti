@@ -259,7 +259,7 @@ cluster tags *htools:migration:a*, *htools:migration:b*, etc
   tags of the source node are also present on the target node.
 
 cluster tags *htools:allowmigration:x::y* for migration tags *x* and *y*
-  This asserts that a node taged *y* is able to receive instances in
+  This asserts that a node tagged *y* is able to receive instances in
   the same way as if they had an *x* tag.
 
 So in the simple case of a hypervisor upgrade, tagging all the nodes

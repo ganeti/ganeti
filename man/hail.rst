@@ -98,7 +98,7 @@ The options that can be passed to the program are as follows:
 
 \--mond-data *datafile*
   The name of the file holding the data provided by MonD, to override
-  quering MonDs over the network. This is mostly used for debugging. The
+  querying MonDs over the network. This is mostly used for debugging. The
   file must be in JSON format and present an array of JSON objects ,
   one for every node, with two members. The first member named ``node``
   is the name of the node and the second member named ``reports`` is an
@@ -112,8 +112,8 @@ The options that can be passed to the program are as follows:
   option.
 
 \--ignore-soft-errors
-  If given, all checks for soft errors will be ommitted when searching
-  for possible allocations. In this way a useful decission can be made
+  If given, all checks for soft errors will be omitted when searching
+  for possible allocations. In this way a useful decision can be made
   even in overloaded clusters.
 
 \--no-capacity-checks

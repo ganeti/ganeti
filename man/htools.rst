@@ -231,7 +231,7 @@ support all options. Some common options are:
 
 \--mond-data *datafile*
   The name of the file holding the data provided by MonD, to override
-  quering MonDs over the network. This is mostly used for debugging. The
+  querying MonDs over the network. This is mostly used for debugging. The
   file must be in JSON format and present an array of JSON objects ,
   one for every node, with two members. The first member named ``node``
   is the name of the node and the second member named ``reports`` is an

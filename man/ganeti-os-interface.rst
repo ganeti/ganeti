@@ -184,7 +184,7 @@ create
 ~~~~~~
 
 The **create** command is used for creating a new instance from
-scratch. It has no additional environment variables bside the
+scratch. It has no additional environment variables beside the
 common ones.
 
 The ``INSTANCE_NAME`` variable denotes the name of the instance,

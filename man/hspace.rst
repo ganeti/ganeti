@@ -179,7 +179,7 @@ ALLOC_COUNT
   INI_INST_CNT).
 
 ALLOC_FAIL*_CNT
-  For the last attemp at allocations (which would have increased
+  For the last attempt at allocations (which would have increased
   FIN_INST_CNT with one, if it had succeeded), this is the count of
   the failure reasons per failure type; currently defined are FAILMEM,
   FAILDISK and FAILCPU which represent errors due to not enough
@@ -314,7 +314,7 @@ The options that can be passed to the program are as follows:
 
   - the disk size of the instance (units can be used)
   - the memory size of the instance (units can be used)
-  - the vcpu count for the insance
+  - the vcpu count for the instance
 
   An example description would be *100G,4g,2* describing an instance
   specification of 100GB of disk space, 4GiB of memory and 2 VCPUs.

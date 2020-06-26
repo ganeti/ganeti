@@ -55,7 +55,7 @@ VOL_SIZE
 VOL_NEW_SIZE
     Available only to the **grow** script. It declares the new size of
     the volume after grow (in mebibytes). To find the amount of grow,
-    the scipt should calculate the number VOL_NEW_SIZE - VOL_SIZE.
+    the script should calculate the number VOL_NEW_SIZE - VOL_SIZE.
 
 EXTP_*name*
     Each ExtStorage parameter (see below) will be exported in its own
@@ -188,7 +188,7 @@ The ``VOL_SIZE`` variable denotes the current volume's size (in
 mebibytes). The ``VOL_NEW_SIZE`` variable denotes the final size after
 the volume has been grown (in mebibytes).
 
-The amount of grow can be easily calculated by the scipt and is:
+The amount of grow can be easily calculated by the script and is:
 
 grow_amount = VOL_NEW_SIZE - VOL_SIZE (in mebibytes)
 

@@ -77,7 +77,7 @@ options that are not available via command line.
 
 The ``verbose`` option will additionally display the corresponding
 job IDs and the progress in waiting for the jobs; the
-``timing-stats`` option will show some overall statistics inluding
+``timing-stats`` option will show some overall statistics including
 the number of total opcodes, jobs submitted and time spent in each
 stage (submit, exec, total).
 

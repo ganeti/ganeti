@@ -87,7 +87,7 @@ For a description of the standard options check **htools**\(1) and
   out. I.e., only edges from the primary to the secondary node of an instance
   are considered.
 
-\--ignore-non-redundnant
+\--ignore-non-redundant
   Pretend that the non-redundant instances do not exist, and only take
   instances with primary and secondary node into account.
 
@@ -139,7 +139,7 @@ Offline Rolling node reboot output
 If all instances are shut down, usually larger node groups can be found.
 ::
 
-    $ hroller --offline-maintainance -L
+    $ hroller --offline-maintenance -L
     'Node Reboot Groups'
     node1.example.com,node3.example.com,node5.example.com
     node8.example.com,node6.example.com,node2.example.com
@@ -149,7 +149,7 @@ Rolling reboots with non-redundant instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, hroller plans capacity to move the non-redundant instances
-out of the nodes to be rebooted. If requested, apropriate locations for
+out of the nodes to be rebooted. If requested, appropriate locations for
 the non-redundant instances can be shown. The assumption is that instances
 are moved back to their original node after each reboot; these back moves
 are not part of the output.

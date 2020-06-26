@@ -200,7 +200,7 @@ groups except the evacuated group are considered.
 The moves of the individual instances are handled as separate jobs
 to allow for maximal parallelism. If the ``--sequential`` option is
 given, the moves of the individual instances will be executed sequentially.
-This can be usefull if the link between the groups is vulnerable to
+This can be useful if the link between the groups is vulnerable to
 congestion. If the ``--force-failover`` option is given, no migrations
 will be made. This might be necessary if the group being evacuated is
 too different from the other groups in the cluster.

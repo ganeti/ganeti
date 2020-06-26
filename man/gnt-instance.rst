@@ -349,7 +349,7 @@ scsi\_controller\_type
 kvm\_pci\_reservations
     Valid for the KVM hypervisor.
 
-    The nubmer of PCI slots that QEMU will manage implicitly. By default Ganeti
+    The number of PCI slots that QEMU will manage implicitly. By default Ganeti
     will let QEMU use the first 12 slots (i.e. PCI slots 0-11) on its own and
     will start adding disks and NICs from the 13rd slot (i.e. PCI slot 12)
     onwards. So by default one can add 20 PCI devices (32 - 12). To support more
@@ -621,7 +621,7 @@ serial\_console
 
     Enabling serial console emulation also appends
     ``"console=ttyS0,<serial_speed>"`` to the end of ``kernel_args`` in KVM and
-    may infere with previous settings.
+    may interfere with previous settings.
 
 serial\_speed
     Valid for the KVM hypervisor.
@@ -712,7 +712,7 @@ use\_chroot
 user\_shutdown
     Valid for the KVM hypervisor.
 
-    This boolean option determines whether the KVM instance suports user
+    This boolean option determines whether the KVM instance supports user
     shutdown detection.  This option does not necessarily require ACPI
     enabled, but ACPI must be enabled for users to poweroff their KVM
     instances.
@@ -884,7 +884,7 @@ migration\_caps
     Valid for the KVM hypervisor.
 
     Enable specific migration capabilities by providing a ":" separated
-    list of supported capabilites. QEMU version 1.7.0 defines
+    list of supported capabilities. QEMU version 1.7.0 defines
     x-rdma-pin-all, auto-converge, zero-blocks, and xbzrle. Please note
     that while a combination of xbzrle and auto-converge might speed up
     the migration process significantly, the first may cause BSOD on
@@ -915,7 +915,7 @@ virtio\_net\_queues
     parallelize packets sending or receiving. Tap devices will be
     created with MULTI_QUEUE (IFF_MULTI_QUEUE) support. This only
     works with KVM paravirtual nics (virtio-net) and the maximum
-    number of queues is limited to ``8``. Tehnically this is an
+    number of queues is limited to ``8``. Technically this is an
     extension of ``vnet_hdr`` which must be enabled for multiqueue
     support.
 
@@ -1036,7 +1036,7 @@ that should not be logged or saved to configuration with
 
   * Launching the daemons in debug mode will cause debug logging to
     happen, which leaks private and secret parameters to the log files.
-    Do not use the debug mode in production. Deamons will emit a warning
+    Do not use the debug mode in production. Daemons will emit a warning
     on startup if they are in debug mode.
   * You will have to pass again all ``--os-parameters-secret`` parameters
     should you want to reinstall this instance.
@@ -1064,7 +1064,7 @@ file
     Disk devices will be regular files.
 
 sharedfile
-    Disk devices will be regulare files on a shared directory.
+    Disk devices will be regular files on a shared directory.
 
 plain
     Disk devices will be logical volumes.
@@ -1120,7 +1120,7 @@ blktap
 blktap2
     Analogous to the blktap driver, but used by newer versions of Xen.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
+If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 The ``-c`` and ``--communication`` specify whether to enable/disable
@@ -1477,7 +1477,7 @@ name
 The ``--net *N*:add[,options..]`` will add a new network interface to
 the instance. The available options are the same as in the **add**
 command (``mac``, ``ip``, ``link``, ``mode``, ``network``). The
-``--net *ID*,remove`` will remove the intances' NIC with *ID* identifier,
+``--net *ID*,remove`` will remove the instances' NIC with *ID* identifier,
 which can be the index of the NIC, the NIC's name or the NIC's UUID.
 The ``--net *ID*:modify[,options..]`` option will change the parameters of
 the instance network interface with the *ID* identifier.
@@ -1500,7 +1500,7 @@ fails if the instance was not in the ``offline`` state, otherwise it
 changes instance's state to ``down``. These modifications take effect
 immediately.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
+If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 If ``--hotplug`` is given any disk and NIC modifications will take
@@ -2074,7 +2074,7 @@ minutes) to wait before forcing the shutdown (xm destroy in xen,
 killing the kvm process, for kvm). By default two minutes are given
 to each instance to stop.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
+If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 If the ``--cleanup`` option is passed, the operation changes from
@@ -2152,7 +2152,7 @@ it already can determine that a migration won't work (e.g. if the
 instance is shut down). Please note that the fallback will not happen
 during execution. If a migration fails during execution it still fails.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
+If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 Normally, Ganeti will verify that the hypervisor versions on source
@@ -2221,7 +2221,7 @@ The ``--ignore-consistency`` option will make Ganeti ignore any errors
 in trying to shutdown the instance on its node; useful if the
 hypervisor is broken and you want to recover the data.
 
-If ``--ignore-ipolicy`` is given any instance policy violations occuring
+If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
