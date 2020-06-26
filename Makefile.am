@@ -2598,7 +2598,7 @@ ganeti:
 .PHONY: check-dirs
 check-dirs: $(GENERATED_FILES)
 	@set -e; \
-	find . -type d -not -name '.' -not -path './.*' | { \
+	find . -type d \( -name . -o -name .git -prune -o -name .github -prune -o -print \) | { \
 	  error=; \
 	  while read dir; do \
 	    case "$$dir" in \
