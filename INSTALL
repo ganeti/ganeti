@@ -122,7 +122,7 @@ Starting with Ganeti 2.7, the Haskell GHC compiler and a few base
 libraries are required in order to build Ganeti (but not to run and
 deploy Ganeti on production machines). More specifically:
 
-- `GHC <http://www.haskell.org/ghc/>`_ version 7 or higher
+- `GHC <http://www.haskell.org/ghc/>`_ version 8.0 or higher
 - or even better, `The Haskell Platform
   <http://hackage.haskell.org/platform/>`_ which gives you a simple way
   to bootstrap Haskell
