@@ -276,7 +276,7 @@ The ``--no-ssh-init`` option allows you to initialize the cluster
 without creating or distributing SSH key pairs. This also sets the
 cluster-wide configuration parameter ``modify ssh setup`` to False.
 When adding nodes, Ganeti will consider this parameter to determine
-whether to create and distributed SSH key pairs on new nodes as well.
+whether to create and distribute SSH key pairs on new nodes as well.
 
 The ``--file-storage-dir``, ``--shared-file-storage-dir`` and
 ``--gluster-storage-dir`` options allow you set the directory to use for
