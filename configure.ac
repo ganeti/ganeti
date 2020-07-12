@@ -672,6 +672,15 @@ if test -z "$CABAL"; then
   AC_MSG_FAILURE([cabal not found, compilation will not be possible])
 fi
 
+AC_MSG_CHECKING([for the appropriate cabal configure command])
+if $CABAL --help 2>&1 | grep -qw v1-configure; then
+  CABAL_CONFIGURE_CMD="v1-configure"
+else
+  CABAL_CONFIGURE_CMD="configure"
+fi
+AC_MSG_RESULT($CABAL_CONFIGURE_CMD)
+AC_SUBST(CABAL_CONFIGURE_CMD)
+
 # check for standard modules
 AC_GHC_PKG_REQUIRE(Cabal)
 AC_GHC_PKG_REQUIRE(curl)
