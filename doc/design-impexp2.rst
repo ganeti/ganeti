@@ -512,6 +512,8 @@ second. The second line in each row is the CPU time spent in userland
 respective system (measured for the CGI/FastCGI program using ``time
 -v``).
 
+.. highlight:: none
+
 ::
 
   ----------------------------------------------------------------------
