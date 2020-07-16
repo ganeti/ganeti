@@ -4305,6 +4305,7 @@ def OSEnvironment(instance, inst_os, debug=0):
     uri = _CalculateDeviceURI(instance, disk, real_disk)
     result["DISK_%d_ACCESS" % idx] = disk.mode
     result["DISK_%d_UUID" % idx] = disk.uuid
+    result["DISK_%d_SIZE" % idx] = str(disk.size)
     if real_disk.dev_path:
       result["DISK_%d_PATH" % idx] = real_disk.dev_path
     if uri:
