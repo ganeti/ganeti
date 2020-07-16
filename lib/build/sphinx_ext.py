@@ -108,7 +108,7 @@ CV_ECODES_DOC = "ecodes"
 # pylint: disable=W0621
 CV_ECODES_DOC_LIST = [(name, doc) for (_, name, doc) in constants.CV_ALL_ECODES]
 DOCUMENTED_CONSTANTS = {
-  CV_ECODES_DOC: CV_ECODES_DOC_LIST,
+  CV_ECODES_DOC: sorted(CV_ECODES_DOC_LIST, key=lambda tup: tup[0]),
   }
 
 
