@@ -73,6 +73,9 @@ DISK_%N_PATH
     ``DISK_0_PATH=/dev/drbd0``. If the disk is only accessible via a
     userspace URI, this not be set.
 
+DISK_%N_SIZE
+    The configured size of disk N in mebibytes (available since Ganeti 3.0).
+
 DISK_%N_URI
     The userspace URI to the storage for disk N of the instance, if
     configured.
