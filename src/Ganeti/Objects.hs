@@ -108,6 +108,7 @@ module Ganeti.Objects
 
 import Control.Arrow (first)
 import Control.Monad.State
+import Control.Monad.Fail (MonadFail)
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (foldl', intercalate)
 import Data.Maybe
@@ -159,7 +160,7 @@ mkIp4Address (a, b, c, d) = Ip4Address a b c d
 instance Show Ip4Address where
   show (Ip4Address a b c d) = intercalate "." $ map show [a, b, c, d]
 
-readIp4Address :: (Applicative m, Monad m) => String -> m Ip4Address
+readIp4Address :: (Applicative m, MonadFail m) => String -> m Ip4Address
 readIp4Address s =
   case sepSplit '.' s of
     [a, b, c, d] -> Ip4Address <$>

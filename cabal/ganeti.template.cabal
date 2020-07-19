@@ -33,6 +33,9 @@ flag mcio_xformers
   description: use MonadCatchIO-transformers (deprecated)
   default:     True
 
+flag network_bsd
+  description: use the split network-bsd package
+  default:     False
 
 library
   exposed-modules:
@@ -65,17 +68,24 @@ library
     , case-insensitive              >= 0.4.0.1    && < 1.3
     , curl                          >= 1.3.7      && < 1.4
     , hinotify                      >= 0.3.2      && < 0.5
-    , hslogger                      >= 1.1.4      && < 1.3
+    , hslogger                      >= 1.1.4      && < 1.4
     , json                          >= 0.5        && < 1.0
     , lens                          >= 3.10       && < 5.0
     , lifted-base                   >= 0.2.0.3    && < 0.3
     , monad-control                 >= 0.3.1.3    && < 1.1
-    , network                       >= 2.3.0.13   && < 2.9
     , parallel                      >= 3.2.0.2    && < 3.3
-    , regex-pcre                    >= 0.94.2     && < 0.95
+    , regex-pcre                    >= 0.94.2     && < 0.96
     , temporary                     >= 1.1.2.3    && < 1.4
     , transformers-base             >= 0.4.1      && < 0.5
     , zlib                          >= 0.5.3.3    && < 0.7
+
+  if flag(network_bsd)
+    build-depends:
+        network                     >= 2.9        && < 3.2
+      , network-bsd                 >= 2.8        && < 2.9
+  else
+    build-depends:
+        network                     >= 2.3.0.13   && < 2.9
 
     -- Executables:
     -- , happy

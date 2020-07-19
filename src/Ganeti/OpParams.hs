@@ -308,6 +308,7 @@ module Ganeti.OpParams
   ) where
 
 import Control.Monad (liftM, mplus)
+import Control.Monad.Fail (MonadFail)
 import Text.JSON (JSON, JSValue(..), JSObject (..), readJSON, showJSON,
                   fromJSString, toJSObject)
 import qualified Text.JSON
@@ -365,7 +366,7 @@ newtype DiskIndex = DiskIndex { unDiskIndex :: Int }
   deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'DiskIndex'.
-mkDiskIndex :: (Monad m) => Int -> m DiskIndex
+mkDiskIndex :: (MonadFail m) => Int -> m DiskIndex
 mkDiskIndex i | i >= 0 && i < C.maxDisks = return (DiskIndex i)
               | otherwise = fail $ "Invalid value for disk index '" ++
                             show i ++ "', required between 0 and " ++

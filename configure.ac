@@ -770,6 +770,10 @@ fi
 AC_SUBST(ENABLE_METADATA, $has_metad)
 AM_CONDITIONAL([ENABLE_METADATA], [test x$has_metad = xTrue])
 
+# network socket split package
+AC_GHC_PKG_CHECK([network-bsd], [HS_NETWORK_BSD=True], [HS_NETWORK_BSD=False], t)
+AC_SUBST(ENABLE_NETWORK_BSD, $HS_NETWORK_BSD)
+AM_CONDITIONAL([ENABLE_NETWORK_BSD], [test x$HS_NETWORK_BSD=xTrue])
 
 # development modules
 AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HS_NODEV=1], t)

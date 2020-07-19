@@ -39,6 +39,7 @@ module Ganeti.HTools.Backend.Luxi
 
 import qualified Control.Exception as E
 import Control.Monad (liftM)
+import Control.Monad.Fail (MonadFail)
 import Text.JSON.Types
 import qualified Text.JSON
 
@@ -60,36 +61,36 @@ import Ganeti.JSON (fromObj, fromJVal, tryFromObj, arrayMaybeFromJVal)
 -- * Utility functions
 
 -- | Get values behind \"data\" part of the result.
-getData :: (Monad m) => JSValue -> m JSValue
+getData :: (MonadFail m) => JSValue -> m JSValue
 getData (JSObject o) = fromObj (fromJSObject o) "data"
 getData x = fail $ "Invalid input, expected dict entry but got " ++ show x
 
 -- | Converts a (status, value) into m value, if possible.
-parseQueryField :: (Monad m) => JSValue -> m (JSValue, JSValue)
+parseQueryField :: (MonadFail m) => JSValue -> m (JSValue, JSValue)
 parseQueryField (JSArray [status, result]) = return (status, result)
 parseQueryField o =
   fail $ "Invalid query field, expected (status, value) but got " ++ show o
 
 -- | Parse a result row.
-parseQueryRow :: (Monad m) => JSValue -> m [(JSValue, JSValue)]
+parseQueryRow :: (MonadFail m) => JSValue -> m [(JSValue, JSValue)]
 parseQueryRow (JSArray arr) = mapM parseQueryField arr
 parseQueryRow o =
   fail $ "Invalid query row result, expected array but got " ++ show o
 
 -- | Parse an overall query result and get the [(status, value)] list
 -- for each element queried.
-parseQueryResult :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
+parseQueryResult :: (MonadFail m) => JSValue -> m [[(JSValue, JSValue)]]
 parseQueryResult (JSArray arr) = mapM parseQueryRow arr
 parseQueryResult o =
   fail $ "Invalid query result, expected array but got " ++ show o
 
 -- | Prepare resulting output as parsers expect it.
-extractArray :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
+extractArray :: (MonadFail m) => JSValue -> m [[(JSValue, JSValue)]]
 extractArray v =
   getData v >>= parseQueryResult
 
 -- | Testing result status for more verbose error message.
-fromJValWithStatus :: (Text.JSON.JSON a, Monad m) => (JSValue, JSValue) -> m a
+fromJValWithStatus :: (Text.JSON.JSON a, MonadFail m) => (JSValue, JSValue) -> m a
 fromJValWithStatus (st, v) = do
   st' <- fromJVal st
   Qlang.checkRS st' v >>= fromJVal

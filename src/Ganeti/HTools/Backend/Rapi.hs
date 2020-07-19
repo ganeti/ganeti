@@ -45,6 +45,7 @@ import Data.Maybe (fromMaybe)
 import Network.Curl
 import Network.Curl.Types ()
 import Control.Monad
+import Control.Monad.Fail (MonadFail)
 import Text.JSON (JSObject, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
@@ -70,7 +71,7 @@ filePrefix :: String
 filePrefix = "file://"
 
 -- | Read an URL via curl and return the body if successful.
-getUrl :: (Monad m) => String -> IO (m String)
+getUrl :: (MonadFail m) => String -> IO (m String)
 
 -- | Connection timeout (when using non-file methods).
 connTimeout :: Long

@@ -39,6 +39,7 @@ module Test.Ganeti.JQueue.Objects
   , genJobId
   ) where
 
+import Control.Monad.Fail (MonadFail)
 import Test.QuickCheck as QuickCheck
 import Text.JSON
 
@@ -62,7 +63,7 @@ genQueuedOpCode =
     pure justNoTs <*> pure justNoTs <*> pure justNoTs
 
 -- | Generates an static, empty job.
-emptyJob :: (Monad m) => m QueuedJob
+emptyJob :: (MonadFail m) => m QueuedJob
 emptyJob = do
   jid0 <- makeJobId 0
   return $ QueuedJob jid0 [] justNoTs justNoTs justNoTs Nothing Nothing

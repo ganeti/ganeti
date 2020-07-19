@@ -64,6 +64,7 @@ module Ganeti.HTools.Container
   , findByName
   ) where
 
+import Control.Monad.Fail (MonadFail)
 import qualified Data.IntMap as IntMap
 
 import qualified Ganeti.HTools.Types as T
@@ -92,7 +93,7 @@ nameOf :: (T.Element a) => Container a -> Key -> String
 nameOf c k = T.nameOf $ find k c
 
 -- | Find an element by name in a Container; this is a very slow function.
-findByName :: (T.Element a, Monad m) =>
+findByName :: (T.Element a, MonadFail m) =>
               Container a -> String -> m a
 findByName c n =
   let all_elems = IntMap.elems c

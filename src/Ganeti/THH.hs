@@ -83,6 +83,7 @@ import Control.Lens.Type (Lens, Lens')
 import Control.Lens (lens, set, element)
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Writer (tell)
 import qualified Control.Monad.Trans as MT
 import Data.Attoparsec.Text ()
@@ -309,7 +310,7 @@ actualFieldType f | fieldIsOptional f `elem` [NotOptional, AndRestArguments] = t
 
 -- | Checks that a given field is not optional (for object types or
 -- fields which should not allow this case).
-checkNonOptDef :: (Monad m) => Field -> m ()
+checkNonOptDef :: (MonadFail m) => Field -> m ()
 checkNonOptDef field
   | fieldIsOptional field == OptionalOmitNull       = failWith kOpt
   | fieldIsOptional field == OptionalSerializeNull  = failWith kOpt
@@ -488,7 +489,7 @@ genToRaw traw fname tname constructors = do
 genFromRaw :: Name -> Name -> Name -> [(String, Either String Name)] -> Q [Dec]
 genFromRaw traw fname tname constructors = do
   -- signature of form (Monad m) => String -> m $name
-  sigt <- [t| forall m. (Monad m) => $(conT traw) -> m $(conT tname) |]
+  sigt <- [t| forall m. (Monad m, MonadFail m) => $(conT traw) -> m $(conT tname) |]
   -- clauses for a guarded pattern
   let varp = mkName "s"
       varpe = varE varp

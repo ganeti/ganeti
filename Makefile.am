@@ -1399,7 +1399,8 @@ $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
 	  $(CABAL_CONFIGURE_CMD) --user \
 	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
-	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
+	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
+	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"`
 	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
 	  ganeti.cabal \
 	  $(HASKELL_PACKAGE_IDS_FILE) \
@@ -1468,7 +1469,7 @@ endif
 	@touch "$@"
 
 $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
-	                   | stamp-directories $(built_python_sources)
+			   | stamp-directories $(built_python_sources)
 	@if [ "$(HS_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
 	       " libraries (see devnotes.rst)" 1>&2; \
@@ -2204,10 +2205,10 @@ tools/users-setup: Makefile $(userspecs)
 	  echo 'if [ "x$$1" != "x--yes-do-it" ];'; \
 	  echo 'then echo "This will do the following changes"'; \
 	  $(AWK) -- '{print "echo + Will add group ",$$1; count++}\
-	             END {if (count == 0) {print "echo + No groups to add"}}' doc/users/groups; \
+		     END {if (count == 0) {print "echo + No groups to add"}}' doc/users/groups; \
 	  $(AWK) -- '{if (NF > 1) {print "echo + Will add user",$$1,"with primary group",$$2} \
-	                          else {print "echo + Will add user",$$1}; count++}\
-	             END {if (count == 0) {print "echo + No users to add"}}' doc/users/users; \
+				  else {print "echo + Will add user",$$1}; count++}\
+		     END {if (count == 0) {print "echo + No users to add"}}' doc/users/users; \
 	  $(AWK) -- '{print "echo + Will add user",$$1,"to group",$$2}' doc/users/groupmemberships; \
 	  echo 'echo'; \
 	  echo 'echo "OK? (y/n)"'; \
@@ -2311,7 +2312,7 @@ src/Ganeti/Version.hs: src/Ganeti/Version.hs.in \
 
 src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 				   src/Ganeti/Constants.hs \
-			         | stamp-directories
+				 | stamp-directories
 	@echo Generating $@
 	@set -e; \
 ## Extract constant names from 'Constants.hs' by extracting the left
@@ -2420,8 +2421,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DENABLE_MOND="$(ENABLE_MOND)" \
 	    -DHAS_GNU_LN="$(HAS_GNU_LN)" \
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \
-	                    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
-	                    done)" \
+			    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
+			    done)" \
 	    -DAF_INET4="$$(PYTHONPATH=. $(PYTHON) $(PRINT_PY_CONSTANTS) AF_INET4)" \
 	    -DAF_INET6="$$(PYTHONPATH=. $(PYTHON) $(PRINT_PY_CONSTANTS) AF_INET6)" \
 	$(abs_top_srcdir)/src/AutoConf.hs.in > $@

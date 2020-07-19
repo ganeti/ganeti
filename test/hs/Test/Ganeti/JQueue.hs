@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Test.Ganeti.JQueue (testJQueue) where
 
 import Control.Monad (when)
+import Control.Monad.Fail (MonadFail)
 import Data.Char (isAscii)
 import Data.List (nub, sort)
 import System.Directory
@@ -161,7 +162,7 @@ case_JobStatusPri_py_equiv = do
 -- | Tests listing of Job ids.
 prop_ListJobIDs :: Property
 prop_ListJobIDs = monadicIO $ do
-  let extractJobIDs :: (Show e, Monad m) => m (GenericResult e a) -> m a
+  let extractJobIDs :: (Show e, MonadFail m) => m (GenericResult e a) -> m a
       extractJobIDs = (>>= genericResult (fail . show) return)
   jobs <- pick $ resize 10 (listOf1 genJobId `suchThat` (\l -> l == nub l))
   (e, f, g) <-

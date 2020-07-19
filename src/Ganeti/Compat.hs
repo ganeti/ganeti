@@ -82,11 +82,16 @@ toInotifyPath :: FilePath -> FilePath
 toInotifyPath = id
 #endif
 
+#if !MIN_VERSION_json(0,10,0)
 -- | MonadFail.Fail instance definitions for JSON results
--- Required as of GHC 8.6 because MonadFailDesugaring is on by default:
--- https://gitlab.haskell.org/ghc/ghc/wikis/migration/8.6
+--
+-- Required as of GHC 8.6 because MonadFailDesugaring is on by
+-- default:
+-- <https://gitlab.haskell.org/ghc/ghc/wikis/migration/8.6>. Added
+-- upstream in version 0.10.
 instance Fail.MonadFail Text.JSON.Result where
   fail = Fail.fail
+#endif
 
 -- | Process 1.6.3. introduced the getPid function, for older versions
 -- provide an implemention here (https://github.com/haskell/process/pull/109)

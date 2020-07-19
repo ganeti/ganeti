@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Common helper functions and instances for all Ganeti tests.
@@ -95,6 +95,7 @@ module Test.Ganeti.TestCommon
 
 import Control.Exception (catchJust)
 import Control.Monad
+import Control.Monad.Fail (MonadFail, fail)
 import Data.Attoparsec.Text (Parser, parseOnly)
 import Data.List
 import qualified Data.Map as M
@@ -118,6 +119,14 @@ import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Objects (TagSet(..))
 import Ganeti.Types
 import Ganeti.Utils.Monad (unfoldrM)
+
+-- * Compatibility instances
+
+instance MonadFail Gen where
+  fail = error "No monadfail instance"
+
+instance MonadFail (Either String) where
+  fail x = Left x
 
 -- * Arbitrary orphan instances
 
@@ -615,4 +624,3 @@ listOfUniqueBy gen keyFun forbidden = do
       else do
         x <- gen `suchThat` ((`Set.notMember` usedKeys) . keyFun)
         return $ Just (x, (i + 1, Set.insert (keyFun x) usedKeys))
-

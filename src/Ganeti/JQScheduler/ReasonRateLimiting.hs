@@ -41,6 +41,7 @@ module Ganeti.JQScheduler.ReasonRateLimiting
   , slotMapFromJobs
   ) where
 
+import Control.Monad.Fail (MonadFail)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -66,7 +67,7 @@ type AdHocReasonKey = String
 -- The parse succeeds only on reasons of form `rate-limit:n:REASONSTRING`
 -- where `n` is a positive integer and `REASONSTRING` is an arbitrary
 -- string (may include spaces).
-parseReasonRateLimit :: (Monad m) => String -> m (String, Int)
+parseReasonRateLimit :: (MonadFail m) => String -> m (String, Int)
 parseReasonRateLimit reason = case sepSplit ':' reason of
   "rate-limit":nStr:rest
     | Just n <- readMaybe nStr

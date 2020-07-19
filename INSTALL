@@ -177,7 +177,9 @@ Some of these are also available as package in Debian/Ubuntu::
                     libghc-vector-dev libghc-lifted-base-dev \
                     libghc-test-framework-quickcheck2-dev \
                     libghc-test-framework-hunit-dev libghc-temporary-dev \
-                    libghc-old-time-dev libpcre3-dev
+                    libghc-old-time-dev libghc-old-time-dev \
+                    libghc-lifted-base-dev libghc-temporary-dev \
+                    libpcre3-dev
 
 In Fedora, some of them are available via packages as well::
 
