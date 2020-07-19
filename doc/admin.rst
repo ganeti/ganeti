@@ -72,13 +72,22 @@ Depending on the role, each node will run a set of daemons:
   this node's hardware resources; it runs on all nodes which are in a
   cluster
 - the :command:`ganeti-confd` daemon (Ganeti 2.1+) which runs on all
-  nodes, but is only functional on master candidate nodes; this daemon
-  can be disabled at configuration time if you don't need its
-  functionality
+  master candidates and answers queries about the cluster configuration.
+- the :command:`ganeti-wconfd` daemon (Ganeti 2.12+) which runs on the
+  master node and allows control of the cluster
+- the :command:`ganeti-luxid` daemon which runs on the master node and
+  answers queries related to the live state of the cluster, and schedules
+  cluster jobs
 - the :command:`ganeti-rapi` daemon which runs on the master node and
   offers an HTTP-based API for the cluster
-- the :command:`ganeti-masterd` daemon which runs on the master node and
-  allows control of the cluster
+- the :command:`ganeti-kvmd` daemon which runs on all KVM-enabled nodes
+  when the cluster parameter `user_shutdown` is enabled, and determines
+  whether the instance was shutdown by a user or an administrator
+- the :command:`ganeti-mond` daemon which runs on all nodes and collects
+  information about the cluster
+- the :command:`ganeti-metad` daemon which is started on demand and
+  provides information about the cluster to OS install scripts or
+  instances.
 
 Beside the node role, there are other node flags that influence its
 behaviour:
