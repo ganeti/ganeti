@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE LiberalTypeSynonyms #-}
 
 {-| Lenses for Ganeti config objects
 

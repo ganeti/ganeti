@@ -103,6 +103,7 @@ import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad
 import Control.Monad.Error
+import Control.Monad.Fail (MonadFail)
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -227,7 +228,7 @@ if' _    _ y = y
 -- * Parsing utility functions
 
 -- | Parse results from readsPrec.
-parseChoices :: Monad m => String -> String -> [(a, String)] -> m a
+parseChoices :: MonadFail m => String -> String -> [(a, String)] -> m a
 parseChoices _ _ [(v, "")] = return v
 parseChoices name s [(_, e)] =
     fail $ name ++ ": leftover characters when parsing '"
@@ -235,7 +236,7 @@ parseChoices name s [(_, e)] =
 parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
 
 -- | Safe 'read' function returning data encapsulated in a Result.
-tryRead :: (Monad m, Read a) => String -> String -> m a
+tryRead :: (MonadFail m, Read a) => String -> String -> m a
 tryRead name s = parseChoices name s $ reads s
 
 -- | Parse a string using the 'Read' instance.
@@ -273,7 +274,7 @@ printTable lp header rows isnum =
   formatTable (header:rows) isnum
 
 -- | Converts a unit (e.g. m or GB) into a scaling factor.
-parseUnitValue :: (Monad m) => Bool -> String -> m Rational
+parseUnitValue :: (MonadFail m) => Bool -> String -> m Rational
 parseUnitValue noDecimal unit
   -- binary conversions first
   | null unit                     = return 1
@@ -296,7 +297,7 @@ parseUnitValue noDecimal unit
 -- Input must be in the format NUMBER+ SPACE* [UNIT]. If no unit is
 -- specified, it defaults to MiB. Return value is always an integral
 -- value in MiB; if the first argument is True, all kilos are binary.
-parseUnitEx :: (Monad m, Integral a, Read a) => Bool -> String -> m a
+parseUnitEx :: (MonadFail m, Integral a, Read a) => Bool -> String -> m a
 parseUnitEx noDecimal str =
   -- TODO: enhance this by splitting the unit parsing code out and
   -- accepting floating-point numbers
@@ -313,12 +314,12 @@ parseUnitEx noDecimal str =
 -- Input must be in the format NUMBER+ SPACE* [UNIT]. If no unit is
 -- specified, it defaults to MiB. Return value is always an integral
 -- value in MiB.
-parseUnit :: (Monad m, Integral a, Read a) => String -> m a
+parseUnit :: (MonadFail m, Integral a, Read a) => String -> m a
 parseUnit = parseUnitEx False
 
 -- | Tries to extract a number and scale from a given string, taking
 -- all kilos to be binary.
-parseUnitAssumeBinary :: (Monad m, Integral a, Read a) => String -> m a
+parseUnitAssumeBinary :: (MonadFail m, Integral a, Read a) => String -> m a
 parseUnitAssumeBinary = parseUnitEx True
 
 -- | Unwraps a 'Result', exiting the program if it is a 'Bad' value,
@@ -551,7 +552,7 @@ exitIfEmpty _ (x:_) = return x
 exitIfEmpty s []    = exitErr s
 
 -- | Obtain the unique element of a list in an arbitrary monad.
-monadicThe :: (Eq a, Monad m) => String -> [a] -> m a
+monadicThe :: (Eq a, MonadFail m) => String -> [a] -> m a
 monadicThe s [] = fail s
 monadicThe s (x:xs)
   | all (x ==) xs = return x

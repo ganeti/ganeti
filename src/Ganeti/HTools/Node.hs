@@ -102,6 +102,7 @@ module Ganeti.HTools.Node
   ) where
 
 import Control.Monad (liftM, liftM2)
+import Control.Monad.Fail (MonadFail)
 import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph
@@ -1239,7 +1240,7 @@ mkRebootNodeGraph allnodes nl il =
   liftM (`Graph.buildG` filterValid nl edges) (nodesToBounds nl)
   where
     edges = instancesToEdges il `union`
-            (Container.elems allnodes >>= nodeToSharedSecondaryEdge il) 
+            (Container.elems allnodes >>= nodeToSharedSecondaryEdge il)
 
 -- * Display functions
 
@@ -1334,7 +1335,7 @@ list :: [String] -> Node -> [String]
 list fields t = map (showField t) fields
 
 -- | Generate OpCode for setting a node's offline status
-genOpSetOffline :: (Monad m) => Node -> Bool -> m OpCodes.OpCode
+genOpSetOffline :: (MonadFail m) => Node -> Bool -> m OpCodes.OpCode
 genOpSetOffline node offlineStatus = do
   nodeName <- mkNonEmpty (name node)
   return OpCodes.OpNodeSetParams
@@ -1355,7 +1356,7 @@ genOpSetOffline node offlineStatus = do
            }
 
 -- | Generate OpCode for applying a OobCommand to the given nodes
-genOobCommand :: (Monad m) => [Node] -> OobCommand -> m OpCodes.OpCode
+genOobCommand :: (MonadFail m) => [Node] -> OobCommand -> m OpCodes.OpCode
 genOobCommand nodes command = do
   names <- mapM (mkNonEmpty . name) nodes
   return OpCodes.OpOobCommand
@@ -1368,14 +1369,14 @@ genOobCommand nodes command = do
     }
 
 -- | Generate OpCode for powering on a list of nodes
-genPowerOnOpCodes :: (Monad m) => [Node] -> m [OpCodes.OpCode]
+genPowerOnOpCodes :: (MonadFail m) => [Node] -> m [OpCodes.OpCode]
 genPowerOnOpCodes nodes = do
   opSetParams <- mapM (`genOpSetOffline` False) nodes
   oobCommand <- genOobCommand nodes OobPowerOn
   return $ opSetParams ++ [oobCommand]
 
 -- | Generate OpCodes for powering off a list of nodes
-genPowerOffOpCodes :: (Monad m) => [Node] -> m [OpCodes.OpCode]
+genPowerOffOpCodes :: (MonadFail m) => [Node] -> m [OpCodes.OpCode]
 genPowerOffOpCodes nodes = do
   opSetParams <- mapM (`genOpSetOffline` True) nodes
   oobCommand <- genOobCommand nodes OobPowerOff

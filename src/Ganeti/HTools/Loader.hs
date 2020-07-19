@@ -59,6 +59,7 @@ module Ganeti.HTools.Loader
   ) where
 
 import Control.Monad
+import Control.Monad.Fail (MonadFail)
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
@@ -138,18 +139,18 @@ emptyCluster = ClusterData Container.empty Container.empty Container.empty []
 -- * Functions
 
 -- | Lookups a node into an assoc list.
-lookupNode :: (Monad m) => NameAssoc -> String -> String -> m Ndx
+lookupNode :: (MonadFail m) => NameAssoc -> String -> String -> m Ndx
 lookupNode ktn inst node =
   maybe (fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst) return $
     M.lookup node ktn
 
 -- | Lookups an instance into an assoc list.
-lookupInstance :: (Monad m) => NameAssoc -> String -> m Idx
+lookupInstance :: (MonadFail m) => NameAssoc -> String -> m Idx
 lookupInstance kti inst =
   maybe (fail $ "Unknown instance '" ++ inst ++ "'") return $ M.lookup inst kti
 
 -- | Lookups a group into an assoc list.
-lookupGroup :: (Monad m) => NameAssoc -> String -> String -> m Gdx
+lookupGroup :: (MonadFail m) => NameAssoc -> String -> String -> m Gdx
 lookupGroup ktg nname gname =
   maybe (fail $ "Unknown group '" ++ gname ++ "' for node " ++ nname) return $
     M.lookup gname ktg
@@ -165,7 +166,7 @@ assignIndices name_element =
   in (M.fromList name_idx, Container.fromList idx_element)
 
 -- | Given am indexed node list, and the name of the master, mark it as such.
-setMaster :: (Monad m) => NameAssoc -> Node.List -> String -> m Node.List
+setMaster :: (MonadFail m) => NameAssoc -> Node.List -> String -> m Node.List
 setMaster node_names node_idx master = do
   kmaster <- maybe (fail $ "Master node " ++ master ++ " unknown") return $
              M.lookup master node_names
@@ -435,6 +436,6 @@ nodeIdsk node il =
        $ Node.pList node ++ Node.sList node
 
 -- | Get live information or a default value
-eitherLive :: (Monad m) => Bool -> a -> m a -> m a
+eitherLive :: (MonadFail m) => Bool -> a -> m a -> m a
 eitherLive True _ live_data = live_data
 eitherLive False def_data _ = return def_data

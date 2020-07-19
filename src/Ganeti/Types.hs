@@ -191,6 +191,7 @@ module Ganeti.Types
   ) where
 
 import Control.Monad (liftM)
+import Control.Monad.Fail (MonadFail)
 import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)
 import Data.Ratio (numerator, denominator)
@@ -209,7 +210,7 @@ newtype NonNegative a = NonNegative { fromNonNegative :: a }
   deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'NonNegative'.
-mkNonNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (NonNegative a)
+mkNonNegative :: (MonadFail m, Num a, Ord a, Show a) => a -> m (NonNegative a)
 mkNonNegative i | i >= 0 = return (NonNegative i)
                 | otherwise = fail $ "Invalid value for non-negative type '" ++
                               show i ++ "'"
@@ -223,7 +224,7 @@ newtype Positive a = Positive { fromPositive :: a }
   deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'Positive'.
-mkPositive :: (Monad m, Num a, Ord a, Show a) => a -> m (Positive a)
+mkPositive :: (MonadFail m, Num a, Ord a, Show a) => a -> m (Positive a)
 mkPositive i | i > 0 = return (Positive i)
              | otherwise = fail $ "Invalid value for positive type '" ++
                            show i ++ "'"
@@ -237,7 +238,7 @@ newtype Negative a = Negative { fromNegative :: a }
   deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'Negative'.
-mkNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (Negative a)
+mkNegative :: (MonadFail m, Num a, Ord a, Show a) => a -> m (Negative a)
 mkNegative i | i < 0 = return (Negative i)
              | otherwise = fail $ "Invalid value for negative type '" ++
                            show i ++ "'"
@@ -251,7 +252,7 @@ newtype NonEmpty a = NonEmpty { fromNonEmpty :: [a] }
   deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'NonEmpty'.
-mkNonEmpty :: (Monad m) => [a] -> m (NonEmpty a)
+mkNonEmpty :: (MonadFail m) => [a] -> m (NonEmpty a)
 mkNonEmpty [] = fail "Received empty value for non-empty list"
 mkNonEmpty xs = return (NonEmpty xs)
 
@@ -567,7 +568,7 @@ instance JSON StorageUnit where
   showJSON (SURados key) = showJSON (StorageRados, key, []::[String])
   showJSON (SUExt key) = showJSON (StorageExt, key, []::[String])
 -- FIXME: add readJSON implementation
-  readJSON = fail "Not implemented"
+  readJSON _ = fail "Not implemented"
 
 -- | Composes a string representation of storage types without
 -- storage parameters
@@ -700,16 +701,16 @@ newtype JobId = JobId { fromJobId :: Int }
   deriving (Show, Eq, Ord)
 
 -- | Builds a job ID.
-makeJobId :: (Monad m) => Int -> m JobId
+makeJobId :: (MonadFail m) => Int -> m JobId
 makeJobId i | i >= 0 = return $ JobId i
             | otherwise = fail $ "Invalid value for job ID ' " ++ show i ++ "'"
 
 -- | Builds a job ID from a string.
-makeJobIdS :: (Monad m) => String -> m JobId
+makeJobIdS :: (MonadFail m) => String -> m JobId
 makeJobIdS s = tryRead "parsing job id" s >>= makeJobId
 
 -- | Parses a job ID.
-parseJobId :: (Monad m) => JSON.JSValue -> m JobId
+parseJobId :: (MonadFail m) => JSON.JSValue -> m JobId
 parseJobId (JSON.JSString x) = makeJobIdS $ JSON.fromJSString x
 parseJobId (JSON.JSRational _ x) =
   if denominator x /= 1
@@ -740,7 +741,7 @@ instance JSON.JSON JobIdDep where
       JSON.Error _ -> liftM JobDepAbsolute (parseJobId v)
 
 -- | From job ID dependency and job ID, compute the absolute dependency.
-absoluteJobIdDep :: (Monad m) => JobIdDep -> JobId -> m JobIdDep
+absoluteJobIdDep :: (MonadFail m) => JobIdDep -> JobId -> m JobIdDep
 absoluteJobIdDep (JobDepAbsolute jid) _ = return $ JobDepAbsolute jid
 absoluteJobIdDep (JobDepRelative rjid) jid =
   liftM JobDepAbsolute . makeJobId $ fromJobId jid + fromNegative rjid
@@ -754,7 +755,7 @@ instance JSON JobDependency where
   readJSON = liftM (uncurry JobDependency) . readJSON
 
 -- | From job dependency and job id compute an absolute job dependency.
-absoluteJobDependency :: (Monad m) => JobDependency -> JobId -> m JobDependency
+absoluteJobDependency :: (MonadFail m) => JobDependency -> JobId -> m JobDependency
 absoluteJobDependency (JobDependency jdep fstats) jid =
   liftM (flip JobDependency fstats) $ absoluteJobIdDep jdep jid
 
@@ -773,7 +774,7 @@ $(THH.declareIADT "OpSubmitPriority"
 $(THH.makeJSONInstance ''OpSubmitPriority)
 
 -- | Parse submit priorities from a string.
-parseSubmitPriority :: (Monad m) => String -> m OpSubmitPriority
+parseSubmitPriority :: (MonadFail m) => String -> m OpSubmitPriority
 parseSubmitPriority "low"    = return OpPrioLow
 parseSubmitPriority "normal" = return OpPrioNormal
 parseSubmitPriority "high"   = return OpPrioHigh

@@ -85,6 +85,7 @@ module Ganeti.HTools.Cluster
 import Control.Applicative (liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
+import Control.Monad.Fail (MonadFail)
 import Control.Parallel.Strategies (rseq, parMap)
 import qualified Data.IntSet as IntSet
 import Data.List
@@ -497,7 +498,7 @@ genAllocNodes opts gl nl count drop_unalloc =
        _ -> Bad "Unsupported number of nodes, only one or two  supported"
 
 -- | Try to allocate an instance on the cluster.
-tryAlloc :: (Monad m) =>
+tryAlloc :: (MonadFail m) =>
             AlgorithmOptions
          -> Node.List         -- ^ The node list
          -> Instance.List     -- ^ The instance list

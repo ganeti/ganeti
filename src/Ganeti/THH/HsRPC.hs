@@ -46,6 +46,7 @@ module Ganeti.THH.HsRPC
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Language.Haskell.TH
@@ -65,7 +66,7 @@ import Ganeti.UDSServer
 -- result or the error.
 newtype RpcClientMonad a =
   RpcClientMonad { runRpcClientMonad :: ReaderT Client ResultG a }
-  deriving (Functor, Applicative, Monad, MonadIO, MonadBase IO,
+  deriving (Functor, Applicative, Monad, MonadFail, MonadIO, MonadBase IO,
             MonadError GanetiException)
 
 instance MonadBaseControl IO RpcClientMonad where

@@ -58,6 +58,7 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
+import Control.Monad.Fail (MonadFail)
 import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Text.JSON
@@ -1079,7 +1080,7 @@ defOpParams =
                  }
 
 -- | Resolve relative dependencies to absolute ones, given the job ID.
-resolveDependsCommon :: (Monad m) => CommonOpParams -> JobId -> m CommonOpParams
+resolveDependsCommon :: (MonadFail m) => CommonOpParams -> JobId -> m CommonOpParams
 resolveDependsCommon p@(CommonOpParams { opDepends = Just deps}) jid = do
   deps' <- mapM (`absoluteJobDependency` jid) deps
   return p { opDepends = Just deps' }
@@ -1091,7 +1092,7 @@ data MetaOpCode = MetaOpCode { metaParams :: CommonOpParams
                              } deriving (Show, Eq, Ord)
 
 -- | Resolve relative dependencies to absolute ones, given the job Id.
-resolveDependencies :: (Monad m) => MetaOpCode -> JobId -> m MetaOpCode
+resolveDependencies :: (MonadFail m) => MetaOpCode -> JobId -> m MetaOpCode
 resolveDependencies mopc jid = do
   mpar <- resolveDependsCommon (metaParams mopc) jid
   return (mopc { metaParams = mpar })

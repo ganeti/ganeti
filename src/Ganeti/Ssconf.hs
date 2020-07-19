@@ -57,6 +57,7 @@ module Ganeti.Ssconf
 import Control.Arrow ((&&&))
 import Control.Exception
 import Control.Monad (forM, liftM)
+import Control.Monad.Fail (MonadFail)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as Socket
@@ -145,7 +146,7 @@ readSSConfFile optpath def key = do
 
 -- | Parses a key-value pair of the form "key=value" from 'str', fails
 -- with 'desc' otherwise.
-parseKeyValue :: Monad m => String -> String -> m (String, String)
+parseKeyValue :: MonadFail m => String -> String -> m (String, String)
 parseKeyValue desc str =
   case sepSplit '=' str of
     [key, value] -> return (key, value)

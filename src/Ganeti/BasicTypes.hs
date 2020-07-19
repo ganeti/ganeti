@@ -80,6 +80,7 @@ module Ganeti.BasicTypes
 import Control.Applicative
 import Control.Exception (try)
 import Control.Monad
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Base
 import Control.Monad.Error.Class
 import Control.Monad.Trans
@@ -117,7 +118,9 @@ instance (Error a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
   return = Ok
+#if !MIN_VERSION_base(4,13,0)
   fail   = Bad . strMsg
+#endif
 
 instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
@@ -176,9 +179,14 @@ instance (Applicative m, Monad m, Error a) => Applicative (ResultT a m) where
   (<*>) = ap
 
 instance (Monad m, Error a) => Monad (ResultT a m) where
-  fail err = ResultT (return . Bad $ strMsg err)
   return   = lift . return
   (>>=)    = flip (elimResultT throwError)
+#if !MIN_VERSION_base(4,13,0)
+  fail err = ResultT (return . Bad $ strMsg err)
+#endif
+
+instance (Monad m, Error a)=> MonadFail (ResultT a m) where
+  fail err = ResultT (return . Bad $ strMsg err)
 
 instance (Monad m, Error a) => MonadError a (ResultT a m) where
   throwError = ResultT . return . Bad

@@ -41,6 +41,7 @@ module Ganeti.HTools.Cluster.Evacuate
   , reverseEvacSolution
   ) where
 
+import Control.Monad.Fail (MonadFail)
 import qualified Data.IntSet as IntSet
 import Data.List (foldl')
 import Data.Maybe (fromJust)
@@ -94,7 +95,7 @@ type EvacInnerState =
 -- execute change secondary; thus, we can just call this function
 -- instead of always checking for secondary mode. After the call to
 -- this function, whatever mode we have is just a primary change.
-failOnSecondaryChange :: (Monad m) => EvacMode -> DiskTemplate -> m ()
+failOnSecondaryChange :: (MonadFail m) => EvacMode -> DiskTemplate -> m ()
 failOnSecondaryChange ChangeSecondary dt =
   fail $ "Instances with disk template '" ++ diskTemplateToRaw dt ++
          "' can't execute change secondary"

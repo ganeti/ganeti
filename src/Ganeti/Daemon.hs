@@ -2,6 +2,8 @@
 
 -}
 
+{-# LANGUAGE CPP #-}
+
 {-
 
 Copyright (C) 2011, 2012 Google Inc.
@@ -61,12 +63,14 @@ module Ganeti.Daemon
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Control.Monad.Fail (MonadFail)
 import Data.Maybe (fromMaybe, listToMaybe)
 import Text.Printf
 import Data.Word
 import GHC.IO.Handle (hDuplicateTo)
 import Network.BSD (getHostName)
 import qualified Network.Socket as Socket
+import Network.Socket
 import System.Console.GetOpt
 import System.Directory
 import System.Exit
@@ -190,8 +194,7 @@ oBindAddress =
   (Option "b" ["bind"]
    (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
     "ADDR")
-   "Bind address (default is 'any' on either IPv4 or IPv6, depending \
-   \on cluster configuration)",
+   "Bind address (default is 'any' on either IPv4 or IPv6, depending on cluster configuration)",
    OptComplInetAddr)
 
 oSyslogUsage :: OptType
@@ -200,8 +203,7 @@ oSyslogUsage =
    (reqWithConversion syslogUsageFromRaw
     (\su opts -> Ok opts { optSyslogUsage = Just su })
     "SYSLOG")
-   ("Enable logging to syslog (except debug \
-    \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
+   ("Enable logging to syslog (except debug messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
     "]"),
    OptComplChoices ["yes", "no", "only"])
 
@@ -311,15 +313,27 @@ setupDaemonFDs logfile = do
 
 -- | Computes the default bind address for a given family.
 defaultBindAddr :: Int                  -- ^ The port we want
-                -> Socket.Family        -- ^ The cluster IP family
-                -> Result (Socket.Family, Socket.SockAddr)
-defaultBindAddr port Socket.AF_INET =
-  Ok (Socket.AF_INET,
+                -> Result Socket.Family -- ^ The cluster IP family
+                -> IO (Result (Socket.Family, Socket.SockAddr))
+#if MIN_VERSION_network(2,7,0)
+defaultBindAddr _ (Bad m) = return (Bad m)
+defaultBindAddr port (Ok fam) = do
+  addrs <- getAddrInfo (Just defaultHints { addrFamily = fam
+                                          , addrFlags = [AI_PASSIVE]
+                                          , addrSocketType = Stream
+                                          }) Nothing (Just (show port))
+  return $ case addrs of
+    a:_ -> Ok $ (fam, addrAddress a)
+    [] -> Bad $ "Cannot resolve default listening addres?!"
+#else
+defaultBindAddr port (Ok Socket.AF_INET) =
+  return $ Ok (Socket.AF_INET,
       Socket.SockAddrInet (fromIntegral port) Socket.iNADDR_ANY)
-defaultBindAddr port Socket.AF_INET6 =
-  Ok (Socket.AF_INET6,
+defaultBindAddr port (Ok Socket.AF_INET6) =
+  return $ Ok (Socket.AF_INET6,
       Socket.SockAddrInet6 (fromIntegral port) 0 Socket.iN6ADDR_ANY 0)
-defaultBindAddr _ fam = Bad $ "Unsupported address family: " ++ show fam
+defaultBindAddr _ fam = return $ Bad $ "Unsupported address family: " ++ show fam
+#endif
 
 -- | Based on the options, compute the socket address to use for the
 -- daemon.
@@ -330,7 +344,7 @@ parseAddress opts defport = do
   let port = maybe defport fromIntegral $ optPort opts
   def_family <- Ssconf.getPrimaryIPFamily Nothing
   case optBindAddress opts of
-    Nothing -> return (def_family >>= defaultBindAddr port)
+    Nothing -> defaultBindAddr port def_family
     Just saddr -> Control.Exception.catch
                     (resolveAddr port saddr)
                     (ioErrorToResult $ "Invalid address " ++ saddr)

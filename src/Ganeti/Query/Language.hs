@@ -66,6 +66,7 @@ module Ganeti.Query.Language
     ) where
 
 import Control.DeepSeq
+import Control.Monad.Fail (MonadFail)
 import Data.Foldable
 import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
@@ -97,7 +98,7 @@ instance NFData ResultStatus where
 
 -- | Check that ResultStatus is success or fail with descriptive
 -- message.
-checkRS :: (Monad m) => ResultStatus -> a -> m a
+checkRS :: (MonadFail m) => ResultStatus -> a -> m a
 checkRS RSNormal val = return val
 checkRS RSUnknown  _ = fail "Unknown field"
 checkRS RSNoData   _ = fail "No data for a field"
@@ -143,7 +144,7 @@ data ItemType = ItemTypeLuxi QueryTypeLuxi
                 deriving (Show, Eq)
 
 -- | Custom JSON decoder for 'ItemType'.
-decodeItemType :: (Monad m) => JSValue -> m ItemType
+decodeItemType :: (MonadFail m) => JSValue -> m ItemType
 decodeItemType (JSString s) =
   case queryTypeOpFromRaw s' of
     Just v -> return $ ItemTypeOpCode v
@@ -337,7 +338,7 @@ data FilterRegex = FilterRegex
 -- | Builder for 'FilterRegex'. We always attempt to compile the
 -- regular expression on the initialisation of the data structure;
 -- this might fail, if the RE is not well-formed.
-mkRegex :: (Monad m) => String -> m FilterRegex
+mkRegex :: (MonadFail m) => String -> m FilterRegex
 #ifdef VERSION_regex_pcre
 mkRegex str = do
   compiled <- case PCRE.getVersion of

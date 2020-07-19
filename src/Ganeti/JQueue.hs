@@ -89,6 +89,7 @@ import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception
 import Control.Lens (over)
 import Control.Monad
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Fix
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
@@ -190,7 +191,7 @@ queuedOpCodeFromMetaOpCode op =
 -- | From a job-id and a list of op-codes create a job. This is
 -- the pure part of job creation, as allocating a new job id
 -- lives in IO.
-queuedJobFromOpCodes :: (Monad m) => JobId -> [MetaOpCode] -> m QueuedJob
+queuedJobFromOpCodes :: (MonadFail m) => JobId -> [MetaOpCode] -> m QueuedJob
 queuedJobFromOpCodes jobid ops = do
   ops' <- mapM (`resolveDependencies` jobid) ops
   return QueuedJob { qjId = jobid
@@ -308,7 +309,7 @@ jobFileName :: JobId -> FilePath
 jobFileName jid = jobFilePrefix ++ show (fromJobId jid)
 
 -- | Parses a job ID from a file name.
-parseJobFileId :: (Monad m) => FilePath -> m JobId
+parseJobFileId :: (MonadFail m) => FilePath -> m JobId
 parseJobFileId path =
   case stripPrefix jobFilePrefix path of
     Nothing -> fail $ "Job file '" ++ path ++

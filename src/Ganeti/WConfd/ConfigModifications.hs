@@ -46,6 +46,7 @@ import qualified Data.ByteString.UTF8 as UTF8
 import Control.Lens.Traversal (mapMOf)
 import Control.Monad (unless, when, forM_, foldM, liftM2)
 import Control.Monad.Error (throwError, MonadError)
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,
                                   runStateT, execStateT)
@@ -116,7 +117,7 @@ getAllIDs cs =
 
       instKeys = keysFromC . configInstances . csConfigData $ cs
       nodeKeys = keysFromC . configNodes . csConfigData $ cs
-      
+
       instValues = map uuidOf . valuesFromC
                  . configInstances . csConfigData $ cs
       nodeValues = map uuidOf . valuesFromC . configNodes . csConfigData $ cs
@@ -504,7 +505,7 @@ removeInstance iUuid = do
         . (^. iL))
 
       -- Release all IP addresses to the pool
-      g :: (MonadError GanetiException m, Functor m) => StateT ConfigState m ()
+      g :: (MonadError GanetiException m, Functor m, MonadFail m) => StateT ConfigState m ()
       g = get >>= (maybe
         (return ())
         (mapM_ (\nic ->
