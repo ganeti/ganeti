@@ -56,7 +56,7 @@ class BaseDRBDCmdGenerator(object):
   def GenLocalInitCmds(self, minor, data_dev, meta_dev, size_mb, params):
     raise NotImplementedError
 
-  def GenNetInitCmd(self, minor, family, lhost, lport, rhost, rport, protocol,
+  def GenNetInitCmds(self, minor, family, lhost, lport, rhost, rport, protocol,
                     dual_pri, hmac, secret, params):
     raise NotImplementedError
 
@@ -138,7 +138,7 @@ class DRBD83CmdGenerator(BaseDRBDCmdGenerator):
 
     return [args]
 
-  def GenNetInitCmd(self, minor, family, lhost, lport, rhost, rport, protocol,
+  def GenNetInitCmds(self, minor, family, lhost, lport, rhost, rport, protocol,
                     dual_pri, hmac, secret, params):
     args = ["drbdsetup", self._DevPath(minor), "net",
             "%s:%s:%s" % (family, lhost, lport),
@@ -155,7 +155,7 @@ class DRBD83CmdGenerator(BaseDRBDCmdGenerator):
     if params[constants.LDP_NET_CUSTOM]:
       args.extend(shlex.split(params[constants.LDP_NET_CUSTOM]))
 
-    return args
+    return [args]
 
   def GenSyncParamsCmd(self, minor, params):
     args = ["drbdsetup", self._DevPath(minor), "syncer"]
@@ -345,8 +345,14 @@ class DRBD84CmdGenerator(BaseDRBDCmdGenerator):
 
     return cmds
 
-  def GenNetInitCmd(self, minor, family, lhost, lport, rhost, rport, protocol,
+  def GenNetInitCmds(self, minor, family, lhost, lport, rhost, rport, protocol,
                     dual_pri, hmac, secret, params):
+    cmds = []
+
+    cmds.append(["drbdsetup", "new-resource", self._GetResource(minor)])
+    cmds.append(["drbdsetup", "new-minor", self._GetResource(minor),
+                 str(minor), "0"])
+
     args = ["drbdsetup", "connect", self._GetResource(minor),
             "%s:%s:%s" % (family, lhost, lport),
             "%s:%s:%s" % (family, rhost, rport),
@@ -362,7 +368,8 @@ class DRBD84CmdGenerator(BaseDRBDCmdGenerator):
     if params[constants.LDP_NET_CUSTOM]:
       args.extend(shlex.split(params[constants.LDP_NET_CUSTOM]))
 
-    return args
+    cmds.append(args)
+    return cmds
 
   def GenSyncParamsCmd(self, minor, params):
     args = ["drbdsetup", "disk-options", minor]
