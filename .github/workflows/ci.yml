@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [bionic, buster, focal, debian-testing]
     container:
-      image: ganeti/ci:${{ matrix.os }}-py3
+      image: ${{ github.actor }}:${{ github.token }}@docker.pkg.github.com/ganeti/ci-images/${{ matrix.os }}:latest
       options: "--init"
     steps:
       - uses: actions/checkout@v1
