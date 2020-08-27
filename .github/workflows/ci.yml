@@ -1,34 +1,40 @@
 ---
 name: Build & Test
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: '42 3 * * *'
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [bionic, buster, focal, debian-testing]
+    container:
+      image: ganeti/ci:${{ matrix.os }}-py3
+      options: "--init"
     steps:
       - uses: actions/checkout@v1
 
       - name: autogen
-        uses: docker://ganeti/ci:buster-py3
-        with:
-          args: ./autogen.sh
+        run: ./autogen.sh
 
       - name: configure
-        uses: docker://ganeti/ci:buster-py3
-        with:
-          args: ./configure --enable-haskell-tests
+        run: ./configure --enable-haskell-tests
 
       - name: Build
-        uses: docker://ganeti/ci:buster-py3
-        with:
-          args: make -j 2
+        run: make -j 2
 
       - name: Python tests
-        uses: docker://ganeti/ci:buster-py3
-        with:
-          args: make py-tests
+        run: make py-tests
 
       - name: Haskell tests
-        uses: docker://ganeti/ci:buster-py3
-        with:
-          args: make -j 2 hs-tests
+        run: make -j 2 hs-tests
