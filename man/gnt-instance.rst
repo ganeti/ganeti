@@ -47,6 +47,7 @@ ADD
 | [\--ignore-ipolicy]
 | [\--no-wait-for-sync]
 | [{-c|\--communication=yes|no}]
+| [{--tags [: tag:value... ]
 | {*instance-name*}
 
 Creates a new instance on the specified host. The *instance-name* argument
@@ -1126,6 +1127,9 @@ during this operation are ignored.
 The ``-c`` and ``--communication`` specify whether to enable/disable
 instance communication, which is a communication mechanism between the
 instance and the host.
+
+The ``--tags`` allows tags to be applied to the instance, typically to
+influence the allocator. Multiple tags can be separated with commas.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
