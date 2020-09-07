@@ -1,6 +1,6 @@
 # Default arguments for Ganeti daemons
 NODED_ARGS=""
-RAPI_ARGS=""
+RAPI_ARGS="-b 127.0.0.1 --require-authentication"
 CONFD_ARGS=""
 MOND_ARGS=""
 WCONFD_ARGS=""
