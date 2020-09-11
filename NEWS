@@ -2,6 +2,62 @@ News
 ====
 
 
+Version 3.0.0 rc1
+-----------------
+
+*(unreleased)*
+
+Since releasing 3.0.0 beta1 in June no critical issues have surfaced. This
+release includes some feature and compability improvements but no breaking
+changes.
+
+Upgrade notes
+~~~~~~~~~~~~~
+
+This release comes with the same restrictions as the previous one: to upgrade,
+you either need 2.16.2 or 3.0.0 beta1 installed. Upgrading directly from older
+versions or from the Ganeti-2.17 beta version is not supported. Please refer
+to the 3.0.0 beta1 upgrade notes for more information.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+GHC 8.0 through 8.8 compatibility
++++++++++++++++++++++++++++++++++
+
+This release has been built/tested against GHC 8.0 through 8.8 which means it
+should work on most current and near-future distribution versions. Support for
+GHC versions < 8 has already been dropped with the previous Ganeti release.
+Along with this change we have also added compatibility to Cabal version 3.0.
+
+Other notable changes
+~~~~~~~~~~~~~~~~~~~~~
+
+Bugfixes:
+ - Fix distribution of hmac.key to new nodes - this has been pulled from the
+   2.17 tree #(1494)
+
+Compatibility Improvements:
+ - Open vSwitch: Do not fail to add node when the ovs_name or ovs_link already
+   exists (#1495)
+ - Improved support for DRBD >= 8.4 (#1496)
+ - Relax QuickCheck version restriction (#1479)
+
+Documentation Fixes:
+ - Various typos have been fixed (#1483, #1487, #1489, #1501)
+ - Documentation build has been improved (#1500, #1504)
+ - Missing information has been added (#1490, #1505, #1517)
+
+Build Environment:
+ - We now have matrix / nightly builds using Github Actions (#1512)
+ - We now have code analysis through Github CodeQL (#1514)
+
+Misc:
+ - Support other values than 'none' for 'disk_cache' when using RBD (#1516)
+ - The OS install scripts can now query the configured disk size via a new
+   environment variable 'DISK_%N_SIZE' (#1503)
+
+
 Version 3.0.0 beta1
 -------------------
 
