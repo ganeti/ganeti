@@ -91,7 +91,7 @@ instance Arbitrary (Container DataCollectorConfig) where
       fromContainer = Map.fromList $ zip names configs }
 
 instance Arbitrary BS.ByteString where
-  arbitrary = fmap UTF8.fromString arbitrary
+  arbitrary = genPrintableByteString
 
 $(genArbitrary ''PartialNDParams)
 
