@@ -646,7 +646,6 @@ docinput = \
 	doc/cluster-keys-replacement.rst \
 	doc/cluster-merge.rst \
 	doc/conf.py \
-	doc/css/style.css \
 	doc/design-2.0.rst \
 	doc/design-2.1.rst \
 	doc/design-2.2.rst \
@@ -1172,11 +1171,6 @@ doc/html/index.html: ENABLE_MANPAGES =
 doc/man-html/index.html: ENABLE_MANPAGES = 1
 doc/man-html/index.html: doc/manpages-enabled.rst $(mandocrst)
 
-if HAS_SPHINX_PRE13
-        SPHINX_HTML_THEME=default
-else
-        SPHINX_HTML_THEME=classic
-endif
 # Note: we use here an order-only prerequisite, as the contents of
 # _constants.py are not actually influencing the html build output: it
 # has to exist in order for the sphinx module to be loaded
@@ -1185,7 +1179,7 @@ endif
 doc/html/index.html doc/man-html/index.html: $(docinput) doc/conf.py \
 	configure.ac $(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/ht.py \
-	doc/css/style.css lib/rapi/connector.py lib/rapi/rlib2.py \
+	lib/rapi/connector.py lib/rapi/rlib2.py \
 	autotools/sphinx-wrapper | $(built_python_sources)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
@@ -1204,7 +1198,6 @@ endif
 	dir=$(dir $@) && \
 	@mkdir_p@ $$dir && \
 	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) COPY_DOC=1 \
-        HTML_THEME=$(SPHINX_HTML_THEME) \
 	$(RUN_IN_TEMPDIR) autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
 		-d . \
 		-D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
