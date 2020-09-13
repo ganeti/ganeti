@@ -56,6 +56,7 @@ module Test.Ganeti.TestCommon
   , genPrintableAsciiChar
   , genPrintableAsciiString
   , genPrintableAsciiStringNE
+  , genPrintableByteString
   , genName
   , genFQDN
   , genUUID
@@ -101,6 +102,11 @@ import Data.List
 import qualified Data.Map as M
 import Data.Text (pack)
 import Data.Word
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
+#if !MIN_VERSION_QuickCheck(2,10,0)
+import Data.Char (isPrint)
+#endif
 import qualified Data.Set as Set
 import System.Directory (getTemporaryDirectory, removeFile)
 import System.Environment (getEnv)
@@ -266,6 +272,14 @@ genPrintableAsciiStringNE :: Gen NonEmptyString
 genPrintableAsciiStringNE = do
   n <- choose (1, 40)
   vectorOf n genPrintableAsciiChar >>= mkNonEmpty
+
+-- | Generates a printable Unicode ByteString
+genPrintableByteString :: Gen BS.ByteString
+#if MIN_VERSION_QuickCheck(2, 10, 0)
+genPrintableByteString = fmap (UTF8.fromString . getPrintableString) arbitrary
+#else
+genPrintableByteString = fmap UTF8.fromString $ listOf (arbitrary `suchThat` isPrint)
+#endif
 
 -- | Generates a single name component.
 genName :: Gen String
