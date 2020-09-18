@@ -278,7 +278,8 @@ genPrintableByteString :: Gen BS.ByteString
 #if MIN_VERSION_QuickCheck(2, 10, 0)
 genPrintableByteString = fmap (UTF8.fromString . getPrintableString) arbitrary
 #else
-genPrintableByteString = fmap UTF8.fromString $ listOf (arbitrary `suchThat` isPrint)
+genPrintableByteString =
+  fmap UTF8.fromString $ listOf (arbitrary `suchThat` isPrint)
 #endif
 
 -- | Generates a single name component.

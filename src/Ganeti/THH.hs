@@ -489,7 +489,8 @@ genToRaw traw fname tname constructors = do
 genFromRaw :: Name -> Name -> Name -> [(String, Either String Name)] -> Q [Dec]
 genFromRaw traw fname tname constructors = do
   -- signature of form (Monad m) => String -> m $name
-  sigt <- [t| forall m. (Monad m, MonadFail m) => $(conT traw) -> m $(conT tname) |]
+  sigt <- [t| forall m. (Monad m, MonadFail m) =>
+    $(conT traw) -> m $(conT tname) |]
   -- clauses for a guarded pattern
   let varp = mkName "s"
       varpe = varE varp

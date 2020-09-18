@@ -208,7 +208,8 @@ fromObjWithDefault :: (J.JSON a, MonadFail m) =>
                       JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
 
-arrayMaybeFromJVal :: (J.JSON a, Monad m, MonadFail m) => J.JSValue -> m [Maybe a]
+arrayMaybeFromJVal :: (J.JSON a, Monad m, MonadFail m) =>
+  J.JSValue -> m [Maybe a]
 arrayMaybeFromJVal (J.JSArray xs) =
   mapM parse xs
     where
@@ -282,7 +283,8 @@ asJSObject (J.JSObject a) = return a
 asJSObject _ = fail "not an object"
 
 -- | Coneverts a list of JSON values into a list of JSON objects.
-asObjectList :: (Monad m, MonadFail m) => [J.JSValue] -> m [J.JSObject J.JSValue]
+asObjectList :: (Monad m, MonadFail m) =>
+  [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = mapM asJSObject
 
 -- | Try to extract a key from an object with better error reporting

@@ -1080,7 +1080,8 @@ defOpParams =
                  }
 
 -- | Resolve relative dependencies to absolute ones, given the job ID.
-resolveDependsCommon :: (MonadFail m) => CommonOpParams -> JobId -> m CommonOpParams
+resolveDependsCommon :: (MonadFail m) =>
+  CommonOpParams -> JobId -> m CommonOpParams
 resolveDependsCommon p@(CommonOpParams { opDepends = Just deps}) jid = do
   deps' <- mapM (`absoluteJobDependency` jid) deps
   return p { opDepends = Just deps' }

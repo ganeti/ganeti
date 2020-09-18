@@ -90,7 +90,8 @@ extractArray v =
   getData v >>= parseQueryResult
 
 -- | Testing result status for more verbose error message.
-fromJValWithStatus :: (Text.JSON.JSON a, MonadFail m) => (JSValue, JSValue) -> m a
+fromJValWithStatus :: (Text.JSON.JSON a, MonadFail m) =>
+  (JSValue, JSValue) -> m a
 fromJValWithStatus (st, v) = do
   st' <- fromJVal st
   Qlang.checkRS st' v >>= fromJVal

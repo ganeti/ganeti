@@ -505,7 +505,8 @@ removeInstance iUuid = do
         . (^. iL))
 
       -- Release all IP addresses to the pool
-      g :: (MonadError GanetiException m, Functor m, MonadFail m) => StateT ConfigState m ()
+      g :: (MonadError GanetiException m, Functor m, MonadFail m) =>
+        StateT ConfigState m ()
       g = get >>= (maybe
         (return ())
         (mapM_ (\nic ->

@@ -755,7 +755,8 @@ instance JSON JobDependency where
   readJSON = liftM (uncurry JobDependency) . readJSON
 
 -- | From job dependency and job id compute an absolute job dependency.
-absoluteJobDependency :: (MonadFail m) => JobDependency -> JobId -> m JobDependency
+absoluteJobDependency :: (MonadFail m) =>
+  JobDependency -> JobId -> m JobDependency
 absoluteJobDependency (JobDependency jdep fstats) jid =
   liftM (flip JobDependency fstats) $ absoluteJobIdDep jdep jid
 

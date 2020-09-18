@@ -495,8 +495,8 @@ class DRBD8Dev(base.BlockDev):
         self._SetFromMinor(minor)
         sync_errors = self.SetSyncParams(self.params)
         if sync_errors:
-          base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
-                          (self.minor, utils.CommaJoin(sync_errors)))
+          base.ThrowError("drbd%d: can't set the synchronization parameters: "
+                          "%s" % (self.minor, utils.CommaJoin(sync_errors)))
       finally:
         # Undo the change, regardless of whether it will have to be done again
         # soon

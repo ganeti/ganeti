@@ -194,7 +194,8 @@ oBindAddress =
   (Option "b" ["bind"]
    (ReqArg (\addr opts -> Ok opts { optBindAddress = Just addr })
     "ADDR")
-   "Bind address (default is 'any' on either IPv4 or IPv6, depending on cluster configuration)",
+   ("Bind address (default is 'any' on either IPv4 or IPv6, " ++
+     "depending on cluster configuration)"),
    OptComplInetAddr)
 
 oSyslogUsage :: OptType
@@ -203,8 +204,8 @@ oSyslogUsage =
    (reqWithConversion syslogUsageFromRaw
     (\su opts -> Ok opts { optSyslogUsage = Just su })
     "SYSLOG")
-   ("Enable logging to syslog (except debug messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
-    "]"),
+   ("Enable logging to syslog (except debug messages); " ++
+      "one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++ "]"),
    OptComplChoices ["yes", "no", "only"])
 
 oForceNode :: OptType
@@ -332,7 +333,8 @@ defaultBindAddr port (Ok Socket.AF_INET) =
 defaultBindAddr port (Ok Socket.AF_INET6) =
   return $ Ok (Socket.AF_INET6,
       Socket.SockAddrInet6 (fromIntegral port) 0 Socket.iN6ADDR_ANY 0)
-defaultBindAddr _ fam = return $ Bad $ "Unsupported address family: " ++ show fam
+defaultBindAddr _ fam =
+  return $ Bad $ "Unsupported address family: " ++ show fam
 #endif
 
 -- | Based on the options, compute the socket address to use for the
