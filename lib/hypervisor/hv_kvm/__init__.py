@@ -1039,6 +1039,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Run CPU pinning, based on configured mask
     self._AssignCpuAffinity(cpu_mask, pid, thread_dict)
 
+  @_with_qmp
+  def _SetInstanceMigrationCapabilities(self, instance):
+    """Set all migration capabilities configured for an instance
+
+    @type instance: L{objects.Instance} object
+    @param instance: the VM this command acts upon
+    """
+    migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
+    if migration_caps:
+      migration_caps_list = migration_caps.split(_MIGRATION_CAPS_DELIM)
+      self.qmp.SetMigrationCapabilities(migration_caps_list, True)
+
+  @_with_qmp
+  def _ClearInstanceMigrationCapabilities(self, instance):
+    """Clear all migration capabilities configured for an instance
+
+    @type instance: L{objects.Instance} object
+    @param instance: the VM this command acts upon
+    """
+    migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
+    if migration_caps:
+      migration_caps_list = migration_caps.split(_MIGRATION_CAPS_DELIM)
+      self.qmp.SetMigrationCapabilities(migration_caps_list, False)
+
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
@@ -2488,6 +2512,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
                             incoming=incoming_address)
+    self._SetInstanceMigrationCapabilities(instance)
 
   def _ConfigureRoutedNICs(self, instance, info):
     """Configures all NICs in routed mode
@@ -2527,6 +2552,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if success:
       self._ConfigureRoutedNICs(instance, info)
       self._WriteKVMRuntime(instance.name, info)
+      self._ClearInstanceMigrationCapabilities(instance)
     else:
       self.StopInstance(instance, force=True)
 
@@ -2561,11 +2587,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self.qmp.SetMigrationParameters(max_bandwidth_in_bytes,
         instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
 
-    migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
-    if migration_caps:
-      migration_caps_list = migration_caps.split(_MIGRATION_CAPS_DELIM)
-      self.qmp.SetMigrationCapabilities(migration_caps_list)
-
+    self._SetInstanceMigrationCapabilities(instance)
     self.qmp.StartMigration(target, port)
 
   @_with_qmp
@@ -2589,6 +2611,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       _, _, alive = self._InstancePidAlive(instance.name)
       if alive:
         self.qmp.ContinueGuestEmulation()
+        self._ClearInstanceMigrationCapabilities(instance)
       else:
         self.CleanupInstance(instance.name)
 

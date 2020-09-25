@@ -716,7 +716,7 @@ class QmpConnection(MonitorSocket):
     self.Execute("migrate-set-parameters", arguments)
 
   @_ensure_connection
-  def SetMigrationCapabilities(self, capabilities):
+  def SetMigrationCapabilities(self, capabilities, state):
     """Configure live migration capabilities
 
     """
@@ -727,7 +727,7 @@ class QmpConnection(MonitorSocket):
     for capability in capabilities:
       arguments["capabilities"].append({
         "capability": capability,
-        "state": True
+        "state": state,
       })
 
     self.Execute("migrate-set-capabilities", arguments)
