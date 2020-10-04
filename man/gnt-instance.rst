@@ -513,6 +513,14 @@ spice\_use\_vdagent
 
     Enables or disables passing mouse events via SPICE vdagent.
 
+debug\_threads
+    Valid for the KVM hypervisor.
+
+    Enables or disables the debug_threads option for QEMU. Enabling this
+    will give the threads of a QEMU process more meaningful names (e.g.
+    for observation using the `top` tool). This setting does not imply
+    performance penalties.
+
 cpu\_type
     Valid for the KVM hypervisor.
 

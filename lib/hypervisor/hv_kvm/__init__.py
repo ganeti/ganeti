@@ -535,6 +535,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_SPICE_USE_TLS: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_TLS_CIPHERS: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_USE_VDAGENT: hv_base.NO_CHECK,
+    constants.HV_KVM_DEBUG_THREADS: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
@@ -738,7 +739,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     while arg_list:
       arg = arg_list.pop(0)
       if arg == "-name":
-        instance = arg_list.pop(0)
+        instance = arg_list.pop(0).split(",")[0]
       elif arg == "-m":
         memory = int(arg_list.pop(0))
       elif arg == "-smp":
@@ -1330,8 +1331,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     pidfile = self._InstancePidFile(instance.name)
     kvm = hvp[constants.HV_KVM_PATH]
     kvm_cmd = [kvm]
-    # used just by the vnc server, if enabled
-    kvm_cmd.extend(["-name", instance.name])
+    if hvp[constants.HV_KVM_DEBUG_THREADS]:
+      name_parameter = "%s,debug-threads=on" % (instance.name)
+    else:
+      name_parameter = "%s,debug-threads=off" % (instance.name)
+    kvm_cmd.extend(["-name", name_parameter])
     kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
 
     smp_list = ["%s" % instance.beparams[constants.BE_VCPUS]]
