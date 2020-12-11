@@ -150,6 +150,8 @@ def OpenTap(name="", features=None):
   vnet_hdr = features.get("vnet_hdr", True)
   _, virtio_net_queues = features.get("mq", (False, 1))
 
+  ifreq_name = name.encode('ascii')
+
   for _ in range(virtio_net_queues):
     try:
       tapfd = os.open("/dev/net/tun", os.O_RDWR)
@@ -168,7 +170,7 @@ def OpenTap(name="", features=None):
       flags |= IFF_ONE_QUEUE
 
     # The struct ifreq ioctl request (see netdevice(7))
-    ifr = struct.pack("16sh", name.encode("ascii"), flags)
+    ifr = struct.pack("16sh", ifreq_name, flags)
 
     try:
       res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
@@ -189,11 +191,11 @@ def OpenTap(name="", features=None):
 
     tapfds.append(tapfd)
 
-    if name == "":
+    if not ifreq_name:
       # Set the tap device name after the first iteration of the loop going over
       # the number of net queues, if it is not already set. If we don't do this,
       # a new tap device will be created for each queue.
-      name = struct.unpack("16sh", res)[0].strip(b"\x00")
+      ifreq_name = struct.unpack("16sh", res)[0].strip(b"\x00")
 
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip(b"\x00")
