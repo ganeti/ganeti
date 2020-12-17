@@ -2050,13 +2050,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Failed to open SPICE password file %s: %s"
                                      % (spice_password_file, err))
 
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
-      qmp.connect()
-      arguments = {
-          "protocol": "spice",
-          "password": spice_pwd,
-      }
-      qmp.Execute("set_password", arguments)
+      change_cmd = "set_password spice %s" % spice_pwd
+      self._CallMonitorCommand(instance.name, change_cmd)
 
     for filename in temp_files:
       utils.RemoveFile(filename)
