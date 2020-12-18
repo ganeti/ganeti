@@ -768,6 +768,18 @@ class QmpConnection(MonitorSocket):
 
     return self.Execute("query-migrate")
 
+  @_ensure_connection
+  def SetSpicePassword(self, spice_pwd):
+    """Set Spice password of an instance
+
+    """
+    arguments = {
+      "protocol": "spice",
+      "password": spice_pwd,
+    }
+
+    self.Execute("set_password", arguments)
+
   def _GetFd(self, fd, fdname):
     """Wrapper around the getfd qmp command
 
