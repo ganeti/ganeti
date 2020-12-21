@@ -710,6 +710,8 @@ class QmpConnection(MonitorSocket):
 
     arguments = {
       "max-bandwidth": max_bandwidth,
+      # TODO: available since qemu 3.0
+      #"max-postcopy-bandwidth": max_bandwidth,
       "downtime-limit": downtime_limit,
     }
 
@@ -759,6 +761,14 @@ class QmpConnection(MonitorSocket):
     }
 
     self.Execute("migrate", arguments)
+
+  @_ensure_connection
+  def StartPostcopyMigration(self):
+    """ Start postcopy-ram migration
+
+    """
+
+    self.Execute("migrate-start-postcopy")
 
   @_ensure_connection
   def GetMigrationStatus(self):

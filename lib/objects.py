@@ -2317,6 +2317,8 @@ class MigrationStatus(ConfigObject):
     "status",
     "transferred_ram",
     "total_ram",
+    # to signal, if migration has switched to postcopy
+    "postcopy_status",
     ]
 
 

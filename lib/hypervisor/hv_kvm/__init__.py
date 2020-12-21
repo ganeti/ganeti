@@ -162,6 +162,8 @@ _SCSI_BUS = "scsi.0"
 
 _MIGRATION_CAPS_DELIM = ":"
 
+# in future make dirty_sync_count configurable
+_POSTCOPY_SYNC_COUNT_THRESHOLD = 2 # Precopy passes before enabling postcopy
 
 def _with_qmp(fn):
   """Wrapper used on hotplug related methods"""
@@ -2633,6 +2635,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             migration_status.transferred_ram = \
                 query_migrate["ram"]["transferred"]
             migration_status.total_ram = query_migrate["ram"]["total"]
+
+            migration_status.postcopy_status = None
+            migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
+            # migration_caps is a ':' delimited string, so checking
+            # if 'postcopy-ram' is a substring also covers using
+            # x-postcopy-ram for QEMU 2.5
+            if migration_caps and "postcopy-ram" in migration_caps:
+              dirty_sync_count = query_migrate["ram"]["dirty-sync-count"]
+              if (migration_status.status == constants.HV_MIGRATION_ACTIVE
+                  and dirty_sync_count >= _POSTCOPY_SYNC_COUNT_THRESHOLD):
+                self.qmp.StartPostcopyMigration()
+                logging.info("switched live migration for instance %s to"
+                             " postcopy mode", instance.name)
+                # qmp.StartPostcopyMigration() seems asynchronous. Doing
+                # qmp.GetMigrationStatus() right after, the ["status"] won't be
+                # HV_KVM_MIGRATION_POSTCOPY_ACTIVE. This is why an extra field
+                # ["postcopy_status"] is introduced
+                migration_status.postcopy_status = \
+                    constants.HV_KVM_MIGRATION_POSTCOPY_ACTIVE
 
           return migration_status
         else:

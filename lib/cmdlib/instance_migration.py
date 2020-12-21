@@ -953,7 +953,10 @@ class TLMigrateInstance(Tasklet):
         raise errors.OpExecError("Could not migrate instance %s: %s" %
                                  (self.instance.name, msg))
 
-      if result.payload.status != constants.HV_MIGRATION_ACTIVE:
+      if ms.postcopy_status == constants.HV_KVM_MIGRATION_POSTCOPY_ACTIVE:
+        self.feedback_fn("* memory transfer has switched to postcopy")
+
+      if ms.status not in constants.HV_KVM_MIGRATION_ACTIVE_STATUSES:
         self.feedback_fn("* memory transfer complete")
         break
 
