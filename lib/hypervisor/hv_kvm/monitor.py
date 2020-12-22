@@ -710,10 +710,11 @@ class QmpConnection(MonitorSocket):
 
     arguments = {
       "max-bandwidth": max_bandwidth,
-      # TODO: available since qemu 3.0
-      #"max-postcopy-bandwidth": max_bandwidth,
       "downtime-limit": downtime_limit,
     }
+
+    if self.version >= (3, 0, 0):
+      arguments["max-postcopy-bandwidth"] = max_bandwidth
 
     self.Execute("migrate-set-parameters", arguments)
 
