@@ -1110,7 +1110,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     data = []
-    for name in os.listdir(self._PIDS_DIR):
+    for entry in os.listdir(self._CONF_DIR):
+      name, _ = os.path.splitext(entry)
       try:
         info = self.GetInstanceInfo(name)
       except errors.HypervisorError:
