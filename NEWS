@@ -2,6 +2,57 @@ News
 ====
 
 
+Version 3.0.0
+-------------
+
+*(unreleased)*
+
+Changes since 3.0.0 rc1
+~~~~~~~~~~~~~~~~~~~~~~~
+
+3.0.0 includes only a handful of improvements and fixes since 3.0.0 rc1.
+
+Automatic postcopy migration handling for KVM guests
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Ganeti now supports switching a KVM live migration automatically over to
+postcopy mode if the instance's ``migration_caps`` include the
+``postcopy-ram`` capability and the live migration has already completed
+two full memory passes. Postcopy live migration support in Ganeti 3.0 is
+considered experimental; users are encouraged to test it and report
+bugs, but it should be used with care in production environments.
+
+We recommend using postcopy migration with at least QEMU version 3.0;
+QEMU versions before 3.0 do not support limiting the bandwidth of a
+postcopy migration, which might saturate the network and cause
+interference with e.g. DRBD connections. For QEMU 3.0 and on, we apply
+the ``migration_bandwidth`` HV parameter that limits the regular
+live migration bandwidth to the postcopy phase as well.
+
+Thanks to Sascha Lucas and Calum Calder for all the work related to
+postcopy migration.
+
+Other changes
++++++++++++++
+
+Bugfixes:
+ - Fix multi-queue tap creation that was broken by the Python 3
+   migration (#1534)
+ - Make sure we set KVM migration capabilities on both sides of the
+   live migration and clear them once the migration is over (#1525)
+ - Properly cleanup the dedicated spice connection used to set a KVM
+   instance's spice password; this avoids blocking the instance on boot
+   (#1535, #1536)
+ - Fix non-SSL operation for Python daemons, broken by the Python 3
+   migration. This should be only relevant for the RAPI daemon running
+   behind a reverse proxy; noded requires SSL to function properly
+   (#1508, #1538)
+
+Compatibility fixes:
+ - Correctly report the status of user-down KVM instances with QEMU >=
+   3.1 (#1440, #1537)
+
+
 Version 3.0.0 rc1
 -----------------
 
