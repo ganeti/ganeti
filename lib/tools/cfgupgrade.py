@@ -59,13 +59,13 @@ from ganeti.utils import version
 #: Target major version we will upgrade to
 TARGET_MAJOR = 3
 #: Target minor version we will upgrade to
-TARGET_MINOR = 0
+TARGET_MINOR = 1
 #: Last supported v2.x minor
 LAST_V2_MINOR = 16
 #: Target major version for downgrade
-DOWNGRADE_MAJOR = 2
+DOWNGRADE_MAJOR = 3
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 16
+DOWNGRADE_MINOR = 0
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
