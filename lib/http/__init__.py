@@ -421,7 +421,7 @@ def SocketOperation(sock, op, arg1, timeout):
             # Use sendall to avoid partial writes that could cause desync with
             # our caller, as len(data) != len(arg1) in the general case
             sock.sendall(data)
-            return len(data)
+            return len(arg1)
           return sock.send(arg1)
 
         elif op == SOCKOP_RECV:
