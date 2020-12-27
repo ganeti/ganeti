@@ -627,10 +627,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
 
-  _INFO_VERSION_RE = \
-    re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
-  _INFO_VERSION_CMD = "info version"
-
   # Slot 0 for Host bridge, Slot 1 for ISA bridge, Slot 2 for VGA controller
   # and the rest up to slot 11 will be used by QEMU implicitly.
   # Ganeti will add disks and NICs from slot 12 onwards.
@@ -2154,6 +2150,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if action == constants.HOTPLUG_ACTION_ADD:
         self.qmp.CheckNicHotAddSupport()
 
+  @_with_qmp
   def HotplugSupported(self, instance):
     """Checks if hotplug is generally supported.
 
@@ -2165,17 +2162,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     try:
-      output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
+      version = self.qmp.version
     except errors.HypervisorError:
       raise errors.HotplugError("Instance is probably down")
 
-    match = self._INFO_VERSION_RE.search(output.stdout)
-    if not match:
-      raise errors.HotplugError("Cannot parse qemu version via monitor")
-
     #TODO: delegate more fine-grained checks to VerifyHotplugSupport
-    v_major, v_min, _, _ = match.groups()
-    if (int(v_major), int(v_min)) < (1, 7):
+    if version < (1, 7, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
   def _GetBusSlots(self, hvp=None, runtime=None):
