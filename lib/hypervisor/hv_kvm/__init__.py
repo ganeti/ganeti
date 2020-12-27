@@ -605,9 +605,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _VERSION_RE = re.compile(r"\b(\d+)\.(\d+)(\.(\d+))?\b")
 
-  _CPU_INFO_RE = re.compile(r"cpu\s+\#(\d+).*thread_id\s*=\s*(\d+)", re.I)
-  _CPU_INFO_CMD = "info cpus"
-
   _DEFAULT_MACHINE_VERSION_RE = re.compile(r"^(\S+).*\(default\)", re.M)
   _CHECK_MACHINE_VERSION_RE = \
     staticmethod(lambda x: re.compile(r"^(%s)[ ]+.*PC" % x, re.M))
@@ -1005,39 +1002,37 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       for i, vcpu in enumerate(cpu_list):
         cls._SetProcessAffinity(thread_dict[i], vcpu)
 
-  def _GetVcpuThreadIds(self, instance_name):
+  @_with_qmp
+  def _GetVcpuThreadIds(self, instance):
     """Get a mapping of vCPU no. to thread IDs for the instance
 
-    @type instance_name: string
-    @param instance_name: instance in question
+    @type instance: L{objects.Instance} object
+    @param instance: instance in question
     @rtype: dictionary of int:int
     @return: a dictionary mapping vCPU numbers to thread IDs
 
     """
     result = {}
-    output = self._CallMonitorCommand(instance_name, self._CPU_INFO_CMD)
-    for line in output.stdout.splitlines():
-      match = self._CPU_INFO_RE.search(line)
-      if not match:
-        continue
-      grp = [int(g) for g in match.groups()]
-      result[grp[0]] = grp[1]
+    cpu_info = self.qmp.GetCpuInformation()
+
+    for cpu in cpu_info:
+      result[cpu["cpu-index"]] = cpu["thread-id"]
 
     return result
 
-  def _ExecuteCpuAffinity(self, instance_name, cpu_mask):
+  def _ExecuteCpuAffinity(self, instance, cpu_mask):
     """Complete CPU pinning.
 
-    @type instance_name: string
-    @param instance_name: name of instance
+    @type instance: L{objects.Instance} object
+    @param instance: instance in question
     @type cpu_mask: string
     @param cpu_mask: CPU pinning mask as entered by user
 
     """
     # Get KVM process ID, to be used if need to pin entire VM
-    _, pid, _ = self._InstancePidAlive(instance_name)
+    _, pid, _ = self._InstancePidAlive(instance.name)
     # Get vCPU thread IDs, to be used if need to pin vCPUs separately
-    thread_dict = self._GetVcpuThreadIds(instance_name)
+    thread_dict = self._GetVcpuThreadIds(instance)
     # Run CPU pinning, based on configured mask
     self._AssignCpuAffinity(cpu_mask, pid, thread_dict)
 
@@ -2060,7 +2055,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # If requested, set CPU affinity and resume instance execution
     if cpu_pinning:
-      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK])
+      self._ExecuteCpuAffinity(instance, up_hvp[constants.HV_CPU_MASK])
 
     start_memory = self._InstanceStartupMemory(instance)
     if start_memory < instance.beparams[constants.BE_MAXMEM]:
