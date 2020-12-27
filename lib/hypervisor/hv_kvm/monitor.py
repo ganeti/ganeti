@@ -789,6 +789,14 @@ class QmpConnection(MonitorSocket):
     self.Execute("migrate-start-postcopy")
 
   @_ensure_connection
+  def GetCpuInformation(self):
+    """ Retrieve CPU/thread information
+        uses the query-cpus-fast which does not interrupt the guest
+    """
+
+    return self.Execute("query-cpus-fast")
+
+  @_ensure_connection
   def GetMigrationStatus(self):
     """Retrieve the current migration status
 
