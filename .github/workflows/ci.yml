@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - stable-3.0
   pull_request:
     branches:
       - master
+      - stable-3.0
   schedule:
     - cron: '42 3 * * *'
 
