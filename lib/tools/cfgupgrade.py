@@ -185,9 +185,9 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.0-2.16 to 3.0
-    # TODO: handle upgrades from 2.17beta
-    elif config_major == 2 and config_minor in range(0, LAST_V2_MINOR + 1):
+    # Upgrade from 2.0-2.16 and 3.0 to 3.1
+    elif ((config_major == TARGET_MAJOR and config_minor in range(TARGET_MINOR))
+         or (config_major == 2 and config_minor in range(LAST_V2_MINOR + 1))):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():
