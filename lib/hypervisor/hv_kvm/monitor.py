@@ -538,9 +538,15 @@ class QmpConnection(MonitorSocket):
 
     """
     if os.path.exists(uri):
-      fd = os.open(uri, os.O_RDWR)
-      fdset = self._AddFd(fd)
-      os.close(fd)
+      # For QEMU's dynamic auto-read-only feature to work (on by default since
+      # QEMU 4.0), we need two file descriptors, one in read-write and one in
+      # read-only mode.
+      fd_rw = os.open(uri, os.O_RDWR)
+      fd_ro = os.open(uri, os.O_RDONLY)
+      fdset = self._AddFd(fd_rw)
+      self._AddFd(fd_ro, fdset)
+      os.close(fd_rw)
+      os.close(fd_ro)
       filename = "/dev/fdset/%s" % fdset
     else:
       # The uri is not a file.
@@ -814,7 +820,7 @@ class QmpConnection(MonitorSocket):
       logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
       raise
 
-  def _AddFd(self, fd):
+  def _AddFd(self, fd, fdset_id=None):
     """Wrapper around add-fd qmp command
 
     Send fd to a running process via SCM_RIGHTS and then add-fd qmp command to
@@ -822,6 +828,9 @@ class QmpConnection(MonitorSocket):
 
     @type fd: int
     @param fd: The file descriptor to pass
+    @type fdset_id: int
+    @param fdset_id: The ID of an existing fdset to add the fd to. If None, a
+    new fdset will be created.
 
     @return: The fdset ID that the fd has been added to
     @raise errors.HypervisorError: If add-fd fails for some reason
@@ -830,8 +839,11 @@ class QmpConnection(MonitorSocket):
     self._check_connection()
     try:
       utils.SendFds(self.sock, b" ", [fd])
-      # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
-      response = self.Execute("add-fd")
+      if fdset_id is not None:
+        arguments = {'fdset-id': fdset_id}
+      else:
+        arguments = None
+      response = self.Execute("add-fd", arguments)
       fdset = response["fdset-id"]
     except errors.HypervisorError as err:
       logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
