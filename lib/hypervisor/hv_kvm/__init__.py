@@ -2283,10 +2283,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if dev_type == constants.HOTPLUG_TARGET_DISK:
       uri = _GetDriveURI(device, extra[0], extra[1])
 
+      disable_auto_ro = self.qmp.HasDynamicAutoReadOnly()
+
       def drive_add_fn(filename):
         """Helper function that uses HMP to hot-add a drive."""
         cmd = "drive_add dummy file=%s,if=none,id=%s,format=raw" % \
           (filename, kvm_devid)
+        if disable_auto_ro:
+          # This is necessary for the drive_add/device_add combination to work
+          # after QEMU 4.0. auto-read-only first appeared in 3.1, but 4.0
+          # changed its behavior in a way that breaks hotplugging. See #1547.
+          cmd += ",auto-read-only=off"
         self._CallMonitorCommand(instance.name, cmd)
 
       # This must be done indirectly due to the fact that we pass the drive's

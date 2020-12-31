@@ -703,6 +703,23 @@ class QmpConnection(MonitorSocket):
       _raise("netdev_add qmp command is not supported")
 
   @_ensure_connection
+  def HasDynamicAutoReadOnly(self):
+    """Check if QEMU uses dynamic auto-read-only for block devices
+
+    Use QMP schema introspection (QEMU 2.5+) to check for the
+    dynamic-auto-read-only feature.
+    """
+    schema = self.Execute("query-qmp-schema")
+
+    # QEMU 4.0 did not have a feature flag, but has dynamic auto-read-only
+    # support.
+    if self.version[:2] == (4, 0):
+      return True
+
+    return any([x for x in schema
+                if "dynamic-auto-read-only" in x.get("features",[])])
+
+  @_ensure_connection
   def SetMigrationParameters(self, max_bandwidth, downtime_limit):
     """Configute live migration parameters
 
