@@ -2294,6 +2294,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           # after QEMU 4.0. auto-read-only first appeared in 3.1, but 4.0
           # changed its behavior in a way that breaks hotplugging. See #1547.
           cmd += ",auto-read-only=off"
+        # When hot plugging a disk, parameters should match the current runtime.
+        # I.e. for live migration, the cache mode is critical.
+        if up_hvp[constants.HV_DISK_CACHE] != constants.HT_CACHE_DEFAULT:
+          cmd += ",cache=%s" % up_hvp[constants.HV_DISK_CACHE]
+        if up_hvp[constants.HV_KVM_DISK_AIO] == constants.HT_KVM_AIO_NATIVE:
+          cmd += ",aio=%s" % up_hvp[constants.HV_KVM_DISK_AIO]
+        if up_hvp[constants.HV_DISK_DISCARD] != constants.HT_DISCARD_DEFAULT:
+          cmd += ",discard=%s" % up_hvp[constants.HV_DISK_DISCARD]
         self._CallMonitorCommand(instance.name, cmd)
 
       # This must be done indirectly due to the fact that we pass the drive's
