@@ -3,8 +3,11 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 # On reboot, continue a Ganeti upgrade, if one was in progress
 @reboot root [ -x @SBINDIR@/gnt-cluster ] && @SBINDIR@/gnt-cluster upgrade --resume
 
-# Restart failed instances (every 5 minutes)
-*/5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
+# Restart failed instances (every 5 minutes, expect at minute 0)
+5-55/5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher --no-verify-disks
+
+# Verify and repair degraded DRBD disks and restart failed instances (once per hour, at minute 0)
+0 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
 
 # Clean job archive (at 01:45 AM)
 45 1 * * * @GNTMASTERUSER@ [ -x @SBINDIR@/ganeti-cleaner ] && @SBINDIR@/ganeti-cleaner master
