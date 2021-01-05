@@ -111,7 +111,6 @@
 # man
 /man/*.[0-9]
 /man/*.html
-/man/*.in
 /man/*.gen
 
 # test/hs

@@ -294,7 +294,6 @@ APIDOC_PY_DIR = $(APIDOC_DIR)/py
 APIDOC_HS_DIR = $(APIDOC_DIR)/hs
 
 MAINTAINERCLEANFILES = \
-	$(maninput) \
 	doc/install-quick.rst \
 	doc/news.rst \
 	doc/upgrade.rst \
@@ -1641,7 +1640,6 @@ EXTRA_DIST += \
 	$(python_test_utils) \
 	man/footer.rst \
 	$(manrst) \
-	$(maninput) \
 	qa/qa-sample.json \
 	$(qa_scripts) \
 	$(HS_LIBTEST_SRCS) $(HS_BUILT_SRCS_IN) \
@@ -1694,10 +1692,6 @@ mannoext = $(patsubst %.1,%,$(patsubst %.7,%,$(patsubst %.8,%,$(man_MANS))))
 manrst = $(patsubst %,%.rst,$(mannoext))
 manhtml = $(patsubst %.rst,%.html,$(manrst))
 mangen = $(patsubst %.rst,%.gen,$(manrst))
-maninput = \
-	$(patsubst %.1,%.1.in,$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS)))) \
-	$(patsubst %.html,%.html.in,$(manhtml)) \
-	$(mangen)
 
 manfullpath = $(patsubst man/%.1,man1/%.1,\
 	$(patsubst man/%.7,man7/%.7,\
@@ -2246,30 +2240,26 @@ man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	fi
 	set -e ; \
 	trap 'echo auto-removing $@; rm $@' EXIT; \
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@ ;\
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< | \
+	  sed -f $(REPLACE_VARS_SED) > $@ ;\
 	$(CHECK_MAN_REFERENCES) $@; \
 	trap - EXIT
 
-man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
+man/%.7 man/%.8 man/%.1: man/%.gen man/footer.rst
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail -e; \
 	trap 'echo auto-removing $@; rm $@' EXIT; \
-	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
-	  sed -e 's/\\@/@/g' > $@; \
+	$(PANDOC) -s -f rst -t man $< man/footer.rst > $@; \
 	if test -n "$(MAN_HAS_WARNINGS)"; then LC_ALL=$(UTF8_LOCALE) $(CHECK_MAN_WARNINGS) $@; fi; \
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
-man/%.html.in: man/%.gen man/footer.rst
+man/%.html: man/%.gen man/footer.rst
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
-	$(PANDOC) --toc -s -f rst -t html $< man/footer.rst | \
-	  sed -e 's/\\@/@/g' > $@
-
-man/%: man/%.in  $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
+	$(PANDOC) --toc -s -f rst -t html $< man/footer.rst > $@
 
 epydoc.conf: epydoc.conf.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
