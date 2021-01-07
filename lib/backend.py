@@ -5603,8 +5603,11 @@ def DrbdNeedsActivation(disks):
   """
   faulty_disks = []
 
+  is_plain_disk = compat.any([_CheckForPlainDisk(d) for d in disks])
+  lvs_cache = bdev.LogicalVolume.GetLvGlobalInfo() if is_plain_disk else None
+
   for disk in disks:
-    rd = _RecursiveFindBD(disk)
+    rd = _RecursiveFindBD(disk, lvs_cache=lvs_cache)
     if rd is None:
       faulty_disks.append(disk)
       continue
