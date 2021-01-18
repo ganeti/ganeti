@@ -510,12 +510,12 @@ class QmpConnection(MonitorSocket):
       "mac": nic.mac,
     }
     # Note that hvinfo that _GenerateDeviceHVInfo() creates
-    # sould include *only* the driver, id, bus, and addr keys
+    # should include *only* the driver, id, bus, and addr keys
     arguments.update(self._filter_hvinfo(nic.hvinfo))
     if enable_mq:
       arguments.update({
         "mq": "on",
-        "vectors": (2 * virtio_net_queues + 1),
+        "vectors": (2 * virtio_net_queues + 2),
         })
     self.Execute("device_add", arguments)
 
