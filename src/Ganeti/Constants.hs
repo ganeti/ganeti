@@ -2892,6 +2892,15 @@ htKvmValidBoTypes :: FrozenSet String
 htKvmValidBoTypes =
   ConstantUtils.mkSet [htBoCdrom, htBoDisk, htBoFloppy, htBoNetwork]
 
+
+htKvmBoLetterMapping :: Map String String
+htKvmBoLetterMapping =
+  Map.fromList
+  [(htBoCdrom, "d"),
+   (htBoDisk, "c"),
+   (htBoFloppy, "a"),
+   (htBoNetwork, "n")]
+
 -- * SPICE lossless image compression options
 
 htKvmSpiceLosslessImgComprAutoGlz :: String

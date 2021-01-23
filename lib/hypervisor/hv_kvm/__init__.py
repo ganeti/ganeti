@@ -210,6 +210,17 @@ def _GetDriveURI(disk, link, uri):
 
   return drive_uri
 
+def _GenerateBootOrderStr(bo_list):
+  """Helper function to generate a boot order string suitable for qemu
+  QEMU's boot order command line option accepts the user's boot order
+  preference as a string consisting of lower case letters. This function
+  will convert a comma-separated list of devices compliant with the
+  HV_BOOT_ORDER specification to comply with QEMU's syntax
+  @type bo_list: string
+  @param bo_list: comma-separated string of boot order preference (HV_BOOT_ORDER)
+  """
+
+  return ''.join(constants.HT_KVM_BO_LETTER_MAPPING[x] for x in bo_list.split(","))
 
 def _GenerateDeviceKVMId(dev_type, dev):
   """Helper function to generate a unique device name used by KVM
@@ -542,7 +553,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
     constants.HV_BOOT_ORDER:
-      hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
+      hv_base.AllParamsInSet(True, constants.HT_KVM_VALID_BO_TYPES),
     constants.HV_NIC_TYPE:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_NIC_TYPES),
     constants.HV_DISK_TYPE:
@@ -1159,10 +1170,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     kernel_path = up_hvp[constants.HV_KERNEL_PATH]
+    boot_order_list = up_hvp[constants.HV_BOOT_ORDER].split(",")
     if kernel_path:
       boot_disk = False
     else:
-      boot_disk = up_hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+      boot_disk = constants.HT_BO_DISK in boot_order_list
 
     # whether this is an older KVM version that uses the boot=on flag
     # on devices
@@ -1225,7 +1237,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       boot_val = ""
       if boot_disk:
-        dev_opts.extend(["-boot", "c"])
         boot_disk = False
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
@@ -1254,10 +1265,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   @staticmethod
   def _CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
                    needs_boot_flag):
-    """Extends L{kvm_cmd} with the '-drive' option for a cdrom, and
-    optionally the '-boot' option.
+    """Extends L{kvm_cmd} with the '-drive' option for a cdrom
 
-    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide -boot d
+    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide
 
     Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide,boot=on
 
@@ -1302,8 +1312,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # set boot flag, if needed
     boot_val = ""
     if cdrom_boot:
-      kvm_cmd.extend(["-boot", "d"])
-
       # whether this is an older KVM version that requires the 'boot=on' flag
       # on devices
       if needs_boot_flag:
@@ -1404,18 +1412,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(["-disable-kvm"])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
+    boot_order_list = hvp[constants.HV_BOOT_ORDER].split(",")
     if kernel_path:
       boot_cdrom = boot_floppy = boot_network = False
     else:
-      boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
-      boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
-      boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
+      boot_cdrom = constants.HT_BO_CDROM in boot_order_list
+      boot_floppy = constants.HT_BO_FLOPPY in boot_order_list
+      boot_network = constants.HT_BO_NETWORK in boot_order_list
 
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
 
-    if boot_network:
-      kvm_cmd.extend(["-boot", "n"])
+    if not kernel_path:
+      kvm_cmd.extend(["-boot", "order=" + _GenerateBootOrderStr(hvp[constants.HV_BOOT_ORDER])])
 
     disk_type = hvp[constants.HV_DISK_TYPE]
 
@@ -1438,7 +1447,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if floppy_image:
       options = ",format=raw,media=disk"
       if boot_floppy:
-        kvm_cmd.extend(["-boot", "a"])
         options = "%s,boot=on" % options
       if_val = ",if=floppy"
       options = "%s%s" % (options, if_val)
@@ -2813,8 +2821,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " one of: %s" %
                                      utils.CommaJoin(valid_speeds))
 
-    boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if (boot_order == constants.HT_BO_CDROM and
+    boot_order_list = hvparams[constants.HV_BOOT_ORDER].split(",")
+    if (constants.HT_BO_CDROM in boot_order_list and
         not hvparams[constants.HV_CDROM_IMAGE_PATH]):
       raise errors.HypervisorError("Cannot boot from cdrom without an"
                                    " ISO path")
