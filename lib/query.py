@@ -164,6 +164,7 @@ _VTToQFT = {
   constants.VTYPE_BOOL: QFT_BOOL,
   constants.VTYPE_SIZE: QFT_UNIT,
   constants.VTYPE_INT: QFT_NUMBER,
+  constants.VTYPE_MAYBE_INT: QFT_NUMBER,
   constants.VTYPE_FLOAT: QFT_NUMBER_FLOAT,
   }
 

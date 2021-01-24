@@ -383,6 +383,8 @@ def TNonNegative(val_type):
 def TPositive(val_type):
   return WithDesc("GreaterThanZero")(TAnd(val_type, lambda v: v > 0))
 
+#: a maybe integer (integer or None)
+TMaybeInt = TMaybe(TInt)
 
 #: a non-negative integer (value >= 0)
 TNonNegativeInt = TNonNegative(TInt)
@@ -611,7 +613,7 @@ def TSetParamsMods(fn):
 
 TINicParams = \
     Comment("NIC parameters")(TDictOf(TElemOf(constants.INIC_PARAMS),
-                                      TMaybe(TString)))
+                                       TOr(TMaybe(TString), TInt)))
 
 TIDiskParams = \
     Comment("Disk parameters")(TDictOf(TNonEmptyString,

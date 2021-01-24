@@ -604,7 +604,7 @@ class LUInstanceCreate(LogicalUnit):
       for idx in range(constants.MAX_NICS):
         if einfo.has_option(constants.INISECT_INS, "nic%d_mac" % idx):
           ndict = {}
-          for name in [constants.INIC_IP,
+          for name in [constants.INIC_IP, constants.INIC_BOOT_INDEX,
                        constants.INIC_MAC, constants.INIC_NAME]:
             nic_param_name = "nic%d_%s" % (idx, name)
             if einfo.has_option(constants.INISECT_INS, nic_param_name):

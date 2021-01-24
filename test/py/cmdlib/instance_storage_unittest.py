@@ -136,11 +136,11 @@ class TestCheckComputeDisksInfo(unittest.TestCase):
       objects.Disk(dev_type=constants.DT_PLAIN, size=1024,
                    logical_id=("ganeti", "disk01234"),
                    name="disk-0", mode="rw", params={},
-                   children=[], uuid="disk0"),
+                   bootindex=0, children=[], uuid="disk0"),
       objects.Disk(dev_type=constants.DT_PLAIN, size=2048,
                    logical_id=("ganeti", "disk56789"),
                    name="disk-1", mode="ro", params={},
-                   children=[], uuid="disk1")
+                   bootindex=-1, children=[], uuid="disk1")
       ]
 
     self.ext_params = {
@@ -161,6 +161,7 @@ class TestCheckComputeDisksInfo(unittest.TestCase):
     for disk, d in zip(disks_info, self.disks):
       self.assertEqual(disk.get("size"), d.size)
       self.assertEqual(disk.get("mode"), d.mode)
+      self.assertEqual(disk.get("bootindex"), d.bootindex)
       self.assertEqual(disk.get("name"), d.name)
       self.assertEqual(disk.get("param1"), self.ext_params.get("param1"))
       self.assertEqual(disk.get("param2"), self.ext_params.get("param2"))
@@ -170,6 +171,7 @@ class TestCheckComputeDisksInfo(unittest.TestCase):
     disks = [{constants.IDISK_TYPE: constants.DT_DRBD8,
               constants.IDISK_SIZE: d.size,
               constants.IDISK_MODE: d.mode,
+              constants.IDISK_BOOT_INDEX: d.bootindex,
               constants.IDISK_VG: d.logical_id[0],
               constants.IDISK_NAME: d.name}
              for d in self.disks]

@@ -122,6 +122,9 @@ _NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
 _VIRTIO_NET_QUEUES_CHECK = (lambda x: 0 < x < 9, "invalid number of queues",
                             None, None)
 
+# Check for integer
+_INT_CHECK = (lambda x: isinstance(x, int), "must be an integer", None, None)
+
 # Check that an integer is non negative
 _NONNEGATIVE_INT_CHECK = (lambda x: x >= 0, "cannot be negative", None, None)
 
@@ -140,6 +143,8 @@ REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
 REQ_MULTI_CPU_MASK_CHECK = (True, ) + _MULTI_CPU_MASK_CHECK
 OPT_MULTI_CPU_MASK_CHECK = (False, ) + _MULTI_CPU_MASK_CHECK
+REQ_INT_CHECK = (True, ) + _INT_CHECK
+OPT_INT_CHECK = (False, ) + _INT_CHECK
 REQ_NONNEGATIVE_INT_CHECK = (True, ) + _NONNEGATIVE_INT_CHECK
 OPT_NONNEGATIVE_INT_CHECK = (False, ) + _NONNEGATIVE_INT_CHECK
 

@@ -550,8 +550,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_SPICE_USE_VDAGENT: hv_base.NO_CHECK,
     constants.HV_KVM_DEBUG_THREADS: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_FLOPPY_BOOT_INDEX: hv_base.OPT_INT_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
+    constants.HV_CDROM_BOOT_INDEX: hv_base.OPT_INT_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
+    constants.HV_KVM_CDROM2_BOOT_INDEX: hv_base.OPT_INT_CHECK,
     constants.HV_BOOT_ORDER:
       hv_base.AllParamsInSet(True, constants.HT_KVM_VALID_BO_TYPES),
     constants.HV_NIC_TYPE:
@@ -611,6 +614,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO = "virtio"
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
+  _VIRTIO_BLK_SCSI = "virtio-scsi-pci"
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -1256,16 +1260,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # Add driver, id, bus, and addr or channel, scsi-id, lun if any.
         dev_val = _GenerateDeviceHVInfoStr(cfdev.hvinfo)
         dev_val += ",drive=%s" % kvm_devid
+      if cfdev.bootindex is not None and cfdev.bootindex >= 0:
+        dev_val += ",bootindex=%s" % cfdev.bootindex
+
+      if dev_val:
         dev_opts.extend(["-device", dev_val])
 
       dev_opts.extend(["-drive", drive_val])
 
     return dev_opts
 
-  @staticmethod
-  def _CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
-                   needs_boot_flag):
-    """Extends L{kvm_cmd} with the '-drive' option for a cdrom
+  def _CdromOption(self, kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
+                   needs_boot_flag, cd_idx, bootindex, devlist):
+    """Generate KVM options regarding instance's cdrom devices.
 
     Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide
 
@@ -1288,6 +1295,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type needs_boot_flag:
     @param needs_boot_flag:
 
+    @type cd_idx: int
+    @param cd_idx:
+
     """
     # Check that the ISO image is accessible
     # See https://bugs.launchpad.net/qemu/+bug/597575
@@ -1295,19 +1305,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Cdrom ISO image '%s' is not accessible" %
                                    cdrom_image)
 
+    # paravirtual implies either '-device virtio-scsi-pci... -drive if=none...'
+    # for new QEMU versions or '-drive if=virtio' for old QEMU versions
+    # Use virtio-scsi-pci for paravirtual cdrom type as it will work with boot
+    if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
+      driver = constants.HT_DISK_SCSI + "-cd"
+    # device driver name is actually ide-cd for type=ide
+    elif cdrom_disk_type == constants.HT_DISK_IDE:
+      driver = constants.HT_DISK_IDE + "-cd"
+    else:
+      driver = cdrom_disk_type
+
     # set cdrom 'media' and 'format', if needed
     if utils.IsUrl(cdrom_image):
       options = ",media=cdrom"
     else:
       options = ",media=cdrom,format=raw"
 
-    # set cdrom 'if' type
-    if cdrom_boot:
-      if_val = ",if=" + constants.HT_DISK_IDE
-    elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-      if_val = ",if=virtio"
+    # Check if a specific driver is supported by QEMU device model.
+    if self._DEVICE_DRIVER_SUPPORTED(driver, devlist):
+      if_val = ",if=none" # for the -drive option
+      device_driver = driver # for the -device option
     else:
-      if_val = ",if=" + cdrom_disk_type
+      if_val = ",if=%s" % cdrom_disk_type # for the -drive option
+      device_driver = None # without -device option
 
     # set boot flag, if needed
     boot_val = ""
@@ -1319,7 +1340,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # build '-drive' option
     drive_val = "file=%s%s%s%s" % (cdrom_image, options, if_val, boot_val)
+
+    # handle virtio-scsi-pci, ide-cd, scsi-cd device creation
+    if device_driver is not None:
+      drive_val += ",id=cd%s" % cd_idx
+      # Add driver and id
+      dev_val = device_driver
+      dev_val += ",drive=cd%s" % cd_idx
+
+    if bootindex >= 0:
+      dev_val += ",bootindex=%s" % bootindex
+
     kvm_cmd.extend(["-drive", drive_val])
+
+    if dev_val:
+      kvm_cmd.extend(["-device", dev_val])
 
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp):
@@ -1412,46 +1447,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(["-disable-kvm"])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
-    boot_order_list = hvp[constants.HV_BOOT_ORDER].split(",")
-    if kernel_path:
-      boot_cdrom = boot_floppy = boot_network = False
-    else:
-      boot_cdrom = constants.HT_BO_CDROM in boot_order_list
-      boot_floppy = constants.HT_BO_FLOPPY in boot_order_list
-      boot_network = constants.HT_BO_NETWORK in boot_order_list
 
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
-
-    if not kernel_path:
-      kvm_cmd.extend(["-boot", "order=" + _GenerateBootOrderStr(hvp[constants.HV_BOOT_ORDER])])
-
-    disk_type = hvp[constants.HV_DISK_TYPE]
-
-    # Now we can specify a different device type for CDROM devices.
-    cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
-    if not cdrom_disk_type:
-      cdrom_disk_type = disk_type
-
-    cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
-    if cdrom_image1:
-      needs_boot_flag = self._BOOT_RE.search(kvmhelp)
-      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
-                        needs_boot_flag)
-
-    cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
-    if cdrom_image2:
-      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, False)
-
-    floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
-    if floppy_image:
-      options = ",format=raw,media=disk"
-      if boot_floppy:
-        options = "%s,boot=on" % options
-      if_val = ",if=floppy"
-      options = "%s%s" % (options, if_val)
-      drive_val = "file=%s%s" % (floppy_image, options)
-      kvm_cmd.extend(["-drive", drive_val])
 
     if kernel_path:
       kvm_cmd.extend(["-kernel", kernel_path])
@@ -1957,6 +1955,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             nic_val = "%s" % nic_model
             netdev = "netdev%d" % nic_seq
           nic_val += (",netdev=%s,mac=%s%s" % (netdev, nic.mac, nic_extra))
+          if nic.bootindex is not None and nic.bootindex >= 0:
+            nic_val += (",bootindex=%s" % nic.bootindex)
           tap_val = ("type=tap,id=%s,%s%s%s" %
                      (netdev, tapfd, vhostfd, tap_extra))
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
@@ -2009,6 +2009,59 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                                      kvmhelp,
                                                      devlist)
     kvm_cmd.extend(bdev_opts)
+
+    disk_type = up_hvp[constants.HV_DISK_TYPE]
+    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
+    boot_order_list = up_hvp[constants.HV_BOOT_ORDER].split(",")
+    if kernel_path:
+      boot_cdrom = boot_floppy = boot_network = False
+    else:
+      boot_cdrom = constants.HT_BO_CDROM in boot_order_list
+      boot_floppy = constants.HT_BO_FLOPPY in boot_order_list
+      boot_network = constants.HT_BO_NETWORK in boot_order_list
+      boot_order_string = _GenerateBootOrderStr(up_hvp[constants.HV_BOOT_ORDER])
+      kvm_cmd.extend(["-boot", "order=" + boot_order_string])
+
+    # Now we can specify a different device type for CDROM devices.
+    cdrom_disk_type = up_hvp[constants.HV_KVM_CDROM_DISK_TYPE]
+    if not cdrom_disk_type:
+      cdrom_disk_type = disk_type
+
+    cdrom_image1 = up_hvp[constants.HV_CDROM_IMAGE_PATH]
+    cdrom_image2 = up_hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
+    if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL and \
+        self._DEVICE_DRIVER_SUPPORTED(self._VIRTIO_BLK_SCSI, devlist) and \
+            (cdrom_image1 or cdrom_image2):
+      if not (conf_hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES and \
+          conf_hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE] != self._VIRTIO_BLK_SCSI):
+        kvm_cmd.extend(["-device", "%s,id=scsi" % self._VIRTIO_BLK_SCSI])
+      else:
+        raise errors.HypervisorError("cdrom_disk_type set to paravirtual, which implicitly creates a virtio scsi controller, but disk configuration requires an emulated scsi controller type. Handling two different types of scsi controllers is currently not supported")
+
+    if cdrom_image1:
+      cdrom_bootindex = conf_hvp[constants.HV_CDROM_BOOT_INDEX]
+      needs_boot_flag = self._BOOT_RE.search(kvmhelp)
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom, \
+                        needs_boot_flag, 0, cdrom_bootindex, devlist)
+
+    if cdrom_image2:
+      cdrom2_bootindex = conf_hvp[constants.HV_KVM_CDROM2_BOOT_INDEX]
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, \
+                        False, 1, cdrom2_bootindex, devlist)
+
+    floppy_image = up_hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
+    if floppy_image:
+      floppy_bootindex = conf_hvp[constants.HV_KVM_FLOPPY_BOOT_INDEX]
+      options = ",id=fd1,format=raw"
+      if_val = ",if=none"
+      options = "%s%s" % (options, if_val)
+      drive_val = "file=%s%s" % (floppy_image, options)
+      kvm_cmd.extend(["-drive", drive_val])
+      dev_val = "isa-fdc"
+      kvm_cmd.extend(["-global", dev_val + ".driveA=fd1"])
+      if floppy_bootindex >= 0:
+        kvm_cmd.extend(["-global", dev_val + ".bootindexA=" + str(floppy_bootindex)])
+
     # CPU affinity requires kvm to start paused, so we set this flag if the
     # instance is not already paused and if we are not going to accept a
     # migrating instance. In the latter case, pausing is not needed.

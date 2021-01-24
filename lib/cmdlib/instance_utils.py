@@ -115,12 +115,14 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
     }
   if nics:
     nic_count = len(nics)
-    for idx, (name, uuid, ip, mac, mode, link, vlan, net, netinfo) \
+    for idx, (name, uuid, ip, mac, mode, link, vlan, net, bootindex, netinfo) \
         in enumerate(nics):
       if ip is None:
         ip = ""
       if name:
         env["INSTANCE_NIC%d_NAME" % idx] = name
+      if bootindex:
+        env["INSTANCE_NIC%d_BOOTINDEX" % idx] = bootindex
       env["INSTANCE_NIC%d_UUID" % idx] = uuid
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_MAC" % idx] = mac
@@ -401,7 +403,7 @@ def NICToTuple(lu, nic):
     nobj = lu.cfg.GetNetwork(nic.network)
     netinfo = objects.Network.ToDict(nobj)
   return (nic.name, nic.uuid, nic.ip, nic.mac, mode, link, vlan,
-          nic.network, netinfo)
+          nic.network, nic.bootindex, netinfo)
 
 
 def NICListToTuple(lu, nics):
@@ -779,16 +781,20 @@ def BuildDiskEnv(idx, disk):
     name = disk.get(constants.IDISK_NAME, "")
     size = disk.get(constants.IDISK_SIZE, "")
     mode = disk.get(constants.IDISK_MODE, "")
+    bootindex = disk.get(constants.IDISK_BOOT_INDEX, "")
   elif isinstance(disk, objects.Disk):
     uuid = disk.uuid
     name = disk.name
     size = disk.size
     mode = disk.mode
+    bootindex = disk.bootindex
     ret.update(BuildDiskLogicalIDEnv(idx, disk))
 
-  # only name is optional here
+  # only name and bootindex is optional here
   if name:
     ret["INSTANCE_DISK%d_NAME" % idx] = name
+  if bootindex:
+    ret["INSTANCE_DISK%d_BOOT_INDEX" % idx] = bootindex
   ret["INSTANCE_DISK%d_UUID" % idx] = uuid
   ret["INSTANCE_DISK%d_SIZE" % idx] = size
   ret["INSTANCE_DISK%d_MODE" % idx] = mode
@@ -1299,7 +1305,8 @@ def ComputeNics(op, cluster, default_ip, cfg, ec_id):
     name = nic.get(constants.INIC_NAME, None)
     if name is not None and name.lower() == constants.VALUE_NONE:
       name = None
-    nic_obj = objects.NIC(mac=mac, ip=nic_ip, name=name,
+    bootindex = nic.get(constants.INIC_BOOT_INDEX, None)
+    nic_obj = objects.NIC(mac=mac, ip=nic_ip, name=name, bootindex=bootindex,
                           network=net_uuid, nicparams=nicparams)
     nic_obj.uuid = cfg.GenerateUniqueID(ec_id)
     nics.append(nic_obj)

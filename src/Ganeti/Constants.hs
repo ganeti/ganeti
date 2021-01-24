@@ -1569,6 +1569,9 @@ vtypeBool = VTypeBool
 vtypeInt :: VType
 vtypeInt = VTypeInt
 
+vtypeMaybeInt :: VType
+vtypeMaybeInt = VTypeMaybeInt
+
 vtypeFloat :: VType
 vtypeFloat = VTypeFloat
 
@@ -1630,6 +1633,9 @@ hvBootOrder = "boot_order"
 hvCdromImagePath :: String
 hvCdromImagePath = "cdrom_image_path"
 
+hvCdromBootIndex :: String
+hvCdromBootIndex = "cdrom_bootindex"
+
 hvCpuCap :: String
 hvCpuCap = "cpu_cap"
 
@@ -1681,6 +1687,9 @@ hvKeymap = "keymap"
 hvKvmCdrom2ImagePath :: String
 hvKvmCdrom2ImagePath = "cdrom2_image_path"
 
+hvKvmCdrom2BootIndex :: String
+hvKvmCdrom2BootIndex = "cdrom2_bootindex"
+
 hvKvmCdromDiskType :: String
 hvKvmCdromDiskType = "cdrom_disk_type"
 
@@ -1692,6 +1701,9 @@ hvKvmFlag = "kvm_flag"
 
 hvKvmFloppyImagePath :: String
 hvKvmFloppyImagePath = "floppy_image_path"
+
+hvKvmFloppyBootIndex :: String
+hvKvmFloppyBootIndex = "floppy_bootindex"
 
 hvKvmMachineVersion :: String
 hvKvmMachineVersion = "machine_version"
@@ -1899,6 +1911,7 @@ hvsParameterTypes = Map.fromList
   , (hvBootloaderPath,                  VTypeString)
   , (hvBootOrder,                       VTypeString)
   , (hvCdromImagePath,                  VTypeString)
+  , (hvCdromBootIndex,                  VTypeMaybeInt)
   , (hvCpuCap,                          VTypeInt)
   , (hvCpuCores,                        VTypeInt)
   , (hvCpuMask,                         VTypeString)
@@ -1916,10 +1929,12 @@ hvsParameterTypes = Map.fromList
   , (hvKernelPath,                      VTypeString)
   , (hvKeymap,                          VTypeString)
   , (hvKvmCdrom2ImagePath,              VTypeString)
+  , (hvKvmCdrom2BootIndex,              VTypeMaybeInt)
   , (hvKvmCdromDiskType,                VTypeString)
   , (hvKvmExtra,                        VTypeString)
   , (hvKvmFlag,                         VTypeString)
   , (hvKvmFloppyImagePath,              VTypeString)
+  , (hvKvmFloppyBootIndex,              VTypeMaybeInt)
   , (hvKvmMachineVersion,               VTypeString)
   , (hvKvmMigrationCaps,                VTypeString)
   , (hvKvmPath,                         VTypeString)
@@ -2578,6 +2593,9 @@ idiskAccess = "access"
 idiskType :: String
 idiskType = "dev_type"
 
+idiskBootIndex :: String
+idiskBootIndex = "bootindex"
+
 idiskParamsTypes :: Map String VType
 idiskParamsTypes =
   Map.fromList [ (idiskSize, VTypeSize)
@@ -2590,6 +2608,7 @@ idiskParamsTypes =
                , (idiskAccess, VTypeString)
                , (idiskName, VTypeMaybeString)
                , (idiskType, VTypeString)
+               , (idiskBootIndex, VTypeMaybeInt)
                ]
 
 idiskParams :: FrozenSet String
@@ -2598,6 +2617,7 @@ idiskParams = ConstantUtils.mkSet (Map.keys idiskParamsTypes)
 modifiableIdiskParamsTypes :: Map String VType
 modifiableIdiskParamsTypes =
   Map.fromList [(idiskMode, VTypeString),
+                (idiskBootIndex, VTypeMaybeInt),
                 (idiskName, VTypeString)]
 
 modifiableIdiskParams :: FrozenSet String
@@ -2630,16 +2650,21 @@ inicNetwork = "network"
 inicVlan :: String
 inicVlan = "vlan"
 
+inicBootIndex :: String
+inicBootIndex = "bootindex"
+
 inicParamsTypes :: Map String VType
 inicParamsTypes =
-  Map.fromList [(inicBridge, VTypeMaybeString),
-                (inicIp, VTypeMaybeString),
-                (inicLink, VTypeString),
-                (inicMac, VTypeString),
-                (inicMode, VTypeString),
-                (inicName, VTypeMaybeString),
-                (inicNetwork, VTypeMaybeString),
-                (inicVlan, VTypeMaybeString)]
+  Map.fromList [ (inicBridge,    VTypeMaybeString)
+               , (inicIp,        VTypeMaybeString)
+               , (inicLink,      VTypeString)
+               , (inicMac,       VTypeString)
+               , (inicMode,      VTypeString)
+               , (inicName,      VTypeMaybeString)
+               , (inicNetwork,   VTypeMaybeString)
+               , (inicVlan,      VTypeMaybeString)
+               , (inicBootIndex, VTypeMaybeInt)
+               ]
 
 inicParams :: FrozenSet String
 inicParams = ConstantUtils.mkSet (Map.keys inicParamsTypes)
@@ -4136,8 +4161,11 @@ hvcDefaults =
           , (hvKvmSpiceUseVdagent,              PyValueEx True)
           , (hvKvmDebugThreads,                 PyValueEx False)
           , (hvKvmFloppyImagePath,              PyValueEx "")
+          , (hvKvmFloppyBootIndex,              PyValueEx (-1 :: Int))
           , (hvCdromImagePath,                  PyValueEx "")
+          , (hvCdromBootIndex,                  PyValueEx (-1 :: Int))
           , (hvKvmCdrom2ImagePath,              PyValueEx "")
+          , (hvKvmCdrom2BootIndex,              PyValueEx (-1 :: Int))
           , (hvBootOrder,                       PyValueEx htBoDisk)
           , (hvNicType,                         PyValueEx htNicParavirtual)
           , (hvDiskType,                        PyValueEx htDiskParavirtual)

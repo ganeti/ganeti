@@ -1291,6 +1291,16 @@ def ParseNicOption(optvalue):
       raise errors.OpPrereqError("Invalid nic/%d value: expected dict,"
                                  " got %s" % (nidx, ndict), errors.ECODE_INVAL)
 
+    if constants.INIC_BOOT_INDEX in ndict:
+      try:
+        if int(ndict[constants.INIC_BOOT_INDEX]) >= 0:
+          ndict[constants.INIC_BOOT_INDEX] = int(ndict[constants.INIC_BOOT_INDEX])
+        else:
+          ndict[constants.INIC_BOOT_INDEX] = -1
+      except:
+        logging.warning("bootindex value ignored and set to '-1'")
+        ndict[constants.INIC_BOOT_INDEX] = -1
+
     utils.ForceDictType(ndict, constants.INIC_PARAMS_TYPES)
 
     nics[nidx] = ndict
@@ -1405,6 +1415,11 @@ def GenericInstanceCreate(mode, opts, args):
                                    " disk %d" % didx, errors.ECODE_INVAL)
       if constants.IDISK_SPINDLES in ddict:
         ddict[constants.IDISK_SPINDLES] = int(ddict[constants.IDISK_SPINDLES])
+      if constants.IDISK_BOOT_INDEX in ddict:
+        if int(ddict[constants.IDISK_BOOT_INDEX]) >= 0:
+          ddict[constants.IDISK_BOOT_INDEX] = int(ddict[constants.IDISK_BOOT_INDEX])
+        else:
+          ddict[constants.IDISK_BOOT_INDEX] = -1
 
       disks[didx] = ddict
 

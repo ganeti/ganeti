@@ -211,6 +211,7 @@ class LUInstanceQueryData(NoHooksLU):
       "mode": dev.mode,
       "size": dev.size,
       "spindles": dev.spindles,
+      "bootindex": dev.bootindex,
       "name": dev.name,
       "uuid": dev.uuid,
       }

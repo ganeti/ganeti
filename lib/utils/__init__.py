@@ -141,12 +141,15 @@ def ForceDictType(target, key_types, allowed_values=None):
         msg = "'%s' (value %s) is not a valid size. error: %s" % \
               (key, target[key], err)
         raise errors.TypeEnforcementError(msg)
-    elif ktype == constants.VTYPE_INT:
-      try:
-        target[key] = int(target[key])
-      except (ValueError, TypeError):
-        msg = "'%s' (value %s) is not a valid integer" % (key, target[key])
-        raise errors.TypeEnforcementError(msg)
+    elif ktype in (constants.VTYPE_INT, constants.VTYPE_MAYBE_INT):
+      if target[key] is None and ktype == constants.VTYPE_MAYBE_INT:
+        pass
+      else:
+        try:
+          target[key] = int(target[key])
+        except (ValueError, TypeError):
+          msg = "'%s' (value %s) is not a valid integer" % (key, target[key])
+          raise errors.TypeEnforcementError(msg)
     elif ktype == constants.VTYPE_FLOAT:
       try:
         target[key] = float(target[key])
