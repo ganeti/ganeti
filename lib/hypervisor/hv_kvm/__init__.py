@@ -615,8 +615,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
-  _VHOST_RE = re.compile(r"^-net(?:dev)?\stap.*,vhost=on\|off", re.M | re.S)
-  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-net(?:dev)?\stap.*,fds=x:y:...:z", re.M)
+  _VHOST_RE = re.compile(r"^-netdev\stap.*,vhost=on\|off", re.M | re.S)
+  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-netdev\stap.*,fds=x:y:...:z", re.M)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
