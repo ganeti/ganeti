@@ -421,12 +421,14 @@ class LUInstanceMove(LogicalUnit):
                            ignore=self.op.ignore_ipolicy)
 
     if self.instance.admin_state == constants.ADMINST_UP:
+      hvfull = objects.FillDict(
+          cluster.hvparams.get(self.instance.hypervisor, {}),
+          cluster.FillHV(self.instance))
       # check memory requirements on the target node
       CheckNodeFreeMemory(
           self, target_node.uuid, "failing over instance %s" %
           self.instance.name, bep[constants.BE_MAXMEM],
-          self.instance.hypervisor,
-          cluster.hvparams[self.instance.hypervisor])
+          self.instance.hypervisor, hvfull)
     else:
       self.LogInfo("Not checking memory on the secondary node as"
                    " instance will not be started")
