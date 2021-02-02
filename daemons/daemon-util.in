@@ -68,6 +68,7 @@ WCONFD_ARGS=
 LUXID_ARGS=
 RAPI_ARGS=
 MOND_ARGS=
+METAD_ARGS=
 KVMD_ARGS=
 
 # Read defaults file if it exists

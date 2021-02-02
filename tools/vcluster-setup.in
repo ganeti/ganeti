@@ -215,6 +215,7 @@ CONFD_ARGS='$daemon_args'
 MOND_ARGS=''
 WCONFD_ARGS=''
 LUXID_ARGS=''
+METAD_ARGS=''
 KVMD_ARGS=''
 
 export GANETI_ROOTDIR='$nodedir'
