@@ -2,6 +2,28 @@ News
 ====
 
 
+Version 3.0.1
+-------------
+
+*(Released Thu, 4 Feb 2021)*
+
+Changes since 3.0.0
+~~~~~~~~~~~~~~~~~~~
+
+This release contains the following bug- and compatibility fixes:
+
+ - Fix disk hotplugging with QEMU >=4.0 (#1556)
+ - Correctly configure the ``aio``, ``cache`` and ``discard`` disk
+   parameters for hotplugged disks (#1561)
+ - Configure the correct number of vectors for hotplugged MQ tap devices
+   (#1568)
+ - Properly detect MQ NIC support for newer KVM versions (#1569)
+ - Significantly speed up disk verification jobs by caching LVM
+   information (#1565)
+ - Fix a potential issue when exchanging utf-8 data over plain HTTP
+   RAPI (#1575)
+
+
 Version 3.0.0
 -------------
 
