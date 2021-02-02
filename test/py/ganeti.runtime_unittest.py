@@ -52,6 +52,8 @@ def _StubGetpwnam(user):
     constants.NODED_USER: _EntStub(uid=3),
     constants.LUXID_USER: _EntStub(uid=4),
     constants.WCONFD_USER: _EntStub(uid=5),
+    constants.MOND_USER: _EntStub(uid=6),
+    constants.METAD_USER: _EntStub(uid=7),
     }
   return users[user]
 
@@ -66,6 +68,8 @@ def _StubGetgrnam(group):
     constants.NODED_GROUP: _EntStub(gid=5),
     constants.LUXID_GROUP: _EntStub(gid=6),
     constants.WCONFD_GROUP: _EntStub(gid=7),
+    constants.MOND_GROUP: _EntStub(gid=8),
+    constants.METAD_GROUP: _EntStub(gid=9),
     }
   return groups[group]
 
@@ -101,12 +105,26 @@ class TestErrors(unittest.TestCase):
                      _StubGetpwnam(constants.WCONFD_USER).pw_uid)
     self.assertEqual(self.resolver.wconfd_gid,
                      _StubGetgrnam(constants.WCONFD_GROUP).gr_gid)
+    self.assertEqual(self.resolver.luxid_uid,
+                     _StubGetpwnam(constants.LUXID_USER).pw_uid)
+    self.assertEqual(self.resolver.luxid_gid,
+                     _StubGetgrnam(constants.LUXID_GROUP).gr_gid)
     self.assertEqual(self.resolver.rapi_uid,
                      _StubGetpwnam(constants.RAPI_USER).pw_uid)
     self.assertEqual(self.resolver.rapi_gid,
                      _StubGetgrnam(constants.RAPI_GROUP).gr_gid)
     self.assertEqual(self.resolver.noded_uid,
                      _StubGetpwnam(constants.NODED_USER).pw_uid)
+    self.assertEqual(self.resolver.noded_gid,
+                     _StubGetgrnam(constants.NODED_GROUP).gr_gid)
+    self.assertEqual(self.resolver.mond_uid,
+                     _StubGetpwnam(constants.MOND_USER).pw_uid)
+    self.assertEqual(self.resolver.mond_gid,
+                     _StubGetgrnam(constants.MOND_GROUP).gr_gid)
+    self.assertEqual(self.resolver.metad_uid,
+                     _StubGetpwnam(constants.METAD_USER).pw_uid)
+    self.assertEqual(self.resolver.metad_gid,
+                     _StubGetgrnam(constants.METAD_GROUP).gr_gid)
 
     self.assertEqual(self.resolver.daemons_gid,
                      _StubGetgrnam(constants.DAEMONS_GROUP).gr_gid)

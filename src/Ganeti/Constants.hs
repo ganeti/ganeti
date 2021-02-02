@@ -438,6 +438,10 @@ daemonsExtraLogbase =
                  [ ("access", Runtime.daemonsExtraLogbase GanetiMond AccessLog)
                  , ("error", Runtime.daemonsExtraLogbase GanetiMond ErrorLog)
                  ])
+  , (GanetiMetad, Map.fromList
+                 [ ("access", Runtime.daemonsExtraLogbase GanetiMetad AccessLog)
+                 , ("error", Runtime.daemonsExtraLogbase GanetiMetad ErrorLog)
+                 ])
   ]
 
 extraLogreasonAccess :: String
