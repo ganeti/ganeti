@@ -13,7 +13,7 @@ EnvironmentFile = -@LOCALSTATEDIR@/lib/ganeti/ganeti-metad.onetime.conf
 ExecStart = @SBINDIR@/ganeti-metad -f $METAD_ARGS $ONETIME_ARGS
 Restart = on-failure
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-Capabilities=cap_net_bind_service+=ep
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 # ganeti-metad is started on-demand by noded, so there must be no Install
 # section.
