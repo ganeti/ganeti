@@ -4,3 +4,5 @@ Description = Ganeti one-off setup
 [Service]
 Type = oneshot
 ExecStart = @PKGLIBDIR@/ensure-dirs
+# Disable the start rate limiting
+StartLimitBurst = 0
