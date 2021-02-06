@@ -180,6 +180,16 @@ def _InstanceDomID(info):
   return info[1]
 
 
+def _InstanceRunning(info):
+  """Get instance runtime from instance info tuple.
+  @type info: tuple
+  @param info: instance info as parsed by _ParseInstanceList()
+
+  @return: bool
+  """
+  return info[4] == hv_base.HvInstanceState.RUNNING
+
+
 def _InstanceRuntime(info):
   """Get instance runtime from instance info tuple.
   @type info: tuple
@@ -780,10 +790,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     This version of the function just writes the config file from static data.
 
     """
+    cfg_file = self._ConfigFileName(instance_name)
+    
     # just in case it exists
     utils.RemoveFile(utils.PathJoin(self._cfgdir, "auto", instance_name))
 
-    cfg_file = self._ConfigFileName(instance_name)
     try:
       utils.WriteFile(cfg_file, data=data)
     except EnvironmentError as err:
@@ -1065,10 +1076,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if not force:
       self._ShutdownInstance(name, hvparams, timeout)
 
-    # TODO: Xen does always destroy the instnace after trying a gracefull
-    # shutdown. That means doing another attempt with force=True will not make
-    # any difference. This differs in behaviour from other hypervisors and
-    # should be cleaned up.
+    # TODO: Xen always destroys the instance after trying a graceful shutdown.
+    # That means doing another attempt with force=True will not make any
+    # difference. This differs in behaviour from other hypervisors and should
+    # be cleaned up.
     result = self._DestroyInstanceIfAlive(name, hvparams)
     if result is not None and result.failed and \
           self.GetInstanceInfo(name, hvparams=hvparams) is not None:
@@ -1295,7 +1306,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     # We should recreate the config file if the domain is present and running,
     # regardless if we think the migration succeeded or not.
     info = self.GetInstanceInfo(instance.name, hvparams=instance.hvparams)
-    if info and _InstanceRuntime(info) != 0:
+    if info and _InstanceRunning(info):
       self._WriteConfigFile(instance.name, config)
 
     if not success:
