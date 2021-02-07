@@ -95,6 +95,11 @@ class GetentResolver(object):
   @ivar rapi_uid: The resolved uid of the rapi user
   @ivar rapi_gid: The resolved gid of the rapi group
   @ivar noded_uid: The resolved uid of the noded user
+  @ivar noded_gid: The resolved uid of the noded group
+  @ivar mond_uid: The resolved uid of the mond user
+  @ivar mond_gid: The resolved gid of the mond group
+  @ivar metad_uid: The resolved uid of the metad user
+  @ivar metad_gid: The resolved gid of the metad group
   @ivar daemons_gid: The resolved gid of the daemons group
   @ivar admin_gid: The resolved gid of the admin group
 
@@ -125,6 +130,9 @@ class GetentResolver(object):
     self.mond_uid = GetUid(constants.MOND_USER, _getpwnam)
     self.mond_gid = GetGid(constants.MOND_GROUP, _getgrnam)
 
+    self.metad_uid = GetUid(constants.METAD_USER, _getpwnam)
+    self.metad_gid = GetGid(constants.METAD_GROUP, _getgrnam)
+
     # Misc Ganeti groups
     self.daemons_gid = GetGid(constants.DAEMONS_GROUP, _getgrnam)
     self.admin_gid = GetGid(constants.ADMIN_GROUP, _getgrnam)
@@ -136,6 +144,7 @@ class GetentResolver(object):
       self.luxid_uid: constants.LUXID_USER,
       self.rapi_uid: constants.RAPI_USER,
       self.noded_uid: constants.NODED_USER,
+      self.metad_uid: constants.METAD_USER,
       self.mond_uid: constants.MOND_USER,
       }
 
@@ -147,6 +156,7 @@ class GetentResolver(object):
       self.rapi_gid: constants.RAPI_GROUP,
       self.noded_gid: constants.NODED_GROUP,
       self.mond_gid: constants.MOND_GROUP,
+      self.metad_gid: constants.METAD_GROUP,
       self.daemons_gid: constants.DAEMONS_GROUP,
       self.admin_gid: constants.ADMIN_GROUP,
       }

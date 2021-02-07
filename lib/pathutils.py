@@ -106,6 +106,8 @@ LUXID_MESSAGE_DIR = RUN_DIR + "/luxidmessages"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
+LOCK_STATUS_FILE = DATA_DIR + "/locks.data"
+TEMP_RES_STATUS_FILE = DATA_DIR + "/tempres.data"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
 CONFD_HMAC_KEY = DATA_DIR + "/hmac.key"
 SPICE_CERT_FILE = DATA_DIR + "/spice.pem"
