@@ -211,10 +211,12 @@ class LUInstanceSetParams(LogicalUnit):
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
 
-    # This check is necessary both when adding and attaching disks
+    # These checks are necessary when adding and attaching disks
     if op in (constants.DDM_ADD, constants.DDM_ATTACH):
       CheckSpindlesExclusiveStorage(params, excl_stor, True)
-      CheckDiskExtProvider(params, disk_type)
+      # If the disk is added we need to check for ext provider
+      if op == constants.DDM_ADD:
+        CheckDiskExtProvider(params, disk_type)
 
       # Make sure we do not add syncing disks to instances with inactive disks
       if not self.op.wait_for_sync and not self.instance.disks_active:
