@@ -215,7 +215,8 @@ class LogicalVolume(base.BlockDev):
     # create an optimally-striped volume; in that case, we want to try
     # with N, N-1, ..., 2, and finally 1 (non-stripped) number of
     # stripes
-    cmd = ["lvcreate", "-L%dm" % size, "-n%s" % lv_name]
+    # Use -Wn to not wipe signatures as trying to do so may fail on debian11
+    cmd = ["lvcreate", "-Wn", "-L%dm" % size, "-n%s" % lv_name]
     for stripes_arg in range(stripes, 0, -1):
       result = utils.RunCmd(cmd + ["-i%d" % stripes_arg] + [vg_name] + pvlist)
       if not result.failed:
