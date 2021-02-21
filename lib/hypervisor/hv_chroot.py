@@ -131,7 +131,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     """
     dir_name = self._InstanceDir(instance_name)
     if not self._IsDirLive(dir_name):
-      raise HypervisorError("Instance %s is not running" % instance_name)
+      return None
     return (instance_name, 0, 0, 0, hv_base.HvInstanceState.RUNNING, 0)
 
   def GetAllInstancesInfo(self, hvparams=None):
@@ -292,7 +292,7 @@ class ChrootManager(hv_base.BaseHypervisor):
                                    host=primary_node.name,
                                    port=ndparams.get(constants.ND_SSH_PORT),
                                    user=constants.SSH_CONSOLE_USER,
-                                   command=["chroot", root_dir])
+                                   command=["chroot", root_dir, "/bin/sh"])
 
   def Verify(self, hvparams=None):
     """Verify the hypervisor.
