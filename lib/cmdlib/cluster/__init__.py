@@ -352,7 +352,8 @@ class LUClusterPostInit(LogicalUnit):
     # ndparams[..] to access the values directly
 
     # OpenvSwitch: Warn user if link is missing
-    if (self.master_ndparams[constants.ND_OVS] and not
+    if ((self.master_ndparams[constants.ND_OVS] or \
+        self.master_ndparams[constants.ND_OVSDPDK]) and not
         self.master_ndparams.get(constants.ND_OVS_LINK, None)):
       self.LogInfo("No physical interface for OpenvSwitch was given."
                    " OpenvSwitch will not have an outside connection. This"
@@ -376,7 +377,8 @@ class LUClusterPostInit(LogicalUnit):
     """Create and configure Open vSwitch
 
     """
-    if self.master_ndparams[constants.ND_OVS]:
+    if self.master_ndparams[constants.ND_OVS] or \
+       self.master_ndparams[constants.ND_OVSDPDK]:
       result = self.rpc.call_node_configure_ovs(
                  self.master_uuid,
                  self.master_ndparams[constants.ND_OVS_NAME],

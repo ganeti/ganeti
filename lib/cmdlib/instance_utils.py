@@ -136,7 +136,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
         # should be made impossible.
         env["INSTANCE_NIC%d_NETWORK_NAME" % idx] = net
       if mode == constants.NIC_MODE_BRIDGED or \
-         mode == constants.NIC_MODE_OVS:
+         mode == constants.NIC_MODE_OVS or \
+         mode == constants.NIC_MODE_OVSDPDK:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
     nic_count = 0

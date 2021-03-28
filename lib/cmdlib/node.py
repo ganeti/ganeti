@@ -322,6 +322,8 @@ class LUNodeAdd(LogicalUnit):
       self.new_node, self.cfg.GetNodeGroup(self.new_node.group))
 
     ovs = filled_ndparams.get(constants.ND_OVS, None)
+    if ovs == None:
+      ovs = filled_ndparams.get(constants.ND_OVSDPDK, None)
     ovs_name = filled_ndparams.get(constants.ND_OVS_NAME, None)
     ovs_link = filled_ndparams.get(constants.ND_OVS_LINK, None)
 

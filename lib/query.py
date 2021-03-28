@@ -1786,7 +1786,8 @@ def _GetInstNicVLan(ctx, index, _):
 
   nicparams = ctx.inst_nicparams[index]
 
-  if nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS:
+  if nicparams[constants.NIC_MODE] in \
+          [constants.NIC_MODE_OVS, constants.NIC_MODE_OVSDPDK]:
     return nicparams[constants.NIC_VLAN]
   else:
     return _FS_UNAVAIL
@@ -1827,7 +1828,8 @@ def _GetInstAllNicVlans(ctx, inst):
 
   for nicp in ctx.inst_nicparams:
     if nicp[constants.NIC_MODE] in \
-          [constants.NIC_MODE_BRIDGED, constants.NIC_MODE_OVS]:
+          [constants.NIC_MODE_BRIDGED, constants.NIC_MODE_OVS,
+           constants.NIC_MODE_OVSDPDK]:
       result.append(nicp[constants.NIC_VLAN])
     else:
       result.append(None)

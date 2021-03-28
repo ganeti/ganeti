@@ -383,14 +383,15 @@ instance PartialParams FilledIPolicy PartialIPolicy where
 -- * Node definitions
 
 $(buildParam "ND" "ndp"
-  [ simpleField "oob_program"   [t| String |]
-  , simpleField "spindle_count" [t| Int    |]
+  [ simpleField "oob_program"       [t| String |]
+  , simpleField "spindle_count"     [t| Int    |]
   , simpleField "exclusive_storage" [t| Bool |]
-  , simpleField "ovs"           [t| Bool |]
-  , simpleField "ovs_name"       [t| String |]
-  , simpleField "ovs_link"       [t| String |]
-  , simpleField "ssh_port"      [t| Int |]
-  , simpleField "cpu_speed"     [t| Double |]
+  , simpleField "ovs"               [t| Bool |]
+  , simpleField "ovs_dpdk"          [t| Bool |]
+  , simpleField "ovs_name"          [t| String |]
+  , simpleField "ovs_link"          [t| String |]
+  , simpleField "ssh_port"          [t| Int |]
+  , simpleField "cpu_speed"         [t| Double |]
   ])
 
 -- | Disk state parameters.

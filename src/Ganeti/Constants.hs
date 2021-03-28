@@ -2249,6 +2249,9 @@ ndSpindleCount = "spindle_count"
 ndOvs :: String
 ndOvs = "ovs"
 
+ndOvsdpdk :: String
+ndOvsdpdk = "ovs_dpdk"
+
 ndOvsLink :: String
 ndOvsLink = "ovs_link"
 
@@ -2267,6 +2270,7 @@ ndsParameterTypes =
   [(ndExclusiveStorage, VTypeBool),
    (ndOobProgram, VTypeString),
    (ndOvs, VTypeBool),
+   (ndOvsdpdk, VTypeBool),
    (ndOvsLink, VTypeMaybeString),
    (ndOvsName, VTypeMaybeString),
    (ndSpindleCount, VTypeInt),
@@ -2282,6 +2286,7 @@ ndsParameterTitles =
   [(ndExclusiveStorage, "ExclusiveStorage"),
    (ndOobProgram, "OutOfBandProgram"),
    (ndOvs, "OpenvSwitch"),
+   (ndOvsdpdk, "OpenvSwitchDPDK"),
    (ndOvsLink, "OpenvSwitchLink"),
    (ndOvsName, "OpenvSwitchName"),
    (ndSpindleCount, "SpindleCount")]
@@ -2541,6 +2546,9 @@ nicModeRouted = Types.nICModeToRaw NMRouted
 
 nicModeOvs :: String
 nicModeOvs = Types.nICModeToRaw NMOvs
+
+nicModeOvsdpdk :: String
+nicModeOvsdpdk = Types.nICModeToRaw NMOvsdpdk
 
 nicIpPool :: String
 nicIpPool = Types.nICModeToRaw NMPool
@@ -4213,6 +4221,7 @@ ndcDefaults =
   , (ndSpindleCount,     PyValueEx (1 :: Int))
   , (ndExclusiveStorage, PyValueEx False)
   , (ndOvs,              PyValueEx False)
+  , (ndOvsdpdk,          PyValueEx False)
   , (ndOvsName,          PyValueEx defaultOvs)
   , (ndOvsLink,          PyValueEx "")
   , (ndSshPort,          PyValueEx (22 :: Int))

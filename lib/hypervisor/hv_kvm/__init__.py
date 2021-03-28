@@ -615,6 +615,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
   _VHOST_RE = re.compile(r"^-netdev\stap.*,vhost=on\|off", re.M | re.S)
+  _VHOSTUSER_RE = re.compile(r"^-netdev\svhost-user.*,vhostforce=on\|off",
+                             re.M | re.S)
   _VIRTIO_NET_QUEUES_RE = re.compile(r"^-netdev\stap.*,fds=x:y:...:z", re.M)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
@@ -942,7 +944,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type tap: str
 
     """
-    hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
+    if tap is None:
+      hv_base.ConfigureNIC(pathutils.KVM_IFUP, instance, seq, nic, "dpdk")
+    else:
+      hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
 
   @classmethod
   def _SetProcessAffinity(cls, process_id, cpus):
@@ -1879,6 +1884,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     Currently the features_dict includes the following attributes:
       - vhost (boolean)
+      - vhost-user (boolean)
       - vnet_hdr (boolean)
       - mq (boolean, int)
 
@@ -1893,6 +1899,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     tap_extra_str = ""
     features = {
       "vhost": False,
+      "vhost-user": False,
       "vnet_hdr": False,
       "mq": (False, 1)
       }
@@ -1906,6 +1913,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # have new virtio syntax either.
         nic_model = self._VIRTIO
 
+      # Check for vhost-user support.
+      if self._VHOSTUSER_RE.search(kvmhelp):
+        update_features["vhost-user"] = True
+
       if up_hvp[constants.HV_VHOST_NET]:
         # Check for vhost_net support.
         if self._VHOST_RE.search(kvmhelp):
@@ -1914,6 +1925,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         else:
           raise errors.HypervisorError("vhost_net is configured"
                                        " but it is not available")
+
         virtio_net_queues = up_hvp.get(constants.HV_VIRTIO_NET_QUEUES, 1)
         if virtio_net_queues > 1:
           # Check for multiqueue virtio-net support.
@@ -2034,23 +2046,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       nic_model = features["driver"]
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, nic_tapfds, nic_vhostfds = \
-          OpenTap(features=features, name=self._GenerateKvmTapName(nic))
-
-        tapfds.extend(nic_tapfds)
-        tapfds.extend(nic_vhostfds)
-        taps.append(tapname)
-        tapfd = "%s%s" % ("fds=" if len(nic_tapfds) > 1 else "fd=",
-                          ":".join(str(fd) for fd in nic_tapfds))
-
-        if nic_vhostfds:
-          vhostfd = "%s%s" % (",vhostfds="
-                              if len(nic_vhostfds) > 1 else ",vhostfd=",
-                              ":".join(str(fd) for fd in nic_vhostfds))
-        else:
-          vhostfd = ""
-
-        if kvm_supports_netdev:
+        if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_OVSDPDK:
+          tapname, nic_tapfds, nic_vhostfds = \
+            OpenTap(features=features, name=self._GenerateKvmTapName(nic))
+          
+          tapfds.extend(nic_tapfds)
+          tapfds.extend(nic_vhostfds)
+          taps.append(tapname)
+          tapfd = "%s%s" % ("fds=" if len(nic_tapfds) > 1 else "fd=",
+                            ":".join(str(fd) for fd in nic_tapfds))
+          
+          if nic_vhostfds:
+            vhostfd = "%s%s" % (",vhostfds="
+                                if len(nic_vhostfds) > 1 else ",vhostfd=",
+                                ":".join(str(fd) for fd in nic_vhostfds))
+          else:
+            vhostfd = ""
+          
+        if kvm_supports_netdev and \
+          nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_OVSDPDK:
           # Non paravirtual NICs hvinfo is empty
           if "id" in nic.hvinfo:
             nic_val = _GenerateDeviceHVInfoStr(nic.hvinfo)
@@ -2062,6 +2076,34 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           tap_val = ("type=tap,id=%s,%s%s%s" %
                      (netdev, tapfd, vhostfd, tap_extra))
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
+
+        elif kvm_supports_netdev and features["vhost-user"]:
+          # netdev syntax is supported and vhost-user is supported
+          # and we're currently processing a nic with mode=openvswitch-dpdk
+          if "id" not in nic.hvinfo:
+            raise errors.HypervisorError("Emulated nics are not supported"
+                                         " with OVS-DPDK. Please set nic"
+                                         " type to paravirtual")
+          else:
+            netdev = nic.hvinfo["id"]
+            char_val = ("socket,id=charnet%s,path=/run/openvswitch/vhosts/%s,server" %
+                           (nic_seq, instance.name + "-nic" + str(nic_seq)))
+            net_val = ("type=vhost-user,id=%s,chardev=charnet%s,vhostforce" %
+                       (netdev, nic_seq))
+            if features["mq"][0] and features["mq"][1] > 1:
+              net_val += ",queues=%s" % features["mq"][1]
+            nic_val = _GenerateDeviceHVInfoStr(nic.hvinfo)
+            nic_val += (",netdev=%s,mac=%s%s" % (netdev, nic.mac, nic_extra))
+            kvm_cmd.extend(["-chardev", char_val, "-netdev", net_val,
+                            "-device", nic_val])
+
+        elif kvm_supports_netdev:
+          # netdev syntax is supported and vhost-user is not supported
+          # and we're currently processing a nic with mode=openvswitch-dpdk
+          raise errors.HypervisorError("%s specified as nic mode, but your"
+                                       " QEMU version doesn't support"
+                                       " vhost-user. Can't continue!" %
+                                       nic.nicparams[constants.NIC_MODE])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
                                                          nic.mac, nic_model)
@@ -2100,11 +2142,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Configure the network now for starting instances and bridged/OVS
     # interfaces, during FinalizeMigration for incoming instances' routed
     # interfaces.
+    tap_seq = 0
     for nic_seq, nic in enumerate(kvm_nics):
       if (incoming and
           nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED):
         continue
-      self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
+      elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVSDPDK:
+        self._ConfigureNIC(instance, nic_seq, nic, None)
+      else:
+        self._ConfigureNIC(instance, nic_seq, nic, taps[tap_seq])
+        tap_seq = tap_seq + 1
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
                                                      kvm_disks,

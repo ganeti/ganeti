@@ -559,7 +559,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    " on a routed NIC if not attached to a"
                                    " network", errors.ECODE_INVAL)
 
-    elif new_mode == constants.NIC_MODE_OVS:
+    elif new_mode in [constants.NIC_MODE_OVS, constants.NIC_MODE_OVSDPDK]:
       # TODO: check OVS link
       self.LogInfo("OVS links are currently not checked for correctness")
 

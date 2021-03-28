@@ -181,7 +181,7 @@ def InitCluster(opts, args):
     if not nic_mode:
       # default case, use bridging
       master_netdev = constants.DEFAULT_BRIDGE
-    elif nic_mode == constants.NIC_MODE_OVS:
+    elif nic_mode in [constants.NIC_MODE_OVS, constants.NIC_MODE_OVSDPDK]:
       # default ovs is different from default bridge
       master_netdev = constants.DEFAULT_OVS
       opts.nicparams[constants.NIC_LINK] = constants.DEFAULT_OVS
