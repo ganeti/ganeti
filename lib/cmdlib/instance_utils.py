@@ -1247,7 +1247,7 @@ def ComputeNics(op, cluster, default_ip, cfg, ec_id):
     elif ip.lower() == constants.VALUE_AUTO:
       if not op.name_check:
         raise errors.OpPrereqError("IP address set to auto but name checks"
-                                   " have been skipped",
+                                   " not enabled",
                                    errors.ECODE_INVAL)
       nic_ip = default_ip
     else:
