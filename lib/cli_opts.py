@@ -168,10 +168,10 @@ __all__ = [
   "NODEGROUP_OPT",
   "NODEGROUP_OPT_NAME",
   "NOHDR_OPT",
-  "NOIPCHECK_OPT",
+  "IPCHECK_OPT",
+  "NAMECHECK_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
   "NOMODIFY_SSH_SETUP_OPT",
-  "NONAMECHECK_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NONPLUS1_OPT",
@@ -818,15 +818,14 @@ HVLIST_OPT = cli_option("-H", "--hypervisor-parameters", dest="hvparams",
                         " format hypervisor:option=value,option=value,...",
                         default=[], action="append", type="identkeyval")
 
-NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
-                           action="store_false",
-                           help="Don't check that the instance's IP"
-                           " is alive")
+IPCHECK_OPT = cli_option("--ip-check", dest="ip_check", default=False,
+                           action="store_true",
+                           help="Check that the instance's IP is alive (ping)")
 
-NONAMECHECK_OPT = cli_option("--no-name-check", dest="name_check",
-                             default=True, action="store_false",
-                             help="Don't check that the instance's name"
-                             " is resolvable")
+NAMECHECK_OPT = cli_option("--name-check", dest="name_check",
+                             default=False, action="store_true",
+                             help="Check that the instance's name is"
+                             " resolvable")
 
 NET_OPT = cli_option("--net",
                      help="NIC parameters", default=[],
@@ -1632,9 +1631,9 @@ COMMON_CREATE_OPTS = [
   NET_OPT,
   NODE_PLACEMENT_OPT,
   NODEGROUP_OPT,
-  NOIPCHECK_OPT,
+  IPCHECK_OPT,
+  NAMECHECK_OPT,
   NOCONFLICTSCHECK_OPT,
-  NONAMECHECK_OPT,
   NONICS_OPT,
   NWSYNC_OPT,
   OSPARAMS_OPT,

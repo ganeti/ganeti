@@ -1128,7 +1128,7 @@ pWaitForSync =
 pNameCheck :: Field
 pNameCheck =
   withDoc "Whether to check name" $
-  defaultTrue "name_check"
+  defaultFalse "name_check"
 
 pInstBeParams :: Field
 pInstBeParams =
@@ -1185,7 +1185,7 @@ pResetDefaults =
 pIpCheck :: Field
 pIpCheck =
   withDoc "Whether to ensure instance's IP address is inactive" $
-  defaultTrue "ip_check"
+  defaultFalse "ip_check"
 
 pIpConflictsCheck :: Field
 pIpConflictsCheck =
