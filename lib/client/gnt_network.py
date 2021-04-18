@@ -322,6 +322,21 @@ def RemoveNetwork(opts, args):
   SubmitOrSend(op, opts)
 
 
+def RenameNetwork(opts, args):
+  """Rename a network.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: a list of length 2, [old_name, new_name]
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  network_name, new_name = args
+  op = opcodes.OpNetworkRename(network_name=network_name, new_name=new_name)
+  SubmitOrSend(op, opts)
+
+
 commands = {
   "add": (
     AddNetwork, ARGS_ONE_NETWORK,
@@ -368,6 +383,10 @@ commands = {
     [FORCE_OPT, DRY_RUN_OPT] + SUBMIT_OPTS + [PRIORITY_OPT],
     "[--dry-run] <network>",
     "Remove an (empty) network from the cluster"),
+  "rename": (
+    RenameNetwork, [ArgGroup(min=2, max=2)],
+    [DRY_RUN_OPT] + SUBMIT_OPTS + [PRIORITY_OPT],
+    "[--dry-run] <old-name> <new-name>", "Rename a network"),
   "list-tags": (
     ListTags, ARGS_ONE_NETWORK, [],
     "<network>", "List the tags of the given network"),

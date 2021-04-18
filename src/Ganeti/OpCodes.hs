@@ -945,6 +945,13 @@ $(genOpCode "OpCode"
      , pForce
      ],
      "network_name")
+  , ("OpNetworkRename",
+     [t| NonEmptyString |],
+     OpDoc.opNetworkRename,
+     [ pNetworkName
+     , withDoc "New network name" pNewName
+     ],
+     [])
   , ("OpNetworkSetParams",
      [t| () |],
      OpDoc.opNetworkSetParams,

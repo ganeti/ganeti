@@ -120,6 +120,7 @@ from ganeti.cmdlib.tags import \
 from ganeti.cmdlib.network import \
   LUNetworkAdd, \
   LUNetworkRemove, \
+  LUNetworkRename, \
   LUNetworkSetParams, \
   LUNetworkConnect, \
   LUNetworkDisconnect

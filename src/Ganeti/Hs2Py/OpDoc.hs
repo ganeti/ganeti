@@ -482,6 +482,10 @@ opNetworkRemove =
   "Remove an existing network from the cluster.\n\
 \     Must not be connected to any nodegroup."
 
+opNetworkRename :: String
+opNetworkRename =
+  "Rename a network in the cluster."
+
 opNetworkSetParams :: String
 opNetworkSetParams =
   "Modify Network's parameters except for IPv4 subnet"
