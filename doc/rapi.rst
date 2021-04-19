@@ -1150,6 +1150,32 @@ It supports the ``dry-run`` argument.
 
 ..highlight:: javascript
 
+.. _rapi-res-networks-network_name-rename:
+
+``/2/networks/[network_name]/rename``
++++++++++++++++++++++++++++++++++++++
+
+Renames a network.
+
+.. rapi_resource_details:: /2/networks/[network_name]/rename
+
+
+.. _rapi-res-networks-network_name-rename+put:
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+.. opcode_params:: OP_NETWORK_RENAME
+   :exclude: network_name
+
+Job result:
+
+.. opcode_result:: OP_NETWORK_RENAME
+
 .. _rapi-res-instances-multi-alloc:
 
 ``/2/instances-multi-alloc``

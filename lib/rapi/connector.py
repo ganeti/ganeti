@@ -243,6 +243,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_networks_name_connect,
     translate_fn("/2/networks/", network_name, "/disconnect"):
       rlib2.R_2_networks_name_disconnect,
+    translate_fn("/2/networks/", network_name, "/rename"):
+      rlib2.R_2_networks_name_rename,
     translate_fn("/2/networks/", network_name, "/modify"):
       rlib2.R_2_networks_name_modify,
     translate_fn("/2/networks/", network_name, "/tags"):

@@ -503,6 +503,8 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> (genTags >>= mapM mkNonEmpty)
       "OP_NETWORK_REMOVE" ->
         OpCodes.OpNetworkRemove <$> genNameNE <*> arbitrary
+      "OP_NETWORK_RENAME" ->
+        OpCodes.OpNetworkRename <$> genNameNE <*> genNameNE
       "OP_NETWORK_SET_PARAMS" ->
         OpCodes.OpNetworkSetParams <$> genNameNE <*>
           genMaybe genIPv4Address <*> pure Nothing <*> pure Nothing <*>
