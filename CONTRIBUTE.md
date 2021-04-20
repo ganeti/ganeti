@@ -7,9 +7,8 @@
 2.  Make changes in a feature branch, probably based off the master branch.
 2.  Test using "make pylint; make hlint; make py-tests; make hs-tests"
 3.  Send your changes for review by opening a Pull Request.
-4.  Sign the [Google CLA](https://cla.developers.google.com/).
-5.  Address the reviewer comments by making new commits and ask PTAL.
-6.  Wait for your Pull Request to be accepted.
+4.  Address the reviewer comments by making new commits and ask PTAL.
+5.  Wait for your Pull Request to be accepted.
 
 ### 1. Forking the Repo
 
@@ -89,13 +88,7 @@ that it follows the canonical commit message criteria:
 * It MUST have a "Signed-off-by: author@org" line (Same generated when using
   the --signoff flag)
 
-### 7. Google CLA
-
-If you've never contributed to a Google project before, you will be asked to
-sign a Contributor License Agreement (CLA). The googlebot will ask you to do so
-if needed. This CLA can be signed in https://cla.developers.google.com/
-
-### 8. Addressing Reviewers comments
+### 7. Addressing Reviewers comments
 If your pull request is more than a one-line fix, it will probably have some
 comments from a reviewer. The reviewer might help you to identify some
 typos/bugs, to improve your documentation and to improve your
@@ -121,7 +114,7 @@ during the review.
 
 Keep doing this until you receive an Approval from the reviewer.
 
-### 9. Pushing your changes
+### 8. Pushing your changes
 After receiving all the approvals needed, the reviewer will pull your changes to
 the repo. Congratulations!
 
