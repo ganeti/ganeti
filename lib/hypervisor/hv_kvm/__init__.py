@@ -1101,8 +1101,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     istat = hv_base.HvInstanceState.RUNNING
     times = 0
 
+
+    # We need a timeout even if it's not set in hvparams
     try:
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name), hvparams[constants.HV_KVM_QMP_TIMEOUT])
+      qmp_timeout = hvparams[constants.HV_KVM_QMP_TIMEOUT]
+    except:
+      qmp_timeout = 5
+
+    try
+      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name), qmp_timeout)
       qmp.connect()
       vcpus = len(qmp.Execute("query-cpus"))
       # Will fail if ballooning is not enabled, but we can then just resort to
