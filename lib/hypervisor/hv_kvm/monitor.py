@@ -128,9 +128,8 @@ class QmpMessage(object):
 
 
 class MonitorSocket(object):
-  _SOCKET_TIMEOUT = 5
 
-  def __init__(self, monitor_filename):
+  def __init__(self, monitor_filename, monitor_timeout):
     """Instantiates the MonitorSocket object.
 
     @type monitor_filename: string
@@ -139,6 +138,7 @@ class MonitorSocket(object):
 
     """
     self.monitor_filename = monitor_filename
+    self._SOCKET_TIMEOUT = monitor_timeout
     self._connected = False
 
   def _check_socket(self):
@@ -258,8 +258,8 @@ class QmpConnection(MonitorSocket):
     "driver", "id", "bus", "addr", "channel", "scsi-id", "lun"
     ]
 
-  def __init__(self, monitor_filename):
-    super(QmpConnection, self).__init__(monitor_filename)
+  def __init__(self, monitor_filename, monitor_timeout):
+    super(QmpConnection, self).__init__(monitor_filename, monitor_timeout)
     self._buf = b""
     self.supported_commands = None
 
