@@ -36,6 +36,7 @@ import time
 from ganeti import constants
 from ganeti import errors
 from ganeti import locking
+from ganeti import objects
 from ganeti import hypervisor
 from ganeti.masterd import iallocator
 from ganeti import utils
@@ -413,11 +414,13 @@ class TLMigrateInstance(Tasklet):
     if (not self.cleanup and
          (not self.failover or
            self.instance.admin_state == constants.ADMINST_UP)):
+      hvfull = objects.FillDict(
+          cluster.hvparams.get(self.instance.hypervisor, {}),
+          cluster.FillHV(self.instance))
       self.tgt_free_mem = CheckNodeFreeMemory(
           self.lu, target_node_uuid,
           "migrating instance %s" % self.instance.name,
-          i_be[constants.BE_MINMEM], self.instance.hypervisor,
-          self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+          i_be[constants.BE_MINMEM], self.instance.hypervisor, hvfull)
     else:
       self.lu.LogInfo("Not checking memory on the secondary node as"
                       " instance will not be started")
