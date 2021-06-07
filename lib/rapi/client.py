@@ -475,6 +475,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     curl.setopt(pycurl.USERAGENT, self.USER_AGENT)
     curl.setopt(pycurl.SSL_VERIFYHOST, 0)
     curl.setopt(pycurl.SSL_VERIFYPEER, False)
+    curl.setopt(pycurl.SSLVERSION, pycurl.SSLVERSION_TLSv1_2 | pycurl.SSLVERSION_MAX_TLSv1_2)
     curl.setopt(pycurl.HTTPHEADER, [
       "Accept: %s" % HTTP_APP_JSON,
       "Content-type: %s" % HTTP_APP_JSON,
