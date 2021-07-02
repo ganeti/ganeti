@@ -79,4 +79,4 @@ class ShellExampleLexer(RegexLexer):
 
 
 def setup(app):
-  app.add_lexer("shell-example", ShellExampleLexer())
+  app.add_lexer("shell-example", ShellExampleLexer)
