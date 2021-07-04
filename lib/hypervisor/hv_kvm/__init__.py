@@ -630,6 +630,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # different than -drive is starting)
   _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
+  # The auto-read-only option is on the -blockdev, Ganeti uses this at -drive
+  _AUTO_RO_RE = \
+    re.compile(r"^-blockdev\s([^-]|(?<!^)-)*,auto-read-only=on\|off",
+               re.M | re.S)
 
   _INFO_VERSION_RE = \
     re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
@@ -1246,6 +1250,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         dev_val = _GenerateDeviceHVInfoStr(cfdev.hvinfo)
         dev_val += ",drive=%s" % kvm_devid
         dev_opts.extend(["-device", dev_val])
+
+      # QEMU 4.0 introduced dynamic auto-read-only for file-backed drives. This
+      # is unhandled in Ganeti and breaks live migration with
+      # security_model=user|pool, disable it here. See also
+      # HotAddDevice/drive_add_fn which solves a similar problem for hotpluged
+      # disks
+      if self._AUTO_RO_RE.search(kvmhelp):
+        drive_val += ",auto-read-only=off"
 
       dev_opts.extend(["-drive", drive_val])
 
