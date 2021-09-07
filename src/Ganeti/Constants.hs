@@ -2980,6 +2980,10 @@ htMigrationModes =
 verifyNplusoneMem :: String
 verifyNplusoneMem = Types.verifyOptionalChecksToRaw VerifyNPlusOneMem
 
+verifyHvparamAssessment:: String
+verifyHvparamAssessment =
+  Types.verifyOptionalChecksToRaw VerifyHVParamAssessment
+
 verifyOptionalChecks :: FrozenSet String
 verifyOptionalChecks =
   ConstantUtils.mkSet $ map Types.verifyOptionalChecksToRaw [minBound..]

@@ -651,6 +651,19 @@ class BaseHypervisor(object):
                                      (name, errstr, value))
 
   @classmethod
+  def AssessParameters(cls, hvparams):
+    """Check the given parameters for uncommon/suboptimal values
+
+    This should check the passed set of parameters for suboptimal
+    values.
+
+    @type hvparams: dict
+    @param hvparams: dictionary with parameter names/value
+
+    """
+    return []
+
+  @classmethod
   def PowercycleNode(cls, hvparams=None):
     """Hard powercycle a node using hypervisor specific methods.
 

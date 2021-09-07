@@ -973,7 +973,8 @@ upgrade was in progress.
 VERIFY
 ~~~~~~
 
-| **verify** [\--no-nplus1-mem] [\--node-group *nodegroup*]
+| **verify** [\--no-nplus1-mem] [\--no-hv-param-assessment]
+| [\--node-group *nodegroup*]
 | [\--error-codes] [{-I|\--ignore-errors} *errorcode*]
 | [{-I|\--ignore-errors} *errorcode*...]
 | [--verify-ssh-clutter]
@@ -985,6 +986,12 @@ instances.
 If the ``--no-nplus1-mem`` option is given, Ganeti won't check
 whether if it loses a node it can restart all the instances on
 their secondaries (and report an error otherwise).
+
+The ``--no-hv-param-assessment`` option disables the evaluation of
+hypervisor parameters set on the cluster-level. By default Ganeti will
+warn about suboptimal settings, if implemented by the enabled hypervisors.
+This will only generate warnings and never influence the return code
+of the verify run.
 
 With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group. This will not verify global

@@ -526,11 +526,32 @@ cpu\_type
 
     This parameter determines the emulated cpu for the instance. If this
     parameter is empty (which is the default configuration), it will not
-    be passed to KVM.
+    be passed to KVM which defaults to the emulated 'qemu64' type.
 
     Be aware of setting this parameter to ``"host"`` if you have nodes
     with different CPUs from each other. Live migration may stop working
     in this situation.
+
+    If you leave this parameter unset or use one of the generic types (e.g.
+    ``"qemu32"``, ``"qemu64"``, ``"kvm32"`` or ``"kvm64"``) your instances
+    will not be able to benefit from advanced CPU instructions such as AES-NI
+    or RDRAND. Please be aware these generic CPU types also lack security
+    features such as mitigations to the Meltdown and Spectre family of processor
+    vulnerabilities.
+
+    You can query for supported CPU types by running the QEMU/KVM binary with
+    the following parameter:
+
+    .. code-block:: bash
+
+      qemu-system-x86_64 -cpu ?
+
+    If your cluster features exactly the same CPU model on all nodes, you
+    should be able to set ``"host"`` to pass all available features and
+    instructions on to your instances. If this is not the case, you need
+    to find the least common multiple by issuing the above command on all
+    nodes and choose the emulated CPU based on the oldest available model
+    and/or architecture.
 
     For more information please refer to the KVM manual.
 

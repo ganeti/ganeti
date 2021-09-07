@@ -400,6 +400,7 @@ $(THH.makeJSONInstance ''MigrationMode)
 -- | Verify optional checks.
 $(THH.declareLADT ''String "VerifyOptionalChecks"
      [ ("VerifyNPlusOneMem", "nplusone_mem")
+     , ("VerifyHVParamAssessment", "hvparam_assessment")
      ])
 $(THH.makeJSONInstance ''VerifyOptionalChecks)
 
