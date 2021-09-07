@@ -169,6 +169,7 @@ __all__ = [
   "NODEGROUP_OPT",
   "NODEGROUP_OPT_NAME",
   "NOHDR_OPT",
+  "NOHVPARAMASSESS_OPT",
   "IPCHECK_OPT",
   "NOIPCHECK_OPT",
   "NAMECHECK_OPT",
@@ -1207,6 +1208,11 @@ ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
 NONPLUS1_OPT = cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
                           help="Skip N+1 memory redundancy tests",
                           action="store_true", default=False)
+
+NOHVPARAMASSESS_OPT = cli_option("--no-hv-param-assessment",
+                                 dest="skip_hvparam_assessment",
+                                 help="Skip hypervisor parameter assessment",
+                                 action="store_true", default=False)
 
 REBOOT_TYPE_OPT = cli_option("-t", "--type", dest="reboot_type",
                              help="Type of reboot: soft/hard/full",

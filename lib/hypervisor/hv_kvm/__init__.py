@@ -2714,6 +2714,87 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     validate_machine_version(hvparams, kvm_output)
 
   @classmethod
+  def AssessParameters(cls, hvparams):
+    """Check the given parameters for uncommon/suboptimal values
+
+    This should check the passed set of parameters for suboptimal
+    values.
+
+    @type hvparams: dict
+    @param hvparams: dictionary with parameter names/value
+
+    """
+
+    warnings = []
+
+    cpu_type = hvparams[constants.HV_CPU_TYPE]
+    if not cpu_type:
+      warnings.append("cpu_type is currently unset and defaults to 'qemu64'"
+                      ", please read the gnt-instance man page on the security"
+                      " and performance implications of this parameter.")
+    elif cpu_type in ("qemu32", "qemu64", "kvm32", "kvm64"):
+      warnings.append("cpu_type is currently set to '%s'"
+                      ", please read the gnt-instance man page on the security"
+                      " and performance implications of this parameter." %
+                      cpu_type)
+    elif cpu_type == "host":
+      warnings.append("cpu_type is currently set to 'host', please make"
+                      " sure all your cluster nodes have the exact same"
+                      " CPU type to allow live migrations.")
+
+    vhost_net = hvparams[constants.HV_VHOST_NET]
+    if not vhost_net:
+      warnings.append("vhost_net should be enabled for paravirtual NICs to"
+                      " improve network latency and throughput.")
+
+    migration_bandwidth = hvparams[constants.HV_MIGRATION_BANDWIDTH]
+    default_migration_bw = constants.HVC_DEFAULTS[constants.HT_KVM]\
+      [constants.HV_MIGRATION_BANDWIDTH]
+    if migration_bandwidth == default_migration_bw:
+      warnings.append("migration_bandwidth is still set to its default value"
+                      "(%s MiB/s), please consider adjusting it to a higher "
+                      "value that leverages todays network speeds."
+                      % default_migration_bw)
+
+    disk_type = hvparams[constants.HV_DISK_TYPE]
+    if disk_type != "paravirtual":
+      warnings.append("disk_type is set to '%s' instead of 'paravirtual'"
+                      ", please consider virtio-based disks for the best"
+                      " performance." % disk_type)
+
+    nic_type = hvparams[constants.HV_NIC_TYPE]
+    if nic_type != "paravirtual":
+      warnings.append("nic_type is set to '%s' instead of 'paravirtual'"
+                      ", please consider virtio-based networking for the"
+                      " best performance." % nic_type)
+
+    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
+    vnc_tls_enabled = hvparams[constants.HV_VNC_TLS]
+
+    if vnc_bind_address and vnc_bind_address != "127.0.0.1" \
+            and not vnc_tls_enabled:
+      warnings.append("VNC is configured but without TLS, please"
+                      " consider setting vnc_tls to 'true'"
+                      " for additional security.")
+
+    spice_bind_address = hvparams[constants.HV_KVM_SPICE_BIND]
+    spice_tls_enabled = hvparams[constants.HV_KVM_SPICE_USE_TLS]
+
+    if spice_bind_address and spice_bind_address != "127.0.0.1" \
+            and not spice_tls_enabled:
+      warnings.append("Spice is configured but without TLS, please"
+                      " consider setting spice_use_tls to 'true'"
+                      " for additional security.")
+
+    machine_version = hvparams[constants.HV_KVM_MACHINE_VERSION]
+    if not machine_version:
+      warnings.append("machine_version is not explicitly configured so "
+                      "Ganeti will autodetect the default value from "
+                      "'kvm -M ?', this might produce unexpected results.")
+
+    return warnings
+
+  @classmethod
   def PowercycleNode(cls, hvparams=None):
     """KVM powercycle, just a wrapper over Linux powercycle.
 

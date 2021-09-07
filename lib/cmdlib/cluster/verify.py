@@ -1819,6 +1819,31 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     return ([], list(self.my_node_info))
 
+  def _AssessHypervisorParameters(self):
+    """Check clusterwide hypervisor parameters for suboptimal values
+
+    """
+    self._feedback_fn("* Assessing cluster hypervisor parameters")
+
+    cluster = self.cfg.GetClusterInfo()
+    for hv_name in cluster.enabled_hypervisors:
+      msg = ("hypervisor %s parameter assessment: %%s" %
+             hv_name)
+      hv_params = cluster.GetHVDefaults(hv_name)
+      try:
+        hv_class = hypervisor.GetHypervisorClass(hv_name)
+        utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
+        warnings = hv_class.AssessParameters(hv_params)
+      except errors.GenericError as err:
+        self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg % str(err))
+
+      for warning in warnings:
+        self._feedback_fn("  - %s" % warning)
+      if warnings:
+        self._feedback_fn("  - Please refer to the gnt-instance man page for "
+                          "detailed information on the usage of each "
+                          "hypervisor parameter")
+
   @staticmethod
   def _VerifyOtherNotes(feedback_fn, i_non_redundant, i_non_a_balanced,
                         i_offline, n_offline, n_drained):
@@ -2251,6 +2276,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
       self._VerifyNPlusOneMemory(node_image, self.my_inst_info)
+
+    if constants.VERIFY_HVPARAM_ASSESSMENT not in self.op.skip_checks:
+      self._AssessHypervisorParameters()
 
     self._VerifyOtherNotes(feedback_fn, i_non_redundant, i_non_a_balanced,
                            i_offline, n_offline, n_drained)
