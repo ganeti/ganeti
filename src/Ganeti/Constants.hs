@@ -2970,10 +2970,19 @@ htMigrationModes :: FrozenSet String
 htMigrationModes =
   ConstantUtils.mkSet $ map Types.migrationModeToRaw [minBound..]
 
+-- * Default Machine Type
+
+htKvmMachineVersionPc :: String
+htKvmMachineVersionPc = "pc"
+
 -- * Cluster verify steps
 
 verifyNplusoneMem :: String
 verifyNplusoneMem = Types.verifyOptionalChecksToRaw VerifyNPlusOneMem
+
+verifyHvparamAssessment:: String
+verifyHvparamAssessment =
+  Types.verifyOptionalChecksToRaw VerifyHVParamAssessment
 
 verifyOptionalChecks :: FrozenSet String
 verifyOptionalChecks =
@@ -4139,7 +4148,7 @@ hvcDefaults =
           , (hvUsbDevices,                      PyValueEx "")
           , (hvVga,                             PyValueEx "")
           , (hvKvmExtra,                        PyValueEx "")
-          , (hvKvmMachineVersion,               PyValueEx "")
+          , (hvKvmMachineVersion,               PyValueEx htKvmMachineVersionPc)
           , (hvKvmMigrationCaps,                PyValueEx "")
           , (hvVnetHdr,                         PyValueEx True)])
   , (Fake, Map.fromList [(hvMigrationMode, PyValueEx htMigrationLive)])

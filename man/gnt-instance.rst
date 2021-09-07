@@ -521,13 +521,28 @@ cpu\_type
 
     This parameter determines the emulated cpu for the instance. If this
     parameter is empty (which is the default configuration), it will not
-    be passed to KVM.
+    be passed to KVM which defaults to the emulated 'qemu64' type.
 
     Be aware of setting this parameter to ``"host"`` if you have nodes
-    with different CPUs from each other. Live migration may stop working
-    in this situation.
+    with mixed CPU models. Live migration may stop working or crash the
+    instance in this situation.
 
-    For more information please refer to the KVM manual.
+    If you leave this parameter unset or use one of the generic types (e.g.
+    ``"qemu32"``, ``"qemu64"``, ``"kvm32"`` or ``"kvm64"``) your instances
+    will not be able to benefit from advanced CPU instructions such as AES-NI
+    or RDRAND. Please be aware these generic CPU types also lack security
+    features such as mitigations to the Meltdown and Spectre family of processor
+    vulnerabilities.
+
+    You can query for supported CPU types by running the QEMU/KVM binary with
+    the following parameter:
+
+    .. code-block:: bash
+
+      qemu-system-x86_64 -cpu ?
+
+    More information can be found in the Qemu / KVM CPU model configuration
+    documentation. Please check there for the recommended settings.
 
 acpi
     Valid for the Xen HVM and KVM hypervisors.
@@ -883,7 +898,17 @@ machine\_version
 
     Use in case an instance must be booted with an exact type of
     machine version (due to e.g. outdated drivers). In case it's not set
-    the default version supported by your version of kvm is used.
+    the default version supported by your version of kvm is used. Starting
+    with Ganeti 3.1, new clusters will now default to 'pc'. This way Ganeti
+    users will not face any unexpected problems should Qemu/KVM change its
+    default model in the future. Please note that 'q35' is currently not
+    supported. You can query your Qemu/KVM installation for supported machine
+    versions:
+
+    .. code-block:: bash
+
+      qemu-system-x86_64 -M ?
+
 
 migration\_caps
     Valid for the KVM hypervisor.
