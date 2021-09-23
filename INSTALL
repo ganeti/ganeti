@@ -6,6 +6,14 @@ the :doc:`install`. Refer to it if you are setting up Ganeti the first time.
 This quick installation guide is mainly meant as reference for experienced
 users. A glossary of terms can be found in the :doc:`glossary`.
 
+Distribution- and community-provided packages
+---------------------------------------------
+
+- Debian provides stable packages for Ganeti
+- Community Ubuntu packages are provided on 
+  `Launchpad <https://launchpad.net/~pkg-ganeti-devel/+archive/ubuntu/lts>`_
+- Community RHEL/CentOS RPM packages can be found 
+  `here <https://jfut.integ.jp/linux/ganeti/>`_
 
 Software Requirements
 ---------------------
