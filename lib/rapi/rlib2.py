@@ -947,6 +947,23 @@ class R_2_networks_name_modify(baserlib.OpcodeResource):
       })
 
 
+class R_2_networks_name_rename(baserlib.OpcodeResource):
+  """/2/networks/[network_name]/rename resource.
+
+  """
+  PUT_OPCODE = opcodes.OpNetworkRename
+
+  def GetPutOpInput(self):
+    """Changes the name of a network.
+
+    """
+    assert len(self.items) == 1
+    return (self.request_body, {
+      "network_name": self.items[0],
+      "dry_run": self.dryRun(),
+      })
+
+
 class R_2_groups(baserlib.OpcodeResource):
   """/2/groups resource.
 

@@ -248,6 +248,16 @@ Removes a network from the cluster.
 :pre-execution: master node
 :post-execution: master node
 
+OP_NETWORK_RENAME
++++++++++++++++++
+
+Renames a network.
+
+:directory: network-rename
+:env. vars: OLD_NAME, NEW_NAME
+:pre-execution: master node and all nodes belonging to connected groups
+:post-execution: master node and all nodes belonging to connected groups
+
 OP_NETWORK_CONNECT
 ++++++++++++++++++
 

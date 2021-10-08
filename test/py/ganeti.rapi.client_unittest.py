@@ -1240,6 +1240,12 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_networks_name)
     self.assertDryRun()
 
+  def testRenameNetwork(self):
+    self.rapi.AddResponse("12347")
+    job_id = self.client.RenameNetwork("oldname", "newname")
+    self.assertEqual(job_id, 12347)
+    self.assertHandler(rlib2.R_2_networks_name_rename)
+
   def testConnectNetwork(self):
     self.rapi.AddResponse("12348")
     job_id = self.client.ConnectNetwork("mynetwork", "default",

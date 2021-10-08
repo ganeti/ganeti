@@ -265,6 +265,76 @@ class LUNetworkRemove(LogicalUnit):
                                (self.op.network_name, self.network_uuid))
 
 
+class LUNetworkRename(LogicalUnit):
+  HPATH = "network-rename"
+  HTYPE = constants.HTYPE_NETWORK
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.network_uuid = self.cfg.LookupNetwork(self.op.network_name)
+
+    self.needed_locks = {
+      locking.LEVEL_NETWORK: [self.network_uuid],
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    Ensures requested new name is not yet used.
+
+    """
+    try:
+      new_name_uuid = self.cfg.LookupNetwork(self.op.new_name)
+    except errors.OpPrereqError:
+      pass
+    else:
+      raise errors.OpPrereqError("Desired new name '%s' clashes with existing"
+                                 " network (UUID: %s)" %
+                                 (self.op.new_name, new_name_uuid),
+                                 errors.ECODE_EXISTS)
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    return {
+      "OLD_NAME": self.op.network_name,
+      "NEW_NAME": self.op.new_name,
+      }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    mn = self.cfg.GetMasterNode()
+
+    all_nodes = self.cfg.GetAllNodesInfo()
+    all_nodes.pop(mn, None)
+
+    run_nodes = [mn]
+    for group in self.cfg.GetAllNodeGroupsInfo().values():
+      if self.network_uuid in group.networks:
+        run_nodes.extend(node.uuid for node in all_nodes.values()
+                         if node.group == group.uuid)
+
+    return (run_nodes, run_nodes)
+
+  def Exec(self, feedback_fn):
+    """Rename the network.
+
+    """
+    network = self.cfg.GetNetwork(self.network_uuid)
+
+    if network is None:
+      raise errors.OpExecError("Could not retrieve network '%s' (UUID: %s)" %
+                               (self.op.network_name, self.network_uuid))
+
+    network.name = self.op.new_name
+    self.cfg.Update(network, feedback_fn)
+
+    return self.op.new_name
+
+
 class LUNetworkSetParams(LogicalUnit):
   """Modifies the parameters of a network.
 

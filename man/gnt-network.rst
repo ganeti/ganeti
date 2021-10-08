@@ -135,6 +135,16 @@ LIST-FIELDS
 
 List available fields for networks.
 
+RENAME
+~~~~~~
+
+| **rename** [\--submit] [\--print-jobid] {*oldname*} {*newname*}
+
+Renames a given network from *oldname* to *newname*.
+
+See **ganeti**\(7) for a description of ``--submit`` and other common
+options.
+
 INFO
 ~~~~
 

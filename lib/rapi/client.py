@@ -2159,6 +2159,31 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/networks/%s" %
                               (GANETI_RAPI_VERSION, network)), query, None)
 
+  def RenameNetwork(self, network, new_name, reason=None):
+    """Changes the name of a network.
+
+    @type network: string
+    @param network: Network name
+    @type new_name: string
+    @param new_name: New network name
+    @type reason: string
+    @param reason: the reason for executing this operation
+
+    @rtype: string
+    @return: job id
+
+    """
+    body = {
+      "new_name": new_name,
+      }
+
+    query = []
+    _AppendReason(query, reason)
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/networks/%s/rename" %
+                              (GANETI_RAPI_VERSION, network)), query, body)
+
   def GetNetworkTags(self, network, reason=None):
     """Gets tags for a network.
 
