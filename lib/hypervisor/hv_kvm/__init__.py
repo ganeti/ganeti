@@ -1884,7 +1884,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # the VNC keymap
     keymap = conf_hvp[constants.HV_KEYMAP]
-    kvm_cmd.extend(["-k", keymap])
+    if keymap:
+      kvm_cmd.extend(["-k", keymap])
 
     # We have reasons to believe changing something like the nic driver/type
     # upon migration won't exactly fly with the instance kernel, so for nic
