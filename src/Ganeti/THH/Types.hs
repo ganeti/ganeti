@@ -49,6 +49,7 @@ import Control.Arrow (first)
 import Control.Monad (liftM, replicateM)
 import Language.Haskell.TH
 import qualified Text.JSON as J
+import Ganeti.THH.Compat (nonUnaryTupE)
 
 -- | This fills the gap between @()@ and @(,)@, providing a wrapper for
 -- 1-element tuples. It's needed for RPC, where arguments for a function are
@@ -123,4 +124,4 @@ curryN n = do
   f <- newName "f"
   ps <- replicateM n (newName "x")
   return $ LamE (VarP f : map VarP ps)
-             (AppE (VarE f) (TupE $ map VarE ps))
+             (AppE (VarE f) (nonUnaryTupE $ map VarE ps))
