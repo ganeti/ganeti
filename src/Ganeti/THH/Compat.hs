@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2018 Ganeti Project Contributors.
+Copyright (C) 2018, 2021 Ganeti Project Contributors.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ module Ganeti.THH.Compat
   , gntDataD
   , extractDataDConstructors
   , myNotStrict
+  , nonUnaryTupE
   ) where
 
 import Language.Haskell.TH
@@ -103,4 +104,13 @@ myNotStrict :: Bang
 myNotStrict = Bang NoSourceUnpackedness NoSourceStrictness
 #else
 myNotStrict = NotStrict
+#endif
+
+-- | TupE changed from '[Exp] -> Exp' to '[Maybe Exp] -> Exp'.
+-- Provide the old signature for compatibility.
+nonUnaryTupE :: [Exp] -> Exp
+#if MIN_VERSION_template_haskell(2,16,0)
+nonUnaryTupE es = TupE $ map Just es
+#else
+nonUnaryTupE es = TupE $ es
 #endif
