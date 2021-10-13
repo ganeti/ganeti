@@ -119,7 +119,6 @@ Draft designs
    design-hotplug.rst
    design-internal-shutdown.rst
    design-kvmd.rst
-   design-location.rst
    design-linuxha.rst
    design-location.rst
    design-lu-generated-jobs.rst
