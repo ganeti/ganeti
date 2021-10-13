@@ -41,6 +41,7 @@ The lexer support the following custom markup:
 
 from pygments.lexer import RegexLexer, bygroups, include
 from pygments.token import Name, Text, Generic, Comment
+import sphinx
 
 
 class ShellExampleLexer(RegexLexer):
@@ -79,4 +80,8 @@ class ShellExampleLexer(RegexLexer):
 
 
 def setup(app):
-  app.add_lexer("shell-example", ShellExampleLexer())
+  version = tuple(map(int, sphinx.__version__.split('.')))
+  if version >= (2, 1, 0):
+    app.add_lexer("shell-example", ShellExampleLexer)
+  else:
+    app.add_lexer("shell-example", ShellExampleLexer())

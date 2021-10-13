@@ -360,7 +360,7 @@ def _ManPageNodeClass(*args, **kwargs):
 
   # Force custom title
   kwargs["refexplicit"] = True
-  kwargs["refdomain"] = None
+  kwargs["refdomain"] = "std"
 
   return sphinx.addnodes.pending_xref(*args, **kwargs)
 
