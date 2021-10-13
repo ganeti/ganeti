@@ -76,9 +76,15 @@ function bridge_vlan_add {
   # tap on the VLAN aware bridge will not receive traffic
   if [ -r /proc/net/vlan/config ]; then
     local vlan_interface="$(awk -F '[| ]*' -v vlan="^${VID}$" 'match($2, vlan) { print $1 }' /proc/net/vlan/config)"
+    local lower_devs="$(awk -F '[| ]*' -v vlan="^${VID}$" 'match($2, vlan) { print $3 }' /proc/net/vlan/config)"
     if [ -n "${vlan_interface}" ]; then
-      echo "VLAN ${VID} is in use by interface ${vlan_interface}"
-      exit 1
+      for i in ${lower_devs}; do
+        # allow bridge stacking and vlan overlap for veth devices
+        if [ "$(ip -o link show dev ${i} type veth | wc -l)" -ne 1 ]; then
+          echo "VLAN ${VID} is in use by lower interface ${i}"
+          exit 1
+        fi
+      done
     fi
   fi
 
