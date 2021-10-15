@@ -761,7 +761,7 @@ class MoveSourceExecutor(object):
     job_id = cl.GetInstanceInfo(name, static=True)
     result = poll_job_fn(cl, job_id)
     assert len(result[0].keys()) == 1
-    return result[0][result[0].keys()[0]]
+    return result[0][list(result[0].keys())[0]]
 
   @staticmethod
   def _PrepareExport(cl, poll_job_fn, name):
