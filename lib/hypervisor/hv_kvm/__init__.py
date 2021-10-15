@@ -488,7 +488,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _CTRL_DIR = _ROOT_DIR + "/ctrl" # contains instances control sockets
   _CONF_DIR = _ROOT_DIR + "/conf" # contains instances startup data
   _NICS_DIR = _ROOT_DIR + "/nic" # contains instances nic <-> tap associations
-  _KEYMAP_DIR = _ROOT_DIR + "/keymap" # contains instances keymaps
   # KVM instances with chroot enabled are started in empty chroot directories.
   _CHROOT_DIR = _ROOT_DIR + "/chroot" # for empty chroot directories
   # After an instance is stopped, its chroot directory is removed.
@@ -498,7 +497,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # a separate directory, called 'chroot-quarantine'.
   _CHROOT_QUARANTINE_DIR = _ROOT_DIR + "/chroot-quarantine"
   _DIRS = [_ROOT_DIR, _PIDS_DIR, _UIDS_DIR, _CTRL_DIR, _CONF_DIR, _NICS_DIR,
-           _CHROOT_DIR, _CHROOT_QUARANTINE_DIR, _KEYMAP_DIR]
+           _CHROOT_DIR, _CHROOT_QUARANTINE_DIR]
 
   PARAMETERS = {
     constants.HV_KVM_PATH: hv_base.REQ_FILE_CHECK,
@@ -868,13 +867,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._InstanceNICDir(instance_name), str(seq))
 
   @classmethod
-  def _InstanceKeymapFile(cls, instance_name):
-    """Returns the name of the file containing the keymap for a given instance
-
-    """
-    return utils.PathJoin(cls._KEYMAP_DIR, instance_name)
-
-  @classmethod
   def _TryReadUidFile(cls, uid_file):
     """Try to read a uid file
 
@@ -900,7 +892,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(cls._InstanceQmpMonitor(instance_name))
     utils.RemoveFile(cls._InstanceQemuGuestAgentMonitor(instance_name))
     utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
-    utils.RemoveFile(cls._InstanceKeymapFile(instance_name))
     uid_file = cls._InstanceUidFile(instance_name)
     uid = cls._TryReadUidFile(uid_file)
     utils.RemoveFile(uid_file)
@@ -1896,15 +1887,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if security_model == constants.HT_SM_USER:
       kvm_cmd.extend(["-runas", conf_hvp[constants.HV_SECURITY_DOMAIN]])
 
+    # the VNC keymap
     keymap = conf_hvp[constants.HV_KEYMAP]
     if keymap:
-      keymap_path = self._InstanceKeymapFile(name)
-      # If a keymap file is specified, KVM won't use its internal defaults. By
-      # first including the "en-us" layout, an error on loading the actual
-      # layout (e.g. because it can't be found) won't lead to a non-functional
-      # keyboard. A keyboard with incorrect keys is still better than none.
-      utils.WriteFile(keymap_path, data="include en-us\ninclude %s\n" % keymap)
-      kvm_cmd.extend(["-k", keymap_path])
+      kvm_cmd.extend(["-k", keymap])
 
     # We have reasons to believe changing something like the nic driver/type
     # upon migration won't exactly fly with the instance kernel, so for nic
