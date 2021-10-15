@@ -98,6 +98,10 @@ destination-related options default to the source value (e.g. setting
   Number of instance moves to run in parallel.
 ``--verbose``/``--debug``
   Increase output verbosity.
+``--keep-source-instance``
+  Do not delete the instance on the source cluster after successful
+  migration. Please be aware, that the instance will end up running on
+  both clusters, if it was running before the migration was started.
 
 The exit value of the tool is zero if and only if all instance moves
 were successful.

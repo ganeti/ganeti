@@ -153,6 +153,10 @@ OPPORTUNISTIC_DELAY_OPT = \
                  help="The delay between successive opportunistic instance"
                       " creation attempts, in seconds")
 
+KEEP_SOURCE_INSTANCE = \
+  cli.cli_option("--keep-source-instance", action="store_true",
+                 dest="keep_source_instance", default=False,
+                 help="Keep source instance after successful transfer")
 
 class Error(Exception):
   """Generic error.
@@ -312,7 +316,7 @@ class InstanceMove(object):
                dest_pnode, dest_snode, compress, dest_iallocator,
                dest_disk_template, hvparams,
                beparams, osparams, nics, opportunistic_tries,
-               opportunistic_delay):
+               opportunistic_delay, keep_source_instance):
     """Initializes this class.
 
     @type src_instance_name: string
@@ -344,6 +348,8 @@ class InstanceMove(object):
     @type opportunistic_delay: int or None
     @param opportunistic_delay: Delay between successive creation attempts, in
                                 seconds
+    @type keep_source_instance: bool
+    @param keep_source_instance: Remove instance after successful export
 
     """
     self.src_instance_name = src_instance_name
@@ -357,6 +363,7 @@ class InstanceMove(object):
     self.beparams = beparams
     self.osparams = osparams
     self.nics = nics
+    self.keep_source_instance = keep_source_instance
 
     if opportunistic_tries is not None:
       self.opportunistic_tries = opportunistic_tries
@@ -725,7 +732,7 @@ class MoveSourceExecutor(object):
     logging.info("Starting remote export on source cluster")
     self._ExportInstance(src_client, mrt.PollJob, mrt.move.src_instance_name,
                          expinfo["x509_key_name"], mrt.move.compress,
-                         mrt.dest_impinfo)
+                         mrt.dest_impinfo, mrt.move.keep_source_instance)
 
     logging.info("Export successful")
 
@@ -779,7 +786,8 @@ class MoveSourceExecutor(object):
     return poll_job_fn(cl, job_id)[0]
 
   @staticmethod
-  def _ExportInstance(cl, poll_job_fn, name, x509_key_name, compress, impinfo):
+  def _ExportInstance(cl, poll_job_fn, name, x509_key_name, compress,
+          impinfo, keep_source_instance):
     """Exports instance from source cluster.
 
     @type cl: L{rapi.client.GanetiRapiClient}
@@ -792,11 +800,13 @@ class MoveSourceExecutor(object):
     @type compress: string
     @param compress: Compression mode to use
     @param impinfo: Import information from destination cluster
+    @type keep_source_instance: bool
+    @param keep_source_instance: Remove instance after successful export
 
     """
     job_id = cl.ExportInstance(name, constants.EXPORT_MODE_REMOTE,
                                impinfo["disks"], shutdown=True,
-                               remove_instance=True,
+                               remove_instance=not keep_source_instance,
                                x509_key_name=x509_key_name,
                                destination_x509_ca=impinfo["x509_ca"],
                                compress=compress)
@@ -897,6 +907,7 @@ def ParseOptions():
   parser.add_option(PARALLEL_OPT)
   parser.add_option(OPPORTUNISTIC_TRIES_OPT)
   parser.add_option(OPPORTUNISTIC_DELAY_OPT)
+  parser.add_option(KEEP_SOURCE_INSTANCE)
 
   (options, args) = parser.parse_args()
 
@@ -1019,7 +1030,8 @@ def _PrepareListOfInstanceMoves(options, instance_names):
                               options.osparams,
                               options.nics,
                               options.opportunistic_tries,
-                              options.opportunistic_delay))
+                              options.opportunistic_delay,
+                              options.keep_source_instance))
 
   assert len(moves) == len(instance_names)
   return moves
