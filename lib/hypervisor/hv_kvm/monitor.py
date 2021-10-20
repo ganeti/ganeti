@@ -702,6 +702,18 @@ class QmpConnection(MonitorSocket):
     if "netdev_add" not in self.supported_commands:
       _raise("netdev_add qmp command is not supported")
 
+
+  @_ensure_connection
+  def GetVersion(self):
+    """Return the QMP/qemu version field
+
+    Accessing the version attribute directly might result in an error
+    since the socket might not be yet connected. This getter method
+    uses the @_ensure_connection decorator to work around this problem.
+    """
+    return self.version
+
+
   @_ensure_connection
   def HasDynamicAutoReadOnly(self):
     """Check if QEMU uses dynamic auto-read-only for block devices

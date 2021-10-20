@@ -2151,8 +2151,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: in one of the previous cases
 
     """
+
     try:
-      version = self.qmp.version
+      version = self.qmp.GetVersion()
     except errors.HypervisorError:
       raise errors.HotplugError("Instance is probably down")
 
