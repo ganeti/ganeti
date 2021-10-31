@@ -1,0 +1,31 @@
+---
+name: Manual Ganeti QA Suite Run
+on:
+  workflow_dispatch:
+    inputs:
+      recipe:
+        description: "QA recipe to run"
+        required: true
+        default: "kvm-drbd_file_sharedfile-bridged"
+      source:
+        description: "Source Repository (Syntax 'user-name/repo-name')"
+        required: true
+        default: "ganeti/ganeti"
+      branch:
+        description: "Branch to build from"
+        required: true
+        default: "master"
+      debian-version:
+        description: "Which Debian version to use"
+        required: true
+        default: "bullseye"
+defaults:
+  run:
+    working-directory: /home/rbott/ganeti-cluster-testing
+jobs:
+  Run-QA-Suite:
+    runs-on: [ qa-runner ]
+    steps:
+      - name: "Start the QA suite on Debian ${{ github.event.inputs.debian-version }} from ${{ github.event.inputs.source }}:${{ github.event.inputs.branch }}"
+        run: "python3 -u run-cluster-test.py run-test --os-version '${{ github.event.inputs.debian-version }}' --recipe '${{ github.event.inputs.recipe }}' --source '${{ github.event.inputs.source }}' --branch '${{ github.event.inputs.branch }}' --remove-instances-on-success"
+        working-directory: "/home/rbott/ganeti-cluster-testing/"
