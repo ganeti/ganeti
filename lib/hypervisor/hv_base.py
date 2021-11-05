@@ -167,6 +167,21 @@ def ParamInSet(required, my_set):
   err = ("The value must be one of: %s" % utils.CommaJoin(my_set))
   return (required, fn, err, None, None)
 
+def AllParamsInSet(required, my_set):
+  """Builds parameter checker for set membership for collection of items.
+  @type required: boolean
+  @param required: whether this is a required parameter
+  @type my_set: tuple, list or set
+  @param my_set: allowed values set
+  """
+  def fn(x):
+    for item in x.split(','):
+      if item not in my_set:
+        return False
+    return True
+
+  err = ("Each value must be one of: %s" % utils.CommaJoin(my_set))
+  return (required, fn, err, None, None)
 
 def GenerateTapName():
   """Generate a TAP network interface name for a NIC.
