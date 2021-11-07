@@ -1648,15 +1648,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # Add guest agent socket
     if hvp[constants.HV_USE_GUEST_AGENT]:
-      qga_addr = utils.GetFreeSlot(bus_slots[_PCI_BUS], reserve=True)
-      qga_pci_info = "bus=%s,addr=%s" % (_PCI_BUS, hex(qga_addr))
       qga_path = self._InstanceQemuGuestAgentMonitor(instance.name)
       logging.info("KVM: Guest Agent available at %s", qga_path)
       # The 'qga0' identified can change, but the 'org.qemu.guest_agent.0'
       # string is the default expected by the Guest Agent.
       kvm_cmd.extend([
         "-chardev", "socket,path=%s,server,nowait,id=qga0" % qga_path,
-        "-device", "virtio-serial,id=qga0,%s" % qga_pci_info,
+        "-device", "virtio-serial,id=qga0",
         "-device", "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0",
         ])
 
