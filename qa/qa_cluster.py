@@ -133,6 +133,67 @@ def _CheckVerifyNoWarnings(actual, expected):
                          " %s" % (utils.CommaJoin(excess)))
 
 
+def PrepareHvParameterSets():
+  """Assemble a dictionary of assessable hypervisor parameters
+  @return: dict with hv-params, their values to iterate through and the
+      initial value (to reset after tests)
+  """
+  default_hv = qa_config.GetDefaultHypervisor()
+
+  hv_params = _GetClusterField(["Hypervisor parameters", default_hv])
+
+  toggle_bool_params = []
+  toggle_value_params = {}
+  if default_hv == constants.HT_KVM:
+    toggle_bool_params = [
+      "acpi",
+      "debug_threads",
+      "use_chroot",
+      "use_guest_agent",
+      "use_localtime",
+    ]
+
+    toggle_value_params = {
+      "disk_aio": constants.HT_KVM_VALID_AIO_TYPES,
+      "disk_cache": constants.HT_VALID_CACHE_TYPES,
+      "disk_type": constants.HT_KVM_VALID_DISK_TYPES,
+      "usb_mouse": constants.HT_KVM_VALID_MOUSE_TYPES,
+    }
+
+  assembled_tests = {}
+  for param in toggle_bool_params:
+    toggled_value = not hv_params[param]
+
+    assembled_tests[param] = {
+      "values": [toggled_value],
+      "reset_value": hv_params[param],
+    }
+
+  for param, values in toggle_value_params.items():
+    list_values = list(values)
+    list_values.remove(hv_params[param])
+    assembled_tests[param] = {
+      "values": list_values,
+      "reset_value": hv_params[param],
+    }
+
+  return assembled_tests
+
+
+def AssertClusterHvParameterModify(param, value):
+  """Modify the given hypervisor parameter
+
+  @type param: string
+  @param param: name of the hv-param to modify
+  @type value: string or bool
+  @param value: value to assign
+  """
+
+  default_hv = qa_config.GetDefaultHypervisor()
+  AssertCommand(["gnt-cluster", "modify", "-H", "%s:%s=%s" %
+                 (default_hv, param, value)])
+
+
 def AssertClusterVerify(fail=False, errors=None,
                         warnings=None, no_warnings=None):
   """Run cluster-verify and check the result, ignoring warnings by default.

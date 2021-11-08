@@ -240,6 +240,7 @@
     "instance-list": true,
     "instance-migrate": true,
     "instance-modify": true,
+    "instance-iterate-hvparams": true,
     "instance-modify-primary": true,
     "instance-modify-disks": false,
     "instance-reboot": true,
