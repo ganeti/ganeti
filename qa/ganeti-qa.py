@@ -825,65 +825,91 @@ def RunInstanceTests():
         qa_config.IsTemplateSupported(templ)):
       inodes = qa_config.AcquireManyNodes(num_nodes)
       try:
-        instance = RunTest(create_fun, inodes)
-        try:
-          RunTestIf("instance-user-down", qa_instance.TestInstanceUserDown,
-                    instance)
-          RunTestIf("instance-communication",
-                    qa_instance.TestInstanceCommunication,
-                    instance,
-                    qa_config.GetMasterNode())
-          RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
-          RunDaemonTests(instance)
-          for node in inodes:
-            RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node,
-                      templ == constants.DT_DRBD8)
-          if len(inodes) > 1:
-            RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
-                      constants.INITIAL_NODE_GROUP_NAME,
-                      inodes[0].primary, inodes[1].primary)
-          # This test will run once but it will cover all the supported
-          # user-provided disk template conversions
-          if qa_config.TestEnabled("instance-convert-disk"):
-            if (len(supported_conversions) > 1 and
-                instance.disk_template in supported_conversions):
-              RunTest(qa_instance.TestInstanceShutdown, instance)
-              RunTest(qa_instance.TestInstanceConvertDiskTemplate, instance,
-                      supported_conversions)
-              RunTest(qa_instance.TestInstanceStartup, instance)
-              # At this point we clear the set because the requested conversions
-              # has been tested
-              supported_conversions.clear()
-            else:
-              test_desc = "Converting instance of template %s" % templ
-              ReportTestSkip(test_desc, "conversion feature")
-          RunTestIf("instance-modify-disks",
-                    qa_instance.TestInstanceModifyDisks, instance)
-          RunCommonInstanceTests(instance, inodes)
-          if qa_config.TestEnabled("instance-modify-primary"):
-            othernode = qa_config.AcquireNode()
-            RunTest(qa_instance.TestInstanceModifyPrimaryAndBack,
-                    instance, inodes[0], othernode)
-            othernode.Release()
-          RunGroupListTests()
-          RunExportImportTests(instance, inodes)
-          RunHardwareFailureTests(instance, inodes)
-          RunRepairDiskSizes()
-          RunTestIf(["rapi", "instance-data-censorship"],
-                    qa_rapi.TestInstanceDataCensorship, instance, inodes)
-          RunTest(qa_instance.TestInstanceRemove, instance)
-        finally:
-          instance.Release()
-        del instance
+        # run instance tests with default hvparams
+        print(_FormatHeader("Starting instance tests with default HVparams"))
+        RunInstanceTestsInner(create_fun, inodes, supported_conversions, templ)
+
+        # iterate through alternating hvparam values (if enabled)
+        if qa_config.TestEnabled("instance-iterate-hvparams"):
+          hvparam_iterations = qa_cluster.PrepareHvParameterSets()
+          for param, test_data in hvparam_iterations.items():
+            for value in test_data["values"]:
+              print(_FormatHeader("Starting instance tests with HVparam "
+                                  "%s=%s" % (param, value)))
+              qa_cluster.AssertClusterHvParameterModify(param, value)
+              RunInstanceTestsInner(create_fun, inodes, supported_conversions,
+                                    templ)
+            qa_cluster.AssertClusterHvParameterModify(
+              param, test_data["reset_value"])
+          else:
+            RunInstanceTestsInner(create_fun, inodes, supported_conversions,
+                                  templ)
+        else:
+          test_desc = "Iterating through hypervisor parameter values"
+          ReportTestSkip(test_desc, "instance-iterate-hvparams")
       finally:
         qa_config.ReleaseManyNodes(inodes)
-      qa_cluster.AssertClusterVerify()
     else:
       test_desc = "Creating instances of template %s" % templ
       if not qa_config.TestEnabled(test_name):
         ReportTestSkip(test_desc, test_name)
       else:
         ReportTestSkip(test_desc, "disk template %s" % templ)
+
+
+def RunInstanceTestsInner(create_fun, inodes, supported_conversions, templ):
+  instance = RunTest(create_fun, inodes)
+  try:
+    RunTestIf("instance-user-down", qa_instance.TestInstanceUserDown,
+              instance)
+    RunTestIf("instance-communication",
+              qa_instance.TestInstanceCommunication,
+              instance,
+              qa_config.GetMasterNode())
+    RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
+    RunDaemonTests(instance)
+    for node in inodes:
+      RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node,
+                templ == constants.DT_DRBD8)
+    if len(inodes) > 1:
+      RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
+                constants.INITIAL_NODE_GROUP_NAME,
+                inodes[0].primary, inodes[1].primary)
+    # This test will run once but it will cover all the supported
+    # user-provided disk template conversions
+    if qa_config.TestEnabled("instance-convert-disk"):
+      if (len(supported_conversions) > 1 and
+              instance.disk_template in supported_conversions):
+        RunTest(qa_instance.TestInstanceShutdown, instance)
+        RunTest(qa_instance.TestInstanceConvertDiskTemplate, instance,
+                supported_conversions)
+        RunTest(qa_instance.TestInstanceStartup, instance)
+        # At this point we clear the set because the requested conversions
+        # has been tested
+        supported_conversions.clear()
+      else:
+        test_desc = "Converting instance of template %s" % templ
+        ReportTestSkip(test_desc, "conversion feature")
+    RunTestIf("instance-modify-disks",
+              qa_instance.TestInstanceModifyDisks, instance)
+    RunCommonInstanceTests(instance, inodes)
+    if qa_config.TestEnabled("instance-modify-primary"):
+      othernode = qa_config.AcquireNode()
+      RunTest(qa_instance.TestInstanceModifyPrimaryAndBack,
+              instance, inodes[0], othernode)
+      othernode.Release()
+    RunGroupListTests()
+    RunExportImportTests(instance, inodes)
+    RunHardwareFailureTests(instance, inodes)
+    RunRepairDiskSizes()
+    RunTestIf(["rapi", "instance-data-censorship"],
+              qa_rapi.TestInstanceDataCensorship, instance, inodes)
+    RunTest(qa_instance.TestInstanceRemove, instance)
+  finally:
+    instance.Release()
+  del instance
+
+  qa_cluster.AssertClusterVerify()
 
 
 def RunMonitoringTests():
