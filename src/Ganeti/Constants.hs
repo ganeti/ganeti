@@ -1660,6 +1660,12 @@ hvDiskCache = "disk_cache"
 hvDiskDiscard :: String
 hvDiskDiscard = "disk_discard"
 
+hvDiskBps :: String
+hvDiskBps = "disk_bps"
+
+hvDiskIops :: String
+hvDiskIops = "disk_iops"
+
 hvDiskType :: String
 hvDiskType = "disk_type"
 
@@ -1909,6 +1915,8 @@ hvsParameterTypes = Map.fromList
   , (hvDeviceModel,                     VTypeString)
   , (hvDiskCache,                       VTypeString)
   , (hvDiskDiscard,                     VTypeString)
+  , (hvDiskBps,                         VTypeInt)
+  , (hvDiskIops,                        VTypeInt)
   , (hvDiskType,                        VTypeString)
   , (hvInitrdPath,                      VTypeString)
   , (hvInitScript,                      VTypeString)
@@ -2851,6 +2859,12 @@ htValidDiscardTypes =
   ConstantUtils.mkSet [htDiscardDefault,
                        htDiscardIgnore,
                        htDiscardUnmap]
+
+htBpsDefault :: Int
+htBpsDefault = 0
+
+htIopsDefault :: Int
+htIopsDefault = 0
 
 htKvmAioThreads :: String
 htKvmAioThreads = "threads"
@@ -4144,6 +4158,8 @@ hvcDefaults =
           , (hvUseLocaltime,                    PyValueEx False)
           , (hvDiskCache,                       PyValueEx htCacheDefault)
           , (hvDiskDiscard,                     PyValueEx htDiscardDefault)
+          , (hvDiskBps,                         PyValueEx htBpsDefault)
+          , (hvDiskIops,                        PyValueEx htIopsDefault)
           , (hvSecurityModel,                   PyValueEx htSmNone)
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
