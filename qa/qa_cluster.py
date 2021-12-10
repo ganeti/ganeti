@@ -171,7 +171,13 @@ def PrepareHvParameterSets():
 
   for param, values in toggle_value_params.items():
     list_values = list(values)
-    list_values.remove(hv_params[param])
+    if hv_params[param] in list_values:
+      # some HVParams accept 'None' as valid value which is never part
+      # of the list of allowed values, hence we need this check
+      #
+      # if the current value of the HVParam is part of the list of
+      # allowed values, remove it to avoid unnecessary test cycles
+      list_values.remove(hv_params[param])
     assembled_tests[param] = {
       "values": list_values,
       "reset_value": hv_params[param],
