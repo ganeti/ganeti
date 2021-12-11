@@ -85,6 +85,14 @@ nodeLiveFieldsDefs =
      "Amount of memory used by node (dom0 for Xen)")
   , ("mtotal", "MTotal", QFTUnit, "memory_total",
      "Total amount of memory of physical machine")
+  , ("hptotal", "HPTotal", QFTUnit, "hugepages_total",
+     "Total capacity of hugepages configured on node in MiB")
+  , ("hpfree", "HPFree", QFTUnit, "hugepages_free",
+     "Hugepages capacity in MiB available for instance allocations")
+  , ("ctopo", "CTopo", QFTOther, "cpu_topo",
+     "CPU SMT threads topology info")
+  , ("ntopo", "NTopo", QFTOther, "numa_topo",
+     "NUMA topology info")
   ]
 
 -- | Helper function to extract an attribute from a maybe StorageType
@@ -144,6 +152,14 @@ nodeLiveFieldExtract "mnode" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryDom0
 nodeLiveFieldExtract "mtotal" res =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryTotal
+nodeLiveFieldExtract "hptotal" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoHugepagesTotal
+nodeLiveFieldExtract "hpfree" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoHugepagesFree
+nodeLiveFieldExtract "ctopo" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTopo
+nodeLiveFieldExtract "ntopo" res =
+  jsonHead (rpcResNodeInfoHvInfo res) hvInfoNumaTopo
 nodeLiveFieldExtract _ _ = J.JSNull
 
 -- | Helper for extracting field from RPC result.
@@ -277,7 +293,8 @@ storageFields = ["dtotal", "dfree", "spfree", "sptotal"]
 -- | Hypervisor-related query fields
 hypervisorFields :: [String]
 hypervisorFields = ["mnode", "mfree", "mtotal",
-                    "cnodes", "csockets", "cnos", "ctotal"]
+                    "cnodes", "csockets", "cnos", "ctotal",
+                    "hptotal", "hpfree"]
 
 -- | Check if it is required to include domain-specific entities (for example
 -- storage units for storage info, hypervisor specs for hypervisor info)
