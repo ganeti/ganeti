@@ -205,8 +205,8 @@ class LUInstanceSetParams(LogicalUnit):
         raise errors.OpPrereqError("Required disk parameter '%s' missing" %
                                    constants.IDISK_SIZE, errors.ECODE_INVAL)
       size = int(size)
-
       params[constants.IDISK_SIZE] = size
+
       name = params.get(constants.IDISK_NAME, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
@@ -217,6 +217,14 @@ class LUInstanceSetParams(LogicalUnit):
       # If the disk is added we need to check for ext provider
       if op == constants.DDM_ADD:
         CheckDiskExtProvider(params, disk_type)
+
+      bootindex = params.get(constants.IDISK_BOOT_INDEX, None)
+      if bootindex is not None:
+        if int(bootindex) >= 0:
+          bootindex = int(bootindex)
+        else:
+          bootindex = -1
+        params[constants.IDISK_BOOT_INDEX] = bootindex
 
       # Make sure we do not add syncing disks to instances with inactive disks
       if not self.op.wait_for_sync and not self.instance.disks_active:
@@ -285,6 +293,7 @@ class LUInstanceSetParams(LogicalUnit):
       req_net = params.get(constants.INIC_NETWORK, None)
       link = params.get(constants.NIC_LINK, None)
       mode = params.get(constants.NIC_MODE, None)
+      bootindex = params.get(constants.INIC_BOOT_INDEX, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.INIC_NAME] = None
       if req_net is not None:
@@ -295,6 +304,12 @@ class LUInstanceSetParams(LogicalUnit):
           raise errors.OpPrereqError("If network is given"
                                      " mode or link should not",
                                      errors.ECODE_INVAL)
+      if bootindex is not None:
+        if int(bootindex) >= 0:
+          bootindex = int(bootindex)
+        else:
+          bootindex = -1
+        params[constants.INIC_BOOT_INDEX] = bootindex
 
       if op == constants.DDM_ADD:
         macaddr = params.get(constants.INIC_MAC, None)
@@ -595,6 +610,15 @@ class LUInstanceSetParams(LogicalUnit):
       if old_prefix != new_prefix:
         params[constants.INIC_MAC] = \
           self.cfg.GenerateMAC(new_net_uuid, self.proc.GetECId())
+
+    # if there is a change in bootindex
+    new_bootindex = params.get(constants.INIC_BOOT_INDEX, None)
+    if new_bootindex is not None:
+      if int(new_bootindex) >= 0:
+        new_bootindex = int(new_bootindex)
+      else:
+        new_bootindex = -1
+      params[constants.INIC_BOOT_INDEX] = new_bootindex
 
     # if there is a change in (ip, network) tuple
     new_ip = params.get(constants.INIC_IP, old_ip)
@@ -1666,6 +1690,7 @@ class LUInstanceSetParams(LogicalUnit):
     if disk.dev_type in constants.DTS_INSTANCE_DEPENDENT_PATH:
       # Add disk size/mode, else GenerateDiskTemplate will not work.
       params[constants.IDISK_SIZE] = disk.size
+      params[constants.IDISK_BOOT_INDEX] = disk.bootindex
       params[constants.IDISK_MODE] = str(disk.mode)
       dummy_disk = self._GenerateDiskTemplateWrapper(idx, disk.dev_type, params)
       new_logical_id = dummy_disk.logical_id
@@ -1709,6 +1734,10 @@ class LUInstanceSetParams(LogicalUnit):
     if constants.IDISK_MODE in params:
       disk.mode = params.get(constants.IDISK_MODE)
       changes.append(("disk.mode/%d" % idx, disk.mode))
+
+    if constants.IDISK_BOOT_INDEX in params:
+      disk.bootindex = params.get(constants.IDISK_BOOT_INDEX)
+      changes.append(("disk.bootindex/%d" % idx, disk.bootindex))
 
     if constants.IDISK_NAME in params:
       disk.name = params.get(constants.IDISK_NAME)
@@ -1805,11 +1834,12 @@ class LUInstanceSetParams(LogicalUnit):
     ip = params.get(constants.INIC_IP, None)
     net = params.get(constants.INIC_NETWORK, None)
     name = params.get(constants.INIC_NAME, None)
+    bootindex = params.get(constants.INIC_BOOT_INDEX, None)
     net_uuid = self.cfg.LookupNetwork(net)
     #TODO: not private.filled?? can a nic have no nicparams??
     nicparams = private.filled
     nobj = objects.NIC(mac=mac, ip=ip, network=net_uuid, name=name,
-                       nicparams=nicparams)
+                       bootindex=bootindex, nicparams=nicparams)
     nobj.uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
 
     changes = [
@@ -1833,7 +1863,7 @@ class LUInstanceSetParams(LogicalUnit):
     """
     changes = []
 
-    for key in [constants.INIC_MAC, constants.INIC_IP, constants.INIC_NAME]:
+    for key in [constants.INIC_MAC, constants.INIC_IP, constants.INIC_NAME, constants.INIC_BOOT_INDEX]:
       if key in params:
         changes.append(("nic.%s/%d" % (key, idx), params[key]))
         setattr(nic, key, params[key])

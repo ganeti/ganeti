@@ -520,7 +520,7 @@ class ConfigData(ConfigObject):
 class NIC(ConfigObject):
   """Config object representing a network card."""
   __slots__ = ["name", "mac", "ip", "network",
-               "nicparams", "netinfo", "pci", "hvinfo"] + _UUID
+               "nicparams", "netinfo", "pci", "bootindex", "hvinfo"] + _UUID
 
   @classmethod
   def CheckParameterSyntax(cls, nicparams):
@@ -558,6 +558,7 @@ class Disk(ConfigObject):
     "nodes",
     "iv_name",
     "size",
+    "bootindex",
     "mode",
     "params",
     "spindles",
@@ -763,7 +764,7 @@ class Disk(ConfigObject):
                                    " disk type %s" % self.dev_type)
 
   def Update(self, size=None, mode=None, spindles=None):
-    """Apply changes to size, spindles and mode.
+    """Apply changes to size, bootindex, spindles and mode.
 
     """
     if self.dev_type == constants.DT_DRBD8:
@@ -778,6 +779,8 @@ class Disk(ConfigObject):
       self.mode = mode
     if spindles is not None:
       self.spindles = spindles
+    if bootindex is not None:
+      self.bootindex = bootindex
 
   def UnsetSize(self):
     """Sets recursively the size to zero for the disk and its children.

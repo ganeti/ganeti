@@ -54,6 +54,7 @@ $(buildObject "PartialNic" "nic" $
   , simpleField "nicparams" [t| PartialNicParams |]
   , optionalField $ simpleField "network" [t| String |]
   , optionalField $ simpleField "name" [t| String |]
+  , optionalField $ simpleField "bootindex" [t| Int |]
   ] ++ uuidFields)
 
 instance UuidObject PartialNic where

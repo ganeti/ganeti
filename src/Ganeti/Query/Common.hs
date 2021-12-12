@@ -86,6 +86,7 @@ vTypeToQFT VTypeMaybeString = QFTOther
 vTypeToQFT VTypeBool        = QFTBool
 vTypeToQFT VTypeSize        = QFTUnit
 vTypeToQFT VTypeInt         = QFTNumber
+vTypeToQFT VTypeMaybeInt    = QFTNumber
 vTypeToQFT VTypeFloat       = QFTNumberFloat
 
 -- * Result helpers

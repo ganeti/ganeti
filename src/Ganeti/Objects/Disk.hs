@@ -249,6 +249,7 @@ $(buildObjectWithForthcoming "Disk" "disk" $
   , simpleField "size" [t| Int |]
   , defaultField [| DiskRdWr |] $ simpleField "mode" [t| DiskMode |]
   , optionalField $ simpleField "name" [t| String |]
+  , optionalField $ simpleField "bootindex" [t| Int |]
   , optionalField $ simpleField "spindles" [t| Int |]
   , optionalField $ simpleField "params" [t| DiskParams |]
   ]

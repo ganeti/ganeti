@@ -392,6 +392,16 @@ def ComputeDisks(disks, disk_template, default_vg):
         constants.IDISK_ACCESS in disk):
       new_disk[constants.IDISK_ACCESS] = disk[constants.IDISK_ACCESS]
 
+    # Normalize and add bootindex value
+    try:
+      if int(disk[constants.IDISK_BOOT_INDEX]) >= 0:
+        new_disk[constants.IDISK_BOOT_INDEX] = int(disk[constants.IDISK_BOOT_INDEX])
+      else:
+        new_disk[constants.IDISK_BOOT_INDEX] = -1
+    except:
+      logging.warning("bootindex value ignored and set to '-1'")
+      new_disk[constants.IDISK_BOOT_INDEX] = -1
+
     # For extstorage, demand the `provider' option and add any
     # additional parameters (ext-params) to the dict
     if disk_template == constants.DT_EXT:
@@ -618,6 +628,7 @@ def GenerateDiskTemplate(
       disk_dev.mode = disk[constants.IDISK_MODE]
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
       disk_dev.dev_type = template_name
+      disk_dev.bootindex = disk.get(constants.IDISK_BOOT_INDEX, None)
       disks.append(disk_dev)
   else:
     if secondary_node_uuids:
@@ -692,6 +703,7 @@ def GenerateDiskTemplate(
                               logical_id=logical_id_fn(idx, disk_index, disk),
                               iv_name="disk/%d" % disk_index,
                               mode=disk[constants.IDISK_MODE],
+                              bootindex=disk.get(constants.IDISK_BOOT_INDEX, None),
                               params=params, nodes=disk_nodes,
                               spindles=disk.get(constants.IDISK_SPINDLES),
                               forthcoming=forthcoming)
@@ -770,6 +782,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     constants.IDISK_SIZE,
     constants.IDISK_MODE,
     constants.IDISK_SPINDLES,
+    constants.IDISK_BOOT_INDEX,
     ])
 
   # New or changed disk parameters may have different semantics
@@ -783,6 +796,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     constants.IDISK_NAME,
     constants.IDISK_ACCESS,
     constants.IDISK_TYPE,
+    constants.IDISK_BOOT_INDEX,
     ]))
 
   def _RunAllocator(self):
@@ -814,7 +828,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
       constants.IDISK_SIZE: d.size,
       constants.IDISK_MODE: d.mode,
       constants.IDISK_SPINDLES: d.spindles,
-      constants.IDISK_TYPE: d.dev_type
+      constants.IDISK_TYPE: d.dev_type,
+      constants.IDISK_BOOT_INDEX: d.bootindex
       } for d in self.cfg.GetInstanceDisks(self.instance.uuid)]
     req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
                                         disk_template=disk_template,
@@ -1067,6 +1082,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
       if changes:
         disk.Update(size=changes.get(constants.IDISK_SIZE, None),
                     mode=changes.get(constants.IDISK_MODE, None),
+                    bootindex=changes.get(constants.IDISK_BOOT_INDEX, None),
                     spindles=changes.get(constants.IDISK_SPINDLES, None))
       self.cfg.Update(disk, feedback_fn)
 

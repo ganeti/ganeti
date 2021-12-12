@@ -132,13 +132,13 @@ instance Arbitrary Disk where
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary)
+                   <*> arbitrary <*> arbitrary)
              , (1, liftM ForthcomingDisk $ ForthcomingDiskData <$> arbitrary
                    <*> pure [] <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary)
+                   <*> arbitrary <*> arbitrary)
              ]
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
@@ -259,11 +259,12 @@ enhanceInstWithNets inst nets = do
   ip <- arbitrary
   nicparams <- arbitrary
   name <- arbitrary
+  bootindex <- arbitrary
   uuid <- arbitrary
   -- generate some more networks than the given ones
   num_more_nets <- choose (0,3)
   more_nets <- vectorOf num_more_nets genUUID
-  let genNic net = PartialNic mac ip nicparams net name uuid
+  let genNic net = PartialNic mac ip nicparams net name bootindex uuid
       partial_nics = map (genNic . Just)
                          (List.nub (nets ++ more_nets))
       new_inst = case inst of
@@ -281,6 +282,7 @@ genDiskWithChildren num_children = do
   size <- arbitrary
   mode <- arbitrary
   name <- genMaybe genName
+  bootindex <- arbitrary
   spindles <- arbitrary
   params <- arbitrary
   uuid <- fmap UTF8.fromString genUUID
@@ -288,7 +290,7 @@ genDiskWithChildren num_children = do
   time <- arbitrary
   return . RealDisk $
     RealDiskData logicalid children nodes ivname size mode name
-      spindles params uuid serial time time
+      bootindex spindles params uuid serial time time
 
 genDisk :: Gen Disk
 genDisk = genDiskWithChildren 3
@@ -744,7 +746,7 @@ caseIncludeLogicalIdPlain =
       d = RealDisk $
         RealDiskData (LIDPlain lv) [] ["node1.example.com"] "diskname"
           1000 DiskRdWr
-          Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+          Nothing Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
@@ -762,14 +764,14 @@ caseIncludeLogicalIdDrbd =
            (Private "secret"))
           [ RealDisk $ RealDiskData (mkLIDPlain "onevg" "onelv") []
               ["node1.example.com", "node2.example.com"] "disk1" 1000 DiskRdWr
-              Nothing Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
+              Nothing Nothing Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
               0 time time
           , RealDisk $ RealDiskData (mkLIDPlain vg_name lv_name) []
               ["node1.example.com", "node2.example.com"] "disk2" 1000 DiskRdWr
-              Nothing Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
+              Nothing Nothing Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
               0 time time
           ] ["node1.example.com", "node2.example.com"] "diskname" 1000 DiskRdWr
-          Nothing Nothing Nothing
+          Nothing Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
@@ -783,7 +785,7 @@ caseNotIncludeLogicalIdPlain =
       time = TOD 0 0
       d = RealDisk $
         RealDiskData (mkLIDPlain "othervg" "otherlv") [] ["node1.example.com"]
-          "diskname" 1000 DiskRdWr Nothing Nothing Nothing
+          "diskname" 1000 DiskRdWr Nothing Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in

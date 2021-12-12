@@ -81,6 +81,7 @@ instance PyValue PyType where
   -- new match functions for commonly used OpCode param types.
   showValue (PTMaybe (PTOther "NonEmptyString")) = ht "MaybeString"
   showValue (PTMaybe (PTOther "Bool")) = ht "MaybeBool"
+  showValue (PTMaybe (PTOther "Int")) = ht "MaybeInt"
   showValue (PTMaybe PTDictOf) = ht "MaybeDict"
   showValue (PTMaybe PTListOf) = ht "MaybeList"
 

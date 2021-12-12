@@ -387,14 +387,15 @@ $(makeJSONInstance ''DiskAccess)
 
 -- | NIC modification definition.
 $(buildObject "INicParams" "inic"
-  [ optionalField $ simpleField C.inicMac    [t| NonEmptyString |]
-  , optionalField $ simpleField C.inicIp     [t| String         |]
-  , optionalField $ simpleField C.inicMode   [t| NonEmptyString |]
-  , optionalField $ simpleField C.inicLink   [t| NonEmptyString |]
-  , optionalField $ simpleField C.inicName   [t| NonEmptyString |]
-  , optionalField $ simpleField C.inicVlan   [t| String         |]
-  , optionalField $ simpleField C.inicBridge [t| NonEmptyString |]
-  , optionalField $ simpleField C.inicNetwork [t| NonEmptyString |]
+  [ optionalField $ simpleField C.inicMac       [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicIp        [t| String         |]
+  , optionalField $ simpleField C.inicMode      [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicLink      [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicName      [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicVlan      [t| String         |]
+  , optionalField $ simpleField C.inicBootIndex [t| Int            |]
+  , optionalField $ simpleField C.inicBridge    [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicNetwork   [t| NonEmptyString |]
   ])
 
 deriving instance Ord INicParams
@@ -402,15 +403,16 @@ deriving instance Ord INicParams
 -- | Disk modification definition.
 $(buildObject "IDiskParams" "idisk"
   [ specialNumericalField 'parseUnitAssumeBinary . optionalField
-      $ simpleField C.idiskSize               [t| Int            |]
-  , optionalField $ simpleField C.idiskMode   [t| DiskAccess     |]
-  , optionalField $ simpleField C.idiskAdopt  [t| NonEmptyString |]
-  , optionalField $ simpleField C.idiskVg     [t| NonEmptyString |]
-  , optionalField $ simpleField C.idiskMetavg [t| NonEmptyString |]
-  , optionalField $ simpleField C.idiskName   [t| NonEmptyString |]
-  , optionalField $ simpleField C.idiskProvider [t| NonEmptyString |]
-  , optionalField $ simpleField C.idiskSpindles [t| Int          |]
-  , optionalField $ simpleField C.idiskAccess   [t| NonEmptyString |]
+      $ simpleField C.idiskSize                  [t| Int            |]
+  , optionalField $ simpleField C.idiskMode      [t| DiskAccess     |]
+  , optionalField $ simpleField C.idiskAdopt     [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskVg        [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskMetavg    [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskName      [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskProvider  [t| NonEmptyString |]
+  , optionalField $ simpleField C.idiskSpindles  [t| Int            |]
+  , optionalField $ simpleField C.idiskBootIndex [t| Int            |]
+  , optionalField $ simpleField C.idiskAccess    [t| NonEmptyString |]
   , andRestArguments "opaque"
   ])
 

@@ -554,9 +554,20 @@ def RecreateDisks(opts, args):
       if constants.IDISK_SPINDLES in ddict:
         try:
           ddict[constants.IDISK_SPINDLES] = \
-              int(ddict[constants.IDISK_SPINDLES])
+            int(ddict[constants.IDISK_SPINDLES])
         except ValueError as err:
           raise errors.OpPrereqError("Invalid spindles for disk %d: %s" %
+                                     (didx, err), errors.ECODE_INVAL)
+
+      if constants.IDISK_BOOT_INDEX in ddict:
+        try:
+          if int(ddict[constants.IDISK_BOOT_INDEX]) >= 0:
+            ddict[constants.IDISK_BOOT_INDEX] = \
+              int(ddict[constants.IDISK_BOOT_INDEX])
+          else:
+            ddict[constants.IDISK_BOOT_INDEX] = -1
+        except ValueError as err:
+          raise errors.OpPrereqError("Invalid bootindex for disk %d: %s" %
                                      (didx, err), errors.ECODE_INVAL)
 
       disks.append((didx, ddict))
@@ -1066,6 +1077,11 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
   if top_level:
     if dev["spindles"] is not None:
       data.append(("spindles", dev["spindles"]))
+    if dev["bootindex"] is not None:
+      if dev["bootindex"] >= 0:
+        data.append(("bootindex", dev["bootindex"]))
+      else:
+        data.append(("bootindex", "Unset"))
     data.append(("access mode", dev["mode"]))
   if dev["logical_id"] is not None:
     try:
@@ -1096,10 +1112,17 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
 
 def _FormatInstanceNicInfo(idx, nic, roman=False):
   """Helper function for L{_FormatInstanceInfo()}"""
-  (name, uuid, ip, mac, mode, link, vlan, _, netinfo) = nic
+  (name, uuid, ip, mac, mode, link, vlan, _, bootindex, netinfo) = nic
   network_name = None
+  boot_index = 'Unset'
   if netinfo:
     network_name = netinfo["name"]
+  if bootindex:
+    try:
+      if int(bootindex) >= 0:
+        boot_index = int(bootindex)
+    except:
+      logging.warning("bootindex value ignored for NIC with id: %s", idx)
   return [
     ("nic/%s" % str(compat.TryToRoman(idx, roman)), ""),
     ("MAC", str(mac)),
@@ -1108,6 +1131,7 @@ def _FormatInstanceNicInfo(idx, nic, roman=False):
     ("link", str(link)),
     ("vlan", str(compat.TryToRoman(vlan, roman))),
     ("network", str(network_name)),
+    ("bootindex", str(boot_index)),
     ("UUID", str(uuid)),
     ("name", str(name)),
     ]
@@ -1346,7 +1370,13 @@ def _ParseDiskSizes(mods):
   for (action, _, params) in mods:
     if params and constants.IDISK_SPINDLES in params:
       params[constants.IDISK_SPINDLES] = \
-          int(params[constants.IDISK_SPINDLES])
+        int(params[constants.IDISK_SPINDLES])
+    if params and constants.IDISK_BOOT_INDEX in params:
+      if int(params[constants.IDISK_BOOT_INDEX]) >= 0:
+        params[constants.IDISK_BOOT_INDEX] = \
+          int(params[constants.IDISK_BOOT_INDEX])
+      else:
+        params[constants.IDISK_BOOT_INDEX] = -1
     if params and constants.IDISK_SIZE in params:
       params[constants.IDISK_SIZE] = \
         utils.ParseUnit(params[constants.IDISK_SIZE])
@@ -1394,13 +1424,19 @@ def SetInstanceParams(opts, args):
   FixHvParams(opts.hvparams)
 
   nics = _ConvertNicDiskModifications(opts.nics)
-  for action, _, __ in nics:
+  for action, _, params in nics:
     if action == constants.DDM_MODIFY and opts.hotplug and not opts.force:
       usertext = ("You are about to hot-modify a NIC. This will be done"
                   " by removing the existing NIC and then adding a new one."
                   " Network connection might be lost. Continue?")
       if not AskUser(usertext):
         return 1
+    if params and constants.INIC_BOOT_INDEX in params:
+      if int(params[constants.INIC_BOOT_INDEX]) >= 0:
+        params[constants.INIC_BOOT_INDEX] = \
+          int(params[constants.INIC_BOOT_INDEX])
+      else:
+        params[constants.INIC_BOOT_INDEX] = -1
 
   disks = _ParseDiskSizes(_ConvertNicDiskModifications(opts.disks))
 
