@@ -1294,7 +1294,7 @@ even in the presence of errors during the removal of the instance
 given, the command will stop at the first error.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (e.g. ``xm destroy`` in
+minutes) to wait before forcing the shutdown (e.g. ``xl destroy`` in
 Xen, killing the kvm process for KVM, etc.). By default two minutes
 are given to each instance to stop.
 
@@ -1725,7 +1725,7 @@ stop the instance (equivalent to switching off the power on a physical
 machine).
 
 The ``--timeout`` is used to specify how much time (in minutes) to
-wait before forcing the shutdown (e.g. ``xm destroy`` in Xen, killing
+wait before forcing the shutdown (e.g. ``xl destroy`` in Xen, killing
 the kvm process for KVM, etc.). By default two minutes are given to
 each instance to stop.
 
@@ -1789,7 +1789,7 @@ The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 and they influence the actual instances being rebooted.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (xm destroy in xen,
+minutes) to wait before forcing the shutdown (xl destroy in xen,
 killing the kvm process, for kvm). By default two minutes are given
 to each instance to stop.
 
@@ -2090,7 +2090,7 @@ disconnected DRBD drives). This flag requires the source node to be
 marked offline first to succeed.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (xm destroy in xen,
+minutes) to wait before forcing the shutdown (xl destroy in xen,
 killing the kvm process, for kvm). By default two minutes are given
 to each instance to stop.
 
@@ -2233,7 +2233,7 @@ is used during the move. Valid values are 'none' (the default) and any
 values specified in the 'compression_tools' cluster parameter.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (e.g. ``xm destroy`` in
+minutes) to wait before forcing the shutdown (e.g. ``xl destroy`` in
 XEN, killing the kvm process for KVM, etc.). By default two minutes
 are given to each instance to stop.
 

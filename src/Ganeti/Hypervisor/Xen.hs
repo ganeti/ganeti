@@ -48,7 +48,7 @@ import System.Process
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Hypervisor.Xen.Types
-import Ganeti.Hypervisor.Xen.XmParser
+import Ganeti.Hypervisor.Xen.XlParser
 import Ganeti.Logging
 import Ganeti.Utils
 
@@ -59,12 +59,12 @@ import Ganeti.Utils
 getDomainsInfo :: IO (BT.Result (Map.Map String Domain))
 getDomainsInfo = do
   contents <-
-        (E.try $ readProcess C.xenCmdXm ["list", "--long"] "")
+        (E.try $ readProcess "xl" ["list", "--long"] "")
           :: IO (Either IOError String)
   return $
     either (BT.Bad . show) (
       \c ->
-        case A.parseOnly xmListParser $ pack c of
+        case A.parseOnly xlListParser $ pack c of
           Left msg -> BT.Bad msg
           Right dom -> BT.Ok dom
       ) contents
@@ -102,9 +102,9 @@ getInferredDomInfo = do
 getUptimeInfo :: IO (Map.Map Int UptimeInfo)
 getUptimeInfo = do
   contents <-
-    ((E.try $ readProcess C.xenCmdXm ["uptime"] "")
+    ((E.try $ readProcess "xl" ["uptime"] "")
       :: IO (Either IOError String)) >>=
       exitIfBad "running command" . either (BT.Bad . show) BT.Ok
-  case A.parseOnly xmUptimeParser $ pack contents of
+  case A.parseOnly xlUptimeParser $ pack contents of
     Left msg -> exitErr msg
     Right uInfo -> return uInfo

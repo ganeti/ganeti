@@ -162,10 +162,6 @@ kernels. For KVM no reboot should be necessary.
 Xen settings
 ~~~~~~~~~~~~
 
-Depending on which toolstack you are using, the hypervisor parameter
-``xen_cmd`` has to be set to the matching value, either ``xm`` or
-``xl``.
-
 Some useful best practices for Xen are to restrict the amount of memory
 dom0 has available, and pin the dom0 to a limited number of CPUs.
 Instructions for how to achieve this for various toolstacks can be found

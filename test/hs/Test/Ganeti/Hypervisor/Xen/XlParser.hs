@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-| Unittests for @xm list --long@ parser -}
+{-| Unittests for @xl list --long@ parser -}
 
 {-
 
@@ -33,8 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-module Test.Ganeti.Hypervisor.Xen.XmParser
-  ( testHypervisor_Xen_XmParser
+module Test.Ganeti.Hypervisor.Xen.XlParser
+  ( testHypervisor_Xen_XlParser
   ) where
 
 import Test.HUnit
@@ -51,7 +51,7 @@ import qualified Data.Map as Map
 import Text.Printf
 
 import Ganeti.Hypervisor.Xen.Types
-import Ganeti.Hypervisor.Xen.XmParser
+import Ganeti.Hypervisor.Xen.XlParser
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -94,7 +94,7 @@ canBeNumber (c:xs) = canBeNumberChar c && canBeNumber xs
 canBeNumberChar :: Char -> Bool
 canBeNumberChar c = isDigit c || (c `elem` "eE-")
 
--- | Generates an arbitrary @xm uptime@ output line.
+-- | Generates an arbitrary @xl uptime@ output line.
 instance Arbitrary UptimeInfo where
   arbitrary = do
     name <- genFQDN
@@ -116,16 +116,16 @@ instance Arbitrary UptimeInfo where
 testDomain :: String -> Map.Map String Domain -> Assertion
 testDomain fileName expectedContent = do
   fileContent <- readTestData fileName
-  case A.parseOnly xmListParser $ pack fileContent of
+  case A.parseOnly xlListParser $ pack fileContent of
     Left msg -> assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> assertEqual fileName expectedContent obtained
 
--- | Function for testing whether a @xm uptime@ output (stored in a file)
+-- | Function for testing whether a @xl uptime@ output (stored in a file)
 -- is parsed correctly.
 testUptimeInfo :: String -> Map.Map Int UptimeInfo -> Assertion
 testUptimeInfo fileName expectedContent = do
   fileContent <- readTestData fileName
-  case A.parseOnly xmUptimeParser $ pack fileContent of
+  case A.parseOnly xlUptimeParser $ pack fileContent of
     Left msg -> assertFailure $ "Parsing failed: " ++ msg
     Right obtained -> assertEqual fileName expectedContent obtained
 
@@ -176,24 +176,24 @@ prop_uptimeInfo uInfo =
     Left msg -> failTest $ "Parsing failed: " ++ msg
     Right obtained -> obtained ==? uInfo
 
--- | Test a Xen 4.0.1 @xm list --long@ output.
+-- | Test a Xen 4.0.1 @xl list --long@ output.
 case_xen401list :: Assertion
-case_xen401list = testDomain "xen-xm-list-long-4.0.1.txt" $
+case_xen401list = testDomain "xen-xl-list-long-4.0.1.txt" $
   Map.fromList
     [ ("Domain-0", Domain 0 "Domain-0" 184000.41332 ActualRunning Nothing)
     , ("instance1.example.com", Domain 119 "instance1.example.com" 24.116146647
       ActualBlocked Nothing)
     ]
 
--- | Test a Xen 4.0.1 @xm uptime@ output.
+-- | Test a Xen 4.0.1 @xl uptime@ output.
 case_xen401uptime :: Assertion
-case_xen401uptime = testUptimeInfo "xen-xm-uptime-4.0.1.txt" $
+case_xen401uptime = testUptimeInfo "xen-xl-uptime-4.0.1.txt" $
   Map.fromList
     [ (0, UptimeInfo "Domain-0" 0 "98 days,  2:27:44")
     , (119, UptimeInfo "instance1.example.com" 119 "15 days, 20:57:07")
     ]
 
-testSuite "Hypervisor/Xen/XmParser"
+testSuite "Hypervisor/Xen/XlParser"
           [ 'prop_config
           , 'prop_uptimeInfo
           , 'case_xen401list

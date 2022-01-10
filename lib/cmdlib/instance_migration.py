@@ -623,21 +623,13 @@ class TLMigrateInstance(Tasklet):
     # Xen renames the instance during migration, unfortunately we don't have
     # a nicer way of identifying that it's the same instance. This is an awful
     # leaking abstraction.
-
-    # xm and xl have different (undocumented) naming conventions
-    # xm: (in tools/python/xen/xend/XendCheckpoint.py save() & restore())
-    #                   source dom name    target dom name
-    # during copy:      migrating-$DOM     $DOM
-    # finalize migrate: <none>             $DOM
-    # finished:         <none>             $DOM
     #
     # xl: (in tools/libxl/xl_cmdimpl.c migrate_domain() & migrate_receive())
     #                   source dom name    target dom name
     # during copy:      $DOM               $DOM--incoming
     # finalize migrate: $DOM--migratedaway $DOM
     # finished:         <none>             $DOM
-    variants = [
-        name, 'migrating-' + name, name + '--incoming', name + '--migratedaway']
+    variants = [name, name + '--incoming', name + '--migratedaway']
     node_uuids = [node for node, data in instance_list.items()
                   if any(var in data.payload for var in variants)]
     self.feedback_fn("* instance running on: %s" % ','.join(

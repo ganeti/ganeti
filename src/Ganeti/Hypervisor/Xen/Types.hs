@@ -44,7 +44,7 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 
 -- | Data type representing configuration data as produced by the
--- @xm list --long@ command.
+-- @xl list --long@ command.
 data LispConfig = LCList [LispConfig]
                 | LCString String
                 | LCDouble Double

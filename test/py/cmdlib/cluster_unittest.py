@@ -1893,7 +1893,6 @@ class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
       pathutils.CLUSTER_CONF_FILE,
       ])
     files_vm = set([
-      hv_xen.XEND_CONFIG_FILE,
       hv_xen.XL_CONFIG_FILE,
       pathutils.VNC_PASSWORD_FILE,
       ])
@@ -1903,13 +1902,11 @@ class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
           pathutils.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
           pathutils.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
           pathutils.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
-          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
         }}) \
       .AddSuccessfulNode(node1, {
         constants.NV_FILELIST: {
           pathutils.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
-          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           }
         }) \
       .AddSuccessfulNode(node2, {
@@ -1944,8 +1941,6 @@ class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
         (pathutils.CLUSTER_DOMAIN_SECRET_FILE, node1.name),
       "File %s should not exist on node(s) %s" %
         (pathutils.CLUSTER_CONF_FILE, node3.name),
-      "File %s is missing from node(s) %s" %
-        (hv_xen.XEND_CONFIG_FILE, node3.name),
       "File %s is missing from node(s) %s" %
         (pathutils.CLUSTER_CONF_FILE, node2.name),
       "File %s found with 2 different checksums (variant 1 on"

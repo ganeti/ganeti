@@ -499,12 +499,6 @@ exportConfFile = "config.ini"
 xenBootloader :: String
 xenBootloader = AutoConf.xenBootloader
 
-xenCmdXl :: String
-xenCmdXl = "xl"
-
-xenCmdXm :: String
-xenCmdXm = "xm"
-
 xenInitrd :: String
 xenInitrd = AutoConf.xenInitrd
 
@@ -516,11 +510,6 @@ xlSocatCmd = "socat -b524288 - TCP:%s:%d #"
 
 xlMigrationPidfile :: String
 xlMigrationPidfile = "socat.pid"
-
--- FIXME: perhaps rename to 'validXenCommands' for consistency with
--- other constants
-knownXenCommands :: FrozenSet String
-knownXenCommands = ConstantUtils.mkSet [xenCmdXl, xenCmdXm]
 
 -- * KVM and socat
 
@@ -1867,9 +1856,6 @@ hvVncX509Verify = "vnc_x509_verify"
 hvVnetHdr :: String
 hvVnetHdr = "vnet_hdr"
 
-hvXenCmd :: String
-hvXenCmd = "xen_cmd"
-
 hvXenCpuid :: String
 hvXenCpuid = "cpuid"
 
@@ -1978,7 +1964,6 @@ hvsParameterTypes = Map.fromList
   , (hvVncX509,                         VTypeString)
   , (hvVncX509Verify,                   VTypeBool)
   , (hvVnetHdr,                         VTypeBool)
-  , (hvXenCmd,                          VTypeString)
   , (hvXenCpuid,                        VTypeString)
   ]
 
@@ -4068,7 +4053,6 @@ hvcDefaults =
              , (hvCpuCap,         PyValueEx (0 :: Int))
              , (hvCpuWeight,      PyValueEx (256 :: Int))
              , (hvVifScript,      PyValueEx "")
-             , (hvXenCmd,         PyValueEx xenCmdXm)
              , (hvXenCpuid,       PyValueEx "")
              , (hvSoundhw,        PyValueEx "")
              ])
@@ -4094,7 +4078,6 @@ hvcDefaults =
              , (hvVifType,        PyValueEx htHvmVifIoemu)
              , (hvVifScript,      PyValueEx "")
              , (hvViridian,       PyValueEx False)
-             , (hvXenCmd,         PyValueEx xenCmdXm)
              , (hvXenCpuid,       PyValueEx "")
              , (hvSoundhw,        PyValueEx "")
              ])
@@ -4182,8 +4165,7 @@ hvcGlobals :: FrozenSet String
 hvcGlobals =
   ConstantUtils.mkSet [hvMigrationBandwidth,
                        hvMigrationMode,
-                       hvMigrationPort,
-                       hvXenCmd]
+                       hvMigrationPort]
 
 becDefaults :: Map String PyValueEx
 becDefaults =

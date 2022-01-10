@@ -171,7 +171,7 @@ primary instance cpu load, sum of primary instance memory load, sum of
 primary and secondary instance disk load (as DRBD generates write load
 on secondary nodes too in normal case and in degraded scenarios also
 read load), and sum of primary instance network load. An example of
-how to generate these values for input to hbal would be to track ``xm
+how to generate these values for input to hbal would be to track ``xl
 list`` for instances over a day and by computing the delta of the cpu
 values, and feed that via the *-U* option for all instances (and keep
 the other metrics as one). For the algorithm to work, all that is
