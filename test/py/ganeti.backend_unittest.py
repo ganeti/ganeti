@@ -202,7 +202,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
                     "Test ran by non master candidate")
 
   def testVerifyHvparams(self):
-    test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    test_hvparams = {}
     test_what = {constants.NV_HVPARAMS: \
         [("mynode", constants.HT_XEN_PVM, test_hvparams)]}
     result = {}
@@ -212,7 +212,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
 
   def testVerifyHypervisors(self):
     hvname = constants.HT_XEN_PVM
-    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hvparams = {}
     all_hvparams = {hvname: hvparams}
     test_what = {constants.NV_HYPERVISOR: [hvname]}
     result = {}
@@ -702,7 +702,7 @@ class TestGetInstanceList(unittest.TestCase):
     return self._test_hv
 
   def testHvparams(self):
-    fake_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    fake_hvparams = {}
     hvparams = {constants.HT_FAKE: fake_hvparams}
     backend.GetInstanceList([constants.HT_FAKE], all_hvparams=hvparams,
                             get_hv_fn=self._GetHypervisor)
@@ -770,7 +770,7 @@ class TestGetHvInfo(unittest.TestCase):
 
   def testGetHvInfoAll(self):
     hvname = constants.HT_XEN_PVM
-    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hvparams = {}
     hv_specs = [(hvname, hvparams)]
 
     backend._GetHvInfoAll(hv_specs, self._GetHypervisor)

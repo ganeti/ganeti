@@ -339,11 +339,6 @@ configurable globally (at cluster level):
 migration\_port
     Valid for the Xen PVM and KVM hypervisors.
 
-    This options specifies the TCP port to use for live-migration when
-    using the xm toolstack. The same port should be configured on all
-    nodes in the ``@XEN_CONFIG_DIR@/xend-config.sxp`` file, under the
-    key "xend-relocation-port".
-
 migration\_bandwidth
     Valid for the KVM hypervisor.
 

@@ -222,7 +222,7 @@
         "viridian": false,
         "vnc_bind_address": "0.0.0.0",
         "vnc_password_file": "/your/vnc-cluster-password",
-        "xen_cmd": "xm"
+        "xen_cmd": "xl"
       },
       "xen-pvm": {
         "blockdev_prefix": "sd",
@@ -242,7 +242,7 @@
         "soundhw": "",
         "use_bootloader": false,
         "vif_script": "",
-        "xen_cmd": "xm"
+        "xen_cmd": "xl"
       }
     },
     "install_image": "",

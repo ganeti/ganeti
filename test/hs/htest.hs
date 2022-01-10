@@ -61,7 +61,7 @@ import Test.Ganeti.HTools.Loader
 import Test.Ganeti.HTools.Node
 import Test.Ganeti.HTools.PeerMap
 import Test.Ganeti.HTools.Types
-import Test.Ganeti.Hypervisor.Xen.XmParser
+import Test.Ganeti.Hypervisor.Xen.XlParser
 import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
 import Test.Ganeti.JQueue
@@ -138,7 +138,7 @@ allTests =
   , testHTools_Node
   , testHTools_PeerMap
   , testHTools_Types
-  , testHypervisor_Xen_XmParser
+  , testHypervisor_Xen_XlParser
   , testJSON
   , testJobs
   , testJQueue

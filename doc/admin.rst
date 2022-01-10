@@ -365,7 +365,7 @@ after shutting down an instance, execute the following::
   $ gnt-instance modify --offline %INSTANCE_NAME%
 
 .. warning:: Do not use the Xen or KVM commands directly to stop
-   instances. If you run for example ``xm shutdown`` or ``xm destroy``
+   instances. If you run for example ``xl shutdown`` or ``xl destroy``
    on an instance Ganeti will automatically restart it (via
    the :command:`ganeti-watcher(8)` command which is launched via cron).
 
@@ -1487,7 +1487,7 @@ of a cluster installation by following these steps on all of the nodes:
 1. Shutdown all instances. This depends on the virtualisation method
    used (Xen, KVM, etc.):
 
-  - Xen: run ``xm list`` and ``xm destroy`` on all the non-Domain-0
+  - Xen: run ``xl list`` and ``xl destroy`` on all the non-Domain-0
     instances
   - KVM: kill all the KVM processes
   - chroot: kill all processes under the chroot mountpoints

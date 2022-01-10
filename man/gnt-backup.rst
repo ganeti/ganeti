@@ -42,7 +42,7 @@ Valid values are 'none', and any values defined in the
 'compression_tools' cluster parameter.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (xm destroy in xen,
+minutes) to wait before forcing the shutdown (xl destroy in xen,
 killing the kvm process, for kvm). By default two minutes are given
 to each instance to stop.
 

@@ -13,7 +13,7 @@ The node daemon continues to require root privileges to create logical volumes,
 DRBD devices, start instances, etc. Cluster commands can be run as root or by
 users in a group specified at build time. The monitoring daemon requires root
 privileges in order to be able to access and present information that are only
-avilable to root (such as the output of the ``xm`` command of Xen).
+avilable to root (such as the output of the ``xl`` command of Xen).
 
 Host issues
 -----------

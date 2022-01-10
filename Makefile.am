@@ -948,7 +948,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Tags/Constants.hs \
 	src/Ganeti/HTools/Types.hs \
 	src/Ganeti/Hypervisor/Xen.hs \
-	src/Ganeti/Hypervisor/Xen/XmParser.hs \
+	src/Ganeti/Hypervisor/Xen/XlParser.hs \
 	src/Ganeti/Hypervisor/Xen/Types.hs \
 	src/Ganeti/Hash.hs \
 	src/Ganeti/Hs2Py/GenConstants.hs \
@@ -1097,7 +1097,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/HTools/Node.hs \
 	test/hs/Test/Ganeti/HTools/PeerMap.hs \
 	test/hs/Test/Ganeti/HTools/Types.hs \
-	test/hs/Test/Ganeti/Hypervisor/Xen/XmParser.hs \
+	test/hs/Test/Ganeti/Hypervisor/Xen/XlParser.hs \
 	test/hs/Test/Ganeti/JSON.hs \
 	test/hs/Test/Ganeti/Jobs.hs \
 	test/hs/Test/Ganeti/JQScheduler.hs \
@@ -1891,11 +1891,11 @@ TEST_FILES = \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
 	test/data/xen-xl-list-4.4-crashed-instances.txt \
-	test/data/xen-xm-info-4.0.1.txt \
-	test/data/xen-xm-list-4.0.1-dom0-only.txt \
-	test/data/xen-xm-list-4.0.1-four-instances.txt \
-	test/data/xen-xm-list-long-4.0.1.txt \
-	test/data/xen-xm-uptime-4.0.1.txt \
+	test/data/xen-xl-info-4.0.1.txt \
+	test/data/xen-xl-list-4.0.1-dom0-only.txt \
+	test/data/xen-xl-list-4.0.1-four-instances.txt \
+	test/data/xen-xl-list-long-4.0.1.txt \
+	test/data/xen-xl-uptime-4.0.1.txt \
 	test/py/ganeti-cli.test \
 	test/py/gnt-cli.test \
 	test/py/import-export_unittest-helper
@@ -2398,7 +2398,6 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DMETAD_GROUP="$(METAD_GROUP)" \
 	    -DDISK_SEPARATOR="$(DISK_SEPARATOR)" \
 	    -DQEMUIMG_PATH="$(QEMUIMG_PATH)" \
-	    -DXEN_CMD="$(XEN_CMD)" \
 	    -DENABLE_RESTRICTED_COMMANDS="$(ENABLE_RESTRICTED_COMMANDS)" \
 	    -DENABLE_METADATA="$(ENABLE_METADATA)" \
 	    -DENABLE_MOND="$(ENABLE_MOND)" \

@@ -58,7 +58,7 @@ HVCLASS_TO_HVNAME = utils.InvertDict(hypervisor._HYPERVISOR_MAP)
 
 class TestConsole(unittest.TestCase):
   def test(self):
-    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hvparams = {}
     for cls in [hv_xen.XenPvmHypervisor(), hv_xen.XenHvmHypervisor()]:
       instance = objects.Instance(name="xen.example.com",
                                   primary_node="node24828-uuid")
@@ -91,42 +91,9 @@ class TestCreateConfigCpus(unittest.TestCase):
                       constants.CPU_PINNING_ALL_XEN))
 
 
-class TestGetCommand(testutils.GanetiTestCase):
-  def testCommandExplicit(self):
-    """Test the case when the command is given as class parameter explicitly.
-
-    """
-    expected_cmd = "xl"
-    hv = hv_xen.XenHypervisor(_cmd=constants.XEN_CMD_XL)
-    self.assertEqual(hv._GetCommand(None), expected_cmd)
-
-  def testCommandInvalid(self):
-    """Test the case an invalid command is given as class parameter explicitly.
-
-    """
-    hv = hv_xen.XenHypervisor(_cmd="invalidcommand")
-    self.assertRaises(errors.ProgrammerError, hv._GetCommand, None)
-
-  def testCommandHvparams(self):
-    expected_cmd = "xl"
-    test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
-    hv = hv_xen.XenHypervisor()
-    self.assertEqual(hv._GetCommand(test_hvparams), expected_cmd)
-
-  def testCommandHvparamsInvalid(self):
-    test_hvparams = {}
-    hv = hv_xen.XenHypervisor()
-    self.assertRaises(errors.HypervisorError, hv._GetCommand, test_hvparams)
-
-  def testCommandHvparamsCmdInvalid(self):
-    test_hvparams = {constants.HV_XEN_CMD: "invalidcommand"}
-    hv = hv_xen.XenHypervisor()
-    self.assertRaises(errors.ProgrammerError, hv._GetCommand, test_hvparams)
-
-
 class TestParseInstanceList(testutils.GanetiTestCase):
   def test(self):
-    data = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
+    data = testutils.ReadTestData("xen-xl-list-4.0.1-dom0-only.txt")
 
     # Exclude node
     self.assertEqual(hv_xen._ParseInstanceList(data.splitlines(), False), [])
@@ -243,14 +210,14 @@ class TestGetInstanceList(testutils.GanetiTestCase):
       self.fail("Exception was not raised")
 
     self.assertTrue(fn.Count() < 10,
-                    msg="'xm list' was called too many times")
+                    msg="'xl list' was called too many times")
 
   def _Success(self, stdout):
     return utils.RunResult(constants.EXIT_SUCCESS, None, stdout, "", None,
                            NotImplemented, NotImplemented)
 
   def testSuccess(self):
-    data = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+    data = testutils.ReadTestData("xen-xl-list-4.0.1-four-instances.txt")
 
     fn = testutils.CallCounter(compat.partial(self._Success, data))
 
@@ -299,7 +266,7 @@ class TestParseNodeInfo(testutils.GanetiTestCase):
     self.assertEqual(hv_xen._ParseNodeInfo(data), {})
 
   def testBasicInfo(self):
-    data = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    data = testutils.ReadTestData("xen-xl-info-4.0.1.txt")
     result = hv_xen._ParseNodeInfo(data)
     self.assertEqual(result, {
       "cpu_nodes": 1,
@@ -315,7 +282,7 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
   def testEmpty(self):
     self.assertEqual(hv_xen._MergeInstanceInfo({}, []), {})
 
-  def _FakeXmList(self, include_node):
+  def _FakeXlList(self, include_node):
     return [
       (hv_xen._DOM0_NAME, NotImplemented, 4096, 7, NotImplemented,
        NotImplemented),
@@ -324,7 +291,7 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
       ]
 
   def testMissingNodeInfo(self):
-    instance_list = self._FakeXmList(True)
+    instance_list = self._FakeXlList(True)
     result = hv_xen._MergeInstanceInfo({}, instance_list)
     self.assertEqual(result, {
       "memory_dom0": 4096,
@@ -332,8 +299,8 @@ class TestMergeInstanceInfo(testutils.GanetiTestCase):
       })
 
   def testWithNodeInfo(self):
-    info = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
-    instance_list = self._FakeXmList(True)
+    info = testutils.ReadTestData("xen-xl-info-4.0.1.txt")
+    instance_list = self._FakeXlList(True)
     result = hv_xen._GetNodeInfo(info, instance_list)
     self.assertEqual(result, {
       "cpu_nodes": 1,
@@ -436,54 +403,18 @@ class TestGetConfigFileDiskData(unittest.TestCase):
     self.assertRaises(KeyError, hv_xen._GetConfigFileDiskData, disks, "sd")
 
 
-class TestXenHypervisorRunXen(unittest.TestCase):
-
-  XEN_SUB_CMD = "help"
-
-  def testCommandUnknown(self):
-    cmd = "#unknown command#"
-    self.assertFalse(cmd in constants.KNOWN_XEN_COMMANDS)
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=NotImplemented,
-                              _cmd=cmd)
-    self.assertRaises(errors.ProgrammerError, hv._RunXen, [], None)
-
-  def testCommandNoHvparams(self):
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=NotImplemented)
-    hvparams = None
-    self.assertRaises(errors.HypervisorError, hv._RunXen, [self.XEN_SUB_CMD],
-                      hvparams)
-
-  def testCommandFromHvparams(self):
-    expected_xen_cmd = "xl"
-    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
-    mock_run_cmd = mock.Mock()
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=mock_run_cmd)
-    hv._RunXen([self.XEN_SUB_CMD], hvparams=hvparams)
-    mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_SUB_CMD])
-
-
 class TestXenHypervisorGetInstanceList(unittest.TestCase):
 
   RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
   XEN_LIST = "list"
 
-  def testNoHvparams(self):
-    expected_xen_cmd = "xm"
-    mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=mock_run_cmd)
-    self.assertRaises(errors.HypervisorError, hv._GetInstanceList, True, None)
-
   def testFromHvparams(self):
     expected_xen_cmd = "xl"
-    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hvparams = {}
     mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv._GetInstanceList(True, hvparams)
+    hv._GetInstanceList(True)
     mock_run_cmd.assert_called_with([expected_xen_cmd, self.XEN_LIST])
 
 
@@ -492,16 +423,9 @@ class TestXenHypervisorListInstances(unittest.TestCase):
   RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
   XEN_LIST = "list"
 
-  def testNoHvparams(self):
-    expected_xen_cmd = "xm"
-    mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=mock_run_cmd)
-    self.assertRaises(errors.HypervisorError, hv.ListInstances)
-
   def testHvparamsXl(self):
     expected_xen_cmd = "xl"
-    hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+    hvparams = {}
     mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
@@ -520,14 +444,6 @@ class TestXenHypervisorCheckToolstack(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
 
-  def testBinaryNotFound(self):
-    RESULT_FAILED = utils.RunResult(1, None, "", "", "", None, None)
-    mock_run_cmd = mock.Mock(return_value=RESULT_FAILED)
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=mock_run_cmd)
-    result = hv._CheckToolstackBinary("xl")
-    self.assertFalse(result)
-
   def testCheckToolstackXlConfigured(self):
     RESULT_OK = utils.RunResult(0, None, "", "", "", None, None)
     mock_run_cmd = mock.Mock(return_value=RESULT_OK)
@@ -535,17 +451,6 @@ class TestXenHypervisorCheckToolstack(unittest.TestCase):
                               _run_cmd_fn=mock_run_cmd)
     result = hv._CheckToolstackXlConfigured()
     self.assertTrue(result)
-
-  def testCheckToolstackXlNotConfigured(self):
-    RESULT_FAILED = utils.RunResult(
-        1, None, "",
-        "ERROR:  A different toolstack (xm) has been selected!",
-        "", None, None)
-    mock_run_cmd = mock.Mock(return_value=RESULT_FAILED)
-    hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
-                              _run_cmd_fn=mock_run_cmd)
-    result = hv._CheckToolstackXlConfigured()
-    self.assertFalse(result)
 
   def testCheckToolstackXlFails(self):
     RESULT_FAILED = utils.RunResult(
@@ -585,25 +490,25 @@ class TestXenHypervisorWriteConfigFile(unittest.TestCase):
 class TestXenHypervisorVerify(unittest.TestCase):
 
   def setUp(self):
-    output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+    output = testutils.ReadTestData("xen-xl-info-4.0.1.txt")
     self._result_ok = utils.RunResult(0, None, output, "", "", None, None)
 
   def testVerify(self):
-    hvparams = {constants.HV_XEN_CMD : constants.XEN_CMD_XL}
+    hvparams = {}
     mock_run_cmd = mock.Mock(return_value=self._result_ok)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv._CheckToolstack = mock.Mock(return_value=True)
+    hv._CheckToolstackXlConfigured = mock.Mock(return_value=True)
     result = hv.Verify(hvparams)
     self.assertTrue(result is None)
 
   def testVerifyToolstackNotOk(self):
-    hvparams = {constants.HV_XEN_CMD : constants.XEN_CMD_XL}
+    hvparams = {}
     mock_run_cmd = mock.Mock(return_value=self._result_ok)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv._CheckToolstack = mock.Mock()
-    hv._CheckToolstack.side_effect = errors.HypervisorError("foo")
+    hv._CheckToolstackXlConfigured = mock.Mock()
+    hv._CheckToolstackXlConfigured.side_effect = errors.HypervisorError("foo")
     result = hv.Verify(hvparams)
     self.assertTrue(result is not None)
 
@@ -612,7 +517,7 @@ class TestXenHypervisorVerify(unittest.TestCase):
     mock_run_cmd = mock.Mock(return_value=result_failed)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
-    hv._CheckToolstack = mock.Mock(return_value=True)
+    hv._CheckToolstackXlConfigured = mock.Mock(return_value=True)
     result = hv.Verify()
     self.assertTrue(result is not None)
 
@@ -621,7 +526,7 @@ class _TestXenHypervisor(object):
   TARGET = NotImplemented
   CMD = NotImplemented
   HVNAME = NotImplemented
-  VALID_HVPARAMS = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
+  VALID_HVPARAMS = {}
 
   def setUp(self):
     super(_TestXenHypervisor, self).setUp()
@@ -698,7 +603,7 @@ class _TestXenHypervisor(object):
     self.assertEqual(cmd, [self.CMD, "list"])
 
     # TODO: Use actual data from "xl" command
-    output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+    output = testutils.ReadTestData("xen-xl-list-4.0.1-four-instances.txt")
 
     return self._SuccessCommand(output, cmd)
 
@@ -758,9 +663,9 @@ class _TestXenHypervisor(object):
 
   def _StartInstanceCommand(self, inst, paused, failcreate, cmd):
     if cmd == [self.CMD, "info"]:
-      output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+      output = testutils.ReadTestData("xen-xl-info-4.0.1.txt")
     elif cmd == [self.CMD, "list"]:
-      output = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
+      output = testutils.ReadTestData("xen-xl-list-4.0.1-dom0-only.txt")
     elif cmd[:2] == [self.CMD, "create"]:
       args = cmd[2:]
       cfgfile = utils.PathJoin(self.tmpdir, inst.name)
@@ -900,7 +805,7 @@ class _TestXenHypervisor(object):
 
   def _MigrateNonRunningInstCmd(self, cmd):
     if cmd == [self.CMD, "list"]:
-      output = testutils.ReadTestData("xen-xm-list-4.0.1-dom0-only.txt")
+      output = testutils.ReadTestData("xen-xl-list-4.0.1-dom0-only.txt")
     else:
       self.fail("Unhandled command: %s" % (cmd, ))
 
@@ -913,65 +818,24 @@ class _TestXenHypervisor(object):
 
     hv = self._GetHv(run_cmd=self._MigrateNonRunningInstCmd)
 
-    for live in [False, True]:
-      try:
-        hv._MigrateInstance(name, target, port, live, self.VALID_HVPARAMS,
-                            _ping_fn=NotImplemented)
-      except errors.HypervisorError as err:
-        self.assertEqual(str(err), "Instance not running, cannot migrate")
-      else:
-        self.fail("Exception was not raised")
-
-  def _MigrateInstTargetUnreachCmd(self, cmd):
-    if cmd == [self.CMD, "list"]:
-      output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+    try:
+      hv._MigrateInstance(name, target, port, self.VALID_HVPARAMS,
+                          _ping_fn=NotImplemented)
+    except errors.HypervisorError as err:
+      self.assertEqual(str(err), "Instance not running, cannot migrate")
     else:
-      self.fail("Unhandled command: %s" % (cmd, ))
-
-    return self._SuccessCommand(output, cmd)
-
-  def testMigrateTargetUnreachable(self):
-    name = "server01.example.com"
-    target = constants.IP4_ADDRESS_LOCALHOST
-    port = 28349
-
-    hv = self._GetHv(run_cmd=self._MigrateInstTargetUnreachCmd)
-    hvparams = {constants.HV_XEN_CMD: self.CMD}
-
-    for live in [False, True]:
-      if self.CMD == constants.XEN_CMD_XL:
-        # TODO: Detect unreachable targets
-        pass
-      else:
-        try:
-          hv._MigrateInstance(name, target, port, live, hvparams,
-                              _ping_fn=compat.partial(self._FakeTcpPing,
-                                                      (target, port), False))
-        except errors.HypervisorError as err:
-          wanted = "Remote host %s not" % target
-          self.assertTrue(str(err).startswith(wanted))
-        else:
-          self.fail("Exception was not raised")
+      self.fail("Exception was not raised")
 
   def _MigrateInstanceCmd(self, instance_name, target, port,
-                          live, fail, cmd):
+                          fail, cmd):
     if cmd == [self.CMD, "list"]:
-      output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+      output = testutils.ReadTestData("xen-xl-list-4.0.1-four-instances.txt")
     elif cmd[:2] == [self.CMD, "migrate"]:
-      if self.CMD == constants.XEN_CMD_XM:
-        args = ["-p", str(port)]
+      args = [
+        "-s", constants.XL_SOCAT_CMD % (target, port),
+        "-C", utils.PathJoin(self.tmpdir, instance_name),
+        ]
 
-        if live:
-          args.append("-l")
-
-      elif self.CMD == constants.XEN_CMD_XL:
-        args = [
-          "-s", constants.XL_SOCAT_CMD % (target, port),
-          "-C", utils.PathJoin(self.tmpdir, instance_name),
-          ]
-
-      else:
-        self.fail("Unknown Xen command '%s'" % self.CMD)
 
       args.extend([instance_name, target])
       self.assertEqual(cmd[2:], args)
@@ -990,50 +854,46 @@ class _TestXenHypervisor(object):
     target = constants.IP4_ADDRESS_LOCALHOST
     port = 22364
 
-    hvparams = {constants.HV_XEN_CMD: self.CMD}
+    hvparams = {}
 
-    for live in [False, True]:
-      for fail in [False, True]:
-        ping_fn = \
-          testutils.CallCounter(compat.partial(self._FakeTcpPing,
-                                               (target, port), True))
+    for fail in [False, True]:
+      ping_fn = \
+        testutils.CallCounter(compat.partial(self._FakeTcpPing,
+                                             (target, port), True))
 
-        run_cmd = \
-          compat.partial(self._MigrateInstanceCmd,
-                         instname, target, port, live, fail)
+      run_cmd = \
+        compat.partial(self._MigrateInstanceCmd,
+                       instname, target, port, fail)
 
-        hv = self._GetHv(run_cmd=run_cmd)
+      hv = self._GetHv(run_cmd=run_cmd)
 
-        if fail:
-          try:
-            hv._MigrateInstance(instname, target, port, live, hvparams,
-                                _ping_fn=ping_fn)
-          except errors.HypervisorError as err:
-            self.assertTrue(str(err).startswith("Failed to migrate instance"))
-          else:
-            self.fail("Exception was not raised")
+      if fail:
+        try:
+          hv._MigrateInstance(instname, target, port, hvparams,
+                              _ping_fn=ping_fn)
+        except errors.HypervisorError as err:
+          self.assertTrue(str(err).startswith("Failed to migrate instance"))
         else:
-          hv._MigrateInstance(instname, target, port, live,
-                              hvparams, _ping_fn=ping_fn)
+          self.fail("Exception was not raised")
+      else:
+        hv._MigrateInstance(instname, target, port,
+                            hvparams, _ping_fn=ping_fn)
 
-        if self.CMD == constants.XEN_CMD_XM:
-          expected_pings = 1
-        else:
-          expected_pings = 0
+      expected_pings = 0
 
-        self.assertEqual(ping_fn.Count(), expected_pings)
+      self.assertEqual(ping_fn.Count(), expected_pings)
 
   def _GetNodeInfoCmd(self, fail, cmd):
     if cmd == [self.CMD, "info"]:
       if fail:
         return self._FailingCommand(cmd)
       else:
-        output = testutils.ReadTestData("xen-xm-info-4.0.1.txt")
+        output = testutils.ReadTestData("xen-xl-info-4.0.1.txt")
     elif cmd == [self.CMD, "list"]:
       if fail:
-        self.fail("'xm list' shouldn't be called when 'xm info' failed")
+        self.fail("'xl list' shouldn't be called when 'xl info' failed")
       else:
-        output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
+        output = testutils.ReadTestData("xen-xl-list-4.0.1-four-instances.txt")
     else:
       self.fail("Unhandled command: %s" % (cmd, ))
 
@@ -1093,12 +953,11 @@ def _MakeTestClass(cls, cmd):
 # Create test classes programmatically instead of manually to reduce the risk
 # of forgetting some combinations
 for cls in [hv_xen.XenPvmHypervisor, hv_xen.XenHvmHypervisor]:
-  for cmd in constants.KNOWN_XEN_COMMANDS:
-    (name, testcls) = _MakeTestClass(cls, cmd)
+  (name, testcls) = _MakeTestClass(cls, "xl")
 
-    assert name not in locals()
+  assert name not in locals()
 
-    locals()[name] = testcls
+  locals()[name] = testcls
 
 
 if __name__ == "__main__":

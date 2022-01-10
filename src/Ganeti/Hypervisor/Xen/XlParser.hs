@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-| Parser for the output of the @xm list --long@ command of Xen
+{-| Parser for the output of the @xl list --long@ command of Xen
 
 -}
 {-
@@ -31,10 +31,10 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
-module Ganeti.Hypervisor.Xen.XmParser
-  ( xmListParser
+module Ganeti.Hypervisor.Xen.XlParser
+  ( xlListParser
   , lispConfigParser
-  , xmUptimeParser
+  , xlUptimeParser
   , uptimeLineParser
   ) where
 
@@ -52,7 +52,7 @@ import Ganeti.BasicTypes
 import Ganeti.Hypervisor.Xen.Types
 
 -- | A parser for parsing generic config files written in the (LISP-like)
--- format that is the output of the @xm list --long@ command.
+-- format that is the output of the @xl list --long@ command.
 -- This parser only takes care of the syntactic parse, but does not care
 -- about the semantics.
 -- Note: parsing the double requires checking for the next character in order
@@ -133,14 +133,14 @@ getDomainConfig configData = do
   let actualState = parseState state
   return $ Domain domid name cpuTime actualState Nothing
 
--- | A parser for parsing the output of the @xm list --long@ command.
+-- | A parser for parsing the output of the @xl list --long@ command.
 -- It adds the semantic layer on top of lispConfigParser.
 -- It returns a map of domains, with their name as the key.
 -- FIXME: This is efficient under the assumption that only a few fields of the
 -- domain configuration are actually needed. If many of them are required, a
 -- parser able to directly extract the domain config would actually be better.
-xmListParser :: Parser (Map.Map String Domain)
-xmListParser = do
+xlListParser :: Parser (Map.Map String Domain)
+xlListParser = do
   configs <- lispConfigParser `AC.manyTill` A.endOfInput
   let domains = map getDomainConfig configs
       foldResult m (Ok val) = Ok $ Map.insert (domName val) val m
@@ -149,16 +149,16 @@ xmListParser = do
     Ok d -> return d
     Bad msg -> fail msg
 
--- | A parser for parsing the output of the @xm uptime@ command.
-xmUptimeParser :: Parser (Map.Map Int UptimeInfo)
-xmUptimeParser = do
+-- | A parser for parsing the output of the @xl uptime@ command.
+xlUptimeParser :: Parser (Map.Map Int UptimeInfo)
+xlUptimeParser = do
   _ <- headerParser
   uptimes <- uptimeLineParser `AC.manyTill` A.endOfInput
   return $ Map.fromList [(uInfoID u, u) | u <- uptimes]
     where headerParser = A.string "Name" <* A.skipSpace <* A.string "ID"
             <* A.skipSpace <* A.string "Uptime" <* A.skipSpace
 
--- | A helper for parsing a single line of the @xm uptime@ output.
+-- | A helper for parsing a single line of the @xl uptime@ output.
 uptimeLineParser :: Parser UptimeInfo
 uptimeLineParser = do
   name <- A.takeTill isSpace <* A.skipSpace

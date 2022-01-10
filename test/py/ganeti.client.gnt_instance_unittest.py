@@ -92,20 +92,20 @@ class TestConsole(unittest.TestCase):
                                    kind=constants.CONS_SSH,
                                    host="node93.example.com",
                                    user="user_abc",
-                                   command="xm console x.y.z")
+                                   command="xl console x.y.z")
     self.assertEqual(self._Test(cons, True, "cluster.example.com"),
                      constants.EXIT_SUCCESS)
     self.assertEqual(len(self._cmds), 0)
     self.assertEqual(len(self._output), 1)
     self.assertTrue(" user_abc@node93.example.com " in self._output[0])
-    self.assertTrue("'xm console x.y.z'" in self._output[0])
+    self.assertTrue("'xl console x.y.z'" in self._output[0])
 
   def testSshRun(self):
     cons = objects.InstanceConsole(instance="inst31.example.com",
                                    kind=constants.CONS_SSH,
                                    host="node93.example.com",
                                    user="user_abc",
-                                   command=["xm", "console", "x.y.z"])
+                                   command=["xl", "console", "x.y.z"])
     self.assertEqual(self._Test(cons, False, "cluster.example.com"),
                      constants.EXIT_SUCCESS)
     self.assertEqual(len(self._cmds), 1)
@@ -119,7 +119,7 @@ class TestConsole(unittest.TestCase):
                                    kind=constants.CONS_SSH,
                                    host="node93.example.com",
                                    user="user_abc",
-                                   command=["xm", "console", "x.y.z"])
+                                   command=["xl", "console", "x.y.z"])
 
     self._next_cmd_exitcode = 100
     self.assertRaises(errors.OpExecError, self._Test,

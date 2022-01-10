@@ -352,6 +352,13 @@ class CfgUpgrade(object):
     if "ssh_key_bits" not in cluster:
       cluster["ssh_key_bits"] = 1024
 
+    if "hvparams" in cluster:
+      variants = [constants.HT_XEN_PVM, constants.HT_XEN_HVM]
+      for variant in variants:
+        if variant in cluster["hvparams"]:
+          cluster["hvparams"][variant].pop("xen_cmd", None)
+
+
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
     cl_ipolicy = self.config_data["cluster"].get("ipolicy")
@@ -752,11 +759,32 @@ class CfgUpgrade(object):
                   " --new-ssh-keys and --ssh-key-type=dsa options, generating"
                   " DSA keys that older versions can also use.")
 
+  @OrFail("Adding xen_cmd parameter")
+  def DowngradeXenSettings(self):
+    """Re-adds the xen_cmd setting to the configuration.
+
+    """
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    hvparams = cluster.get("hvparams", None)
+    if hvparams is None:
+      return
+
+    variants = [constants.HT_XEN_PVM, constants.HT_XEN_HVM]
+    for variant in variants:
+      if variant in hvparams:
+        hvparams[variant]["xen_cmd"] = "xl"
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeSshKeyParams()
+    self.DowngradeXenSettings()
     return not self.errors
 
   def _ComposePaths(self):

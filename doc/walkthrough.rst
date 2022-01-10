@@ -794,7 +794,7 @@ network environment and anyone who tries to use it.
 Ganeti doesn't directly handle this case. It is recommended to logon to
 node3 and run::
 
-  $ xm destroy %instance4%
+  $ xl destroy %instance4%
 
 Unallocated DRBD minors
 +++++++++++++++++++++++
