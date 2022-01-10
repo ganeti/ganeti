@@ -99,7 +99,7 @@ def _VerifyCertificateStrong(cert_pem, error_fn,
   cert_encoded = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                                  cert)
   complete_cert_encoded = key_encoded + cert_encoded
-  if not cert_pem == complete_cert_encoded:
+  if not cert_pem == complete_cert_encoded.decode('ascii'):
     logging.error("The certificate differs after being reencoded. Please"
                   " renew the certificates cluster-wide to prevent future"
                   " inconsistencies.")
