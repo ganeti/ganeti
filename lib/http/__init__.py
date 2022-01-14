@@ -557,7 +557,7 @@ class HttpSslParams(object):
   """Data class for SSL key and certificate.
 
   """
-  def __init__(self, ssl_key_path, ssl_cert_path):
+  def __init__(self, ssl_key_path, ssl_cert_path, ssl_chain_path=None):
     """Initializes this class.
 
     @type ssl_key_path: string
@@ -570,12 +570,16 @@ class HttpSslParams(object):
     self.ssl_key_pem = utils.ReadFile(ssl_key_path)
     self.ssl_cert_pem = utils.ReadFile(ssl_cert_path)
     self.ssl_cert_path = ssl_cert_path
+    self.ssl_chain_path = ssl_chain_path
 
   def GetCertificateDigest(self):
     return utils.GetCertificateDigest(cert_filename=self.ssl_cert_path)
 
   def GetCertificateFilename(self):
     return self.ssl_cert_path
+
+  def GetChain(self):
+      return self.ssl_chain_path
 
   def GetKey(self):
     return OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
@@ -624,9 +628,13 @@ class HttpBase(object):
 
     self._ssl_key = ssl_params.GetKey()
     self._ssl_cert = ssl_params.GetCertificate()
+    self._ssl_chain = ssl_params.GetChain()
 
     ctx = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
     ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
+
+    if self._ssl_chain:
+        ctx.use_certificate_chain_file(self._ssl_chain)
 
     ciphers = self.GetSslCiphers()
     logging.debug("Setting SSL cipher string %s", ciphers)

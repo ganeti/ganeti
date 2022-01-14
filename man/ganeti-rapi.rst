@@ -11,7 +11,7 @@ Synopsis
 
 | **ganeti-rapi** [-d] [-f] [-p *PORT*] [-b *ADDRESS*] [-i *INTERFACE*]
 | [\--max-clients *CLIENTS*] [\--no-ssl] [-K *SSL_KEY_FILE*]
-| [-C *SSL_CERT_FILE*] | [\--require-authentication]
+| [-C *SSL_CERT_FILE*] | [\--require-authentication] [\--ssl-chain *SSL_CHAIN_FILE*]
 
 DESCRIPTION
 -----------
@@ -23,6 +23,9 @@ It is automatically started on the master node, and by default it
 uses SSL encryption. This can be disabled by passing the
 ``--no-ssl`` option, or alternatively the certificate used can be
 changed via the ``-C`` option and the key via the ``-K`` option.
+If your certificate chain involves intermediate certificates that
+the server needs to present that chain file can be privided with
+``--ssl-chain``.
 
 The daemon will listen to the "ganeti-rapi" TCP port, as listed in the
 system services database, or if not defined, to port 5080 by default.
