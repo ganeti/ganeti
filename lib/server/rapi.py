@@ -330,7 +330,8 @@ def CheckRapi(options, args):
   # Read SSL certificate (this is a little hackish to read the cert as root)
   if options.ssl:
     options.ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
-                                            ssl_cert_path=options.ssl_cert)
+                                            ssl_cert_path=options.ssl_cert,
+                                            ssl_chain_path=options.ssl_chain)
   else:
     options.ssl_params = None
 
@@ -387,6 +388,9 @@ def Main():
                     default=20, type="int",
                     help="Number of simultaneous connections accepted"
                     " by ganeti-rapi")
+  parser.add_option("--ssl-chain", dest="ssl_chain",
+                    help="SSL Certificate chain path",
+                    default=None, type="string")
 
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=pathutils.RAPI_CERT_FILE,
