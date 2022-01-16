@@ -729,36 +729,6 @@ class CfgUpgrade(object):
 
   # DOWNGRADE ------------------------------------------------------------
 
-  @OrFail("Removing SSH parameters")
-  def DowngradeSshKeyParams(self):
-    """Removes the SSH key type and bits parameters from the config.
-
-    Also fails if these have been changed from values appropriate in lower
-    Ganeti versions.
-
-    """
-    # pylint: disable=E1103
-    # Because config_data is a dictionary which has the get method.
-    cluster = self.config_data.get("cluster", None)
-    if cluster is None:
-      raise Error("Can't find the cluster entry in the configuration")
-
-    def _FetchAndDelete(key):
-      val = cluster.get(key, None)
-      if key in cluster:
-        del cluster[key]
-      return val
-
-    ssh_key_type = _FetchAndDelete("ssh_key_type")
-    _FetchAndDelete("ssh_key_bits")
-
-    if ssh_key_type is not None and ssh_key_type != "dsa":
-      raise Error("The current Ganeti setup is using non-DSA SSH keys, and"
-                  " versions below 2.16 do not support these. To downgrade,"
-                  " please perform a gnt-cluster renew-crypto using the "
-                  " --new-ssh-keys and --ssh-key-type=dsa options, generating"
-                  " DSA keys that older versions can also use.")
-
   @OrFail("Adding xen_cmd parameter")
   def DowngradeXenSettings(self):
     """Re-adds the xen_cmd setting to the configuration.
@@ -783,7 +753,6 @@ class CfgUpgrade(object):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
-    self.DowngradeSshKeyParams()
     self.DowngradeXenSettings()
     return not self.errors
 
