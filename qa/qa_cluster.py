@@ -181,9 +181,13 @@ def PrepareHvParameterSets():
       # if the current value of the HVParam is part of the list of
       # allowed values, remove it to avoid unnecessary test cycles
       list_values.remove(hv_params[param])
+    if hv_params[param] is None:
+      reset_value = ""
+    else:
+      reset_value = hv_params[param]
     assembled_tests[param] = {
       "values": list_values,
-      "reset_value": hv_params[param],
+      "reset_value": reset_value,
     }
 
   return assembled_tests
