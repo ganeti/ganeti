@@ -841,9 +841,6 @@ def RunInstanceTests():
                                     templ)
             qa_cluster.AssertClusterHvParameterModify(
               param, test_data["reset_value"])
-          else:
-            RunInstanceTestsInner(create_fun, inodes, supported_conversions,
-                                  templ)
         else:
           test_desc = "Iterating through hypervisor parameter values"
           ReportTestSkip(test_desc, "instance-iterate-hvparams")
