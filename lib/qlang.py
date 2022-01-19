@@ -221,7 +221,7 @@ def BuildFilterParser():
                glob_cond ^ not_glob_cond)
 
   # Associativity operators
-  filter_expr = pyp.operatorPrecedence(condition, [
+  filter_expr = pyp.infixNotation(condition, [
     (pyp.Keyword("not").suppress(), 1, pyp.opAssoc.RIGHT,
      lambda toks: [[OP_NOT, toks[0][0]]]),
     (pyp.Keyword("and").suppress(), 2, pyp.opAssoc.LEFT,
