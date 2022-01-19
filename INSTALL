@@ -38,7 +38,7 @@ Before installing, please verify that you have the following programs:
 - `Python OpenSSL bindings <https://www.pyopenssl.org/>`_
 - `simplejson Python module <https://simplejson.readthedocs.io/>`_
 - `pyparsing Python module <https://pyparsing-docs.readthedocs.io/>`_, version
-  1.4.6 or above
+  1.5.7 or above
 - `pyinotify Python module <https://github.com/seb-m/pyinotify>`_
 - `PycURL Python module <http://pycurl.io/>`_
 - `socat <http://www.dest-unreach.org/socat/>`_, see :ref:`note
