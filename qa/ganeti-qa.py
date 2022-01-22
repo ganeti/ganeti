@@ -849,18 +849,19 @@ def RunInstanceTests():
       try:
         # run instance tests with default hvparams
         print(_FormatHeader("Starting instance tests with default HVparams"))
-        RunInstanceTestsInner(create_fun, inodes, supported_conversions, templ)
+        RunInstanceTestsFull(create_fun, inodes, supported_conversions, templ)
 
         # iterate through alternating hvparam values (if enabled)
         if qa_config.TestEnabled("instance-iterate-hvparams"):
           hvparam_iterations = qa_cluster.PrepareHvParameterSets()
           for param, test_data in hvparam_iterations.items():
             for value in test_data["values"]:
-              print(_FormatHeader("Starting instance tests with HVparam "
-                                  "%s=%s" % (param, value)))
+              print(_FormatHeader("Starting reduced number of instance tests "
+                                  "with hypervisor parameter %s=%s" %
+                                  (param, value)))
               qa_cluster.AssertClusterHvParameterModify(param, value)
-              RunInstanceTestsInner(create_fun, inodes, supported_conversions,
-                                    templ)
+              RunInstanceTestsReduced(create_fun, inodes)
+
             qa_cluster.AssertClusterHvParameterModify(
               param, test_data["reset_value"])
         else:
@@ -876,7 +877,7 @@ def RunInstanceTests():
         ReportTestSkip(test_desc, "disk template %s" % templ)
 
 
-def RunInstanceTestsInner(create_fun, inodes, supported_conversions, templ):
+def RunInstanceTestsFull(create_fun, inodes, supported_conversions, templ):
   instance = RunTest(create_fun, inodes)
   try:
     RunTestIf("instance-user-down", qa_instance.TestInstanceUserDown,
@@ -923,6 +924,18 @@ def RunInstanceTestsInner(create_fun, inodes, supported_conversions, templ):
     RunRepairDiskSizes()
     RunTestIf(["rapi", "instance-data-censorship"],
               qa_rapi.TestInstanceDataCensorship, instance, inodes)
+    RunTest(qa_instance.TestInstanceRemove, instance)
+  finally:
+    instance.Release()
+  del instance
+
+  qa_cluster.AssertClusterVerify()
+
+
+def RunInstanceTestsReduced(create_fun, inodes):
+  instance = RunTest(create_fun, inodes)
+  try:
+    RunCommonInstanceTests(instance, inodes)
     RunTest(qa_instance.TestInstanceRemove, instance)
   finally:
     instance.Release()
