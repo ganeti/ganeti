@@ -64,10 +64,13 @@ from ganeti import utils
 from ganeti import rapi # pylint: disable=W0611
 from ganeti import constants
 from ganeti import netutils
+from ganeti import pathutils
 
 import ganeti.rapi.client # pylint: disable=W0611
 from ganeti.rapi.client import UsesRapiClient
 
+_QA_PROFILE = pathutils.GetLogFilename("qa-profile")
+_PROFILE_LOG_INDENT = ""
 
 def _FormatHeader(line, end=72, mark="-", color=None):
   """Fill a line up to the end column.
@@ -99,7 +102,7 @@ def RunTest(fn, *args, **kwargs):
   """Runs a test after printing a header.
 
   """
-
+  global _PROFILE_LOG_INDENT
   tstart = datetime.datetime.now()
 
   desc = _DescriptionOf(fn)
@@ -107,6 +110,10 @@ def RunTest(fn, *args, **kwargs):
   print()
   print(_FormatHeader("%s start %s" % (tstart, desc),
                       color=colors.YELLOW, mark="<"))
+  with open(_QA_PROFILE, "a") as f:
+    f.write("%sExecuting Function %s\n" % (_PROFILE_LOG_INDENT,
+                                           fn.__name__))
+  _PROFILE_LOG_INDENT += " "
 
   try:
     retval = fn(*args, **kwargs)
@@ -120,6 +127,11 @@ def RunTest(fn, *args, **kwargs):
     tdelta = tstop - tstart
     print(_FormatHeader("%s time=%s %s" % (tstop, tdelta, desc),
                         color=colors.MAGENTA, mark=">"))
+    _PROFILE_LOG_INDENT = _PROFILE_LOG_INDENT[:-1]
+    with open(_QA_PROFILE, "a") as f:
+      f.write("%sFunction %s ran for %s\n" % (_PROFILE_LOG_INDENT,
+                                              fn.__name__,
+                                              tdelta))
 
 
 def ReportTestSkip(desc, testnames):
@@ -157,6 +169,7 @@ def RunTestBlock(fn, *args, **kwargs):
   """Runs a block of tests after printing a header.
 
   """
+  global _PROFILE_LOG_INDENT
   tstart = datetime.datetime.now()
 
   desc = _DescriptionOf(fn)
@@ -164,6 +177,10 @@ def RunTestBlock(fn, *args, **kwargs):
   print()
   print(_FormatHeader("BLOCK %s start %s" % (tstart, desc),
                       color=[colors.YELLOW, colors.BOLD], mark="v"))
+  with open(_QA_PROFILE, "a") as f:
+    f.write("%sExecuting Function %s\n" % (_PROFILE_LOG_INDENT,
+                                           fn.__name__))
+  _PROFILE_LOG_INDENT += " "
 
   try:
     return fn(*args, **kwargs)
@@ -176,6 +193,11 @@ def RunTestBlock(fn, *args, **kwargs):
     tdelta = tstop - tstart
     print(_FormatHeader("BLOCK %s time=%s %s" % (tstop, tdelta, desc),
                         color=[colors.MAGENTA, colors.BOLD], mark="^"))
+    _PROFILE_LOG_INDENT = _PROFILE_LOG_INDENT[:-1]
+    with open(_QA_PROFILE, "a") as f:
+      f.write("%sFunction %s ran for %s\n" % (_PROFILE_LOG_INDENT,
+                                              fn.__name__,
+                                              tdelta))
 
 
 def RunEnvTests():
