@@ -1272,6 +1272,16 @@ class LUClusterSetParams(LogicalUnit):
     self._CheckDrbdHelper(vm_capable_node_uuids,
                           drbd_enabled, drbd_gets_enabled)
 
+    if (self.op.diskparams is not None and
+            constants.DT_DRBD8 in self.op.diskparams):
+      self.LogWarning("Changing DRBD parameters only affects devices created "
+                      "in the future, not existing ones")
+      self.LogWarning("You need to shutdown and start (not reboot!) existing "
+                      "instances to adopt the changes")
+      self.LogWarning("Alternatively you can swap the secondary node by "
+                      "running `gnt-instance replace-disks --new-secondary "
+                      "$instance`")
+
     # validate params changes
     if self.op.beparams:
       objects.UpgradeBeParams(self.op.beparams)
