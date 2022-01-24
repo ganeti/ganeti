@@ -944,6 +944,13 @@ virtio\_net\_queues
 
     It is set to ``1`` by default.
 
+kvm\_qmp\_timeout
+    Valid for the KVM hypervisor.
+
+    Sets the QMP socket timeout value.
+
+    It is set to ``5`` by default.
+
 startup\_timeout
     Valid for the LXC hypervisor.
 

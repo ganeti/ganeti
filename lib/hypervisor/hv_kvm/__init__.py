@@ -178,7 +178,7 @@ def _with_qmp(fn):
         raise(RuntimeError("QMP decorator could not find"
                            " a valid ganeti instance object"))
       filename = self._InstanceQmpMonitor(instance.name)# pylint: disable=W0212
-      self.qmp = QmpConnection(filename)
+      self.qmp = QmpConnection(filename, instance.hvparams[constants.HV_KVM_QMP_TIMEOUT])
     return fn(self, *args, **kwargs)
   return wrapper
 
@@ -594,6 +594,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
        constants.QEMU_PCI_SLOTS,
        None, None),
     constants.HV_VNET_HDR: hv_base.NO_CHECK,
+    constants.HV_KVM_QMP_TIMEOUT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
   _VIRTIO = "virtio"
@@ -1091,8 +1092,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     istat = hv_base.HvInstanceState.RUNNING
     times = 0
 
+
+    # We need a timeout even if it's not set in hvparams
     try:
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name))
+      qmp_timeout = hvparams[constants.HV_KVM_QMP_TIMEOUT]
+    except:
+      qmp_timeout = 5
+
+    try
+      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name), qmp_timeout)
       qmp.connect()
       vcpus = len(qmp.Execute("query-cpus"))
       # Will fail if ballooning is not enabled, but we can then just resort to
