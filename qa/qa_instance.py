@@ -35,6 +35,7 @@
 import os
 import re
 import time
+import yaml
 
 from ganeti import utils
 from ganeti import constants
@@ -74,6 +75,7 @@ def GetInstanceInfo(instance):
         dictionary for non-DRBD instances)
       - "disk-template": instance disk template
       - "storage-type": storage type associated with the instance disk template
+      - "hypervisor-parameters": all hypervisor parameters for this instance
 
   """
   node_elem = r"([^,()]+)(?:\s+\([^)]+\))?"
@@ -123,6 +125,16 @@ def GetInstanceInfo(instance):
   disk_template = utils.GetDiskTemplateString(dtypes)
   storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
 
+  hvparams = {}
+  for param, value in info["Hypervisor parameters"].items():
+    if type(value) == str and value.startswith("default ("):
+        result = re.search(r'^default \((.*)\)$', value)
+        try:
+            value = yaml.load(result.group(1), Loader=yaml.SafeLoader)
+        except yaml.YAMLError:
+            value = ''
+    hvparams[param] = value
+
   assert nodes
   assert len(nodes) < 2 or vols
   return {
@@ -131,6 +143,7 @@ def GetInstanceInfo(instance):
     "drbd-minors": drbd_min,
     "disk-template": disk_template,
     "storage-type": storage_type,
+    "hypervisor-parameters": hvparams,
     }
 
 
@@ -612,6 +625,8 @@ def TestInstanceModify(instance):
   test_kernel = "/sbin/init"
   test_initrd = test_kernel
 
+  instance_info = GetInstanceInfo(instance.name)
+
   orig_maxmem = qa_config.get(constants.BE_MAXMEM)
   orig_minmem = qa_config.get(constants.BE_MINMEM)
   #orig_bridge = qa_config.get("bridge", "xen-br0")
@@ -653,7 +668,8 @@ def TestInstanceModify(instance):
       ["-H", "%s=%s" % (constants.HV_BOOT_ORDER, constants.VALUE_DEFAULT)],
       ])
   elif default_hv == constants.HT_KVM and \
-    qa_config.TestEnabled("instance-device-hotplug"):
+    qa_config.TestEnabled("instance-device-hotplug") and \
+    instance_info["hypervisor-parameters"]["acpi"]:
     _TestKVMHotplug(instance)
   elif default_hv == constants.HT_LXC:
     args.extend([
