@@ -2291,12 +2291,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self.qmp.HotAddDisk(device, kvm_devid, uri, drive_add_fn)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
+      is_chrooted = instance.hvparams[constants.HV_KVM_USE_CHROOT]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
       features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
       (tap, tapfds, vhostfds) = OpenTap(features=features)
       self._ConfigureNIC(instance, seq, device, tap)
-      self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features)
+      self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features,
+                         is_chrooted)
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
 
     self._VerifyHotplugCommand(instance, kvm_devid, True)
