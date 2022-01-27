@@ -465,7 +465,8 @@ class QmpConnection(MonitorSocket):
     return ret
 
   @_ensure_connection
-  def HotAddNic(self, nic, devid, tapfds=None, vhostfds=None, features=None):
+  def HotAddNic(self, nic, devid, tapfds=None, vhostfds=None, features=None,
+                is_chrooted=False):
     """Hot-add a NIC
 
     First pass the tapfds, then netdev_add and then device_add
@@ -492,6 +493,7 @@ class QmpConnection(MonitorSocket):
       "id": devid,
       "fds": ":".join(fdnames),
     }
+
     if enable_vhost:
       fdnames = []
       for i, fd in enumerate(vhostfds):
@@ -509,6 +511,11 @@ class QmpConnection(MonitorSocket):
       "netdev": devid,
       "mac": nic.mac,
     }
+    if is_chrooted:
+      # do not try to load a rom file when we are running qemu chrooted
+      arguments.update({
+        "romfile": "",
+      })
     # Note that hvinfo that _GenerateDeviceHVInfo() creates
     # should include *only* the driver, id, bus, and addr keys
     arguments.update(self._filter_hvinfo(nic.hvinfo))
