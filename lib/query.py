@@ -1189,6 +1189,14 @@ _NODE_LIVE_FIELDS = {
             "Amount of memory used by node (dom0 for Xen)"),
   "mtotal": ("MTotal", QFT_UNIT, "memory_total",
              "Total amount of memory of physical machine"),
+  "hptotal": ("HPTotal", QFT_UNIT, "hugepages_total",
+             "Total capacity of hugepages configured on node in MiB"),
+  "hpfree": ("HPFree", QFT_UNIT, "hugepages_free",
+             "Hugepages capacity in MiB available for instance allocations"),
+  "ctopo": ("CTopo", QFT_OTHER, "cpu_topo",
+             "CPU SMT threads topology info"),
+  "ntopo": ("NTopo", QFT_OTHER, "numa_topo",
+             "NUMA topology info"),
   }
 
 
@@ -1778,7 +1786,8 @@ def _GetInstNicVLan(ctx, index, _):
 
   nicparams = ctx.inst_nicparams[index]
 
-  if nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS:
+  if nicparams[constants.NIC_MODE] in \
+          [constants.NIC_MODE_OVS, constants.NIC_MODE_OVSDPDK]:
     return nicparams[constants.NIC_VLAN]
   else:
     return _FS_UNAVAIL
@@ -1819,7 +1828,8 @@ def _GetInstAllNicVlans(ctx, inst):
 
   for nicp in ctx.inst_nicparams:
     if nicp[constants.NIC_MODE] in \
-          [constants.NIC_MODE_BRIDGED, constants.NIC_MODE_OVS]:
+          [constants.NIC_MODE_BRIDGED, constants.NIC_MODE_OVS,
+           constants.NIC_MODE_OVSDPDK]:
       result.append(nicp[constants.NIC_VLAN])
     else:
       result.append(None)

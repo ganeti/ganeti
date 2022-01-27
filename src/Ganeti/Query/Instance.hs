@@ -364,6 +364,7 @@ getNicBridge nicParams
 getNicVlan :: FilledNicParams -> Maybe String
 getNicVlan params
   | nicpMode params == NMOvs = Just $ nicpVlan params
+  | nicpMode params == NMOvsdpdk = Just $ nicpVlan params
   | otherwise                = Nothing
 
 -- | Fill partial NIC params by using the defaults from the configuration.

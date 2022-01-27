@@ -136,7 +136,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
         # should be made impossible.
         env["INSTANCE_NIC%d_NETWORK_NAME" % idx] = net
       if mode == constants.NIC_MODE_BRIDGED or \
-         mode == constants.NIC_MODE_OVS:
+         mode == constants.NIC_MODE_OVS or \
+         mode == constants.NIC_MODE_OVSDPDK:
         env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
     nic_count = 0
@@ -538,7 +539,6 @@ def GetInstanceInfoText(instance):
   """
   return "originstname+%s" % instance.name
 
-
 def CheckNodeFreeMemory(lu, node_uuid, reason, requested, hvname, hvparams):
   """Checks if a node has enough free memory.
 
@@ -576,11 +576,128 @@ def CheckNodeFreeMemory(lu, node_uuid, reason, requested, hvname, hvparams):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
                                " was '%s'" % (node_name, free_mem),
                                errors.ECODE_ENVIRON)
+
+  mem_path = hvparams.get(constants.HV_MEM_PATH, None)
+  strict_hp = hvparams.get(constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP, None)
+  optimize_mem = hvparams.get(constants.HV_KVM_OPTIMIZE_MEM_PLACEMENT, None)
+  free_hp = hv_info.get("hugepages_free", None)
+  mem_type = "memory"
+
+  # Fail on insufficient HP only if strict mode is enabled
+  if mem_path and strict_hp:
+    cpumask_guest = hvparams.get(constants.HV_CPU_MASK, None)
+    free_mem = free_hp
+    mem_type = "hugepages"
+
+    # Perform additional checks if optimize memory placement is on
+    # and cpu pinning is configured
+    if optimize_mem and cpumask_guest:
+      sockets_guest = hvparams.get(constants.HV_CPU_SOCKETS, None)
+      threads_guest = hvparams.get(constants.HV_CPU_THREADS, None)
+      numa_topo = hv_info.get("numa_topo", None)
+      cpu_topo = hv_info.get("cpu_topo", None)
+      # Determine host NUMA nodes involved in optimal placement
+      involved_node_list = []
+      if (constants.CPU_PINNING_ALL in cpumask_guest
+          or "," in cpumask_guest or "-" in cpumask_guest):
+        raise errors.OpPrereqError("Can't optimize memory placement for %s"
+                                   " unless cpu_mask is configured for"
+                                   " explicit 1-1 CPU to vCPU pinning" %
+                                   (reason),
+                                   errors.ECODE_NORES)
+      else:
+        # Learn from which host NUMA nodes memory is to be claimed
+        cpumask_guest = cpumask_guest.split(":")
+        for node in numa_topo:
+          if len(set(node["cores"]).intersection(cpumask_guest)) > 0:
+            involved_node_list.append(node["id"])
+      # We can't optimize unless guest's sockets is same number
+      # as host's NUMA nodes or less
+      if len(numa_topo) < int(sockets_guest):
+        raise errors.OpPrereqError("Number of configured cpu sockets for guest %s"
+                                   " is greater than the host's (%s) NUMA"
+                                   " node count: %s vs %s" %
+                                   (reason, node_name, int(sockets_guest),
+                                       len(numa_topo)),
+                                   errors.ECODE_NORES)
+      # Check threads
+      if int(threads_guest) > 1:
+        if int(threads_guest) != len(cpu_topo[0]):
+          raise errors.OpPrereqError("Number of configured cpu threads for"
+                                     " guest %s is: %s, but host's"
+                                     " architecture is SMT%s: can't optimize" %
+                                     (reason, int(threads_guest),
+                                         len(cpu_topo[0])),
+                                     errors.ECODE_NORES)
+        for sibling_group in cpu_topo:
+          if (len(set(cpumask_guest).intersection(sibling_group)) > 0
+              and len(set(cpumask_guest).intersection(sibling_group))
+              != len(sibling_group)):
+            raise errors.OpPrereqError("Only a subset of host CPU's thread"
+                                       " group: %s is configured in cpu_mask"
+                                       " for guest: %s - can't optimize" %
+                                       (sibling_group, reason),
+                                       errors.ECODE_NORES)
+      # Check per NUMA node mem requirements
+      if len(involved_node_list) > 0:
+        if len(involved_node_list) != int(sockets_guest):
+          raise errors.OpPrereqError("Number of configured cpu sockets for guest %s"
+                                     " is: %s, but current cpu_mask setting"
+                                     " includes CPU cores from %s NUMA nodes" %
+                                     (reason, int(sockets_guest),
+                                         len(involved_node_list)),
+                                     errors.ECODE_NORES)
+        # Distribute guest's mem equally among NUMA nodes
+        per_node_requested = requested // len(involved_node_list)
+        for node in numa_topo:
+          if (node["id"] in involved_node_list
+              and per_node_requested > node["nodefree"]):
+            raise errors.OpPrereqError("Not enough hugepages capacity"
+                                       " on node %s, NUMA node %s for %s:"
+                                       " needed %s MiB, available %s MiB" %
+                                       (node_name, node["id"], reason,
+                                           per_node_requested,
+                                           node["nodefree"]),
+                                       errors.ECODE_NORES)
+      else:
+        # Something's wrong, there should be at least one involved node
+        raise errors.OpPrereqError("Couldn't determine which of host's: "
+                                   " %s NUMA nodes are involved for the given"
+                                   " cpu_mask setting of %s." %
+                                   (node_name, reason),
+                                   errors.ECODE_NORES)
+    # We can't optimize if cpu pinning isn't configured
+    elif optimize_mem:
+      raise errors.OpPrereqError("Can't optimize memory placement for %s"
+                                 " unless cpu_mask is configured for"
+                                 " explicit CPU to vCPU pinning" %
+                                 (reason),
+                                 errors.ECODE_NORES)
+      
+  # With strict mode off, report number of free hugepages as free memory
+  # if sufficient, otherwise report memory_free as free memory
+  elif mem_path and requested <= free_hp:
+    free_mem = free_hp
+    mem_type = "hugepages"
+    # optimize_mem is ignored with strict mode off, so log a warning
+    if optimize_mem:
+      logging.warning("Memory placement optimizations will not be performed"
+                      " when strict hugepages checking is disabled."
+                      " mem_optimize setting will be ignored")
+  # Not enough hugepages are available, but strict mode is off so we'll only
+  # log a warning.
+  elif mem_path:
+    logging.warning("Not enough hugepages capacity available,"
+                    " with strict mode being off, we'll allocate regular"
+                    " memory instead and memory optimizations will be skipped")
+  # Check for sufficient memory availability, whether it be regular memory
+  # or hugepages
   if requested > free_mem:
     raise errors.OpPrereqError("Not enough memory on node %s for %s:"
-                               " needed %s MiB, available %s MiB" %
-                               (node_name, reason, requested, free_mem),
+                               " needed %s MiB of %s, available %s MiB" %
+                               (node_name, reason, requested, mem_type, free_mem),
                                errors.ECODE_NORES)
+
   return free_mem
 
 

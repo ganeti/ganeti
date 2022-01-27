@@ -1688,6 +1688,12 @@ hvKvmMachineVersion = "machine_version"
 hvKvmMigrationCaps :: String
 hvKvmMigrationCaps = "migration_caps"
 
+hvKvmOptimizeMemPlacement :: String
+hvKvmOptimizeMemPlacement = "mem_optimize"
+
+hvKvmFailOnInsufficientHp :: String
+hvKvmFailOnInsufficientHp = "fail_on_no_hp"
+
 hvKvmPath :: String
 hvKvmPath = "kvm_path"
 
@@ -1908,6 +1914,8 @@ hvsParameterTypes = Map.fromList
   , (hvKvmFloppyImagePath,              VTypeString)
   , (hvKvmMachineVersion,               VTypeString)
   , (hvKvmMigrationCaps,                VTypeString)
+  , (hvKvmOptimizeMemPlacement,         VTypeBool)
+  , (hvKvmFailOnInsufficientHp,         VTypeBool)
   , (hvKvmPath,                         VTypeString)
   , (hvKvmDiskAio,                      VTypeString)
   , (hvKvmScsiControllerType,           VTypeString)
@@ -2226,6 +2234,9 @@ ndSpindleCount = "spindle_count"
 ndOvs :: String
 ndOvs = "ovs"
 
+ndOvsdpdk :: String
+ndOvsdpdk = "ovs_dpdk"
+
 ndOvsLink :: String
 ndOvsLink = "ovs_link"
 
@@ -2244,6 +2255,7 @@ ndsParameterTypes =
   [(ndExclusiveStorage, VTypeBool),
    (ndOobProgram, VTypeString),
    (ndOvs, VTypeBool),
+   (ndOvsdpdk, VTypeBool),
    (ndOvsLink, VTypeMaybeString),
    (ndOvsName, VTypeMaybeString),
    (ndSpindleCount, VTypeInt),
@@ -2259,6 +2271,7 @@ ndsParameterTitles =
   [(ndExclusiveStorage, "ExclusiveStorage"),
    (ndOobProgram, "OutOfBandProgram"),
    (ndOvs, "OpenvSwitch"),
+   (ndOvsdpdk, "OpenvSwitchDPDK"),
    (ndOvsLink, "OpenvSwitchLink"),
    (ndOvsName, "OpenvSwitchName"),
    (ndSpindleCount, "SpindleCount")]
@@ -2518,6 +2531,9 @@ nicModeRouted = Types.nICModeToRaw NMRouted
 
 nicModeOvs :: String
 nicModeOvs = Types.nICModeToRaw NMOvs
+
+nicModeOvsdpdk :: String
+nicModeOvsdpdk = Types.nICModeToRaw NMOvsdpdk
 
 nicIpPool :: String
 nicIpPool = Types.nICModeToRaw NMPool
@@ -4141,6 +4157,8 @@ hvcDefaults =
           , (hvCpuCores,                        PyValueEx (0 :: Int))
           , (hvCpuThreads,                      PyValueEx (0 :: Int))
           , (hvCpuSockets,                      PyValueEx (0 :: Int))
+          , (hvKvmOptimizeMemPlacement,         PyValueEx False)
+          , (hvKvmFailOnInsufficientHp,         PyValueEx False)
           , (hvSoundhw,                         PyValueEx "")
           , (hvUsbDevices,                      PyValueEx "")
           , (hvVga,                             PyValueEx "")
@@ -4185,6 +4203,7 @@ ndcDefaults =
   , (ndSpindleCount,     PyValueEx (1 :: Int))
   , (ndExclusiveStorage, PyValueEx False)
   , (ndOvs,              PyValueEx False)
+  , (ndOvsdpdk,          PyValueEx False)
   , (ndOvsName,          PyValueEx defaultOvs)
   , (ndOvsLink,          PyValueEx "")
   , (ndSshPort,          PyValueEx (22 :: Int))

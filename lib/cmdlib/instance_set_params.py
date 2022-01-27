@@ -559,7 +559,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    " on a routed NIC if not attached to a"
                                    " network", errors.ECODE_INVAL)
 
-    elif new_mode == constants.NIC_MODE_OVS:
+    elif new_mode in [constants.NIC_MODE_OVS, constants.NIC_MODE_OVSDPDK]:
       # TODO: check OVS link
       self.LogInfo("OVS links are currently not checked for correctness")
 
@@ -1024,6 +1024,9 @@ class LUInstanceSetParams(LogicalUnit):
       self.os_inst_private = {}
 
   def _ProcessMem(self, cluster_hvparams, be_old, pnode_uuid):
+    # fetch current (old) hvparams
+    hv_old = objects.FillDict(cluster_hvparams, self.instance.hvparams)
+
     #TODO(dynmem): do the appropriate check involving MINMEM
     if (constants.BE_MAXMEM in self.op.beparams and not self.op.force and
         self.be_new[constants.BE_MAXMEM] > be_old[constants.BE_MAXMEM]):
@@ -1049,6 +1052,10 @@ class LUInstanceSetParams(LogicalUnit):
           self.warn.append("Node data from primary node %s doesn't contain"
                            " free memory information" %
                            self.cfg.GetNodeName(pnode_uuid))
+        if not isinstance(pnhvinfo.get("hugepages_free", None), int):
+          self.warn.append("Node data from primary node %s doesn't contain"
+                           " free hugepages information" %
+                           self.cfg.GetNodeName(pnode_uuid))
         elif instance_info.fail_msg:
           self.warn.append("Can't get instance runtime information: %s" %
                            instance_info.fail_msg)
@@ -1062,13 +1069,58 @@ class LUInstanceSetParams(LogicalUnit):
             # TODO: Describe race condition
             current_mem = 0
           #TODO(dynmem): do the appropriate check involving MINMEM
-          miss_mem = (self.be_new[constants.BE_MAXMEM] - current_mem -
-                      pnhvinfo["memory_free"])
+          if (hv_old[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP] and
+              hv_old[constants.HV_MEM_PATH] and
+              self.hv_proposed[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP] and
+              self.hv_proposed[constants.HV_MEM_PATH]):
+            # Instance uses hp now, and will also use hp after operation
+            self.warn.append("Checking memory on node %s on the assumption"
+                             " that instance is currently using hugepages as"
+                             " its memory backend. This might be inaccurate if"
+                             " instance hasn't been rebooted since mem_path"
+                             " and fail_on_no_hp were enabled in hypervisor"
+                             " parameters, so proceed with caution." %
+                             self.cfg.GetNodeName(pnode_uuid))
+            miss_mem = (self.be_new[constants.BE_MAXMEM] - current_mem -
+                        pnhvinfo["hugepages_free"])
+          elif (self.hv_proposed[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP] and
+              self.hv_proposed[constants.HV_MEM_PATH]):
+            # Instance will start with hugepages memory backend, but
+            # we can't determine if instance uses hp or regular
+            # memory currently, so we're skipping checks.
+            self.warn.append("Skipping memory checks for node %s because we"
+                             " can't determine current instance memory"
+                             " backend. Ensure sufficient memory is"
+                             " available on the host before rebooting"
+                             " instance." %
+                             self.cfg.GetNodeName(pnode_uuid))
+          elif self.hv_proposed[constants.HV_MEM_PATH]:
+            # Instance will start with hugepages if available, or with
+            # regular memory if there's not enough of them. Still, we
+            # don't know what the current memory backend is for the
+            # runnning instance.
+            self.warn.append("Skipping memory checks for node %s because we"
+                             " can't determine current instance memory"
+                             " backend. Ensure sufficient memory is"
+                             " available on the host before rebooting"
+                             " instance." %
+                             self.cfg.GetNodeName(pnode_uuid))
+          else:
+            # Instance configured to start with regular memory
+            miss_mem = (self.be_new[constants.BE_MAXMEM] - current_mem -
+                        pnhvinfo["memory_free"])
           if miss_mem > 0:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from starting, due to %d MB of memory"
                                        " missing on its primary node" %
                                        miss_mem, errors.ECODE_NORES)
+          elif (self.hv_proposed[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP] and
+              self.hv_proposed[constants.HV_MEM_PATH]):
+            self.warn.append("Memory availability checking was successful,"
+                             " but checks don't take NUMA topology into"
+                             " account. You may want to check per-node"
+                             " hugepages capacity yourself before restarting"
+                             " the instance.")
 
       if self.be_new[constants.BE_AUTO_BALANCE]:
         secondary_nodes = \
@@ -1085,15 +1137,50 @@ class LUInstanceSetParams(LogicalUnit):
                                        " memory information" %
                                        self.cfg.GetNodeName(node_uuid),
                                        errors.ECODE_STATE)
+          if not isinstance(nhvinfo.get("hugepages_free", None), int):
+            raise errors.OpPrereqError("Secondary node %s didn't return free"
+                                       " hugepages information" %
+                                       self.cfg.GetNodeName(node_uuid),
+                                       errors.ECODE_STATE)
           #TODO(dynmem): do the appropriate check involving MINMEM
+          elif (self.hv_proposed[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP] and
+              self.hv_proposed[constants.HV_MEM_PATH] and
+              self.be_new[constants.BE_MAXMEM] > nhvinfo["hugepages_free"]):
+            raise errors.OpPrereqError("This change will prevent the instance"
+                                       " from failover to its secondary node"
+                                       " %s, due to not enough hugepages"
+                                       " capacity" %
+                                       self.cfg.GetNodeName(node_uuid),
+                                       errors.ECODE_STATE)
+          elif (self.hv_proposed[constants.HV_MEM_PATH] and
+              self.be_new[constants.BE_MAXMEM] > nhvinfo["memory_free"] and
+              self.be_new[constants.BE_MAXMEM] > nhvinfo["hugepages_free"]):
+            raise errors.OpPrereqError("This change will prevent the instance"
+                                       " from failover to its secondary node"
+                                       " %s, due to not enough memory (regular"
+                                       " or hugepages-backed)" %
+                                       self.cfg.GetNodeName(node_uuid),
+                                       errors.ECODE_STATE)
           elif self.be_new[constants.BE_MAXMEM] > nhvinfo["memory_free"]:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from failover to its secondary node"
                                        " %s, due to not enough memory" %
                                        self.cfg.GetNodeName(node_uuid),
                                        errors.ECODE_STATE)
+        if len(secondary_nodes) > 0:
+          self.warn.append("Memory availability checking on secondary node(s)"
+                           " was successful, but checks don't take NUMA topology"
+                           " into account. You may want to check per-NUMA-node"
+                           " hugepages capacity yourself before moving"
+                           " or migrating the instance.")
 
-    if self.op.runtime_mem:
+    if (self.op.runtime_mem and
+        hv_old[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP] and
+        hv_old[constants.HV_MEM_PATH]):
+      raise errors.OpPrereqError("Memory balloning not supported"
+                                 " when hugepages are enabled"
+                                 " and strict mode is on")
+    elif self.op.runtime_mem:
       remote_info = self.rpc.call_instance_info(
          self.instance.primary_node, self.instance.name,
          self.instance.hypervisor,
@@ -1122,8 +1209,7 @@ class LUInstanceSetParams(LogicalUnit):
         CheckNodeFreeMemory(
             self, self.instance.primary_node,
             "ballooning memory for instance %s" % self.instance.name, delta,
-            self.instance.hypervisor,
-            self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+            self.instance.hypervisor, self.hv_proposed)
 
   def CheckPrereq(self):
     """Check prerequisites.

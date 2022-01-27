@@ -582,6 +582,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_CPU_CORES: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_THREADS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_SOCKETS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
+    constants.HV_KVM_OPTIMIZE_MEM_PLACEMENT: hv_base.NO_CHECK,
+    constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP: hv_base.NO_CHECK,
     constants.HV_SOUNDHW: hv_base.NO_CHECK,
     constants.HV_USB_DEVICES: hv_base.NO_CHECK,
     constants.HV_VGA: hv_base.NO_CHECK,
@@ -612,6 +614,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
   _VHOST_RE = re.compile(r"^-netdev\stap.*,vhost=on\|off", re.M | re.S)
+  _VHOSTUSER_RE = re.compile(r"^-netdev\svhost-user.*,vhostforce=on\|off",
+                             re.M | re.S)
   _VIRTIO_NET_QUEUES_RE = re.compile(r"^-netdev\stap.*,fds=x:y:...:z", re.M)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
@@ -931,7 +935,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type tap: str
 
     """
-    hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
+    if tap is None:
+      hv_base.ConfigureNIC(pathutils.KVM_IFUP, instance, seq, nic, "dpdk")
+    else:
+      hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
 
   @classmethod
   def _SetProcessAffinity(cls, process_id, cpus):
@@ -1123,6 +1130,96 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if info:
         data.append(info)
     return data
+
+  @staticmethod
+  def _ReorderCpuMask(numa_topo, cpu_topo, cpu_mask, cpu_threads):
+    """Recalculates cpu_mask to ensure guest CPU topology
+    mirrors host's topology as closely as possible.
+
+    @type numa_topo: list of dicts
+    @param numa_topo: host's NUMA topology info
+
+    @type cpu_topo: list of sets of strings
+    @param cpu_topo: host's CPU thread siblings info
+
+    @type cpu_mask: list of C{str}
+    @param cpu_mask: vCPU to pCPU pinning configuration
+
+    @type cpu_threads: C{int}
+    @param cpu_threads: guest's number of threads per core
+    """
+    new_cpu_mask = []
+
+    if int(cpu_threads) == 1:
+      for node in numa_topo:
+        mask_common_with_node = set(node["cores"]).intersection(cpu_mask)
+        if len(mask_common_with_node) > 0:
+          new_cpu_mask.extend(mask_common_with_node.intersection(cpu_mask))
+      return ":".join(new_cpu_mask)
+
+    for node in numa_topo:
+      mask_common_with_node = set(node["cores"]).intersection(cpu_mask)
+      if len(mask_common_with_node) > 0:
+        for sibling_group in cpu_topo:
+          if len(mask_common_with_node.intersection(sibling_group)) > 0:
+            new_cpu_mask.extend(sibling_group)
+
+    return ":".join(new_cpu_mask)
+
+  @staticmethod
+  def _GenerateNumaConfig(numa_topo, cpu_mask, mem_size, cpu_sockets,
+                          cpu_cores, cpu_threads, mem_path):
+    """Extends L{kvm_cmd} with the '-numa' and associated
+    memory backend objects.
+
+    @type numa_topo: list of dicts
+    @param numa_topo: host's NUMA topology info
+
+    @type cpu_mask: list of C{str}
+    @param cpu_mask: vCPU to pCPU pinning configuration
+
+    @type mem_size: C{int}
+    @param mem_size: total amount of memory configured  for the guest in MiB
+
+    @type cpu_sockets: C{int}
+    @param cpu_sockets: guest's number of sockets
+
+    @type cpu_cores: C{int}
+    @param cpu_cores: guest's number of cores per socket
+
+    @type cpu_threads: C{int}
+    @param cpu_threads: guest's number of threads per core
+
+    @type mem_path: C{str}
+    @param mem_path: path of mounted hugetlbfs on node
+    """
+    involved_node_list = []
+    numa_cmds = []
+
+    for node in numa_topo:
+      if len(set(node["cores"]).intersection(cpu_mask)) > 0:
+        involved_node_list.append(node["id"])
+
+    for idx, node in enumerate(involved_node_list):
+      object_val = "memory-backend-file,id=ram-node" + node
+      object_val += ",prealloc=yes,share=on,merge=off,mem-path=" + mem_path
+      object_val += ",size=" + str(mem_size // len(involved_node_list)) + "M"
+      object_val += ",prealloc=on,policy=bind,host-nodes=" + node
+      numa_cmds.extend(["-object", object_val])
+      numa_val = "node,nodeid=" + str(idx)
+      numa_val += ",memdev=ram-node" + node
+      numa_cmds.extend(["-numa", numa_val])
+
+    for socket in range(cpu_sockets):
+      for core in range(cpu_cores):
+        for thread in range(cpu_threads):
+          cpu_val = "cpu,node-id=" + str(socket)
+          cpu_val += ",socket-id=" + str(socket)
+          cpu_val += ",core-id=" + str(core)
+          cpu_val += ",thread-id=" + str(thread)
+          numa_cmds.extend(["-numa", cpu_val])
+
+    return numa_cmds
 
   def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
                                       kvmhelp, devlist):
@@ -1439,9 +1536,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         root_append.append("console=ttyS0,%s" % serial_speed)
       kvm_cmd.extend(["-append", " ".join(root_append)])
 
-    mem_path = hvp[constants.HV_MEM_PATH]
-    if mem_path:
-      kvm_cmd.extend(["-mem-path", mem_path, "-mem-prealloc"])
 
     monitor_dev = ("unix:%s,server,nowait" %
                    self._InstanceMonitor(instance.name))
@@ -1781,6 +1875,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     Currently the features_dict includes the following attributes:
       - vhost (boolean)
+      - vhost-user (boolean)
       - vnet_hdr (boolean)
       - mq (boolean, int)
 
@@ -1795,6 +1890,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     tap_extra_str = ""
     features = {
       "vhost": False,
+      "vhost-user": False,
       "vnet_hdr": False,
       "mq": (False, 1)
       }
@@ -1808,6 +1904,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # have new virtio syntax either.
         nic_model = self._VIRTIO
 
+      # Check for vhost-user support.
+      if self._VHOSTUSER_RE.search(kvmhelp):
+        update_features["vhost-user"] = True
+
       if up_hvp[constants.HV_VHOST_NET]:
         # Check for vhost_net support.
         if self._VHOST_RE.search(kvmhelp):
@@ -1816,6 +1916,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         else:
           raise errors.HypervisorError("vhost_net is configured"
                                        " but it is not available")
+
         virtio_net_queues = up_hvp.get(constants.HV_VIRTIO_NET_QUEUES, 1)
         if virtio_net_queues > 1:
           # Check for multiqueue virtio-net support.
@@ -1876,6 +1977,36 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
+    # Configure NUMA
+    cpu_mask = up_hvp[constants.HV_CPU_MASK]
+    if up_hvp[constants.HV_MEM_PATH]:
+      mem_path = up_hvp[constants.HV_MEM_PATH]
+    else:
+      mem_path = False
+    if up_hvp[constants.HV_KVM_OPTIMIZE_MEM_PLACEMENT]:
+      optimize_mem = up_hvp[constants.HV_KVM_OPTIMIZE_MEM_PLACEMENT]
+    else:
+      optimize_mem = False
+    if up_hvp[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP]:
+      strict_hp = up_hvp[constants.HV_KVM_FAIL_ON_INSUFFICIENT_HP]
+    else:
+      strict_hp = False
+    if mem_path:
+      node_info = self.GetLinuxNodeInfo()
+      hp_free = node_info["hugepages_free"]
+      mem_size = instance.beparams[constants.BE_MAXMEM]
+      if optimize_mem and strict_hp:
+        cpu_mask = cpu_mask.split(":")
+        cpu_info = node_info["cpu_topo"]
+        numa_info = node_info["numa_topo"]
+        sockets = up_hvp[constants.HV_CPU_SOCKETS]
+        cores = up_hvp[constants.HV_CPU_CORES]
+        threads = up_hvp[constants.HV_CPU_THREADS]
+        kvm_cmd.extend(self._GenerateNumaConfig(numa_info, cpu_mask, mem_size, sockets, cores, threads, mem_path))
+        cpu_mask = self._ReorderCpuMask(numa_info, cpu_info, cpu_mask, threads)
+      elif hp_free >= mem_size:
+        kvm_cmd.extend(["-mem-path", mem_path, "-mem-prealloc"])
+
     # We know it's safe to run as a different user upon migration, so we'll use
     # the latest conf, from conf_hvp.
     security_model = conf_hvp[constants.HV_SECURITY_MODEL]
@@ -1901,23 +2032,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       nic_model = features["driver"]
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, nic_tapfds, nic_vhostfds = \
-          OpenTap(features=features, name=self._GenerateKvmTapName(nic))
-
-        tapfds.extend(nic_tapfds)
-        tapfds.extend(nic_vhostfds)
-        taps.append(tapname)
-        tapfd = "%s%s" % ("fds=" if len(nic_tapfds) > 1 else "fd=",
-                          ":".join(str(fd) for fd in nic_tapfds))
-
-        if nic_vhostfds:
-          vhostfd = "%s%s" % (",vhostfds="
-                              if len(nic_vhostfds) > 1 else ",vhostfd=",
-                              ":".join(str(fd) for fd in nic_vhostfds))
-        else:
-          vhostfd = ""
-
-        if kvm_supports_netdev:
+        if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_OVSDPDK:
+          tapname, nic_tapfds, nic_vhostfds = \
+            OpenTap(features=features, name=self._GenerateKvmTapName(nic))
+          
+          tapfds.extend(nic_tapfds)
+          tapfds.extend(nic_vhostfds)
+          taps.append(tapname)
+          tapfd = "%s%s" % ("fds=" if len(nic_tapfds) > 1 else "fd=",
+                            ":".join(str(fd) for fd in nic_tapfds))
+          
+          if nic_vhostfds:
+            vhostfd = "%s%s" % (",vhostfds="
+                                if len(nic_vhostfds) > 1 else ",vhostfd=",
+                                ":".join(str(fd) for fd in nic_vhostfds))
+          else:
+            vhostfd = ""
+          
+        if kvm_supports_netdev and \
+          nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_OVSDPDK:
           # Non paravirtual NICs hvinfo is empty
           if "id" in nic.hvinfo:
             nic_val = _GenerateDeviceHVInfoStr(nic.hvinfo)
@@ -1929,6 +2062,34 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           tap_val = ("type=tap,id=%s,%s%s%s" %
                      (netdev, tapfd, vhostfd, tap_extra))
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
+
+        elif kvm_supports_netdev and features["vhost-user"]:
+          # netdev syntax is supported and vhost-user is supported
+          # and we're currently processing a nic with mode=openvswitch-dpdk
+          if "id" not in nic.hvinfo:
+            raise errors.HypervisorError("Emulated nics are not supported"
+                                         " with OVS-DPDK. Please set nic"
+                                         " type to paravirtual")
+          else:
+            netdev = nic.hvinfo["id"]
+            char_val = ("socket,id=charnet%s,path=/run/openvswitch/vhosts/%s,server" %
+                           (nic_seq, instance.name + "-nic" + str(nic_seq)))
+            net_val = ("type=vhost-user,id=%s,chardev=charnet%s,vhostforce" %
+                       (netdev, nic_seq))
+            if features["mq"][0] and features["mq"][1] > 1:
+              net_val += ",queues=%s" % features["mq"][1]
+            nic_val = _GenerateDeviceHVInfoStr(nic.hvinfo)
+            nic_val += (",netdev=%s,mac=%s%s" % (netdev, nic.mac, nic_extra))
+            kvm_cmd.extend(["-chardev", char_val, "-netdev", net_val,
+                            "-device", nic_val])
+
+        elif kvm_supports_netdev:
+          # netdev syntax is supported and vhost-user is not supported
+          # and we're currently processing a nic with mode=openvswitch-dpdk
+          raise errors.HypervisorError("%s specified as nic mode, but your"
+                                       " QEMU version doesn't support"
+                                       " vhost-user. Can't continue!" %
+                                       nic.nicparams[constants.NIC_MODE])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
                                                          nic.mac, nic_model)
@@ -1967,11 +2128,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Configure the network now for starting instances and bridged/OVS
     # interfaces, during FinalizeMigration for incoming instances' routed
     # interfaces.
+    tap_seq = 0
     for nic_seq, nic in enumerate(kvm_nics):
       if (incoming and
           nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED):
         continue
-      self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
+      elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVSDPDK:
+        self._ConfigureNIC(instance, nic_seq, nic, None)
+      else:
+        self._ConfigureNIC(instance, nic_seq, nic, taps[tap_seq])
+        tap_seq = tap_seq + 1
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
                                                      kvm_disks,
@@ -2041,7 +2207,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # If requested, set CPU affinity and resume instance execution
     if cpu_pinning:
-      self._ExecuteCpuAffinity(instance, up_hvp[constants.HV_CPU_MASK])
+      self._ExecuteCpuAffinity(instance, cpu_mask)
 
     start_memory = self._InstanceStartupMemory(instance)
     if start_memory < instance.beparams[constants.BE_MAXMEM]:
