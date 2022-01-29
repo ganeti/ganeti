@@ -33,6 +33,11 @@ jobs:
       - name: Build
         run: make -j 2
 
+      - name: Check Local
+        run: mv .github/ /tmp/
+             && LC_ALL=C make check-local
+             && mv /tmp/.github/ .
+
       - name: Python tests
         run: make py-tests
 
