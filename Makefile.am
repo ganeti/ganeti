@@ -544,7 +544,8 @@ hypervisor_PYTHON = \
 hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/__init__.py \
 	lib/hypervisor/hv_kvm/monitor.py \
-	lib/hypervisor/hv_kvm/netdev.py
+	lib/hypervisor/hv_kvm/netdev.py \
+	lib/hypervisor/hv_kvm/validation.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -1840,6 +1841,7 @@ TEST_FILES = \
 	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
 	test/data/kvm_1.1.2_help.txt \
+	test/data/kvm_6.0.0_machine.txt \
 	test/data/kvm_runtime.json \
 	test/data/lvs_lv.txt \
 	test/data/NEWS_OK.txt \
