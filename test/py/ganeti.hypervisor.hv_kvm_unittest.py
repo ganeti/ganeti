@@ -49,6 +49,7 @@ from ganeti import pathutils
 from ganeti.hypervisor import hv_kvm
 import ganeti.hypervisor.hv_kvm.netdev as netdev
 import ganeti.hypervisor.hv_kvm.monitor as monitor
+import ganeti.hypervisor.hv_kvm.validation as validation
 
 import mock
 import testutils
@@ -147,6 +148,361 @@ class QmpStub(threading.Thread):
 
   def shutdown(self):
     self.socket.close()
+
+
+class TestParameterCheck(testutils.GanetiTestCase):
+  def testInvalidVncParameters(self):
+    invalid_data = {
+      constants.HV_VNC_X509_VERIFY: True,
+      constants.HV_VNC_X509: None
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_vnc_parameters, invalid_data)
+
+  def testValidVncParameters(self):
+    valid_data = {
+      constants.HV_VNC_X509_VERIFY: True,
+      constants.HV_VNC_X509: "mycert.pem"
+    }
+
+    self.assertTrue(validation.check_vnc_parameters(valid_data))
+
+  def testInvalidSecurityModel(self):
+    invalid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_USER,
+      constants.HV_SECURITY_DOMAIN: None
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_security_model, invalid_data)
+
+    invalid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_NONE,
+      constants.HV_SECURITY_DOMAIN: "secure_user"
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_security_model, invalid_data)
+
+    invalid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_POOL,
+      constants.HV_SECURITY_DOMAIN: "secure_user"
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_security_model, invalid_data)
+
+  def testValidSecurityModel(self):
+    valid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_USER,
+      constants.HV_SECURITY_DOMAIN: "secure_user"
+    }
+
+    self.assertTrue(validation.check_security_model(valid_data))
+
+    valid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_POOL,
+      constants.HV_SECURITY_DOMAIN: None
+    }
+
+    self.assertTrue(validation.check_security_model(valid_data))
+
+    valid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_NONE,
+      constants.HV_SECURITY_DOMAIN: None
+    }
+
+    self.assertTrue(validation.check_security_model(valid_data))
+
+  def testInvalidBootParameters(self):
+    invalid_data = {
+      constants.HV_BOOT_ORDER: constants.HT_BO_CDROM,
+      constants.HV_CDROM_IMAGE_PATH: None,
+      constants.HV_KERNEL_PATH: "/some/path",
+      constants.HV_ROOT_PATH: "/"
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_boot_parameters, invalid_data)
+
+    invalid_data = {
+      constants.HV_BOOT_ORDER: constants.HT_BO_CDROM,
+      constants.HV_CDROM_IMAGE_PATH: "/cd.iso",
+      constants.HV_KERNEL_PATH: "/some/path",
+      constants.HV_ROOT_PATH: None
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_boot_parameters, invalid_data)
+
+  def testValidBootParameters(self):
+    valid_data = {
+      constants.HV_BOOT_ORDER: constants.HT_BO_CDROM,
+      constants.HV_CDROM_IMAGE_PATH: "/cd.iso",
+      constants.HV_KERNEL_PATH: "/some/path",
+      constants.HV_ROOT_PATH: "/"
+    }
+
+    self.assertTrue(validation.check_boot_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_BOOT_ORDER: constants.HT_BO_DISK,
+      constants.HV_CDROM_IMAGE_PATH: None,
+      constants.HV_KERNEL_PATH: "/some/path",
+      constants.HV_ROOT_PATH: "/"
+    }
+
+    self.assertTrue(validation.check_boot_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_BOOT_ORDER: constants.HT_BO_DISK,
+      constants.HV_CDROM_IMAGE_PATH: None,
+      constants.HV_KERNEL_PATH: None,
+      constants.HV_ROOT_PATH: None
+    }
+
+    self.assertTrue(validation.check_boot_parameters(valid_data))
+
+  def testInvalidConsoleParameters(self):
+    invalid_data = {
+      constants.HV_SERIAL_CONSOLE: True,
+      constants.HV_SERIAL_SPEED: None,
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_console_parameters, invalid_data)
+
+    invalid_data = {
+      constants.HV_SERIAL_CONSOLE: True,
+      constants.HV_SERIAL_SPEED: 1,
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_console_parameters, invalid_data)
+
+  def testValidConsoleParameters(self):
+    valid_data = {
+      constants.HV_SERIAL_CONSOLE: False
+    }
+
+    self.assertTrue(validation.check_console_parameters(valid_data))
+
+    for speed in constants.VALID_SERIAL_SPEEDS:
+      valid_data = {
+        constants.HV_SERIAL_CONSOLE: True,
+        constants.HV_SERIAL_SPEED: speed
+      }
+
+      self.assertTrue(validation.check_console_parameters(valid_data),
+                      "Testing serial console speed %d" % speed)
+
+  def testInvalidSpiceParameters(self):
+    invalid_data = {
+      constants.HV_KVM_SPICE_BIND: "0.0.0.0",
+      constants.HV_KVM_SPICE_IP_VERSION: constants.IP6_VERSION
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_spice_parameters, invalid_data)
+
+    invalid_data = {
+      constants.HV_KVM_SPICE_BIND: "::",
+      constants.HV_KVM_SPICE_IP_VERSION: constants.IP4_VERSION
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_spice_parameters, invalid_data)
+
+    invalid_data = {
+      constants.HV_KVM_SPICE_BIND: None,
+      constants.HV_KVM_SPICE_IP_VERSION: None,
+      constants.HV_KVM_SPICE_PASSWORD_FILE: "password.txt",
+      constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR: None,
+      constants.HV_KVM_SPICE_JPEG_IMG_COMPR: None,
+      constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR: None,
+      constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION: None,
+      constants.HV_KVM_SPICE_USE_TLS: True
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_spice_parameters, invalid_data)
+
+  def testValidSpiceParameters(self):
+    valid_data = {
+      constants.HV_KVM_SPICE_BIND: None,
+      constants.HV_KVM_SPICE_IP_VERSION: None,
+      constants.HV_KVM_SPICE_PASSWORD_FILE: None,
+      constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR: None,
+      constants.HV_KVM_SPICE_JPEG_IMG_COMPR: None,
+      constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR: None,
+      constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION: None,
+      constants.HV_KVM_SPICE_USE_TLS: None
+    }
+
+    self.assertTrue(validation.check_spice_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_KVM_SPICE_BIND: "0.0.0.0",
+      constants.HV_KVM_SPICE_IP_VERSION: constants.IP4_VERSION,
+      constants.HV_KVM_SPICE_PASSWORD_FILE: "password.txt",
+      constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR: "glz",
+      constants.HV_KVM_SPICE_JPEG_IMG_COMPR: "never",
+      constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR: "never",
+      constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION: "off",
+      constants.HV_KVM_SPICE_USE_TLS: True
+    }
+
+    self.assertTrue(validation.check_spice_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_KVM_SPICE_BIND: "::",
+      constants.HV_KVM_SPICE_IP_VERSION: constants.IP6_VERSION,
+      constants.HV_KVM_SPICE_PASSWORD_FILE: "password.txt",
+      constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR: "glz",
+      constants.HV_KVM_SPICE_JPEG_IMG_COMPR: "never",
+      constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR: "never",
+      constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION: "off",
+      constants.HV_KVM_SPICE_USE_TLS: True
+    }
+
+    self.assertTrue(validation.check_spice_parameters(valid_data))
+
+
+class TestParameterValidation(testutils.GanetiTestCase):
+  def testInvalidVncParameters(self):
+    # invalid IPv4 address
+    invalid_data = {
+      constants.HV_VNC_BIND_ADDRESS: "192.0.2.5.5",
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_vnc_parameters, invalid_data)
+
+    # invalid network interface
+    invalid_data = {
+      constants.HV_VNC_BIND_ADDRESS: "doesnotexist0",
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_vnc_parameters, invalid_data)
+
+  def testValidVncParameters(self):
+    valid_data = {
+      constants.HV_VNC_BIND_ADDRESS: "127.0.0.1"
+    }
+
+    self.assertTrue(validation.validate_vnc_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_VNC_BIND_ADDRESS: "lo"
+    }
+
+    self.assertTrue(validation.validate_vnc_parameters(valid_data))
+
+  def testInvalidSecurityModelParameters(self):
+    invalid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_USER,
+      constants.HV_SECURITY_DOMAIN: "really-non-existing-user"
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_security_model, invalid_data)
+
+  def testValidSecurityModelParameters(self):
+    valid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_NONE
+    }
+
+    self.assertTrue(validation.validate_security_model(valid_data))
+
+    valid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_POOL
+    }
+
+    self.assertTrue(validation.validate_security_model(valid_data))
+
+    valid_data = {
+      constants.HV_SECURITY_MODEL: constants.HT_SM_USER,
+      constants.HV_SECURITY_DOMAIN: "root"
+    }
+
+    self.assertTrue(validation.validate_security_model(valid_data))
+
+  def testInvalidMachineVersion(self):
+    kvm_machine_output = testutils.ReadTestData("kvm_6.0.0_machine.txt")
+    invalid_data = {
+      constants.HV_KVM_MACHINE_VERSION: "some-invalid-machine-type"
+    }
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_machine_version, invalid_data,
+                      kvm_machine_output)
+
+  def testValidMachineVersion(self):
+    kvm_machine_output = testutils.ReadTestData("kvm_6.0.0_machine.txt")
+    valid_data = {
+      constants.HV_KVM_MACHINE_VERSION: "pc-i440fx-6.0"
+    }
+    self.assertTrue(validation.validate_machine_version(valid_data,
+                                                        kvm_machine_output))
+
+  def testInvalidSpiceParameters(self):
+    kvm_help_too_old = testutils.ReadTestData("kvm_0.9.1_help.txt")
+    kvm_help_working = testutils.ReadTestData("kvm_1.1.2_help.txt")
+
+    invalid_data = {
+      constants.HV_KVM_SPICE_BIND: "0.0.0.0",
+      constants.HV_VNC_BIND_ADDRESS: "0.0.0.0"
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_spice_parameters, invalid_data,
+                      kvm_help_working)
+
+    invalid_data = {
+      constants.HV_KVM_SPICE_BIND: "0.0.0.0",
+      constants.HV_VNC_BIND_ADDRESS: None
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_spice_parameters, invalid_data,
+                      kvm_help_too_old)
+
+    invalid_data = {
+      constants.HV_KVM_SPICE_BIND: "invalid-interface0",
+      constants.HV_VNC_BIND_ADDRESS: None
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.validate_spice_parameters, invalid_data,
+                      kvm_help_working)
+
+  def testValidSpiceParameters(self):
+    kvm_help_working = testutils.ReadTestData("kvm_1.1.2_help.txt")
+
+    valid_data = {
+      constants.HV_KVM_SPICE_BIND: "0.0.0.0",
+      constants.HV_VNC_BIND_ADDRESS: None
+    }
+
+    self.assertTrue(validation.validate_spice_parameters(valid_data,
+                                                         kvm_help_working))
+
+    valid_data = {
+      constants.HV_KVM_SPICE_BIND: "::",
+      constants.HV_VNC_BIND_ADDRESS: None
+    }
+
+    self.assertTrue(validation.validate_spice_parameters(valid_data,
+                                                         kvm_help_working))
+
+    valid_data = {
+      constants.HV_KVM_SPICE_BIND: "lo",
+      constants.HV_VNC_BIND_ADDRESS: None
+    }
+
+    self.assertTrue(validation.validate_spice_parameters(valid_data,
+                                                         kvm_help_working))
 
 
 class TestQmpMessage(testutils.GanetiTestCase):
@@ -382,7 +738,7 @@ class TestSpiceParameterList(unittest.TestCase):
     fixed = set([
         constants.HV_KVM_SPICE_BIND, constants.HV_KVM_SPICE_TLS_CIPHERS,
         constants.HV_KVM_SPICE_USE_VDAGENT, constants.HV_KVM_SPICE_AUDIO_COMPR])
-    self.assertEqual(hv_kvm._SPICE_ADDITIONAL_PARAMS, params - fixed)
+    self.assertEqual(hv_kvm.validation._SPICE_ADDITIONAL_PARAMS, params - fixed)
 
 
 class TestHelpRegexps(testutils.GanetiTestCase):
