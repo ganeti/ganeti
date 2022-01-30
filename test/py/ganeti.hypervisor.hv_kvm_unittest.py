@@ -368,6 +368,60 @@ class TestParameterCheck(testutils.GanetiTestCase):
 
     self.assertTrue(validation.check_spice_parameters(valid_data))
 
+  def testInvalidDiskCacheParameters(self):
+    invalid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_NATIVE,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_WBACK
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_disk_cache_parameters, invalid_data)
+
+    invalid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_NATIVE,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_WTHROUGH
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_disk_cache_parameters, invalid_data)
+
+    invalid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_NATIVE,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_DEFAULT
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_disk_cache_parameters, invalid_data)
+
+  def testValidDiskCacheParameters(self):
+    valid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_THREADS,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_WBACK
+    }
+
+    self.assertTrue(validation.check_disk_cache_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_THREADS,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_WTHROUGH
+    }
+
+    self.assertTrue(validation.check_disk_cache_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_THREADS,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_DEFAULT
+    }
+
+    self.assertTrue(validation.check_disk_cache_parameters(valid_data))
+
+    valid_data = {
+      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_NATIVE,
+      constants.HV_DISK_CACHE: constants.HT_CACHE_NONE
+    }
+
+    self.assertTrue(validation.check_disk_cache_parameters(valid_data))
+
 
 class TestParameterValidation(testutils.GanetiTestCase):
   def testInvalidVncParameters(self):

@@ -193,3 +193,14 @@ def validate_machine_version(hvparams, kvm_machine_output):
             raise errors.HypervisorError("Unsupported machine version: %s" %
                                          machine_version)
     return True
+
+
+def check_disk_cache_parameters(hvparams):
+    disk_aio = hvparams[constants.HV_KVM_DISK_AIO]
+    disk_cache = hvparams[constants.HV_DISK_CACHE]
+    if disk_aio == constants.HT_KVM_AIO_NATIVE and \
+            disk_cache != constants.HT_CACHE_NONE:
+        raise errors.HypervisorError("When 'disk_aio' is set to 'native', the "
+                                     "only supported value for 'disk_cache' is "
+                                     "'none'.")
+    return True
