@@ -559,6 +559,59 @@ class TestParameterValidation(testutils.GanetiTestCase):
                                                          kvm_help_working))
 
 
+class TestDiskParameters(testutils.GanetiTestCase):
+  def testGenerateDiskAioCacheParameters(self):
+    test_cases = {
+      "aio_threaded_safe_storage_default_cache": {
+        "disk_aio": constants.HT_KVM_AIO_THREADS,
+        "disk_cache": constants.HT_CACHE_DEFAULT,
+        "dev_type": constants.DT_DRBD8,
+        "expected_string": ",aio=threads"
+      },
+      "aio_threaded_unsafe_storage_default_cache": {
+        "disk_aio": constants.HT_KVM_AIO_THREADS,
+        "disk_cache": constants.HT_CACHE_DEFAULT,
+        "dev_type": constants.DT_SHARED_FILE,
+        "expected_string": ",aio=threads,cache=none"
+      },
+      "aio_threaded_safe_storage_writeback_cache": {
+        "disk_aio": constants.HT_KVM_AIO_THREADS,
+        "disk_cache": constants.HT_CACHE_WBACK,
+        "dev_type": constants.DT_RBD,
+        "expected_string": ",aio=threads,cache=writeback"
+      },
+      "aio_native_safe_storage_none_cache": {
+        "disk_aio": constants.HT_KVM_AIO_NATIVE,
+        "disk_cache": constants.HT_CACHE_NONE,
+        "dev_type": constants.DT_DRBD8,
+        "expected_string": ",aio=native,cache=none"
+      },
+      "aio_native_safe_storage_writethrough_cache": {
+        "disk_aio": constants.HT_KVM_AIO_NATIVE,
+        "disk_cache": constants.HT_CACHE_WTHROUGH,
+        "dev_type": constants.DT_DRBD8,
+        "expected_string": ",aio=native,cache=none"
+      },
+      "aio_native_unsafe_storage_writethrough_cache": {
+        "disk_aio": constants.HT_KVM_AIO_NATIVE,
+        "disk_cache": constants.HT_CACHE_WTHROUGH,
+        "dev_type": constants.DT_GLUSTER,
+        "expected_string": ",aio=native,cache=none"
+      },
+      "aio_unset_safe_storage_none_cache": {
+        "disk_aio": None,
+        "disk_cache": constants.HT_CACHE_NONE,
+        "dev_type": constants.DT_DRBD8,
+        "expected_string": ",aio=threads,cache=none"
+      }
+    }
+
+    for name, data in test_cases.items():
+      self.assertEqual(hv_kvm.KVMHypervisor._GenerateDiskAioCacheParameters(
+        data["disk_aio"], data["disk_cache"], data["dev_type"]),
+        data["expected_string"], name)
+
+
 class TestQmpMessage(testutils.GanetiTestCase):
   def testSerialization(self):
     test_data = {
@@ -979,6 +1032,7 @@ class PostfixMatcher(object):
   def __repr__(self):
     return "<Postfix %s>" % self.string
 
+
 class TestKvmRuntime(testutils.GanetiTestCase):
   """The _ExecuteKvmRuntime is at the core of all KVM operations."""
 
@@ -1036,6 +1090,7 @@ class TestKvmRuntime(testutils.GanetiTestCase):
         raise errors.ProgrammerError('Unexpected command: %s' % cmd)
     self.mocks['run_cmd'].side_effect = RunCmd
     hypervisor.StartInstance(self.instance, [], False)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
