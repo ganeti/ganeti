@@ -1129,6 +1129,40 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
+  @staticmethod
+  def _GenerateDiskAioCacheParameters(disk_aio, disk_cache, dev_type):
+    """Generate appropriate aio/cache parameters for QEMU
+
+    @type disk_aio: string
+    @param disk_aio: the instance's AIO parameter
+    @type disk_cache: string
+    @param disk_cache: the instance's disk cache parameter
+    @type dev_type: string
+    @param dev_type: the disk type in use
+    @rtype: string
+    @return: parameter string suitable for QEMU drive parameters
+
+    """
+
+    if (dev_type in constants.DTS_EXT_MIRROR
+            and dev_type != constants.DT_RBD):
+      logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                      " to prevent shared storage corruption on migration",
+                      disk_cache)
+      disk_cache = constants.HT_CACHE_NONE
+
+    if not disk_aio:
+      # QEMU defaults to 'threads', so do we
+      disk_aio = constants.HT_KVM_AIO_THREADS
+
+    if disk_aio == constants.HT_KVM_AIO_NATIVE:
+      return ",aio=native,cache=none"
+    else:
+      if disk_cache == constants.HT_CACHE_DEFAULT:
+        return ",aio=threads"
+      else:
+        return ",aio=threads,cache=%s" % disk_cache
+
   def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
                                       kvmhelp, devlist):
     """Generate KVM options regarding instance's block devices.
@@ -1173,12 +1207,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if_val = ",if=%s" % iface # for the -drive option
       device_driver = None # without -device option
 
-    # AIO mode
-    aio_mode = up_hvp[constants.HV_KVM_DISK_AIO]
-    if aio_mode == constants.HT_KVM_AIO_NATIVE:
-      aio_val = ",aio=%s" % aio_mode
-    else:
-      aio_val = ""
     # discard mode
     discard_mode = up_hvp[constants.HV_DISK_DISCARD]
     if discard_mode == constants.HT_DISCARD_DEFAULT:
@@ -1188,24 +1216,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
-      if (cfdev.dev_type in constants.DTS_EXT_MIRROR
-          and cfdev.dev_type != constants.DT_RBD):
-        if disk_cache != "none":
-          # TODO: make this a hard error, instead of a silent overwrite
-          logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                          " to prevent shared storage corruption on migration",
-                          disk_cache)
-        cache_val = ",cache=none"
-      elif aio_mode == constants.HT_KVM_AIO_NATIVE and disk_cache != "none":
-        # TODO: make this a hard error, instead of a silent overwrite
-        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                        " to prevent QEMU failures in version 2.6+",
-                        disk_cache)
-        cache_val = ",cache=none"
-      elif disk_cache != constants.HT_CACHE_DEFAULT:
-        cache_val = ",cache=%s" % disk_cache
-      else:
-        cache_val = ""
+      aio_cache_val = self._GenerateDiskAioCacheParameters(
+        up_hvp[constants.HV_KVM_DISK_AIO], up_hvp[constants.HV_DISK_CACHE],
+        cfdev.dev_type)
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
@@ -1219,8 +1232,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
-      drive_val = "file=%s,format=raw%s%s%s%s%s" % \
-                  (drive_uri, if_val, boot_val, cache_val, aio_val, discard_val)
+      drive_val = "file=%s,format=raw%s%s%s%s" % \
+                  (drive_uri, if_val, boot_val, aio_cache_val, discard_val)
 
       # virtio-blk-pci case
       if device_driver is not None:
@@ -2277,10 +2290,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           cmd += ",auto-read-only=off"
         # When hot plugging a disk, parameters should match the current runtime.
         # I.e. for live migration, the cache mode is critical.
-        if up_hvp[constants.HV_DISK_CACHE] != constants.HT_CACHE_DEFAULT:
-          cmd += ",cache=%s" % up_hvp[constants.HV_DISK_CACHE]
-        if up_hvp[constants.HV_KVM_DISK_AIO] == constants.HT_KVM_AIO_NATIVE:
-          cmd += ",aio=%s" % up_hvp[constants.HV_KVM_DISK_AIO]
+        cmd += self._GenerateDiskAioCacheParameters(
+          up_hvp[constants.HV_KVM_DISK_AIO], up_hvp[constants.HV_DISK_CACHE],
+          device_type)
         if up_hvp[constants.HV_DISK_DISCARD] != constants.HT_DISCARD_DEFAULT:
           cmd += ",discard=%s" % up_hvp[constants.HV_DISK_DISCARD]
         self._CallMonitorCommand(instance.name, cmd)
