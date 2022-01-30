@@ -74,6 +74,7 @@ from ganeti.hypervisor.hv_kvm.netdev import OpenTap
 
 from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 check_console_parameters, \
+                                                check_disk_cache_parameters, \
                                                 check_security_model,\
                                                 check_spice_parameters, \
                                                 check_vnc_parameters, \
@@ -2776,6 +2777,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     check_console_parameters(hvparams)
     check_vnc_parameters(hvparams)
     check_spice_parameters(hvparams)
+    check_disk_cache_parameters(hvparams)
 
   @classmethod
   def ValidateParameters(cls, hvparams):
