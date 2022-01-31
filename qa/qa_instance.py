@@ -597,17 +597,21 @@ def TestInstanceInfo(instance):
   AssertCommand(["gnt-instance", "info", instance.name])
 
 
-def _TestKVMHotplug(instance):
+def _TestKVMHotplug(instance, instance_info):
   """Tests hotplug modification commands, noting that they
 
   """
   args_to_try = [
     ["--net", "-1:add", "--hotplug"],
     ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
-    ["--net", "-1:remove", "--hotplug"],
-    ["--disk", "-1:add,size=1G", "--hotplug"],
-    ["--disk", "-1:remove", "--hotplug"],
+    ["--net", "-1:remove", "--hotplug"]
   ]
+  if instance_info["hypervisor-parameters"]["disk_type"] != \
+          constants.HT_DISK_IDE:
+    # hotplugging disks is not supported for IDE-type disks
+    args_to_try.append(["--disk", "-1:add,size=1G", "--hotplug"])
+    args_to_try.append(["--disk", "-1:remove", "--hotplug"])
+
   for alist in args_to_try:
     _, stdout, stderr = \
       AssertCommand(["gnt-instance", "modify"] + alist + [instance.name])
@@ -670,7 +674,7 @@ def TestInstanceModify(instance):
   elif default_hv == constants.HT_KVM and \
     qa_config.TestEnabled("instance-device-hotplug") and \
     instance_info["hypervisor-parameters"]["acpi"]:
-    _TestKVMHotplug(instance)
+    _TestKVMHotplug(instance, instance_info)
   elif default_hv == constants.HT_LXC:
     args.extend([
       ["-H", "%s=0" % constants.HV_CPU_MASK],
