@@ -791,7 +791,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     cfg_file = self._ConfigFileName(instance_name)
-    
+
     # just in case it exists
     utils.RemoveFile(utils.PathJoin(self._cfgdir, "auto", instance_name))
 
