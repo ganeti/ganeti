@@ -502,7 +502,7 @@ class QmpConnection(MonitorSocket):
         fdnames.append(fdname)
 
       arguments.update({
-        "vhost": "on",
+        "vhost": True,
         "vhostfds": ":".join(fdnames),
         })
     self.Execute("netdev_add", arguments)

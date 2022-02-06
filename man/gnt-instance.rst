@@ -912,6 +912,18 @@ kvm\_path
 
     Path to the userspace KVM (or qemu) program.
 
+vhost\_net
+    Valid for the KVM hypervisor.
+
+    This boolean option determines whether the tap devices used by the KVM
+    paravirtual nics (virtio-net) will use accelerated data plane, passing
+    network packets directly between host and guest kernel, without going
+    through userspace emulation layer (qemu).
+
+    Historically it is set to ``false`` by default. New Clusters created
+    with Ganeti-3.1 and newer defaults to ``true``. Everyone is encouraged to
+    enable it.
+
 vnet\_hdr
     Valid for the KVM hypervisor.
 
