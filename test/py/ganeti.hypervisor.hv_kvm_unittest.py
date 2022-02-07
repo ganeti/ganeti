@@ -1078,7 +1078,7 @@ class TestKvmRuntime(testutils.GanetiTestCase):
     def RunCmd(cmd, **kwargs):
       if '--help' in cmd:
         return mock.Mock(
-            failed=False, output=testutils.ReadTestData("kvm_1.1.2_help.txt"))
+            failed=False, output=testutils.ReadTestData("kvm_current_help.txt"))
       if '-S' in cmd:
         self.mocks['pid_alive'].return_value = ('file', -1, True)
         return mock.Mock(failed=False)
