@@ -4130,7 +4130,7 @@ hvcDefaults =
           , (hvSecurityModel,                   PyValueEx htSmNone)
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
-          , (hvVhostNet,                        PyValueEx False)
+          , (hvVhostNet,                        PyValueEx True)
           , (hvVirtioNetQueues,                 PyValueEx (1 :: Int))
           , (hvKvmUseChroot,                    PyValueEx False)
           , (hvKvmUserShutdown,                 PyValueEx False)
