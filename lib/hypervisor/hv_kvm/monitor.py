@@ -260,6 +260,8 @@ class QmpConnection(MonitorSocket):
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
+    self.version = None
+    self.package = None
     self._buf = b""
     self.supported_commands = None
 
@@ -281,13 +283,21 @@ class QmpConnection(MonitorSocket):
 
     """
     super(QmpConnection, self).connect()
-    # Check if we receive a correct greeting message from the server
-    # (As per the QEMU Protocol Specification 0.1 - section 2.2)
-    greeting = self._Recv()
-    if not greeting[self._FIRST_MESSAGE_KEY]:
-      self._connected = False
-      raise errors.HypervisorError("kvm: QMP communication error (wrong"
-                                   " server greeting")
+    # sometimes we receive asynchronous events instead of the intended greeting
+    # message - we ignore these for now. However, only 5 times to not get stuck
+    # in an endless connect() loop.
+    for x in range(0, 4):
+      # Check if we receive a correct greeting message from the server
+      # (As per the QEMU Protocol Specification 0.1 - section 2.2)
+      greeting = self._Recv()
+      if greeting[self._EVENT_KEY]:
+        continue
+      if not greeting[self._FIRST_MESSAGE_KEY]:
+        self._connected = False
+        raise errors.HypervisorError("kvm: QMP communication error (wrong"
+                                     " server greeting)")
+      else:
+        break
 
     # Extract the version info from the greeting and make it available to users
     # of the monitor.
