@@ -2,6 +2,39 @@ News
 ====
 
 
+Version 3.0.2
+-------------
+
+*(Released Mon, 28 Feb 2022)*
+
+Changes since 3.0.1
+~~~~~~~~~~~~~~~~~~~
+
+This release contains the following bug- and compatibility fixes:
+
+ - KVM: fix NIC hotplugging with ``vhost_net=True`` (#1651),
+   ``use_chroot=True`` (#1644) and ``use_guest_agent=True`` (#1620).
+ - KVM: fix asynchronous events breaking QMP handshakes (#1649)
+ - KVM: handle ``disk_cache`` consistently between boot and hotplugging
+   (#1645)
+ - KVM: fix live migration with non-root / chrooted QEMU (dynamic auto-ro)
+   (#1603)
+ - KVM: fix unsupported keymap include in >=qemu-4.0 (#1612)
+ - XEN: fix live migration of xen instances (#1582)
+ - NET: relax VLAN check with veth devices (#1533)
+ - LVM: fix lvcreate for newer lvm versions (#1586)
+ - DRBD: warn users that altered DRBD parameters do not affect existing
+   devices (#781)
+ - Node-Add: byte/string comparison causes false-positive warning (#1635)
+ - RAPI: return HTTP 400 on request parse error (#1610)
+ - build: fix building docs on Debian Bullseye (#1602)
+ - build: adjust for Pyparsing 3.0 (#1638)
+ - build: adjust for TupE type change in Template Haskell 2.16 (#1613)
+ - build: permit base64-bytestring 1.1 and QuickCheck 2.14 (#1613)
+ - tools: fix 2to3 leftover for move-instance (#1616)
+ - Docs: fix building on recent sphinx versions (#1602)
+
+
 Version 3.0.1
 -------------
 
