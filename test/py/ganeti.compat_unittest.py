@@ -84,7 +84,8 @@ class TestTryToRoman(testutils.GanetiTestCase):
   def testAFewIntegers(self):
     # This test only works is the roman module is installed
     if compat.roman is not None:
-      self.assertEqual(compat.TryToRoman(0), 0)
+      # starting with roman 3.2 single-digit 0 now converts to 'N' instead of 0
+      self.assertIn(compat.TryToRoman(0), [0, 'N'])
       self.assertEqual(compat.TryToRoman(1), "I")
       self.assertEqual(compat.TryToRoman(4), "IV")
       self.assertEqual(compat.TryToRoman(5), "V")
