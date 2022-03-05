@@ -845,6 +845,26 @@ class QmpConnection(MonitorSocket):
 
     self.Execute("set_password", arguments)
 
+  @_ensure_connection
+  def SetVNCPassword(self, vnc_pwd):
+    """Set VNC password of an instance
+
+    """
+    arguments = {
+      "protocol": "vnc",
+      "password": vnc_pwd,
+    }
+
+    self.Execute("set_password", arguments)
+
+  @_ensure_connection
+  def SetBalloonMemory(self, memory):
+    self.Execute("balloon", {"value": memory * 1048576})
+
+  @_ensure_connection
+  def Powerdown(self):
+    self.Execute("system_powerdown")
+
   def _GetFd(self, fd, fdname):
     """Wrapper around the getfd qmp command
 
