@@ -27,7 +27,7 @@ do_kvm_poweroff () {
     # shutdown VMs and remove sockets of those not running
     for vm_monitor in $CONTROL_PATH/*.monitor; do
         if ! echo system_powerdown | \
-            socat -U UNIX:$vm_monitor STDIO > /dev/null 2>&1; then
+            socat - UNIX-CONNECT:$vm_monitor > /dev/null 2>&1; then
             # remove disconnected socket
             rm -f $vm_monitor
         fi
@@ -35,15 +35,15 @@ do_kvm_poweroff () {
 
     log_action_begin_msg "Waiting VMs to poweroff"
     waiting=true
-    remaning=$TIMEOUT
-    while $waiting && [ $remaning -ne 0 ]; do
+    remaining=$TIMEOUT
+    while $waiting && [ $remaining -ne 0 ]; do
         if [[ -z "$(find $CONTROL_PATH -name '*.monitor')" ]]; then
             break
         fi
 
         echo -n "."
         for vm_monitor in $CONTROL_PATH/*.monitor; do
-            if ! echo | socat -U UNIX:$vm_monitor STDIO > /dev/null 2>&1; then
+            if ! echo | socat - UNIX-CONNECT:$vm_monitor > /dev/null 2>&1; then
                 rm -rf $vm_monitor
             fi
         done
