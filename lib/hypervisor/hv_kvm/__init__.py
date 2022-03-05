@@ -2037,8 +2037,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       utils.WriteFile(self._InstanceNICFile(instance.name, nic_seq), data=tap)
 
     if vnc_pwd:
-      change_cmd = "change vnc password %s" % vnc_pwd
-      self._CallMonitorCommand(instance.name, change_cmd)
+      self.qmp.SetVNCPassword(vnc_pwd)
 
     # Setting SPICE password. We are not vulnerable to malicious passwordless
     # connection attempts because SPICE by default does not allow connections
@@ -2433,8 +2432,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       return "pc"
 
-  @classmethod
-  def _StopInstance(cls, instance, force=False, name=None, timeout=None):
+  def _WaitForInstanceToShutdown(self, timeout, name):
+    """Wait for QEMU to shut down within a given timeout
+
+    """
+    tick = 1
+    while tick <= timeout:
+      _, _, alive = self._InstancePidAlive(name)
+      if not alive:
+        logging.info("KVM: instance %s finished shutdown after %d seconds"
+                     % (name, tick))
+        break
+      tick += 1
+      time.sleep(1)
+
+  @_with_qmp
+  def _StopInstance(self, instance, force=False, name=None, timeout=None):
     """Stop an instance.
 
     """
@@ -2447,13 +2460,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       acpi = instance.hvparams[constants.HV_ACPI]
     else:
       acpi = False
-    _, pid, alive = cls._InstancePidAlive(name)
+    _, pid, alive = self._InstancePidAlive(name)
     if pid > 0 and alive:
       if force or not acpi:
         utils.KillProcess(pid)
       else:
-        cls._CallMonitorCommand(name, "system_powerdown", timeout)
-    cls._ClearUserShutdown(instance.name)
+        self.qmp.Powerdown()
+        if timeout is not None:
+          self._WaitForInstanceToShutdown(timeout, name)
+
+    self._ClearUserShutdown(instance.name)
 
   def StopInstance(self, instance, force=False, retry=False, name=None,
                    timeout=None):
@@ -2682,6 +2698,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return objects.MigrationStatus(status=constants.HV_MIGRATION_FAILED)
 
+  @_with_qmp
   def BalloonInstanceMemory(self, instance, mem):
     """Balloon an instance memory to a certain value.
 
@@ -2691,7 +2708,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param mem: actual memory size to use for instance runtime
 
     """
-    self._CallMonitorCommand(instance.name, "balloon %d" % mem)
+    self.qmp.SetBalloonMemory(mem)
 
   def GetNodeInfo(self, hvparams=None):
     """Return information about the node.
