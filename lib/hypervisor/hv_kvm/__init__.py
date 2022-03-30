@@ -2432,20 +2432,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       return "pc"
 
-  def _WaitForInstanceToShutdown(self, timeout, name):
-    """Wait for QEMU to shut down within a given timeout
-
-    """
-    tick = 1
-    while tick <= timeout:
-      _, _, alive = self._InstancePidAlive(name)
-      if not alive:
-        logging.info("KVM: instance %s finished shutdown after %d seconds"
-                     % (name, tick))
-        break
-      tick += 1
-      time.sleep(1)
-
   @_with_qmp
   def _StopInstance(self, instance, force=False, name=None, timeout=None):
     """Stop an instance.
@@ -2466,8 +2452,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         utils.KillProcess(pid)
       else:
         self.qmp.Powerdown()
-        if timeout is not None:
-          self._WaitForInstanceToShutdown(timeout, name)
 
     self._ClearUserShutdown(instance.name)
 
