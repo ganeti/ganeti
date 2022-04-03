@@ -79,6 +79,8 @@ HTTP_APP_OCTET_STREAM = "application/octet-stream"
 HTTP_APP_JSON = "application/json"
 
 _SSL_UNEXPECTED_EOF = "Unexpected EOF"
+_SSL_SHUTDOWN_DURING_INIT = ('SSL routines', 'SSL_shutdown',
+                             'shutdown while in init')
 
 # Socket operations
 (SOCKOP_SEND,
@@ -484,6 +486,11 @@ def SocketOperation(sock, op, arg1, timeout):
         raise socket.error(err.args)
 
       except OpenSSL.SSL.Error as err:
+        if err.args[0] == [_SSL_SHUTDOWN_DURING_INIT]:
+          host, port = sock.getpeername()
+          logging.warning("OpenSSL: unexpected shutdown while in init from"
+                          " %s:%d" % (host, port))
+          break
         raise socket.error(err.args)
 
     except socket.error as err:
