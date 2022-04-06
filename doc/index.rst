@@ -83,6 +83,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.15.rst
    design-2.16.rst
    design-3.0.rst
+   design-3.1.rst
 
 Draft designs
 -------------
@@ -140,6 +141,7 @@ Draft designs
    design-plain-redundancy.rst
    design-query2.rst
    design-query-splitting.rst
+   design-qemu-blockdev.rst
    design-reason-trail.rst
    design-reservations.rst
    design-resource-model.rst
