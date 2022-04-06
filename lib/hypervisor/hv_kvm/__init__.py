@@ -82,7 +82,10 @@ from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 validate_machine_version, \
                                                 validate_security_model, \
                                                 validate_spice_parameters, \
-                                                validate_vnc_parameters
+                                                validate_vnc_parameters, \
+                                                validate_disk_parameters
+
+import ganeti.hypervisor.hv_kvm.kvm_utils as kvm_utils
 
 _KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
@@ -182,8 +185,9 @@ def _with_qmp(fn):
     return fn(self, *args, **kwargs)
   return wrapper
 
+
 def _GetDriveURI(disk, link, uri):
-  """Helper function to get the drive uri to be used in --drive kvm option
+  """Helper function to get the drive uri to be used in -blockdev kvm option
 
   Invoked during startup and disk hot-add. In latter case and if no userspace
   access mode is used it will be overriden with /dev/fdset/<fdset-id> (see
@@ -439,6 +443,13 @@ def _UpgradeSerializedRuntime(serialized_runtime):
       # Replace the original vnc argument with the new ones
       kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
 
+    # with 3.1 the 'default' value for disk_discard has been dropped
+    # and replaced by 'ignore'
+    if constants.HV_DISK_DISCARD in hvparams \
+      and hvparams[constants.HV_DISK_DISCARD] not in \
+        constants.HT_VALID_DISCARD_TYPES:
+      hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
+
   return kvm_cmd, serialized_nics, hvparams, serialized_disks
 
 
@@ -622,7 +633,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # match  -drive.*boot=on|off on different lines, but in between accept only
   # dashes not preceeded by a new line (which would mean another option
   # different than -drive is starting)
-  _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
+  _BOOT_RE = re.compile(r"^-(drive|blockdev)\s([^-]|(?<!^)-)*,boot=on\|off",
+                        re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
   # The auto-read-only option is on the -blockdev, Ganeti uses this at -drive
   _AUTO_RO_RE = \
@@ -1127,38 +1139,32 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return data
 
   @staticmethod
-  def _GenerateDiskAioCacheParameters(disk_aio, disk_cache, dev_type):
-    """Generate appropriate aio/cache parameters for QEMU
+  def _GenerateKVMBlockDevice(target, disk_info, hvp, kvm_devid):
+    _, direct, no_flush = kvm_utils.GetCacheSettings(
+      hvp[constants.HV_DISK_CACHE], disk_info.dev_type)
+    access_mode = disk_info.params.get(constants.LDP_ACCESS,
+                                       constants.DISK_KERNELSPACE)
 
-    @type disk_aio: string
-    @param disk_aio: the instance's AIO parameter
-    @type disk_cache: string
-    @param disk_cache: the instance's disk cache parameter
-    @type dev_type: string
-    @param dev_type: the disk type in use
-    @rtype: string
-    @return: parameter string suitable for QEMU drive parameters
-
-    """
-
-    if (dev_type in constants.DTS_EXT_MIRROR
-            and dev_type != constants.DT_RBD):
-      logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                      " to prevent shared storage corruption on migration",
-                      disk_cache)
-      disk_cache = constants.HT_CACHE_NONE
-
-    if not disk_aio:
-      # QEMU defaults to 'threads', so do we
-      disk_aio = constants.HT_KVM_AIO_THREADS
-
-    if disk_aio == constants.HT_KVM_AIO_NATIVE:
-      return ",aio=native,cache=none"
+    if access_mode == constants.DISK_USERSPACE:
+      driver = kvm_utils.ParseStorageUriToBlockdevParam(target)
     else:
-      if disk_cache == constants.HT_CACHE_DEFAULT:
-        return ",aio=threads"
-      else:
-        return ",aio=threads,cache=%s" % disk_cache
+      driver = {
+        "driver": "file" if disk_info.dev_type in constants.DTS_FILEBASED
+          else "host_device",
+        "filename": target,
+        "aio": hvp[constants.HV_KVM_DISK_AIO]
+      }
+
+    return {
+      "driver": "raw",
+      "node-name": kvm_devid,
+      "discard": hvp[constants.HV_DISK_DISCARD],
+      "cache": {
+        "direct": direct,
+        "no-flush": no_flush
+      },
+      "file": driver
+    }
 
   def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
                                       kvmhelp, devlist):
@@ -1182,106 +1188,121 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       boot_disk = up_hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
 
-    # whether this is an older KVM version that uses the boot=on flag
-    # on devices
-    needs_boot_flag = self._BOOT_RE.search(kvmhelp)
-
     dev_opts = []
     disk_type = up_hvp[constants.HV_DISK_TYPE]
-    # paravirtual implies either '-device virtio-blk-pci... -drive if=none...'
-    # for new QEMU versions or '-drive if=virtio' for old QEMU versions
+
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
       driver = self._VIRTIO_BLK_PCI
-      iface = self._VIRTIO
+    elif disk_type == constants.HT_DISK_IDE:
+      driver = "ide-hd"
     else:
-      driver = iface = disk_type
+      driver = disk_type
 
     # Check if a specific driver is supported by QEMU device model.
-    if self._DEVICE_DRIVER_SUPPORTED(driver, devlist):
-      if_val = ",if=none" # for the -drive option
-      device_driver = driver # for the -device option
-    else:
-      if_val = ",if=%s" % iface # for the -drive option
-      device_driver = None # without -device option
+    if not self._DEVICE_DRIVER_SUPPORTED(driver, devlist):
+      raise errors.HypervisorError("QEMU does not support disk driver '%s'"
+                                   % driver)
 
-    # discard mode
-    discard_mode = up_hvp[constants.HV_DISK_DISCARD]
-    if discard_mode == constants.HT_DISCARD_DEFAULT:
-      discard_val = ""
-    else:
-      discard_val = ",discard=%s" % discard_mode
-    # Cache mode
-    disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
-      aio_cache_val = self._GenerateDiskAioCacheParameters(
-        up_hvp[constants.HV_KVM_DISK_AIO], up_hvp[constants.HV_DISK_CACHE],
-        cfdev.dev_type)
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
-      boot_val = ""
       if boot_disk:
         dev_opts.extend(["-boot", "order=c"])
         boot_disk = False
-        if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
-          boot_val = ",boot=on"
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
-      drive_val = "file=%s,format=raw%s%s%s%s" % \
-                  (drive_uri, if_val, boot_val, aio_cache_val, discard_val)
+      kvm_devid = cfdev.hvinfo["id"]
 
-      # virtio-blk-pci case
-      if device_driver is not None:
+      writeback, direct, no_flush = kvm_utils.GetCacheSettings(
+        up_hvp[constants.HV_DISK_CACHE], cfdev.dev_type)
+
+      blockdevice = self._GenerateKVMBlockDevice(drive_uri, cfdev, up_hvp,
+                                                 kvm_devid)
+
+      if disk_type == constants.HT_DISK_IDE:
+        dev_opts.extend(["-device", "ide-hd,drive=%s,write-cache=%s" %
+                         (kvm_devid,
+                          kvm_utils.TranslateBoolToOnOff(writeback))])
+      else:
         # hvinfo will exist for paravirtual devices either due to
         # _UpgradeSerializedRuntime() for old instances or due to
         # _GenerateKVMRuntime() for new instances.
-        kvm_devid = cfdev.hvinfo["id"]
-        drive_val += ",id=%s" % kvm_devid
+
         # Add driver, id, bus, and addr or channel, scsi-id, lun if any.
         dev_val = _GenerateDeviceHVInfoStr(cfdev.hvinfo)
-        dev_val += ",drive=%s" % kvm_devid
+        dev_val += ",drive=%s,write-cache=%s" % (kvm_devid,
+                                                 kvm_utils.TranslateBoolToOnOff(
+                                                   writeback))
         dev_opts.extend(["-device", dev_val])
 
       # QEMU 4.0 introduced dynamic auto-read-only for file-backed drives. This
       # is unhandled in Ganeti and breaks live migration with
       # security_model=user|pool, disable it here. See also
-      # HotAddDevice/drive_add_fn which solves a similar problem for hotpluged
+      # HotAddDevice/drive_add_fn which solves a similar problem for hotplugged
       # disks
       if self._AUTO_RO_RE.search(kvmhelp):
-        drive_val += ",auto-read-only=off"
+        blockdevice["auto-read-only"] = False
 
-      dev_opts.extend(["-drive", drive_val])
+      blockdev_str = kvm_utils.DictToQemuStringNotation(blockdevice)
+
+      dev_opts.extend(["-blockdev", blockdev_str])
 
     return dev_opts
 
-  @staticmethod
-  def _CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
-                   needs_boot_flag):
-    """Extends L{kvm_cmd} with the '-drive' option for a cdrom, and
-    optionally the '-boot' option.
+  def _FloppyOption(self, kvm_cmd, floppy_image, boot_floppy):
+    """Extens L{kvm_cmd} with the '-blockdev/-device' options for a floppy, and
+    optionally the '-boot' option
 
-    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide -boot order=d
-
-    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide,boot=on
-
-    Example: -drive file=http://hostname.com/cdrom.iso,media=cdrom
-
-    @type kvm_cmd: string
+    @type kvm_cmd: list of str
     @param kvm_cmd: KVM command line
 
-    @type cdrom_disk_type:
+    @type floppy_image: str
+    @param floppy_image: path to floppy image file
+
+    @type boot_floppy: bool
+    @param boot_floppy: set boot device to floppy
+
+    """
+    if boot_floppy:
+      kvm_cmd.extend(["-boot", "a"])
+
+    bdev_opts = [
+      "driver=raw",
+      "node-name=floppy1",
+      "file.driver=file",
+      "file.filename=%s" % floppy_image
+    ]
+
+    dev_opts = [
+      "floppy",
+      "drive=floppy1"
+    ]
+
+    kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
+                    "-device",   ",".join(dev_opts)])
+
+  def _CdromOption(self, kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
+                   cdrom_id):
+    """Extends L{kvm_cmd} with the '-blockdev/-device' options for a cdrom, and
+    optionally the '-boot' option.
+
+    @type kvm_cmd: list of str
+    @param kvm_cmd: KVM command line
+
+    @type cdrom_disk_type: str
     @param cdrom_disk_type:
 
-    @type cdrom_image:
+    @type cdrom_image: str
     @param cdrom_image:
 
-    @type cdrom_boot:
+    @type cdrom_boot: bool
     @param cdrom_boot:
 
-    @type needs_boot_flag:
-    @param needs_boot_flag:
+    @type cdrom_id: str
+    @param cdrom_id:
 
     """
     # Check that the ISO image is accessible
@@ -1290,33 +1311,42 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Cdrom ISO image '%s' is not accessible" %
                                    cdrom_image)
 
-    # set cdrom 'media' and 'format', if needed
+    bdev_opts = [
+      "driver=raw",
+      "cache.direct=off",
+      "cache.no-flush=on",
+      "read-only=on",
+      "node-name=%s" % cdrom_id
+    ]
     if utils.IsUrl(cdrom_image):
-      options = ",media=cdrom"
+      if cdrom_image.lower().startswith("https://"):
+        bdev_opts.append("file.driver=https")
+      else:
+        bdev_opts.append("file.driver=http")
+      bdev_opts.append("file.url=%s" % cdrom_image)
     else:
-      options = ",media=cdrom,format=raw"
+      bdev_opts.append("file.driver=file")
+      bdev_opts.append("file.filename=%s" % cdrom_image)
 
-    # set cdrom 'if' type
-    if cdrom_boot:
-      if_val = ",if=" + constants.HT_DISK_IDE
+    dev_opts = []
+    if cdrom_disk_type == constants.HT_DISK_IDE:
+      dev_opts.append("ide-cd")
     elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-      if_val = ",if=virtio"
+      dev_opts.append(self._VIRTIO_BLK_PCI)
+    elif cdrom_disk_type == constants.HT_DISK_SCSI_CD:
+      dev_opts.append("scsi-cd")
     else:
-      if_val = ",if=" + cdrom_disk_type
+      raise errors.HypervisorError("Unsupported cdrom disk type: %s" %
+                                   cdrom_disk_type)
 
+    dev_opts.append("drive=%s" % cdrom_id)
     # set boot flag, if needed
-    boot_val = ""
     if cdrom_boot:
       kvm_cmd.extend(["-boot", "order=d"])
 
-      # whether this is an older KVM version that requires the 'boot=on' flag
-      # on devices
-      if needs_boot_flag:
-        boot_val = ",boot=on"
-
     # build '-drive' option
-    drive_val = "file=%s%s%s%s" % (cdrom_image, options, if_val, boot_val)
-    kvm_cmd.extend(["-drive", drive_val])
+    kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
+                    "-device",   ",".join(dev_opts)])
 
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp):
@@ -1365,7 +1395,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       soundhw = hvp[constants.HV_SOUNDHW]
       kvm_cmd.extend(["-soundhw", soundhw])
 
-    if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES:
+    if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES \
+            or hvp[constants.HV_KVM_CDROM_DISK_TYPE]\
+            in constants.HT_SCSI_DEVICE_TYPES:
       # In case a SCSI disk is given, QEMU adds a SCSI contorller
       # (LSI Logic / Symbios Logic 53c895a) implicitly.
       # Here, we add the controller explicitly with the default id.
@@ -1431,24 +1463,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
     if cdrom_image1:
-      needs_boot_flag = self._BOOT_RE.search(kvmhelp)
       self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
-                        needs_boot_flag)
+                        "cdrom1")
 
     cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
     if cdrom_image2:
-      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, False)
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, "cdrom2")
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:
-      options = ",format=raw,media=disk"
-      if boot_floppy:
-        kvm_cmd.extend(["-boot", "order=a"])
-        options = "%s,boot=on" % options
-      if_val = ",if=floppy"
-      options = "%s%s" % (options, if_val)
-      drive_val = "file=%s%s" % (floppy_image, options)
-      kvm_cmd.extend(["-drive", drive_val])
+      self._FloppyOption(kvm_cmd, floppy_image, boot_floppy)
 
     if kernel_path:
       kvm_cmd.extend(["-kernel", kernel_path])
@@ -2105,37 +2129,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
-  @classmethod
-  def _CallMonitorCommand(cls, instance_name, command, timeout=None):
-    """Invoke a command on the instance monitor.
-
-    """
-    if timeout is not None:
-      timeout_cmd = "timeout %s" % (timeout, )
-    else:
-      timeout_cmd = ""
-
-    # TODO: Replace monitor calls with QMP once KVM >= 0.14 is the minimum
-    # version. The monitor protocol is designed for human consumption, whereas
-    # QMP is made for programmatic usage. In the worst case QMP can also
-    # execute monitor commands. As it is, all calls to socat take at least
-    # 500ms and likely more: socat can't detect the end of the reply and waits
-    # for 500ms of no data received before exiting (500 ms is the default for
-    # the "-t" parameter).
-    socat = ("echo %s | %s %s STDIO UNIX-CONNECT:%s" %
-             (utils.ShellQuote(command),
-              timeout_cmd,
-              constants.SOCAT_PATH,
-              utils.ShellQuote(cls._InstanceMonitor(instance_name))))
-    result = utils.RunCmd(socat)
-    if result.failed:
-      msg = ("Failed to send command '%s' to instance '%s', reason '%s',"
-             " output: %s" %
-             (command, instance_name, result.fail_reason, result.output))
-      raise errors.HypervisorError(msg)
-
-    return result
-
   @_with_qmp
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
@@ -2280,36 +2273,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not device.hvinfo:
       device.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,
                                             device_type, bus_state)
+
+    new_runtime_entry = _RUNTIME_ENTRY[dev_type](device, extra)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      uri = _GetDriveURI(device, extra[0], extra[1])
+      disk_info = new_runtime_entry[0]
+      access_mode = disk_info.params.get(constants.LDP_ACCESS,
+                                         constants.DISK_KERNELSPACE)
 
-      disable_auto_ro = self.qmp.HasDynamicAutoReadOnly()
+      writeback, direct, no_flush = kvm_utils.GetCacheSettings(
+        up_hvp[constants.HV_DISK_CACHE], disk_info.dev_type)
 
-      def drive_add_fn(filename):
-        """Helper function that uses HMP to hot-add a drive."""
-        cmd = "drive_add dummy file=%s,if=none,id=%s,format=raw" % \
-          (filename, kvm_devid)
-        if disable_auto_ro:
-          # This is necessary for the drive_add/device_add combination to work
-          # after QEMU 4.0. auto-read-only first appeared in 3.1, but 4.0
-          # changed its behavior in a way that breaks hotplugging. See #1547.
-          cmd += ",auto-read-only=off"
-        # When hot plugging a disk, parameters should match the current runtime.
-        # I.e. for live migration, the cache mode is critical.
-        cmd += self._GenerateDiskAioCacheParameters(
-          up_hvp[constants.HV_KVM_DISK_AIO], up_hvp[constants.HV_DISK_CACHE],
-          device_type)
-        if up_hvp[constants.HV_DISK_DISCARD] != constants.HT_DISCARD_DEFAULT:
-          cmd += ",discard=%s" % up_hvp[constants.HV_DISK_DISCARD]
-        self._CallMonitorCommand(instance.name, cmd)
+      target = _GetDriveURI(device, extra[0], extra[1])
 
-      # This must be done indirectly due to the fact that we pass the drive's
-      # file descriptor via QMP first, then we add the corresponding drive that
-      # refers to this fd. Note that if the QMP connection terminates before
-      # a drive which keeps a reference to the fd passed via the add-fd QMP
-      # command has been created, then the fd gets closed and cannot be used
-      # later (e.g., via an drive_add HMP command).
-      self.qmp.HotAddDisk(device, kvm_devid, uri, drive_add_fn)
+      blockdevice = self._GenerateKVMBlockDevice(target, disk_info, up_hvp,
+                                                 kvm_devid)
+
+      self.qmp.HotAddDisk(device, access_mode, writeback, blockdevice)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       is_chrooted = instance.hvparams[constants.HV_KVM_USE_CHROOT]
@@ -2325,8 +2304,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._VerifyHotplugCommand(instance, kvm_devid, True)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
-    entry = _RUNTIME_ENTRY[dev_type](device, extra)
-    runtime[index].append(entry)
+    runtime[index].append(new_runtime_entry)
     self._SaveKVMRuntime(instance, runtime)
 
   @_with_qmp
@@ -2343,9 +2321,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
       self.qmp.HotDelDisk(kvm_devid)
-      # drive_del is not implemented yet in qmp
-      command = "drive_del %s\n" % kvm_devid
-      self._CallMonitorCommand(instance.name, command)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       self.qmp.HotDelNic(kvm_devid)
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
@@ -2817,6 +2792,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_HELP)
     validate_spice_parameters(hvparams, kvm_output)
+
+    kvmpath = constants.KVM_PATH
+    kvm_version = cls._GetKVMVersion(kvmpath)
+    validate_disk_parameters(hvparams, kvm_version)
 
     kvm_output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_MLIST)
     validate_machine_version(hvparams, kvm_output)

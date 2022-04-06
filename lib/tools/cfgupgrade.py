@@ -358,6 +358,12 @@ class CfgUpgrade(object):
         if variant in cluster["hvparams"]:
           cluster["hvparams"][variant].pop("xen_cmd", None)
 
+      # HT_DISCARD_DEFAULT removed with 3.1.0
+      if constants.HV_DISK_DISCARD in cluster["hvparams"][constants.HT_KVM] \
+         and cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] \
+              == "default":
+        cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] = \
+          constants.HT_DISCARD_IGNORE
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
@@ -474,6 +480,13 @@ class CfgUpgrade(object):
         missing_spindles = True
       if "admin_state_source" not in iobj:
         iobj["admin_state_source"] = constants.ADMIN_SOURCE
+
+      if "hvparams" in iobj and constants.HV_DISK_DISCARD in iobj["hvparams"]:
+        if iobj["hvparams"][constants.HV_DISK_DISCARD] == "default":
+          iobj["hvparams"][constants.HV_DISK_DISCARD] = \
+            constants.HT_DISCARD_IGNORE
+          logging.info("disk_discard was explicitly set to 'default' on "
+                       "instance '%s': migrated to 'ignore'" % iobj["name"])
 
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have

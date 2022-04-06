@@ -544,7 +544,8 @@ hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/__init__.py \
 	lib/hypervisor/hv_kvm/monitor.py \
 	lib/hypervisor/hv_kvm/netdev.py \
-	lib/hypervisor/hv_kvm/validation.py
+	lib/hypervisor/hv_kvm/validation.py \
+	lib/hypervisor/hv_kvm/kvm_utils.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -667,6 +668,7 @@ docinput = \
 	doc/design-2.15.rst \
 	doc/design-2.16.rst \
 	doc/design-3.0.rst \
+	doc/design-3.1.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -719,6 +721,7 @@ docinput = \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \
+	doc/design-qemu-blockdev.rst \
 	doc/design-reason-trail.rst \
 	doc/design-repaird.rst \
 	doc/design-reservations.rst \
