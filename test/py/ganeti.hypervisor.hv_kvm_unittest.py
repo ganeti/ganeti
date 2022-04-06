@@ -377,22 +377,6 @@ class TestParameterCheck(testutils.GanetiTestCase):
     self.assertRaises(errors.HypervisorError,
                       validation.check_disk_cache_parameters, invalid_data)
 
-    invalid_data = {
-      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_NATIVE,
-      constants.HV_DISK_CACHE: constants.HT_CACHE_WTHROUGH
-    }
-
-    self.assertRaises(errors.HypervisorError,
-                      validation.check_disk_cache_parameters, invalid_data)
-
-    invalid_data = {
-      constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_NATIVE,
-      constants.HV_DISK_CACHE: constants.HT_CACHE_DEFAULT
-    }
-
-    self.assertRaises(errors.HypervisorError,
-                      validation.check_disk_cache_parameters, invalid_data)
-
   def testValidDiskCacheParameters(self):
     valid_data = {
       constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_THREADS,
@@ -403,14 +387,14 @@ class TestParameterCheck(testutils.GanetiTestCase):
 
     valid_data = {
       constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_THREADS,
-      constants.HV_DISK_CACHE: constants.HT_CACHE_WTHROUGH
+      constants.HV_DISK_CACHE: constants.HT_CACHE_DEFAULT
     }
 
     self.assertTrue(validation.check_disk_cache_parameters(valid_data))
 
     valid_data = {
       constants.HV_KVM_DISK_AIO: constants.HT_KVM_AIO_THREADS,
-      constants.HV_DISK_CACHE: constants.HT_CACHE_DEFAULT
+      constants.HV_DISK_CACHE: constants.HT_CACHE_WTHROUGH
     }
 
     self.assertTrue(validation.check_disk_cache_parameters(valid_data))
@@ -557,59 +541,6 @@ class TestParameterValidation(testutils.GanetiTestCase):
 
     self.assertTrue(validation.validate_spice_parameters(valid_data,
                                                          kvm_help_working))
-
-
-class TestDiskParameters(testutils.GanetiTestCase):
-  def testGenerateDiskAioCacheParameters(self):
-    test_cases = {
-      "aio_threaded_safe_storage_default_cache": {
-        "disk_aio": constants.HT_KVM_AIO_THREADS,
-        "disk_cache": constants.HT_CACHE_DEFAULT,
-        "dev_type": constants.DT_DRBD8,
-        "expected_string": ",aio=threads"
-      },
-      "aio_threaded_unsafe_storage_default_cache": {
-        "disk_aio": constants.HT_KVM_AIO_THREADS,
-        "disk_cache": constants.HT_CACHE_DEFAULT,
-        "dev_type": constants.DT_SHARED_FILE,
-        "expected_string": ",aio=threads,cache=none"
-      },
-      "aio_threaded_safe_storage_writeback_cache": {
-        "disk_aio": constants.HT_KVM_AIO_THREADS,
-        "disk_cache": constants.HT_CACHE_WBACK,
-        "dev_type": constants.DT_RBD,
-        "expected_string": ",aio=threads,cache=writeback"
-      },
-      "aio_native_safe_storage_none_cache": {
-        "disk_aio": constants.HT_KVM_AIO_NATIVE,
-        "disk_cache": constants.HT_CACHE_NONE,
-        "dev_type": constants.DT_DRBD8,
-        "expected_string": ",aio=native,cache=none"
-      },
-      "aio_native_safe_storage_writethrough_cache": {
-        "disk_aio": constants.HT_KVM_AIO_NATIVE,
-        "disk_cache": constants.HT_CACHE_WTHROUGH,
-        "dev_type": constants.DT_DRBD8,
-        "expected_string": ",aio=native,cache=none"
-      },
-      "aio_native_unsafe_storage_writethrough_cache": {
-        "disk_aio": constants.HT_KVM_AIO_NATIVE,
-        "disk_cache": constants.HT_CACHE_WTHROUGH,
-        "dev_type": constants.DT_GLUSTER,
-        "expected_string": ",aio=native,cache=none"
-      },
-      "aio_unset_safe_storage_none_cache": {
-        "disk_aio": None,
-        "disk_cache": constants.HT_CACHE_NONE,
-        "dev_type": constants.DT_DRBD8,
-        "expected_string": ",aio=threads,cache=none"
-      }
-    }
-
-    for name, data in test_cases.items():
-      self.assertEqual(hv_kvm.KVMHypervisor._GenerateDiskAioCacheParameters(
-        data["disk_aio"], data["disk_cache"], data["dev_type"]),
-        data["expected_string"], name)
 
 
 class TestQmpMessage(testutils.GanetiTestCase):
@@ -1022,6 +953,102 @@ class TestGetRuntimeInfo(unittest.TestCase):
     self.assertTrue(devinfo.hvinfo["addr"] == "0xa")
 
 
+class TestDictToQemuStringNotation(unittest.TestCase):
+  def test(self):
+    tests = [
+      {
+        "blockdev": {
+          'driver': 'raw',
+          'node-name': 'disk-3edc32a2-8127-4b9d',
+          'discard': 'ignore',
+          'cache': {
+            'direct': True,
+            'no-flush': False
+          },
+          'file': {
+            'driver': 'rbd',
+            'pool': 'ganeti',
+            'image': '32eb97b3-ec20-401d-b48c-a1f24c0385a2.rbd.disk0'
+          },
+          'auto-read-only': False
+        },
+        "result": "driver=raw,node-name=disk-3edc32a2-8127-4b9d,"
+                  "discard=ignore,cache.direct=on,cache.no-flush=off,"
+                  "file.driver=rbd,file.pool=ganeti,"
+                  "file.image=32eb97b3-ec20-401d-b48c-a1f24c0385a2.rbd.disk0,"
+                  "auto-read-only=off"
+      },
+      {
+          "blockdev": {
+            'driver': 'raw',
+            'node-name': 'disk-c44790ad-e9e2-46a3',
+            'discard': 'ignore',
+            'cache': {
+              'direct': True,
+              'no-flush': False
+            },
+            'file': {
+              'driver': 'host_device',
+              'filename': '/path/to/disk',
+              'aio': 'native'
+            },
+            'auto-read-only': False
+          },
+          "result": "driver=raw,node-name=disk-c44790ad-e9e2-46a3,"
+                    "discard=ignore,cache.direct=on,cache.no-flush=off,"
+                    "file.driver=host_device,"
+                    "file.filename=/path/to/disk,file.aio=native,"
+                    "auto-read-only=off"
+      }
+    ]
+
+    for test in tests:
+      self.assertEqual(test["result"],
+                       hv_kvm.kvm_utils.DictToQemuStringNotation(
+                         test["blockdev"]))
+
+
+class TestParseStorageUriToBlockdevParam(unittest.TestCase):
+  def testRbd(self):
+    uri = "rbd:cephpool/image-1234-xyz"
+
+    expected_data = {
+        "driver": "rbd",
+        "pool": "cephpool",
+        "image": "image-1234-xyz"
+    }
+
+    blockdev_driver = hv_kvm.kvm_utils.ParseStorageUriToBlockdevParam(uri)
+
+    self.assertDictEqual(expected_data, blockdev_driver)
+
+  def testGluster(self):
+    uri = "gluster://server:1234/gluster-volume/path"
+
+    expected_data = {
+      "driver": "gluster",
+      "server": [
+        {
+          "type": "inet",
+          "host": "server",
+          "port": "1234",
+        }
+      ],
+      "volume": "gluster-volume",
+      "path": "path"
+    }
+
+    blockdev_driver = hv_kvm.kvm_utils.ParseStorageUriToBlockdevParam(uri)
+
+    self.assertDictEqual(expected_data, blockdev_driver)
+
+  def testBadURI(self):
+    uri = "gopher://storage/file"
+
+    self.assertRaises(errors.HypervisorError,
+                      hv_kvm.kvm_utils.ParseStorageUriToBlockdevParam, uri)
+
+
 class PostfixMatcher(object):
   def __init__(self, string):
     self.string = string
@@ -1050,7 +1077,6 @@ class TestKvmRuntime(testutils.GanetiTestCase):
     self.MockOut('pid_alive', mock.patch(kvm_class + '._InstancePidAlive',
                                          return_value=('file', -1, False)))
     self.MockOut(mock.patch(kvm_class + '._ExecuteCpuAffinity'))
-    self.MockOut(mock.patch(kvm_class + '._CallMonitorCommand'))
 
     self.cfg = ConfigMock()
     params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()

@@ -39,6 +39,7 @@ import errno
 import socket
 import io
 import logging
+import time
 
 from bitarray import bitarray
 
@@ -545,74 +546,46 @@ class QmpConnection(MonitorSocket):
     self.Execute("netdev_del", {"id": devid})
 
   @_ensure_connection
-  def HotAddDisk(self, disk, devid, uri, drive_add_fn=None):
+  def HotAddDisk(self, disk, access_mode, cache_writeback, blockdevice):
     """Hot-add a disk
 
-    Try opening the device to obtain a fd and pass it with SCM_RIGHTS. This
-    will be omitted in case of userspace access mode (open will fail).
-    Then use blockdev-add QMP command or drive_add_fn() callback if any.
-    The add the guest device.
-
     """
-    if os.path.exists(uri):
-      fd = os.open(uri, os.O_RDWR)
+
+    if access_mode == constants.DISK_KERNELSPACE:
+      fd = os.open(blockdevice["file"]["filename"], os.O_RDWR)
       fdset = self._AddFd(fd)
       os.close(fd)
-      filename = "/dev/fdset/%s" % fdset
+      blockdevice["file"]["filename"] = "/dev/fdset/%s" % fdset
     else:
-      # The uri is not a file.
-      # This can happen if a userspace uri is provided.
-      filename = uri
       fdset = None
 
-    # FIXME: Use blockdev-add/blockdev-del when properly implemented in QEMU.
-    # This is an ugly hack to work around QEMU commits 48f364dd and da2cf4e8:
-    #  * HMP's drive_del is not supported any more on a drive added
-    #    via QMP's blockdev-add
-    #  * Stay away from immature blockdev-add unless you want to help
-    #     with development.
-    # Using drive_add here must be done via a callback due to the fact that if
-    # a QMP connection terminates before a drive keeps a reference to the fd
-    # passed via the add-fd QMP command, then the fd gets closed and
-    # cannot be used later.
-    if drive_add_fn:
-      drive_add_fn(filename)
-    else:
-      arguments = {
-        "options": {
-          "driver": "raw",
-          "id": devid,
-          "file": {
-            "driver": "file",
-            "filename": filename,
-          }
-        }
-      }
-      self.Execute("blockdev-add", arguments)
+    dev_arguments = {
+      "drive": blockdevice["node-name"],
+      "write-cache": cache_writeback
+    }
+    # Note that hvinfo that _GenerateDeviceHVInfo() creates
+    # should include *only* the driver, id, bus, and
+    # addr or channel, scsi-id, and lun keys
+    dev_arguments.update(self._filter_hvinfo(disk.hvinfo))
+
+    self.Execute("blockdev-add", blockdevice)
+    self.Execute("device_add", dev_arguments)
 
     if fdset is not None:
       self._RemoveFdset(fdset)
-
-    arguments = {
-      "drive": devid,
-    }
-    # Note that hvinfo that _GenerateDeviceHVInfo() creates
-    # sould include *only* the driver, id, bus, and
-    # addr or channel, scsi-id, and lun keys
-    arguments.update(self._filter_hvinfo(disk.hvinfo))
-    self.Execute("device_add", arguments)
 
   @_ensure_connection
   def HotDelDisk(self, devid):
     """Hot-del a Disk
 
-    Note that drive_del is not supported yet in qmp and thus should
-    be invoked from HMP.
-
     """
     self.Execute("device_del", {"id": devid})
-    #TODO: uncomment when drive_del gets implemented in upstream qemu
-    # self.Execute("drive_del", {"id": devid})
+
+    # TODO: implement receiving of QMP events
+    # We need to wait for the DEVICE_DELETED event via QMP before proceeding.
+    # The old implementation using HMP only worked because it is so slow.
+    time.sleep(1)
+    self.Execute("blockdev-del", {"node-name": devid})
 
   def _GetPCIDevices(self):
     """Get the devices of the first PCI bus of a running instance.

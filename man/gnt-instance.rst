@@ -646,32 +646,34 @@ serial\_speed
 disk\_cache
     Valid for the KVM hypervisor.
 
-    The disk cache mode. It can be either default to not pass any
-    cache option to KVM, or one of the KVM cache modes: none (for
-    direct I/O), writethrough (to use the host cache but report
-    completion to the guest only when the host has committed the
-    changes to disk) or writeback (to use the host cache and report
-    completion as soon as the data is in the host cache). Note that
-    there are special considerations for the cache mode depending on
-    version of KVM used and disk type (always raw file under Ganeti),
-    please refer to the KVM documentation for more details.
+    The disk cache mode. It controls QEMUs internal 'cache.writeback',
+    'cache.direct' and 'cache.no-flush' settings, based on the table
+    found in man **qemu-system-x86_64**\(1).
+    It supports three cache modes: *none* (for direct I/O), *writethrough*
+    (to use the host cache but report completion to the guest only
+    when the host has committed the changes to disk) or *writeback* (to
+    use the host cache and report completion as soon as the data is in
+    the host cache). The value 'default' has been kept in Ganeti for
+    backwards compatibility and corresponds to *writeback*.
+    Note that certain disk templates in Ganeti may override the cache
+    mode to allow for safe live migrations.
 
 disk\_aio
     Valid for the KVM hypervisor.
 
-    This is an optional parameter that specifies the aio mode
-    for the disks. KVM default is to use the 'threads' mode,
-    so if not explicitly specified, the native mode will not
-    be used. Possible values are: threads or native.
+    This parameter controls the way in which KVM interactions with
+    the kernel I/O subsystem. It defaults to *threads* for backwards
+    compatibility, but on recent installations *native* or *io\_uring*
+    would be the recommended way.
+    For *io\_uring* to work, QEMU 5.0 and Linux kernel 5.1 are the
+    minimum requirements.
 
 disk\_discard
     Valid for the KVM hypervisor.
 
-    discard is one of "ignore", "unmap" or "default" and controls whether
+    discard is one of *ignore* or *unmap* and controls whether
     discard (also known as trim or unmap) requests are ignored or passed
     to the filesystem. Some machine types may not support discard requests.
-    For compatibility with older qemu versions "default" will not pass any
-    discard option to KVM.
 
 security\_model
     Valid for the KVM hypervisor.

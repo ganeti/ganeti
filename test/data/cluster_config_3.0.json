@@ -132,6 +132,7 @@
         "cpu_type": "",
         "disk_aio": "threads",
         "disk_cache": "default",
+        "disk_discard": "ignore",
         "disk_type": "paravirtual",
         "floppy_image_path": "",
         "initrd_path": "",
