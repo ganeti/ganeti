@@ -1142,14 +1142,14 @@ class TestFormatPolicyInfo(unittest.TestCase):
     self.assertTrue(constants.IPOLICY_DTS in parsed)
     parsed[constants.IPOLICY_DTS] = yaml.load("[%s]" %
                                               parsed[constants.IPOLICY_DTS],
-                                              Loader=yaml.FullLoader)
+                                              Loader=yaml.SafeLoader)
 
   @staticmethod
   def _PrintAndParsePolicy(custom, effective, iscluster):
     formatted = cli.FormatPolicyInfo(custom, effective, iscluster)
     buf = StringIO()
     cli._SerializeGenericInfo(buf, formatted, 0)
-    return yaml.load(buf.getvalue(), Loader=yaml.FullLoader)
+    return yaml.load(buf.getvalue(), Loader=yaml.SafeLoader)
 
   def _PrintAndCheckParsed(self, policy):
     parsed = self._PrintAndParsePolicy(policy, NotImplemented, True)
