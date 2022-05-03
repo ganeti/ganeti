@@ -1221,7 +1221,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       boot_val = ""
       if boot_disk:
-        dev_opts.extend(["-boot", "c"])
+        dev_opts.extend(["-boot", "order=c"])
         boot_disk = False
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
@@ -1261,7 +1261,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Extends L{kvm_cmd} with the '-drive' option for a cdrom, and
     optionally the '-boot' option.
 
-    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide -boot d
+    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide -boot order=d
 
     Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide,boot=on
 
@@ -1306,7 +1306,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # set boot flag, if needed
     boot_val = ""
     if cdrom_boot:
-      kvm_cmd.extend(["-boot", "d"])
+      kvm_cmd.extend(["-boot", "order=d"])
 
       # whether this is an older KVM version that requires the 'boot=on' flag
       # on devices
@@ -1419,7 +1419,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
 
     if boot_network:
-      kvm_cmd.extend(["-boot", "n"])
+      kvm_cmd.extend(["-boot", "order=n"])
 
     disk_type = hvp[constants.HV_DISK_TYPE]
 
@@ -1442,7 +1442,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if floppy_image:
       options = ",format=raw,media=disk"
       if boot_floppy:
-        kvm_cmd.extend(["-boot", "a"])
+        kvm_cmd.extend(["-boot", "order=a"])
         options = "%s,boot=on" % options
       if_val = ",if=floppy"
       options = "%s%s" % (options, if_val)
