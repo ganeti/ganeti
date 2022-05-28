@@ -66,8 +66,6 @@ from qa import qa_error
 from qa_logging import FormatInfo
 
 
-_MULTIPLEXERS = {}
-
 #: Unique ID per QA run
 _RUN_UUID = utils.NewUUID()
 
@@ -309,8 +307,8 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=False,
   args.append("-oForwardAgent=%s" % ("yes" if forward_agent else "no", ))
   if opts:
     args.extend(opts)
-  if node in _MULTIPLEXERS and use_multiplexer:
-    spath = _MULTIPLEXERS[node][0]
+  if node in qa_config.MULTIPLEXERS and use_multiplexer:
+    spath = qa_config.MULTIPLEXERS[node][0]
     args.append("-oControlPath=%s" % spath)
     args.append("-oControlMaster=no")
 
@@ -366,7 +364,7 @@ def StartMultiplexer(node):
   @param node: the node for which to open the multiplexer
 
   """
-  if node in _MULTIPLEXERS:
+  if node in qa_config.MULTIPLEXERS:
     return
 
   # Note: yes, we only need mktemp, since we'll remove the file anyway
@@ -375,15 +373,15 @@ def StartMultiplexer(node):
   opts = ["-N", "-oControlPath=%s" % sname, "-oControlMaster=yes"]
   print("Created socket at %s" % sname)
   child = StartLocalCommand(GetSSHCommand(node, None, opts=opts))
-  _MULTIPLEXERS[node] = (sname, child)
+  qa_config.MULTIPLEXERS[node] = (sname, child)
 
 
 def CloseMultiplexers():
   """Closes all current multiplexers and cleans up.
 
   """
-  for node in list(_MULTIPLEXERS):
-    (sname, child) = _MULTIPLEXERS.pop(node)
+  for node in list(qa_config.MULTIPLEXERS):
+    (sname, child) = qa_config.MULTIPLEXERS.pop(node)
     utils.KillProcess(child.pid, timeout=10, waitpid=True)
     utils.RemoveFile(sname)
 

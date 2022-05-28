@@ -60,6 +60,8 @@ _QA_PATCH_ORDER_FILE = "order"
 #: QA configuration (L{_QaConfig})
 _config = None
 
+MULTIPLEXERS = {}
+
 
 class _QaInstance(object):
   __slots__ = [

@@ -1178,12 +1178,11 @@ def main():
 
   qa_config.Load(config_file)
 
-  primary = qa_config.GetMasterNode().primary
-  qa_utils.StartMultiplexer(primary)
-  print("SSH command for primary node: %s" %
-        utils.ShellQuoteArgs(qa_utils.GetSSHCommand(primary, "")))
-  print("SSH command for other nodes: %s" %
-        utils.ShellQuoteArgs(qa_utils.GetSSHCommand("NODE", "")))
+  for node in qa_config.GetAllNodes():
+    qa_utils.StartMultiplexer(node.primary)
+    print("SSH command for node %s: %s" % (node.primary,
+          utils.ShellQuoteArgs(qa_utils.GetSSHCommand(node.primary, ""))))
+
   try:
     RunQa()
   finally:
