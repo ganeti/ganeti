@@ -91,6 +91,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "beparams", "hvparams",
             "oper_state", "oper_ram", "oper_vcpus", "status",
             "custom_hvparams", "custom_beparams", "custom_nicparams",
+            "custom_osparams",
             ] + _COMMON_FIELDS
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",
