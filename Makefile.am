@@ -2141,7 +2141,7 @@ standalone_python_modules = \
 	lib/rapi/client.py \
 	tools/ganeti-listrunner
 
-pep8_python_code = \
+pycodestyle_python_code = \
 	ganeti \
 	ganeti/http/server.py \
 	$(dist_sbin_SCRIPTS) \
@@ -2688,6 +2688,7 @@ hs-shell: test/hs/hpc-htools test/hs/hpc-mon-collector $(HS_BUILT_TEST_HELPERS)
 hs-check: hs-tests hs-shell
 
 # E111: indentation is not a multiple of four
+# E114: indentation is not a multiple of four (comment)
 # E121: continuation line indentation is not a multiple of four
 #       (since our indent level is not 4)
 # E125: continuation line does not distinguish itself from next logical line
@@ -2701,7 +2702,7 @@ hs-check: hs-tests hs-shell
 # instead of silencing it
 # E261: at least two spaces before inline comment
 # E501: line too long (80 characters)
-PEP8_IGNORE = E111,E121,E123,E125,E127,E261,E501
+PEP8_IGNORE = E111,E114,E121,E123,E125,E127,E261,E501
 
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources))))
@@ -2730,8 +2731,8 @@ LINT_OPTS_ALL = $(LINT_OPTS) \
 LINT_OPTS_ALL += --extension-pkg-whitelist=pycurl
 
 LINT_TARGETS = pylint pylint-qa pylint-test
-if HAS_PEP8
-LINT_TARGETS += pep8
+if HAS_PYCODESTYLE
+LINT_TARGETS += pycodestyle
 endif
 if HAS_HLINT
 LINT_TARGETS += hlint
@@ -2758,11 +2759,16 @@ pylint-test: $(GENERATED_FILES)
 		PYTHONPATH=.:./test/py $(PYLINT) $(LINT_OPTS_ALL) \
 		--rcfile=pylintrc-test  $(python_test_support) $(python_test_utils)
 
-.PHONY: pep8
-pep8: $(GENERATED_FILES)
-	@test -n "$(PEP8)" || { echo 'pep8' not found during configure; exit 1; }
-	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
-	  --repeat $(pep8_python_code)
+.PHONY: pycodestyle
+pycodestyle: $(GENERATED_FILES)
+	@test -n "$(PYCODESTYLE)" || { echo 'pycodestyle' not found during configure; exit 1; }
+	$(PYCODESTYLE) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
+	--repeat $(pycodestyle_python_code)
+
+pycodestyle-stats: $(GENERATED_FILES)
+	@test -n "$(PYCODESTYLE)" || { echo 'pycodestyle' not found during configure; exit 1; }
+	$(PYCODESTYLE) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
+	--repeat --statistics $(pycodestyle_python_code)
 
 HLINT_EXCLUDES = src/Ganeti/THH.hs test/hs/hpc-htools.hs
 .PHONY: hlint

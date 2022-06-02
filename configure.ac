@@ -588,14 +588,14 @@ then
   fi
 fi
 
-# Check for pep8
-AC_ARG_VAR(PEP8, [pep8 path])
-AC_PATH_PROG(PEP8, [pep8], [])
-if test -z "$PEP8"
+# Check for pycodestyle, formerly pep8
+AC_ARG_VAR(PYCODESTYLE, [pycodestyle path])
+AC_PATH_PROG(PYCODESTYLE, [pycodestyle], [])
+if test -z "$PYCODESTYLE"
 then
-  AC_MSG_WARN([pep8 not found, checking code will not be complete])
+  AC_MSG_WARN([pycodestyle not found, checking code will not be complete])
 fi
-AM_CONDITIONAL([HAS_PEP8], [test -n "$PEP8"])
+AM_CONDITIONAL([HAS_PYCODESTYLE], [test -n "$PYCODESTYLE"])
 
 # Check for python3-coverage
 AC_ARG_VAR(PYCOVERAGE, [python3-coverage path])
