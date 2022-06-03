@@ -14,15 +14,18 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `Gzip <http://www.gnu.org/software/gzip/>`_
 - `pandoc <http://johnmacfarlane.net/pandoc/>`_
 - `python-epydoc <http://epydoc.sourceforge.net/>`_
+  Note: python-epydoc is not compatible with python3
+  and is only available in Debian <= 10 and Ubuntu <= 18.04.
+  We are looking for a suitable replacement.
 - `python-sphinx <http://sphinx.pocoo.org/>`_
-  (tested with version 1.1.3)
+  (tested with version 3.4.3)
 - `python-mock <http://www.voidspace.org.uk/python/mock/>`_
-  (tested with version 1.0.1)
+  (tested with version 4.0.3)
 - `graphviz <http://www.graphviz.org/>`_
 - the `en_US.UTF-8` locale must be enabled on the system
-- `pylint <http://www.logilab.org/857>`_ and its associated
+- `pylint <https://github.com/PyCQA/pylint>`_ and its associated
   dependencies
-- `pep8 <https://github.com/jcrocholl/pep8/>`_
+- `pycodestyle (formerly pep8) <https://github.com/PyCQA/pycodestyle>`_
 - `PyYAML <http://pyyaml.org/>`_
 
 For older developement (Ganeti < 2.4) ``docbook`` was used instead of
@@ -32,31 +35,25 @@ Note that for pylint, at the current moment the following versions
 must be used::
 
     $ pylint --version
-    pylint 0.26.0,
-    astng 0.24.1, common 0.58.3
+      pylint 2.7.2
+      astroid 2.5.1
 
-The same with pep8, other versions may give you errors::
+The same with pycodestyle, other versions may give you errors::
 
-     $ pep8 --version
-     1.3.3
+    $ pycodestyle --version
+      2.6.0
 
-Both these versions are the ones shipped with Ubuntu 13.04.
+Both these versions are the ones shipped with Debian 11 Bullseye.
 
 To generate unittest coverage reports (``make coverage``), `coverage
 <http://pypi.python.org/pypi/coverage>`_ needs to be installed.
 
 Installation of all dependencies listed here::
 
-     $ apt-get install python-setuptools automake git fakeroot
-     $ apt-get install pandoc python-epydoc graphviz python-sphinx
-     $ apt-get install python-yaml
-     $ cd / && easy_install \
-               logilab-astng==0.24.1 \
-               logilab-common==0.58.3 \
-               pylint==0.26.0 \
-               pep8==1.3.3 \
-               mock==1.0.1 \
-               coverage
+     $ apt install python3-setuptools automake git fakeroot \
+           pandoc graphviz python3-sphinx \
+           python3-yaml python3-coverage python3-mock \
+           pylint pycodestyle
 
 For Haskell development, again all things from the quick install
 document, plus:
@@ -86,7 +83,7 @@ document, plus:
 Under Debian Wheezy or later, these can be installed (on top of the
 required ones from the quick install document) via::
 
-  $ apt-get install libghc-quickcheck2-dev libghc-hunit-dev \
+  $ apt install libghc-quickcheck2-dev libghc-hunit-dev \
         libghc-test-framework-dev \
         libghc-test-framework-quickcheck2-dev \
         libghc-test-framework-hunit-dev \
