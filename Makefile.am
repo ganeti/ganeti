@@ -2892,11 +2892,14 @@ apidoc: py-apidoc
 endif
 
 .PHONY: py-apidoc
-py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
+py-apidoc: $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
 	env - PATH="$$PATH" PYTHONPATH="$$PYTHONPATH" \
-	$(RUN_IN_TEMPDIR) epydoc -v \
-	  --conf $(CURDIR)/epydoc.conf \
-	  --output $(CURDIR)/$(APIDOC_PY_DIR)
+	$(RUN_IN_TEMPDIR) pydoctor -v \
+	  --config $(CURDIR)/pydoctor.ini \
+	  --html-output $(CURDIR)/$(APIDOC_PY_DIR) \
+          $(lint_python_code)
+
+
 
 .PHONY: hs-apidoc
 hs-apidoc: $(APIDOC_HS_DIR)/index.html

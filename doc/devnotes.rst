@@ -13,10 +13,7 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `GNU tar <http://www.gnu.org/software/tar/>`_
 - `Gzip <http://www.gnu.org/software/gzip/>`_
 - `pandoc <http://johnmacfarlane.net/pandoc/>`_
-- `python-epydoc <http://epydoc.sourceforge.net/>`_
-  Note: python-epydoc is not compatible with python3
-  and is only available in Debian <= 10 and Ubuntu <= 18.04.
-  We are looking for a suitable replacement.
+- `python3-pydoctor <https://github.com/twisted/pydoctor>`_
 - `python-sphinx <http://sphinx.pocoo.org/>`_
   (tested with version 3.4.3)
 - `python-mock <http://www.voidspace.org.uk/python/mock/>`_
@@ -51,7 +48,7 @@ To generate unittest coverage reports (``make coverage``), `coverage
 Installation of all dependencies listed here::
 
      $ apt install python3-setuptools automake git fakeroot \
-           pandoc graphviz python3-sphinx \
+           pandoc graphviz python3-sphinx python3-pydoctor \
            python3-yaml python3-coverage python3-mock \
            pylint pycodestyle
 
