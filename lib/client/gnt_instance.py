@@ -1641,7 +1641,7 @@ commands = {
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT]
     + SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT,
                      OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
-    "[-f] <instance>", "Reinstall a stopped instance"),
+    "[-f] <instance-name>", "Reinstall a stopped instance"),
   "remove": (
     RemoveInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SHUTDOWN_TIMEOUT_OPT, IGNORE_FAILURES_OPT] + SUBMIT_OPTS
@@ -1677,7 +1677,7 @@ commands = {
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, m_inst_opt, m_force_multi, TIMEOUT_OPT] + SUBMIT_OPTS
     + [DRY_RUN_OPT, PRIORITY_OPT, IGNORE_OFFLINE_OPT, NO_REMEMBER_OPT],
-    "<instance>", "Stops an instance"),
+    "<instance-name>...", "Stops one or more instances"),
   "startup": (
     GenericManyOps("startup", _StartupInstance), [ArgInstance()],
     [FORCE_OPT, m_force_multi, m_node_opt, m_pri_node_opt, m_sec_node_opt,
@@ -1686,14 +1686,14 @@ commands = {
     [HVOPTS_OPT,
      BACKEND_OPT, DRY_RUN_OPT, PRIORITY_OPT, IGNORE_OFFLINE_OPT,
      NO_REMEMBER_OPT, STARTUP_PAUSED_OPT],
-    "<instance>", "Starts an instance"),
+    "<instance-name>...", "Starts one or more instances"),
   "reboot": (
     GenericManyOps("reboot", _RebootInstance), [ArgInstance()],
     [m_force_multi, REBOOT_TYPE_OPT, IGNORE_SECONDARIES_OPT, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt] + SUBMIT_OPTS +
     [m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
-    "<instance>", "Reboots an instance"),
+    "<instance-name>...", "Reboots one or more instances"),
   "activate-disks": (
     ActivateDisks, ARGS_ONE_INSTANCE,
     SUBMIT_OPTS + [IGNORE_SIZE_OPT, PRIORITY_OPT, WFSYNC_OPT],
