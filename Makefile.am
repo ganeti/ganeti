@@ -1826,6 +1826,7 @@ TEST_FILES = \
 	test/data/cluster_config_2.14.json \
 	test/data/cluster_config_2.15.json \
 	test/data/cluster_config_2.16.json \
+	test/data/cluster_config_3.0.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/instance-disks.txt \
 	test/data/ip-addr-show-dummy0.txt \
@@ -1841,6 +1842,8 @@ TEST_FILES = \
 	test/data/kvm_0.9.1_help_boot_test.txt \
 	test/data/kvm_1.0_help.txt \
 	test/data/kvm_1.1.2_help.txt \
+	test/data/kvm_5.2.0_help.txt \
+	test/data/kvm_current_help.txt \
 	test/data/kvm_6.0.0_machine.txt \
 	test/data/kvm_runtime.json \
 	test/data/lvs_lv.txt \
