@@ -320,7 +320,6 @@ CLEANFILES = \
 	Makefile.ghc.bak \
 	$(PYTHON_BOOTSTRAP) \
 	$(gnt_python_sbin_SCRIPTS) \
-	epydoc.conf \
 	$(REPLACE_VARS_SED) \
 	$(SHELL_ENV_INIT) \
 	daemons/daemon-util \
@@ -1581,7 +1580,7 @@ myexeclib_scripts_basenames = \
 EXTRA_DIST += \
 	NEWS \
 	UPGRADE \
-	epydoc.conf.in \
+	pydoctor.ini \
 	pylintrc \
 	pylintrc-test \
 	autotools/build-bash-completion \
@@ -2266,9 +2265,6 @@ man/%.html: man/%.gen man/footer.rst
 	set -o pipefail ; \
 	$(PANDOC) --toc -s -f rst -t html $< man/footer.rst > $@
 
-epydoc.conf: epydoc.conf.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
 vcs-version:
 	if test -d $(top_srcdir)/.git; then \
 	  git -C $(top_srcdir) describe | tr '"' - > $@; \
@@ -2505,7 +2501,6 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTMETADGROUP@#$(METAD_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@''CUSTOM_ENABLE_MOND@#$(ENABLE_MOND)#g'; \
-	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \
 	  echo 's#@''XEN_CONFIG_DIR@#$(XEN_CONFIG_DIR)#g'; \
 	  echo; \
 	  echo '/^@SHELL_ENV_INIT@$$/ {'; \
@@ -2895,11 +2890,11 @@ apidoc: py-apidoc
 endif
 
 .PHONY: py-apidoc
-py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(GENERATED_FILES)
-	env - PATH="$$PATH" PYTHONPATH="$$PYTHONPATH" \
-	$(RUN_IN_TEMPDIR) epydoc -v \
-	  --conf $(CURDIR)/epydoc.conf \
-	  --output $(CURDIR)/$(APIDOC_PY_DIR)
+py-apidoc:
+	$(RUN_IN_TEMPDIR) pydoctor -v \
+	  --config $(CURDIR)/pydoctor.ini \
+	  --html-output $(CURDIR)/$(APIDOC_PY_DIR) \
+	  $(lint_python_code)
 
 .PHONY: hs-apidoc
 hs-apidoc: $(APIDOC_HS_DIR)/index.html

@@ -602,11 +602,10 @@ class TLMigrateInstance(Tasklet):
   def _FindInstanceLocations(self, name):
     """Returns a list of nodes that have the given instance running
 
-    Args:
-      name: string, instance name string to search for
+    @type name: string
+    @param name: instance name string to search for
 
-    Returns:
-      list of strings, node uuids
+    @return: list of strings, node uuids
     """
     self.feedback_fn("* checking where the instance actually runs (if this"
                      " hangs, the hypervisor might be in a bad state)")
@@ -780,8 +779,7 @@ class TLMigrateInstance(Tasklet):
   def _AbortMigration(self):
     """Call the hypervisor code to abort a started migration.
 
-    Returns:
-      tuple of rpc call results
+    @return: tuple of rpc call results
     """
     src_result = self.rpc.call_instance_finalize_migration_dst(
         self.target_node_uuid, self.instance, self.migration_info, False)
