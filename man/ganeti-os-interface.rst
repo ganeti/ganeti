@@ -65,7 +65,7 @@ DISK_COUNT
     in a set of additional variables. The instance's disk will be
     numbered from 0 to this value minus one.
 
-DISK_%N_PATH
+DISK\_%N_PATH
     The path to the storage for disk N of the instance. This might be
     either a block device or a regular file, in which case the OS
     scripts should use ``losetup`` (if they need to mount it). E.g. the
@@ -73,30 +73,30 @@ DISK_%N_PATH
     ``DISK_0_PATH=/dev/drbd0``. If the disk is only accessible via a
     userspace URI, this not be set.
 
-DISK_%N_SIZE
+DISK\_%N_SIZE
     The configured size of disk N in mebibytes (available since Ganeti 3.0).
 
-DISK_%N_URI
+DISK\_%N_URI
     The userspace URI to the storage for disk N of the instance, if
     configured.
 
-DISK_%N_ACCESS
+DISK\_%N_ACCESS
     This is how the hypervisor will export the instance disks: either
     read-write (``rw``) or read-only (``ro``).
 
-DISK_%N_UUID
+DISK\_%N_UUID
     The uuid associated with the N-th disk of the instance.
 
-DISK_%N_NAME
+DISK\_%N_NAME
     (Optional) The name, if any, associated with the N-th disk of the instance.
 
-DISK_%N_FRONTEND_TYPE
+DISK\_%N_FRONTEND_TYPE
     (Optional) If applicable to the current hypervisor type: the type
     of the device exported by the hypervisor. For example, the Xen HVM
     hypervisor can export disks as either ``paravirtual`` or
     ``ioemu``.
 
-DISK_%N_BACKEND_TYPE
+DISK\_%N_BACKEND_TYPE
     How files are visible on the node side. This can be either
     ``block`` (when using block devices) or ``file:type``, where
     ``type`` is either ``loop``, ``blktap`` or ``blktap2``, depending on how the
@@ -107,68 +107,68 @@ NIC_COUNT
     Similar to the ``DISK_COUNT``, this represents the number of NICs
     of the instance.
 
-NIC_%N_MAC
+NIC\_%N_MAC
     The MAC address associated with this interface.
 
-NIC_%N_UUID
+NIC\_%N_UUID
     The uuid associated with the N-th NIC of the instance.
 
-NIC_%N_NAME
+NIC\_%N_NAME
     (Optional) The name, if any, associated with the N-th NIC of the instance.
 
-NIC_%N_IP
+NIC\_%N_IP
     The IP address, if any, associated with the N-th NIC of the
     instance.
 
-NIC_%N_MODE
+NIC\_%N_MODE
     The NIC mode, routed, bridged or openvswitch
 
-NIC_%N_BRIDGE
+NIC\_%N_BRIDGE
     The bridge to which this NIC will be attached. This variable is
     defined only when the NIC is in bridged mode.
 
-NIC_%N_LINK
+NIC\_%N_LINK
     In bridged or openvswitch mode, this is the interface to which the
     NIC will be attached (same as ``NIC_%N_BRIDGE`` for bridged). In
     routed mode it is the routing table which will be used by the
     hypervisor to insert the appropriate routes.
 
-NIC_%N_FRONTEND_TYPE
+NIC\_%N_FRONTEND_TYPE
     (Optional) If applicable, the type of the exported NIC to the
     instance, this can be one of: ``rtl8139``, ``ne2k_pci``,
     ``ne2k_isa``, ``paravirtual``.
 
-NIC_%d_NETWORK_NAME
+NIC\_%d_NETWORK_NAME
     (Optional) If a NIC network is specified, the network's name.
 
-NIC_%d_NETWORK_UUID
+NIC\_%d_NETWORK_UUID
     (Optional) If a NIC network is specified, the network's uuid.
 
-NIC_%d_NETWORK_FAMILY
+NIC\_%d_NETWORK_FAMILY
     (Optional) If a NIC network is specified, the network's family.
 
-NIC_%d_NETWORK_SUBNET
+NIC\_%d_NETWORK_SUBNET
     (Optional) If a NIC network is specified, the network's IPv4 subnet.
 
-NIC_%d_NETWORK_GATEWAY
+NIC\_%d_NETWORK_GATEWAY
     (Optional) If a NIC network is specified, the network's IPv4
     gateway.
 
-NIC_%d_NETWORK_SUBNET6
+NIC\_%d_NETWORK_SUBNET6
     (Optional) If a NIC network is specified, the network's IPv6 subnet.
 
-NIC_%d_NETWORK_GATEWAY6
+NIC\_%d_NETWORK_GATEWAY6
     (Optional) If a NIC network is specified, the network's IPv6
     gateway.
 
-NIC_%d_NETWORK_MAC_PREFIX
+NIC\_%d_NETWORK_MAC_PREFIX
     (Optional) If a NIC network is specified, the network's mac prefix.
 
-NIC_%d_NETWORK_TAGS
+NIC\_%d_NETWORK_TAGS
     (Optional) If a NIC network is specified, the network's tags, space
     separated.
 
-OSP_*name*
+OSP\_*name*
     Each OS parameter (see below) will be exported in its own
     variable, prefixed with ``OSP_``, and upper-cased. For example, a
     ``dhcp`` parameter will be exported as ``OSP_DHCP``.
