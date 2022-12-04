@@ -884,7 +884,7 @@ genLoadOpCode opdefs fn = do
                   ) $ zip mexps opdefs
       defmatch = Match WildP (NormalB fails) []
       cst = NoBindS $ CaseE (VarE opid) $ mpats++[defmatch]
-      body = DoE [st, cst]
+      body = mkDoE [st, cst]
   -- include "OP_ID" to the list of used keys
   bodyAndOpId <- [| $(return body)
                     <* tell (mkUsedKeys . S.singleton . T.pack $ opidKey) |]
@@ -1541,7 +1541,7 @@ loadExcConstructor inname sname fields = do
                 [x] -> BindS (ListP [VarP x])
                 _   -> BindS (TupP (map VarP f_names))
       cval = appCons name $ map VarE f_names
-  return $ DoE [binds read_args, NoBindS (AppE (VarE 'return) cval)]
+  return $ mkDoE [binds read_args, NoBindS (AppE (VarE 'return) cval)]
 
 {-| Generates the loadException function.
 
