@@ -61,7 +61,7 @@ Since this proceeded correctly, let's add the other two nodes::
   on the target machine (node2) with the ones of the current one
   and grant full intra-cluster ssh root access to/from it
 
-  Unable to verify hostkey of host xen-devi-5.fra.corp.google.com:
+  Unable to verify hostkey of host xen-devi-5.fra.corp.example.com:
   f7:…. Do you want to accept it?
   y/[n]/?: %y%
   Mon Oct 26 02:11:53 2009  Authentication to node2 via public key failed, trying password
