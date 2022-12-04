@@ -169,7 +169,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
 
   def testVerifyNodeNetTestMissingSelf(self):
     my_name = netutils.Hostname.GetSysName()
-    local_data = ([('n1.test.com', "any", "any")], [my_name])
+    local_data = ([('n1.example.com', "any", "any")], [my_name])
     result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
                                 None, {})
 
@@ -193,7 +193,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
                     "NodeNetTest failed")
 
   def testVerifyNodeNetSkipTest(self):
-    local_data = ([('n1.test.com', "any", "any")], [])
+    local_data = ([('n1.example.com', "any", "any")], [])
     result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
                                 None, {})
     self.assertTrue(constants.NV_NODENETTEST in result,
