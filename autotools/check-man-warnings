@@ -29,11 +29,7 @@
 
 set -e
 
-if locale -a | grep -qF 'C.UTF-8'; then
-	loc="C.UTF-8"
-else
-	loc="en_US.UTF-8"
-fi
+loc="$(locale -a | grep -m 1 -xF -e C.UTF-8 -e C.utf8 || echo en_US.UTF-8)"
 
 ! LANG="$loc" LC_ALL="$loc" MANWIDTH=80 \
   man --warnings --encoding=utf8 --local-file "$1" 2>&1 >/dev/null | \
