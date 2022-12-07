@@ -32,7 +32,7 @@ EXTRA_DIST=
 SHELLTESTARGS = "-c"
 
 # Use C.UTF-8 for tests/checks when available, fall back to en_US.UTF-8 else
-UTF8_LOCALE := $(shell locale -a | grep -m 1 -xF "C.UTF-8" || echo "en_US.UTF-8")
+UTF8_LOCALE := $(shell locale -a | grep -m 1 -xF -e C.UTF-8 -e C.utf8 || echo en_US.UTF-8)
 
 ACLOCAL_AMFLAGS = -I autotools
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
