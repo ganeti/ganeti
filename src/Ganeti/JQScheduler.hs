@@ -280,7 +280,7 @@ jobWatcher state jWS e = do
   let inotify = jINotify jWS
   when (e == Ignored  && isJust inotify) $ do
     qdir <- queueDir
-    let fpath = liveJobFile qdir jid
+    let fpath = toInotifyPath $ liveJobFile qdir jid
     _ <- addWatch (fromJust inotify) [Modify, Delete] fpath
            (jobWatcher state jWS)
     return ()
@@ -298,7 +298,8 @@ attachWatcher state jWS = when (isNothing $ jINotify jWS) $ do
      let fpath = liveJobFile qdir . qjId $ jJob jWS
          jWS' = jWS { jINotify=Just inotify }
      logDebug $ "Attaching queue watcher for " ++ fpath
-     _ <- addWatch inotify [Modify, Delete] fpath $ jobWatcher state jWS'
+     _ <- addWatch inotify [Modify, Delete] (toInotifyPath fpath)
+            $ jobWatcher state jWS'
      modifyJobs state . onRunningJobs $ updateJobStatus jWS'
    else logDebug $ "Not attaching watcher for job "
                    ++ (show . fromJobId . qjId $ jJob jWS)

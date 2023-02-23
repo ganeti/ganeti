@@ -2,6 +2,268 @@ News
 ====
 
 
+Version 2.16.2
+--------------
+
+*(Released Fri, 22 May 2020)*
+
+This is a bugfix and compatibility release.
+
+Important note
+~~~~~~~~~~~~~~
+
+Due to the way the ``gnt-cluster upgrade`` mechanism is implemented,
+Ganeti versions earlier than 2.16.2 will refuse to upgrade to the
+upcoming 3.0 release. This release changes the upgrade logic to
+explicitly allow upgrades from 2.16.2 and later to 3.0.
+
+See `#1423`_ for more details and the relevant discussion.
+
+.. _#1423: https://github.com/ganeti/ganeti/issues/1423
+
+Bugfixes
+~~~~~~~~
+
+ - Fix node secondary instance count. Secondary instances were counted
+   as many times as their disk count (#1399)
+ - RPC: remove 1-second wait introduced by ``Expect: 100-Continue``.
+   This speeds up all RPC operations that pass through LuxiD (most
+   notably queries like ``gnt-instance list``) by 1 second.
+
+
+Version 2.16.1
+--------------
+
+*(Released Mon, 1 Apr 2019)*
+
+This is a bugfix and compatibility release.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+Updated X.509 certificate signing algorithm
++++++++++++++++++++++++++++++++++++++++++++
+
+Ganeti now uses the SHA-256 digest algorithm to sign all generated
+X.509 certificates used to secure the RPC communications between nodes.
+Previously, Ganeti was using SHA-1 which is seen as weak (but not
+broken) and has been deprecated by most vendors; most notably, OpenSSL —
+used by Ganeti on some setups — rejects SHA-1-signed certificates when
+configured to run on security level 2 and above.
+
+Users are advised to re-generate Ganeti's server and node certificates
+after installing 2.16.1 *on all nodes* using the following command:
+
+::
+
+  gnt-cluster renew-crypto --new-cluster-certificate
+
+On setups using RAPI and/or SPICE with Ganeti-generated certificates,
+``--new-rapi-certificate`` and ``--new-spice-certificate`` should be
+appended to the command above.
+
+QEMU 3.1 compatibility
+++++++++++++++++++++++
+
+Previous versions of Ganeti used QEMU command line options that were
+removed in QEMU 3.1, leading to an inability to start KVM instances with
+QEMU 3.1. This version restores compatibility with QEMU 3.1 by adapting
+to these changes. This was done in a backwards-compatible way, however
+there is one special case: Users using VNC with X.509 support enabled,
+will need to be running at least QEMU 2.5. See #1342 for details.
+
+Newer GHC support
++++++++++++++++++
+
+Ganeti 2.16.0 could only be built using GHC versions prior to 7.10,
+as GHC 7.10 and later versions introduced breaking API changes that made
+the build fail.
+
+This release introduces support for building with newer GHC versions:
+Ganeti is now known to build with GHC 8.0, 8.2 and 8.4. Furthermore,
+Ganeti can now be built with snap-server 1.0 as well as hinotify 0.3.10
+and later. Previously supported versions of GHC and of these libraries
+remain supported.
+
+Misc changes
+~~~~~~~~~~~~
+
+*(Contributor names in parentheses where available)*
+
+Compatibility fixes:
+ - Fix initscript operation on systems with dpkg >= 1.19.4 (#1322)
+ - Support Sphinx versions later than 1.7 (#1333) (Robin Sonnabend)
+ - Force KVM to use ``cache=none`` when ``aio=native`` is set; this
+   is mandatory for QEMU versions later than 2.6 (#43) (Alexandros
+   Kosiaris)
+ - Handle the new output format of ``rbd showmapped`` introduced in Ceph
+   Mimic (#1339) (Ansgar Jazdzewski)
+ - Support current versions of python-psutil (George Diamantopoulos)
+ - Fix distcheck-hook with automake versions >= 1.15 (Apollon
+   Oikonomopoulos)
+ - Fix cli tests with shelltestrunner versions >= 1.9 (Apollon
+   Oikonomopoulos)
+
+Bugfixes:
+ - Allow IPv6 addresses in the ``vnc_bind_address`` KVM hypervisor
+   parameter (#1257) (Brian Candler)
+ - Fix iproute2 invocation to accept ``dev`` as a valid interface name
+   (#26) (Arnd Hannemann)
+ - Properly handle OpenVSwitch trunk ports without native VLANs (#1324)
+   (George Diamantopoulos)
+ - Fix virtio-net multiqueue support (#1268) (George
+   Diamantopoulos)
+ - Make the ganeti-kvm-poweroff example script work on systems with
+   systemd/sysv integration (#1288)
+ - Avoid triggering the CPU affinity code when the instance's CPU mask
+   is set to ``all``, relaxing the runtime dependency on python-psutil
+   (Calum Calder)
+
+Performance improvements:
+ - Speed up Haskell test execution (Iustin Pop)
+ - Speed up Python test execution (Apollon Oikonomopoulos)
+
+Documentation fixes:
+ - Fix a couple of typos in the gnt-instance man page (#1279) (Phil
+   Regnauld)
+ - Fix a typo in doc/install.rst (Igor Vuk)
+
+Enhancements:
+ - KVM process logs are now obtained and saved under /var/log/ganeti/kvm
+   (Yiannis Tsiouris)
+
+
+Version 2.16.0
+--------------
+
+*(Released Tue, 18 Sep 2018)*
+
+Changes since 2.16.0 rc2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compatibility fixes:
+
+ - Support python-mock versions later than about 1.1
+
+Bugfixes:
+
+ - RAPI: Check non-SSL exceptions in _CheckIfConnectionDropped
+ - makefile: Preserve mode on copy
+ - Change uidpool test to skip uid 0
+ - Add retry behavior to detect SSConf read race in qa.qa_instance_utils
+ - utils.livelock: use portable struct flock type
+
+Misc changes:
+
+ - Set default ssh connection timeout between nodes to 10s
+ - Add unit tests for utils.livelock
+
+
+Version 2.16.0 rc2
+------------------
+
+*(Released Mon, 29 Jan 2018)*
+
+Changes since 2.16.0 rc1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New features:
+- Do not prompt when force-setting a node online
+- Consider state-of-the-record free memory in htools memory model (#35)
+- Add optStaticKvmNodeMemory to HTools and IAllocator (#34)
+- Add discard KVM option to bdev
+- StartInstance restores instance state if running
+- Allow migrate --cleanup to adopt an instance
+- Add ganeti-noded and ganeti-rapi --max-clients options
+- Add gnt-instance rename --force option
+- Allow master failover to ignore offline nodes
+- Adding a confirmation before gnt-node --offline no
+
+Compatibility fixes:
+- kvm: use the current psutil CPU affinity API
+- Provide alternative to decompressWithErrors in zlib 6.0
+- Ceph/RBD rbd showmapped -p is no longer supported
+- kvm: use_guest_agent: QEMU Guest Agent support
+- Fix LogicalVolume code to work with older /sbin/lvs
+
+Performance optimizations:
+- Use fork instead of spawnv in the watcher
+- Make executeRpcCall only compute rpcCallData once
+- Special case WaitForJobChange to reduce heap use
+- Get haskell daemons to only compress files > 4kB
+- Use zlib compression level 3 in Haskell RPC code
+- Make the TH fieldsDictsKeys more efficient
+- Implement localized cache for lvs commands
+- Reduce load in NV_NODENETTEST and NV_MASTERIP
+
+Bugfixes:
+- impexpd: fix certificate verification with new socat versions
+- impexpd: do not set socat SSL method
+- backend: fix key renewal on single-node clusters
+- hv_xen: generate correct type for paravirtualized nic (#57)
+- Force CleanupInstance always on InstanceShutdown (#53)
+- Cleanup blockdevs from target on migration failure (#50)
+- kvm: Add missing 'driver' in 'hvinfo' dict (#46)
+- Add cleanup of stale OS hvp data on cluster modify
+- Htools should use state-of-record instance size
+- Prohibit disk removal w/o hotplug on live instance
+- Fix tuple-unpacking from QueryInstances result
+- Fix index in RemoveDisks warning
+- Fix coexistence of location tags and non-DRBD instances
+- Fix backup export in case of ext disk template
+- Fix instance state detection in _Shutdowninstance
+- Fix for instance reinstall not updating config (issue #1193)
+- Fix optimisation: Correctly extract secondary node
+- Tune getNodeInstances DRBD secondary computation
+- Fix LogicalVolume Attach failure on missing path
+- Set USE_VERSION_FULL=no if --enable-versionfull=no
+- Don't verify disks when all disk templates are ext
+
+Misc changes:
+- Fixed several hlint and pylint styling errors
+- Reduced the verbosity of several debug messages
+- Fixed various typos in man pages and documentation
+- Improved various unit tests
+
+Fixes inherited from 2.15 branch:
+
+- Update hv_kvm to handle output from qemu >= 1.6.0
+- Disable logging CallRPCMethod timings in non-debug configs
+- Give atomicWriteFile temp filenames a more distinct pattern
+- FIX: Refactor DiagnoseOS to use a loop, not an inner fn
+- FIX: Set INSTANCE_NICn_NETWORK_NAME only if net is defined
+- Fix invalid variable error for file-based disks
+- Fix gnt-instance console instance unpausing for xl toolstack
+- KVM: handle gracefully too old/too new psutil versions
+- Fixup compatibility with GHC 7.4/base 4.5
+- mcpu: Raise caught OpPrereqErrors with too few args
+- Make EnsureDirs print chmod mode on errors
+- Use socat method string compatible with <1.73 & >=1.73
+- Reduce heap when parsing & storing ConfigData 10%
+- Cancel RAPI job if the client drops the connection
+- Make JQScheduler queues more strict to avoid leaks
+- Fix ganeti-rapi/noded exit-under-load bug
+- Fix ClusterVerifyConfig() causing high mem usage
+- Use threaded runtime when linking Haskell unit tests
+- Give JQueue test dirs unique prefixes so they can't conflict
+- Update install-quick DRBD requirements to include DRBD 8.4
+- Fix memory/perf bug in gnt-cluster verify
+- Improve luxid QueryInstances performance for large clusters
+- Optimize LXC hypervisor GetAllInstancesInfo
+- Bracket ConfigWriter writeConfigAndUnlock with debug logging
+- Bracket client LockConfig calls with debug logging
+- Get onInotify and onPollTimer to print filepath
+- Prevent InstanceShutdown from waiting on success
+
+Fixes inherited from 2.14 branch:
+
+- Support userspace disk URIs for OS import/export scripts
+- iallocator: only adjust memory usage for up instances
+
+Fixes inherited from 2.13 branch:
+- Bugfix: migrate needs HypervisorClass, not an instance
+
+
 Version 2.16.0 rc1
 ------------------
 

@@ -65,7 +65,9 @@ import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(algRestrictToNodes))
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
-import Ganeti.JSON (maybeFromObj, JSRecord, tryFromObj, toArray, asObjectList, readEitherString, fromJResult, fromObj, fromObjWithDefault, asJSObject)
+import Ganeti.JSON (maybeFromObj, JSRecord, tryFromObj, toArray, asObjectList,
+                    readEitherString, fromJResult, fromObj, fromObjWithDefault,
+                    asJSObject)
 import Ganeti.Types ( EvacMode(ChangePrimary, ChangeSecondary)
                     , adminStateFromRaw, AdminState(..))
 import Ganeti.Utils
@@ -247,7 +249,9 @@ parseData now body static_n_mem = do
               hv : _ -> Container.map (`Node.setHypervisor` hv) nl
               _ -> nl
   cdata1 <- mergeData [] [] [] [] now (ClusterData gl nl2 il ctags defIPolicy)
-  let (msgs, fix_nl) = updateMissing (cdNodes cdata1) (cdInstances cdata1) static_n_mem
+  let (msgs, fix_nl) = updateMissing (cdNodes cdata1)
+                                     (cdInstances cdata1)
+                                     static_n_mem
       cdata = cdata1 { cdNodes = fix_nl }
       map_n = cdNodes cdata
       map_i = cdInstances cdata

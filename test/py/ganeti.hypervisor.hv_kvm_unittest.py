@@ -607,7 +607,7 @@ class TestKvmRuntime(testutils.GanetiTestCase):
       if '-S' in cmd:
         self.mocks['pid_alive'].return_value = ('file', -1, True)
         return mock.Mock(failed=False)
-      elif '-M' in cmd:
+      elif '-machine' in cmd:
         return mock.Mock(failed=False, output='')
       elif '-device' in cmd:
         return mock.Mock(failed=False, output='name "virtio-blk-pci"')

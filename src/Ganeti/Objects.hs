@@ -84,7 +84,8 @@ module Ganeti.Objects
   , SerialNoObject(..) -- re-exported from Types
   , TagsObject(..) -- re-exported from Types
   , DictObject(..) -- re-exported from THH
-  , TagSet -- re-exported from THH
+  , TagSet(..) -- re-exported from THH
+  , emptyTagSet -- re-exported from THH
   , Network(..)
   , AddressPool(..)
   , Ip4Address()
@@ -115,6 +116,7 @@ import qualified Data.Map as Map
 import Data.Monoid
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
+import qualified Data.Semigroup as Sem
 import Data.Tuple (swap)
 import Data.Word
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString,
@@ -286,12 +288,15 @@ $(buildObject "DataCollectorConfig" "dataCollector" [
   ])
 
 -- | Central default values of the data collector config.
+instance Sem.Semigroup DataCollectorConfig where
+  _ <> a = a
+
 instance Monoid DataCollectorConfig where
   mempty = DataCollectorConfig
     { dataCollectorActive = True
     , dataCollectorInterval = 10^(6::Integer) * fromIntegral C.mondTimeInterval
     }
-  mappend _ a = a
+  mappend = (Sem.<>)
 
 -- * IPolicy definitions
 
@@ -731,4 +736,3 @@ $(buildObject "MasterNetworkParameters" "masterNetworkParameters"
   , simpleField "netdev"    [t| String   |]
   , simpleField "ip_family" [t| IpFamily |]
   ])
-

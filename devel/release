@@ -79,17 +79,21 @@ done
 ./configure
 
 VERSION=$(sed -n -e '/^PACKAGE_VERSION =/ s/^PACKAGE_VERSION = // p' Makefile)
+ARCHIVE="ganeti-${VERSION}.tar.gz"
 
 make distcheck-release
 fakeroot make dist-release
-tar tzvf ganeti-$VERSION.tar.gz
+tar tzvf "$ARCHIVE"
 
 echo
 echo 'MD5:'
-md5sum ganeti-$VERSION.tar.gz
+md5sum "$ARCHIVE"
 echo
 echo 'SHA1:'
-sha1sum ganeti-$VERSION.tar.gz
+sha1sum "$ARCHIVE"
 echo
-echo "The archive is at $PWD/ganeti-$VERSION.tar.gz"
+echo 'SHA256:'
+sha256sum "$ARCHIVE"
+echo
+echo "The archive is at ${PWD}/${ARCHIVE}"
 echo "Please copy it and remove the temporary directory when done."

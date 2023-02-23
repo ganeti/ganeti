@@ -94,7 +94,7 @@ class TestGetX509CertValidity(testutils.GanetiTestCase):
   def test(self):
     validity = utils.GetX509CertValidity(self._LoadCert("cert1.pem"))
     if self.pyopenssl0_7:
-      self.assertEqual(validity, (1266919967, 1267524767))
+      self.assertEqual(validity, (1519816700, 1519903100))
     else:
       self.assertEqual(validity, (None, None))
 

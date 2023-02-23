@@ -413,7 +413,7 @@ Example::
         "memory": 128
        }
       },
-    …
+    // ...
   }
 
 
@@ -677,11 +677,11 @@ Example::
     [
       {
         "name": "group1",
-        "uri": "\/2\/groups\/group1"
+        "uri": "/2/groups/group1"
       },
       {
         "name": "group2",
-        "uri": "\/2\/groups\/group2"
+        "uri": "/2/groups/group2"
       }
     ]
 
@@ -702,7 +702,7 @@ Example::
           "node2.example.com"
         ],
         "uuid": "0d7d407c-262e-49af-881a-6a430034bf43",
-        …
+        // ...
       },
       {
         "name": "group2",
@@ -711,9 +711,9 @@ Example::
           "node3.example.com"
         ],
         "uuid": "f5a277e7-68f9-44d3-a378-4b25ecb5df5c",
-        …
+        // ...
       },
-      …
+      // ...
     ]
 
 
@@ -892,6 +892,7 @@ It supports the ``dry-run`` argument.
 
 ``DELETE``
 ~~~~~~~~~~
+.. highlight:: none
 
 Delete a tag.
 
@@ -901,6 +902,7 @@ to URI like::
     /tags?tag=[tag]&tag=[tag]
 
 It supports the ``dry-run`` argument.
+.. highlight:: javascript
 
 
 .. _rapi-res-networks:
@@ -925,11 +927,11 @@ Example::
     [
       {
         "name": "network1",
-        "uri": "\/2\/networks\/network1"
+        "uri": "/2/networks/network1"
       },
       {
         "name": "network2",
-        "uri": "\/2\/networks\/network2"
+        "uri": "/2/networks/network2"
       }
     ]
 
@@ -946,19 +948,19 @@ Example::
         'external_reservations': '10.0.0.0, 10.0.0.1, 10.0.0.15',
         'free_count': 13,
         'gateway': '10.0.0.1',
-        'gateway6': None,
+        'gateway6': null,
         'group_list': ['default(bridged, prv0)'],
         'inst_list': [],
-        'mac_prefix': None,
+        'mac_prefix': null,
         'map': 'XX.............X',
         'name': 'nat',
         'network': '10.0.0.0/28',
-        'network6': None,
+        'network6': null,
         'reserved_count': 3,
         'tags': ['nfdhcpd'],
-        …
+        // ...
       },
-      …
+      // ...
     ]
 
 
@@ -1135,6 +1137,7 @@ It supports the ``dry-run`` argument.
 
 ``DELETE``
 ~~~~~~~~~~
+.. highlight:: none
 
 Delete a tag.
 
@@ -1145,6 +1148,7 @@ to URI like::
 
 It supports the ``dry-run`` argument.
 
+..highlight:: javascript
 
 .. _rapi-res-instances-multi-alloc:
 
@@ -1192,11 +1196,11 @@ Example::
     [
       {
         "name": "web.example.com",
-        "uri": "\/instances\/web.example.com"
+        "uri": "/instances/web.example.com"
       },
       {
         "name": "mail.example.com",
-        "uri": "\/instances\/mail.example.com"
+        "uri": "/instances/mail.example.com"
       }
     ]
 
@@ -1231,9 +1235,9 @@ Example::
         "admin_state": true,
         "os": "debian-etch",
         "oper_state": true,
-        …
+        // ...
       },
-      …
+      // ...
     ]
 
 
@@ -2035,11 +2039,11 @@ Example::
     [
       {
         "id": "node1.example.com",
-        "uri": "\/nodes\/node1.example.com"
+        "uri": "/nodes/node1.example.com"
       },
       {
         "id": "node2.example.com",
-        "uri": "\/nodes\/node2.example.com"
+        "uri": "/nodes/node2.example.com"
       }
     ]
 
@@ -2063,9 +2067,9 @@ Example::
         "sinst_cnt": 2,
         "dfree": 5171712,
         "offline": false,
-        …
+        // ...
       },
-      …
+      // ...
     ]
 
 

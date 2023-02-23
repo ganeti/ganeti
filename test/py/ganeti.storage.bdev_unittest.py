@@ -325,14 +325,16 @@ class TestLogicalVolume(testutils.GanetiTestCase):
     self.test_params = {
       constants.LDP_STRIPES: 1
       }
-    self.pv_info_return = [objects.LvmPvInfo(name="/dev/sda5", vg_name="xenvg",
+    self.pv_info_return = [objects.LvmPvInfo(name="/dev/sda5",
+                                             vg_name="xenvg",
                                              size=3500000.00, free=5000000.00,
                                              attributes="wz--n-", lv_list=[])]
     self.pv_info_invalid = [objects.LvmPvInfo(name="/dev/s:da5",
                                               vg_name="xenvg",
                                              size=3500000.00, free=5000000.00,
                                               attributes="wz--n-", lv_list=[])]
-    self.pv_info_no_space = [objects.LvmPvInfo(name="/dev/sda5", vg_name="xenvg",
+    self.pv_info_no_space = [objects.LvmPvInfo(name="/dev/sda5",
+                                               vg_name="xenvg",
                                                size=3500000.00, free=0.00,
                                                attributes="wz--n-", lv_list=[])]
 

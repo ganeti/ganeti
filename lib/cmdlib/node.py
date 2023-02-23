@@ -469,7 +469,9 @@ class LUNodeAdd(LogicalUnit):
     else:
       self.cfg.RemoveNodeFromCandidateCerts(self.new_node.uuid, warn_fn=None)
 
-    EnsureKvmdOnNodes(self, feedback_fn, nodes=[self.new_node.uuid])
+    # Ensure, that kvmd is in the expected state on the added node.
+    EnsureKvmdOnNodes(self, feedback_fn, nodes=[self.new_node.uuid],
+                      silent_stop=True)
 
     # Update SSH setup of all nodes
     if self.op.node_setup:
@@ -857,7 +859,11 @@ class LUNodeSetParams(LogicalUnit):
       if self.old_role == self._ROLE_CANDIDATE:
         RemoveNodeCertFromCandidateCerts(self.cfg, node.uuid)
 
-    EnsureKvmdOnNodes(self, feedback_fn, nodes=[node.uuid])
+    # KVM configuration never changes here, so disable warnings if KVM disabled.
+    silent_stop = constants.HT_KVM not in \
+        self.cfg.GetClusterInfo().enabled_hypervisors
+    EnsureKvmdOnNodes(self, feedback_fn, nodes=[node.uuid],
+                      silent_stop=silent_stop)
 
     # this will trigger job queue propagation or cleanup if the mc
     # flag changed

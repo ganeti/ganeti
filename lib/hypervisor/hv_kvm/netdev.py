@@ -189,6 +189,12 @@ def OpenTap(name="", features=None):
 
     tapfds.append(tapfd)
 
+    if name == "":
+      # Set the tap device name after the first iteration of the loop going over
+      # the number of net queues, if it is not already set. If we don't do this,
+      # a new tap device will be created for each queue.
+      name = struct.unpack("16sh", res)[0].strip("\x00")
+
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip("\x00")
 

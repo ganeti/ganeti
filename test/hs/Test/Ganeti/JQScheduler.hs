@@ -145,13 +145,13 @@ prop_slotMapFromJob_conflicting_buckets = do
 
   let sameBucketReasonStringGen :: Gen (String, String)
       sameBucketReasonStringGen = do
-        (Positive (n :: Int), Positive (m :: Int)) <- arbitrary
+        Positive (n :: Int) <- arbitrary
+        Positive (m :: Int) <- arbitrary `suchThat` (/= Positive n)
         l <- genPrintableAsciiString
         return ( "rate-limit:" ++ show n ++ ":" ++ l
                , "rate-limit:" ++ show m ++ ":" ++ l )
 
-  forAll sameBucketReasonStringGen $ \(s1, s2) ->
-    (s1 /= s2) ==> do
+  forAll sameBucketReasonStringGen $ \(s1, s2) -> do
       (lab1, lim1) <- parseReasonRateLimit s1
       (lab2, _   ) <- parseReasonRateLimit s2
       let sm = Map.fromList [(lab1, Slot 1 lim1)]
@@ -379,13 +379,16 @@ case_matchPredicate = do
 -- and have an effect (are not CONTINUE filters).
 prop_applyingFilter :: Property
 prop_applyingFilter =
-  forAllShrink arbitrary shrink $ \(job, filters) ->
+  forAllShrink arbitrary shrink $ \job ->
+  forAllShrink (arbitrary `suchThat`
+                (isJust . flip applyingFilter job . Set.fromList)) shrink
+                $ \filters ->
 
     let applying = applyingFilter (Set.fromList filters) job
 
-    in isJust applying ==> case applying of
+    in case applying of
          Just f  -> job `matches` f && frAction f /= Continue
-         Nothing -> True
+         Nothing -> error "Should not happen"
 
 
 case_jobFiltering :: Assertion
@@ -519,7 +522,7 @@ case_jobFiltering = do
 -- `doc/design-optables.rst`.
 prop_jobFiltering :: Property
 prop_jobFiltering =
-  forAllShrink arbitrary shrink $ \q ->
+  forAllShrink (arbitrary `suchThat` (not . null . qEnqueued)) shrink $ \q ->
     forAllShrink (resize 4 arbitrary) shrink $ \(NonEmpty filterList) ->
 
       let running  = qRunning q ++ qManipulated q
@@ -539,6 +542,8 @@ prop_jobFiltering =
                  . filter ((frUuid fr ==) . frUuid)
                  . mapMaybe (applyingFilter filters)
                  $ map jJob jobs)
+          {- TODO(#1318): restore coverage checks after a way to do it nicely
+                          has been found.
 
           -- Helpers for ensuring sensible coverage.
 
@@ -554,11 +559,11 @@ prop_jobFiltering =
             foldr (.) id
               [ stableCover (a `elem` applyingActions) perc ("is " ++ a)
               | a <- allActions ]
+         -}
 
-      -- `covers` should be after `==>` and before `conjoin` (see QuickCheck
-      -- bugs 25 and 27).
-      in (enqueued /= []) ==> actionCovers $ conjoin
-
+      -- Note: if using `covers`, it should be before `conjoin` (see
+      -- QuickCheck bugs 25 and 27).
+      in conjoin
            [ counterexample "scheduled jobs must be subsequence" $
                toRun `isSubsequenceOf` enqueued
 

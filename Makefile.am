@@ -151,8 +151,9 @@ HS_DIRS = \
 	src/Ganeti/JQueue \
 	src/Ganeti/Locking \
 	src/Ganeti/Logging \
-	src/Ganeti/Monitoring \
+	src/Ganeti/MaintD \
 	src/Ganeti/Metad \
+	src/Ganeti/Monitoring \
 	src/Ganeti/Objects \
 	src/Ganeti/OpCodes \
 	src/Ganeti/Query \
@@ -269,6 +270,7 @@ BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
 	apps \
 	dist \
+	dist/build \
 	doc/html \
 	doc/man-html
 
@@ -301,7 +303,9 @@ maintainer-clean-local:
 CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
 	$(addsuffix /*.hi,$(HS_DIRS)) \
+	$(addsuffix /*.dyn_hi,$(HS_DIRS)) \
 	$(addsuffix /*.o,$(HS_DIRS)) \
+	$(addsuffix /*.dyn_o,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
@@ -642,7 +646,6 @@ docinput = \
 	doc/cluster-keys-replacement.rst \
 	doc/cluster-merge.rst \
 	doc/conf.py \
-	doc/css/style.css \
 	doc/design-2.0.rst \
 	doc/design-2.1.rst \
 	doc/design-2.2.rst \
@@ -811,9 +814,6 @@ HFLAGS = \
 	-hide-all-packages \
 	`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 	$(GHC_BYVERSION_FLAGS)
-if DEVELOPER_MODE
-HFLAGS += -Werror
-endif
 
 HTEST_SUFFIX = hpc
 HPROF_SUFFIX = prof
@@ -866,9 +866,9 @@ HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
 # errors in the JQueue tests with the threaded runtime.
 # See https://ghc.haskell.org/trac/ghc/ticket/7646
 if GHC_LE_76
-HEXTRA_TEST =
+HEXTRA_TEST = -with-rtsopts="-A32m" -rtsopts
 else
-HEXTRA_TEST = -threaded -with-rtsopts=-N
+HEXTRA_TEST = -threaded -with-rtsopts="-N -A32m" -rtsopts
 endif
 
 # exclude options for coverage reports
@@ -1023,6 +1023,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Lvm/Types.hs \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
+	src/Ganeti/THH/Compat.hs \
 	src/Ganeti/THH/Field.hs \
 	src/Ganeti/THH/HsRPC.hs \
 	src/Ganeti/THH/PyRPC.hs \
@@ -1170,11 +1171,6 @@ doc/html/index.html: ENABLE_MANPAGES =
 doc/man-html/index.html: ENABLE_MANPAGES = 1
 doc/man-html/index.html: doc/manpages-enabled.rst $(mandocrst)
 
-if HAS_SPHINX_PRE13
-        SPHINX_HTML_THEME=default
-else
-        SPHINX_HTML_THEME=classic
-endif
 # Note: we use here an order-only prerequisite, as the contents of
 # _constants.py are not actually influencing the html build output: it
 # has to exist in order for the sphinx module to be loaded
@@ -1183,7 +1179,7 @@ endif
 doc/html/index.html doc/man-html/index.html: $(docinput) doc/conf.py \
 	configure.ac $(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/ht.py \
-	doc/css/style.css lib/rapi/connector.py lib/rapi/rlib2.py \
+	lib/rapi/connector.py lib/rapi/rlib2.py \
 	autotools/sphinx-wrapper | $(built_python_sources)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
@@ -1202,7 +1198,6 @@ endif
 	dir=$(dir $@) && \
 	@mkdir_p@ $$dir && \
 	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) COPY_DOC=1 \
-        HTML_THEME=$(SPHINX_HTML_THEME) \
 	$(RUN_IN_TEMPDIR) autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
 		-d . \
 		-D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
@@ -1492,7 +1487,7 @@ nodist_sbin_SCRIPTS = \
 	src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
-	cp -f $< $@
+	cp -pf $< $@
 
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = \
@@ -1500,7 +1495,7 @@ all_sbin_scripts = \
 	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
 
 src/ganeti-confd: src/hconfd
-	cp -f $< $@
+	cp -pf $< $@
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
@@ -1994,6 +1989,7 @@ python_tests = \
 	test/py/ganeti.utils.io_unittest-runasroot.py \
 	test/py/ganeti.utils.io_unittest.py \
 	test/py/ganeti.utils.log_unittest.py \
+	test/py/ganeti.utils.livelock_unittest.py \
 	test/py/ganeti.utils.lvm_unittest.py \
 	test/py/ganeti.utils.mlock_unittest.py \
 	test/py/ganeti.utils.nodesetup_unittest.py \
@@ -2812,7 +2808,7 @@ distcheck-hook:
 # unnecessary warnings for packagers. Directories used by automake during
 # distcheck must be excluded.
 	if find $(top_distdir) -empty -and -not \( \
-	    -path $(top_distdir)/_build -or \
+	    -regex '$(top_distdir)/_build\(/.*\)?' -or \
 	    -path $(top_distdir)/_inst \) | grep .; then \
 	  echo "Found empty files or directories in final archive." 1>&2; \
 	  exit 1; \

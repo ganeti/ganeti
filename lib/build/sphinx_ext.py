@@ -42,21 +42,14 @@ import docutils.statemachine
 import docutils.nodes
 import docutils.utils
 import docutils.parsers.rst
+from docutils.parsers.rst import Directive
 
 import sphinx.errors
 import sphinx.util.compat
 import sphinx.roles
 import sphinx.addnodes
 
-s_compat = sphinx.util.compat
-
-try:
-  # Access to a protected member of a client class
-  # pylint: disable=W0212
-  orig_manpage_role = docutils.parsers.rst.roles._roles["manpage"]
-except (AttributeError, ValueError, KeyError), err:
-  # Normally the "manpage" role is registered by sphinx/roles.py
-  raise Exception("Can't find reST role named 'manpage': %s" % err)
+orig_manpage_role = None
 
 from ganeti import _constants
 from ganeti import constants
@@ -219,7 +212,7 @@ def _BuildOpcodeResult(op_id):
   return "``%s``" % result_fn
 
 
-class OpcodeParams(s_compat.Directive):
+class OpcodeParams(Directive):
   """Custom directive for opcode parameters.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -252,7 +245,7 @@ class OpcodeParams(s_compat.Directive):
     return []
 
 
-class OpcodeResult(s_compat.Directive):
+class OpcodeResult(Directive):
   """Custom directive for opcode result.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -302,7 +295,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
   return ([node], [])
 
 
-class PythonAssert(s_compat.Directive):
+class PythonAssert(Directive):
   """Custom directive for writing assertions.
 
   The content must be a valid Python expression. If its result does not
@@ -567,7 +560,7 @@ def _BuildRapiAccessTable(res):
               _DescribeHandlerAccess(handler, method)))
 
 
-class RapiAccessTable(s_compat.Directive):
+class RapiAccessTable(Directive):
   """Custom directive to generate table of all RAPI resources.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -590,7 +583,7 @@ class RapiAccessTable(s_compat.Directive):
     return []
 
 
-class RapiResourceDetails(s_compat.Directive):
+class RapiResourceDetails(Directive):
   """Custom directive for RAPI resource details.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -637,6 +630,16 @@ def setup(app):
   """Sphinx extension callback.
 
   """
+  global orig_manpage_role
+
+  try:
+    # Access to a protected member of a client class
+    # pylint: disable=W0212
+    orig_manpage_role = docutils.parsers.rst.roles._roles["manpage"]
+  except (AttributeError, ValueError, KeyError), err:
+    # Normally the "manpage" role is registered by sphinx/roles.py
+    raise Exception("Can't find reST role named 'manpage': %s" % err)
+
   # TODO: Implement Sphinx directive for query fields
   app.add_directive("opcode_params", OpcodeParams)
   app.add_directive("opcode_result", OpcodeResult)

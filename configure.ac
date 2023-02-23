@@ -1,8 +1,8 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [16])
-m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~rc1])
+m4_define([gnt_version_revision], [2])
+m4_define([gnt_version_suffix], [])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -526,20 +526,17 @@ else
   # Sphinx exits with code 1 when it prints its usage
   sphinxver=`{ $SPHINX --version 2>&1 || :; } | head -n 3`
 
-  if ! echo "$sphinxver" | grep -q -w -e '^Sphinx' -e '^Usage:'; then
+  if ! echo "$sphinxver" | grep -q -w -i -e '^Sphinx' -e '^Usage:'; then
     AC_MSG_ERROR([Unable to determine Sphinx version])
 
   # Note: Character classes ([...]) need to be double quoted due to autoconf
   # using m4
-  elif ! echo "$sphinxver" | grep -q -E \
-       '^Sphinx([[[:space:]]]+|\(sphinx-build[[1-9]]?\)|v)*[[1-9]]\>'; then
+  elif ! echo "$sphinxver" | grep -q -i -E \
+     '^sphinx(-build\d?)?([[[:space:]]]+|\(sphinx-build\d?\)|v)*[[1-9]]\>'; then
     AC_MSG_ERROR([Sphinx 1.0 or higher is required])
   fi
 fi
 AM_CONDITIONAL([HAS_SPHINX], [test -n "$SPHINX"])
-AM_CONDITIONAL([HAS_SPHINX_PRE13],
- [test -n "$SPHINX" && echo "$sphinxver" | grep -q -E \
-  '^Sphinx([[[:space:]]]+|\(sphinx-build[[1-9]]?\)|v)*[[1-9]]\.[[0-2]]\.'])
 
 AC_ARG_ENABLE([manpages-in-doc],
   [AS_HELP_STRING([--enable-manpages-in-doc],

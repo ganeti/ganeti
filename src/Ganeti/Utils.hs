@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables, CPP #-}
 
 {-| Utility functions. -}
 
@@ -110,7 +110,11 @@ import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
 import Data.IORef
+#if MIN_VERSION_base(4,8,0)
+import Data.List hiding (isSubsequenceOf)
+#else
 import Data.List
+#endif
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -125,6 +129,7 @@ import Debug.Trace
 import Network.Socket
 
 import Ganeti.BasicTypes
+import Ganeti.Compat
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.Logging
 import Ganeti.Runtime
@@ -721,11 +726,11 @@ watchFileBy fpath timeout check read_fn = do
                        logDebug $ "Notified of change in " ++ fpath
                                     ++ "; event: " ++ show e
                        when (e == Ignored)
-                         (addWatch inotify [Modify, Delete] fpath do_watch
-                            >> return ())
+                         (addWatch inotify [Modify, Delete]
+                           (toInotifyPath fpath) do_watch >> return ())
                        fstat' <- getFStatSafe fpath
                        writeIORef ref fstat'
-    _ <- addWatch inotify [Modify, Delete] fpath do_watch
+    _ <- addWatch inotify [Modify, Delete] (toInotifyPath fpath) do_watch
     newval <- read_fn
     if check newval
       then do
