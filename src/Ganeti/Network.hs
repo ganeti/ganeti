@@ -87,11 +87,11 @@ data PoolPart = PoolInstances | PoolExt
 addressPoolIso :: Iso' AddressPool BA.BitArray
 addressPoolIso = iso apReservations AddressPool
 
-poolLens :: PoolPart -> Lens' Network (Maybe AddressPool)
+--poolLens :: PoolPart -> Lens' Network (Maybe AddressPool)
 poolLens PoolInstances = networkReservationsL
 poolLens PoolExt = networkExtReservationsL
 
-poolArrayLens :: PoolPart -> Lens' Network (Maybe BA.BitArray)
+--poolArrayLens :: PoolPart -> Lens' Network (Maybe BA.BitArray)
 poolArrayLens part = poolLens part . mapping addressPoolIso
 
 netIpv4NumHosts :: Network -> Integer
