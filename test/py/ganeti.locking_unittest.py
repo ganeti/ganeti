@@ -109,24 +109,24 @@ class _ConditionTestCase(_ThreadedTestCase):
   def _testAcquireRelease(self):
     self.assertFalse(self.cond._is_owned())
     self.assertRaises(RuntimeError, self.cond.wait, None)
-    self.assertRaises(RuntimeError, self.cond.notifyAll)
+    self.assertRaises(RuntimeError, self.cond.notify_all)
 
     self.cond.acquire()
     self.assertTrue(self.cond._is_owned())
-    self.cond.notifyAll()
+    self.cond.notify_all()
     self.assertTrue(self.cond._is_owned())
     self.cond.release()
 
     self.assertFalse(self.cond._is_owned())
     self.assertRaises(RuntimeError, self.cond.wait, None)
-    self.assertRaises(RuntimeError, self.cond.notifyAll)
+    self.assertRaises(RuntimeError, self.cond.notify_all)
 
   def _testNotification(self):
     def _NotifyAll():
       self.done.put("NE")
       self.cond.acquire()
       self.done.put("NA")
-      self.cond.notifyAll()
+      self.cond.notify_all()
       self.done.put("NN")
       self.cond.release()
 
@@ -162,9 +162,9 @@ class TestSingleNotifyPipeCondition(_ConditionTestCase):
 
   def testNoNotifyReuse(self):
     self.cond.acquire()
-    self.cond.notifyAll()
+    self.cond.notify_all()
     self.assertRaises(RuntimeError, self.cond.wait, None)
-    self.assertRaises(RuntimeError, self.cond.notifyAll)
+    self.assertRaises(RuntimeError, self.cond.notify_all)
     self.cond.release()
 
 
@@ -203,7 +203,7 @@ class TestPipeCondition(_ConditionTestCase):
     # This new thread can't acquire the lock, and thus call wait, before we
     # release it
     self._addThread(target=fn)
-    self.cond.notifyAll()
+    self.cond.notify_all()
     self.assertRaises(queue.Empty, self.done.get_nowait)
     self.cond.release()
 
@@ -223,7 +223,7 @@ class TestPipeCondition(_ConditionTestCase):
     self.assertEqual(a, 1)
 
     self.cond.acquire()
-    self.cond.notifyAll()
+    self.cond.notify_all()
     self.cond.release()
     self._waitThreads()
     self.assertEqual(self.done.get_nowait(), "W")
@@ -730,12 +730,12 @@ class TestSharedLock(_ThreadedTestCase):
 
     # Check lock information
     self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE, query.LQ_OWNER])),
-                     [(self.sl.name, "exclusive", [th_excl1.getName()], None)])
+                     [(self.sl.name, "exclusive", [th_excl1.name], None)])
     [(_, _, _, pending), ] = self.sl.GetLockInfo(set([query.LQ_PENDING]))
     self.assertEqual([(pendmode, sorted(waiting))
                       for (pendmode, waiting) in pending],
-                     [("exclusive", [th_excl2.getName()]),
-                      ("shared", sorted(th.getName() for th in th_shared))])
+                     [("exclusive", [th_excl2.name]),
+                      ("shared", sorted(th.name for th in th_shared))])
 
     # Shared acquires won't start until the exclusive lock is downgraded
     ev_downgrade_excl1.set()
@@ -748,10 +748,10 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE,
                                               query.LQ_PENDING])),
                      [(self.sl.name, "shared", None,
-                       [("exclusive", [th_excl2.getName()])])])
+                       [("exclusive", [th_excl2.name])])])
     [(_, _, owner, _), ] = self.sl.GetLockInfo(set([query.LQ_OWNER]))
-    self.assertEqual(set(owner), set([th_excl1.getName()] +
-                                     [th.getName() for th in th_shared]))
+    self.assertEqual(set(owner), set([th_excl1.name] +
+                                     [th.name for th in th_shared]))
 
     ev_release_excl1.set()
     ev_release_excl2.set()
@@ -932,7 +932,7 @@ class TestSharedLock(_ThreadedTestCase):
                      [(self.sl.name, None, None, None)])
     self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE, query.LQ_OWNER])),
                      [(self.sl.name, "exclusive",
-                       [threading.currentThread().getName()], None)])
+                       [threading.current_thread().name], None)])
 
     self._VerifyPrioPending(self.sl.GetLockInfo(set([query.LQ_PENDING])),
                             perprio)
@@ -965,7 +965,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertEqual([(pendmode, sorted(waiting))
                       for (pendmode, waiting) in pending],
                      [(["exclusive", "shared"][int(bool(shared))],
-                       sorted(t.getName() for t in threads))
+                       sorted(t.name for t in threads))
                       for acquires in [perprio[i]
                                        for i in sorted(perprio.keys())]
                       for (shared, _, threads) in acquires])
@@ -998,7 +998,7 @@ class TestSharedLock(_ThreadedTestCase):
     timeout = 60.0
 
     def check_end(now):
-      self.assertFalse(locked.isSet())
+      self.assertFalse(locked.is_set())
 
       # If we waited long enough (in virtual time), tell main thread to release
       # lock, otherwise tell it to notify once more
@@ -1035,7 +1035,7 @@ class TestSharedLock(_ThreadedTestCase):
 
     self.assertTrue(count > 100, "Not enough notifications were sent")
 
-    self.assertFalse(locked.isSet())
+    self.assertFalse(locked.is_set())
 
     # Some notifications have been sent, now actually release the lock
     sl.release()

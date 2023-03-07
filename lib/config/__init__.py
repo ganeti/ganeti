@@ -87,7 +87,7 @@ def GetWConfdContext(ec_id, livelock):
 
   """
   if ec_id is None:
-    return (threading.current_thread().getName(),
+    return (threading.current_thread().name,
             livelock.GetPath(), os.getpid())
   else:
     return (ec_id,

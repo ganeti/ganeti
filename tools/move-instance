@@ -430,8 +430,8 @@ class MoveRuntime(object):
 
     self.lock.acquire()
     try:
-      self.source_to_dest.notifyAll()
-      self.dest_to_source.notifyAll()
+      self.source_to_dest.notify_all()
+      self.dest_to_source.notify_all()
     finally:
       self.lock.release()
 
@@ -567,7 +567,7 @@ class MoveDestExecutor(object):
     mrt.dest_to_source.acquire()
     try:
       mrt.dest_impinfo = impinfo
-      mrt.dest_to_source.notifyAll()
+      mrt.dest_to_source.notify_all()
     finally:
       mrt.dest_to_source.release()
 
@@ -726,7 +726,7 @@ class MoveSourceExecutor(object):
     try:
       mrt.src_instinfo = instinfo
       mrt.src_expinfo = expinfo
-      mrt.source_to_dest.notifyAll()
+      mrt.source_to_dest.notify_all()
     finally:
       mrt.source_to_dest.release()
 
@@ -855,7 +855,7 @@ class MoveSourceWorker(workerpool.BaseWorker):
       mrt = MoveRuntime(move)
 
       logging.debug("Starting destination thread")
-      dest_thread = threading.Thread(name="DestFor%s" % self.getName(),
+      dest_thread = threading.Thread(name="DestFor%s" % self.name,
                                      target=mrt.HandleErrors,
                                      args=("dest", MoveDestExecutor,
                                            rapi_factory.GetDestClient(),

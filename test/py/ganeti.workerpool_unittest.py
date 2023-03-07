@@ -93,7 +93,7 @@ class ChecksumBaseWorker(workerpool.BaseWorker):
 
     # This assertion needs to be checked before updating the checksum. A
     # failing assertion will then cause the result to be wrong.
-    assert self.getName() == ("%s/%s" % (self._worker_id, name))
+    assert self.name == ("%s/%s" % (self._worker_id, name))
 
     ctx.lock.acquire()
     try:

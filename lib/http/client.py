@@ -294,7 +294,7 @@ class _PendingRequestMonitor(object):
     result = []
 
     if self._pending_fn:
-      owner_name = self._owner.getName()
+      owner_name = self._owner.name
 
       for client in self._pending_fn():
         req = client.GetCurrentRequest()
@@ -380,7 +380,7 @@ def ProcessRequests(requests, lock_monitor_cb=None, _curl=pycurl.Curl,
   assert len(curl_to_client) == len(requests)
 
   if lock_monitor_cb:
-    monitor = _PendingRequestMonitor(threading.currentThread(),
+    monitor = _PendingRequestMonitor(threading.current_thread(),
                                      curl_to_client.values)
     lock_monitor_cb(monitor)
   else:
