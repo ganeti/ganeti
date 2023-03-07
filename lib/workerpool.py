@@ -88,7 +88,7 @@ class BaseWorker(threading.Thread, object):
     self._worker_id = worker_id
     self._current_task = None
 
-    assert self.getName() == worker_id
+    assert self.name == worker_id
 
   def ShouldTerminate(self):
     """Returns whether this worker should terminate.
@@ -134,7 +134,7 @@ class BaseWorker(threading.Thread, object):
       name = self._worker_id
 
     # Set thread name
-    self.setName(name)
+    self.name = name
 
   def _HasRunningTaskUnlocked(self):
     """Returns whether this worker is currently running a task.
@@ -199,7 +199,7 @@ class BaseWorker(threading.Thread, object):
           # Run the actual task
           assert defer is None
           logging.debug("Starting task %r, priority %s", args, priority)
-          assert self.getName() == self._worker_id
+          assert self.name == self._worker_id
           try:
             self.RunTask(*args)
           finally:
@@ -232,7 +232,7 @@ class BaseWorker(threading.Thread, object):
 
           if self._current_task:
             self._current_task = None
-            pool._worker_to_pool.notifyAll()
+            pool._worker_to_pool.notify_all()
         finally:
           pool._lock.release()
 
@@ -472,7 +472,7 @@ class WorkerPool(object):
         try:
           task = heapq.heappop(self._tasks)
         finally:
-          self._worker_to_pool.notifyAll()
+          self._worker_to_pool.notify_all()
 
         (_, _, task_id, args) = task
 
@@ -536,7 +536,7 @@ class WorkerPool(object):
       self._quiescing = False
 
       # Make sure AddTasks continues in case it was waiting
-      self._pool_to_pool.notifyAll()
+      self._pool_to_pool.notify_all()
 
       self._lock.release()
 
@@ -575,13 +575,13 @@ class WorkerPool(object):
       self._termworkers += termworkers
 
       # Notify workers that something has changed
-      self._pool_to_worker.notifyAll()
+      self._pool_to_worker.notify_all()
 
       # Join all terminating workers
       self._lock.release()
       try:
         for worker in termworkers:
-          logging.debug("Waiting for thread %s", worker.getName())
+          logging.debug("Waiting for thread %s", worker.name)
           worker.join()
       finally:
         self._lock.acquire()

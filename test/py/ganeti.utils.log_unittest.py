@@ -257,7 +257,7 @@ class TestSetupToolLogging(unittest.TestCase):
             ])
 
   def testThreadName(self):
-    thread_name = threading.currentThread().getName()
+    thread_name = threading.current_thread().name
 
     for enable_threadname in [False, True]:
       logger = logging.Logger("TestLogger")

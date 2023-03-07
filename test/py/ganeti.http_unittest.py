@@ -679,7 +679,7 @@ class TestProcessRequests(unittest.TestCase):
                                          default=("localhost/version%s" %
                                                   handle.opts["__port__"]))),
               None,
-              [threading.currentThread().getName()], None)
+              [threading.current_thread().name], None)
              for handle in handles[idx:]]
           self.assertEqual(sorted(lock_info), sorted(expected))
 
