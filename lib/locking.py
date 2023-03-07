@@ -210,8 +210,8 @@ class SingleNotifyPipeCondition(_BaseCondition):
   This condition class uses pipes and poll, internally, to be able to wait for
   notification with a timeout, without resorting to polling. It is almost
   compatible with Python's threading.Condition, with the following differences:
-    - notifyAll can only be called once, and no wait can happen after that
-    - notify is not supported, only notifyAll
+    - notify_all can only be called once, and no wait can happen after that
+    - notify is not supported, only notify_all
 
   """
 
@@ -281,7 +281,7 @@ class SingleNotifyPipeCondition(_BaseCondition):
       if self._nwaiters == 0:
         self._Cleanup()
 
-  def notifyAll(self): # pylint: disable=C0103
+  def notify_all(self):
     """Close the writing side of the pipe to notify all waiters.
 
     """
@@ -298,7 +298,7 @@ class PipeCondition(_BaseCondition):
 
   This condition class uses pipes and poll, internally, to be able to wait for
   notification with a timeout, without resorting to polling. It is almost
-  compatible with Python's threading.Condition, but only supports notifyAll and
+  compatible with Python's threading.Condition, but only supports notify_all and
   non-recursive locks. As an additional features it's able to report whether
   there are any waiting threads.
 
@@ -338,7 +338,7 @@ class PipeCondition(_BaseCondition):
       self._check_owned()
       self._waiters.remove(threading.current_thread())
 
-  def notifyAll(self): # pylint: disable=C0103
+  def notify_all(self):
     """Notify all currently waiting threads.
 
     """
