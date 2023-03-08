@@ -52,77 +52,6 @@ from ganeti import runtime
 from ganeti import compat
 
 
-class SchedulerBreakout(Exception):
-  """Exception used to get out of the scheduler loop
-
-  """
-
-
-def AsyncoreDelayFunction(timeout):
-  """Asyncore-compatible scheduler delay function.
-
-  This is a delay function for sched that, rather than actually sleeping,
-  executes asyncore events happening in the meantime.
-
-  After an event has occurred, rather than returning, it raises a
-  SchedulerBreakout exception, which will force the current scheduler.run()
-  invocation to terminate, so that we can also check for signals. The main loop
-  will then call the scheduler run again, which will allow it to actually
-  process any due events.
-
-  This is needed because scheduler.run() doesn't support a count=..., as
-  asyncore loop, and the scheduler module documents throwing exceptions from
-  inside the delay function as an allowed usage model.
-
-  """
-  asyncore.loop(timeout=timeout, count=1, use_poll=True)
-  raise SchedulerBreakout()
-
-
-class AsyncoreScheduler(sched.scheduler):
-  """Event scheduler integrated with asyncore
-
-  """
-  def __init__(self, timefunc):
-    """Initializes this class.
-
-    """
-    sched.scheduler.__init__(self, timefunc, self._LimitedDelay)
-    self._max_delay = None
-
-  def run(self, max_delay=None): # pylint: disable=W0221
-    """Run any pending events.
-
-    @type max_delay: None or number
-    @param max_delay: Maximum delay (useful if caller has timeouts running)
-
-    """
-    assert self._max_delay is None
-
-    # The delay function used by the scheduler can't be different on each run,
-    # hence an instance variable must be used.
-    if max_delay is None:
-      self._max_delay = None
-    else:
-      self._max_delay = utils.RunningTimeout(max_delay, False)
-
-    try:
-      return sched.scheduler.run(self)
-    finally:
-      self._max_delay = None
-
-  def _LimitedDelay(self, duration):
-    """Custom delay function for C{sched.scheduler}.
-
-    """
-    if self._max_delay is None:
-      timeout = duration
-    else:
-      timeout = min(duration, self._max_delay.Remaining())
-
-    return AsyncoreDelayFunction(timeout)
-
-
 class GanetiBaseAsyncoreDispatcher(asyncore.dispatcher):
   """Base Ganeti Asyncore Dispacher
 
@@ -323,9 +252,6 @@ class _ShutdownCheck(object):
 class Mainloop(object):
   """Generic mainloop for daemons
 
-  @ivar scheduler: A sched.scheduler object, which can be used to register
-    timed events
-
   """
   _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxsize - 1)
 
@@ -334,7 +260,6 @@ class Mainloop(object):
 
     """
     self._signal_wait = []
-    self.scheduler = AsyncoreScheduler(time.time)
     self.awaker = AsyncAwaker()
 
     # Resolve uid/gids used
@@ -391,13 +316,7 @@ class Mainloop(object):
         # Wait forever on I/O events
         timeout = None
 
-      if self.scheduler.empty():
-        asyncore.loop(count=1, timeout=timeout, use_poll=True)
-      else:
-        try:
-          self.scheduler.run(max_delay=timeout)
-        except SchedulerBreakout:
-          pass
+      asyncore.loop(count=1, timeout=timeout, use_poll=True)
 
       # Check whether a signal was raised
       for (sig, handler) in signal_handlers.items():
