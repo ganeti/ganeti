@@ -938,7 +938,9 @@ def _CheckAllocatorOptions(parser, options):
       bool(options.dest_primary_node or options.dest_secondary_node)):
     parser.error("Destination node and iallocator options exclude each other")
 
-  if not options.iallocator and (options.opportunistic_tries > 0):
+  if (not options.iallocator and
+      options.opportunistic_tries is not None and
+      options.opportunistic_tries > 0):
     parser.error("Opportunistic instance creation can only be used with an"
                  " iallocator")
 
