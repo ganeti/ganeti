@@ -975,6 +975,12 @@ def _CheckInstanceOptions(parser, options, instance_names):
 
     if options.nics:
       options.nics = cli.ParseNicOption(options.nics)
+      # allow user to override instance parameters by hardcoding the
+      # empty string as "ignore this setting" shortcut
+      for nic in options.nics:
+        for k, v in nic.items():
+          if v == "":
+            nic[k] = None
   else:
     # Moving more than one instance
     if compat.any(options.dest_instance_name, options.dest_primary_node,
