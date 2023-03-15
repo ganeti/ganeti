@@ -96,7 +96,11 @@ class TestCommandBuilder(unittest.TestCase):
       for compress in constants.IEC_ALL:
         for magic in [None, 10 * "-", "HelloWorld", "J9plh4nFo2",
                       "24A02A81-2264-4B51-A882-A2AB9D85B420"]:
-          opts = CmdBuilderConfig(magic=magic, compress=compress)
+          opts = CmdBuilderConfig(
+            magic=magic,
+            compress=compress,
+            host="localhost",
+          )
           builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
 
           magic_cmd = builder._GetMagicCommand()
