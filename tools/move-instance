@@ -690,7 +690,8 @@ class MoveDestExecutor(object):
                              osparams=objects.FillDict(inst_osparams,
                                                        override_osparams),
                              opportunistic_locking=is_attempt_opportunistic,
-                             tags=instance["tags"]
+                             tags=instance["tags"],
+                             wait_for_sync=False,
                              )
 
 
