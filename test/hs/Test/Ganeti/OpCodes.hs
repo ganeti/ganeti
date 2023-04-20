@@ -188,9 +188,9 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
           arbitrary <*> arbitrary
       "OP_CLUSTER_VERIFY_DISKS" ->
-        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE
+        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE <*> arbitrary
       "OP_GROUP_VERIFY_DISKS" ->
-        OpCodes.OpGroupVerifyDisks <$> genNameNE
+        OpCodes.OpGroupVerifyDisks <$> genNameNE <*> arbitrary
       "OP_CLUSTER_REPAIR_DISK_SIZES" ->
         OpCodes.OpClusterRepairDiskSizes <$> genNodeNamesNE
       "OP_CLUSTER_CONFIG_QUERY" ->

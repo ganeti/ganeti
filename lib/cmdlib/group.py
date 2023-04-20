@@ -851,6 +851,13 @@ class LUGroupVerifyDisks(NoHooksLU):
     self.dont_collate_locks[locking.LEVEL_NODEGROUP] = True
     self.dont_collate_locks[locking.LEVEL_NODE] = True
 
+    # If run in strict mode, require locks for all nodes in the node group
+    # so we can verify all the disks. In non-strict mode, just verify the
+    # nodes that are available for locking.
+    if not self.op.is_strict:
+      self.opportunistic_locks[locking.LEVEL_NODE] = True
+      self.opportunistic_locks[locking.LEVEL_INSTANCE] = True
+
   def DeclareLocks(self, level):
     if level == locking.LEVEL_INSTANCE:
       assert not self.needed_locks[locking.LEVEL_INSTANCE]
@@ -893,8 +900,9 @@ class LUGroupVerifyDisks(NoHooksLU):
 
     assert self.group_uuid in owned_groups
 
-    # Check if locked instances are still correct
-    CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_inst_names)
+    if self.op.is_strict:
+      # Check if locked instances are still correct
+      CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_inst_names)
 
     # Get instance information
     self.instances = dict(self.cfg.GetMultiInstanceInfoByName(owned_inst_names))
@@ -937,6 +945,7 @@ class LUGroupVerifyDisks(NoHooksLU):
 
   def _VerifyDrbdStates(self, node_errors, offline_disk_instance_names):
     node_to_inst = {}
+    owned_node_uuids = set(self.owned_locks(locking.LEVEL_NODE))
     for inst in self.instances.values():
       disks = self.cfg.GetInstanceDisks(inst.uuid)
       if not (inst.disks_active and
@@ -944,8 +953,10 @@ class LUGroupVerifyDisks(NoHooksLU):
         continue
 
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(inst.uuid)
-      for node_uuid in itertools.chain([inst.primary_node],
-                                       secondary_nodes):
+      for node_uuid in itertools.chain([inst.primary_node], secondary_nodes):
+        if not node_uuid in owned_node_uuids:
+          logging.info("Node %s is not locked, skipping check.", node_uuid)
+          continue
         node_to_inst.setdefault(node_uuid, []).append(inst)
 
     for (node_uuid, insts) in node_to_inst.items():
