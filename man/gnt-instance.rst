@@ -181,11 +181,13 @@ name
 vlan
    in bridged and openvswitch mode specifies the VLANs that the NIC
    will be connected to. To connect as an access port use ``n`` or 
-   ``.n`` with **n** being the VLAN ID. To connect as an trunk port
+   ``.n`` with **n** being the VLAN ID. To connect as a trunk port
    use ``:n[:n]``. A hybrid port can be created with ``.n:n[:n]``. For
    bridged mode, the bridge needs VLAN filtering enabled. Assuming a
    bridge named **gnt-br**, this is accomplished by running ``ip link
-   set dev gnt-br type bridge vlan_filtering 1``.
+   set dev gnt-br type bridge vlan_filtering 1``. Please make sure to
+   only use VLAN IDs accepted by your network equipment (e.g. do not
+   set the PVID) as this will break traffic flow otherwise.
 
 Of these "mode" and "link" are NIC parameters, and inherit their
 default at cluster level.  Alternatively, if no network is desired for
