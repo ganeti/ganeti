@@ -23,7 +23,7 @@ section of the :doc:`admin`. Please refer to that document if you are
 uncertain about the terms we are using.
 
 Ganeti has been developed for Linux and should be distribution-agnostic.
-This documentation will use Debian Buster as an example system but the
+This documentation will use Debian Bookworm as an example system but the
 examples can be translated to any other distribution. You are expected
 to be familiar with your distribution, its package management system,
 and Xen or KVM before trying to use Ganeti.
@@ -45,15 +45,20 @@ Installing the base system and base components
 Hardware requirements
 +++++++++++++++++++++
 
-Any system supported by your Linux distribution is fine. 64-bit systems
-are better as they can support more memory.
+Any system supported by your Linux distribution is fine. Please note that 
+official testing is only performed in amd64 environments.
 
-Any disk drive recognized by Linux (``IDE``/``SCSI``/``SATA``/etc.) is
-supported in Ganeti. Note that no shared storage (e.g. ``SAN``) is
-needed to get high-availability features (but of course, one can be used
-to store the images). While it is highly recommended to use more than
-one disk drive in order to improve speed, Ganeti also works with one
-disk per machine.
+Ganeti offers multiple storage options which may or may not be shared
+between two or more nodes. Please note that also with non-shared storage
+backends Ganeti is able to move instances between cluster nodes for you.
+However, there will be no high-availability features and no live-migration.
+
+Please not that your nodes should all share the same hardware configuration
+with regards to CPU, storage throughput and network. Different CPU models will
+require you to emulate a common subset of e.g. CPU flags (hence wasting
+performance). Different storage systems or NIC speeds will slow down faster
+nodes in replicated environments (e.g. with the DRBD, Ceph or GlusterFS
+backends).
 
 Installing the base system
 ++++++++++++++++++++++++++
@@ -61,27 +66,22 @@ Installing the base system
 **Mandatory** on all nodes.
 
 It is advised to start with a clean, minimal install of the operating
-system. The only requirement you need to be aware of at this stage is to
-partition leaving enough space for a big (**minimum** 20GiB) LVM volume
-group which will then host your instance filesystems, if you want to use
-all Ganeti features. The volume group name Ganeti uses (by default) is
-``xenvg``.
+system. 
 
-You can also use file-based storage only, without LVM, but this setup is
-not detailed in this document.
+If you plan on using the ``plain`` or ``drbd`` storage backends
+please make sure to configure LVM and create a volume group with at least
+20GiB of storage assigned.
 
-If you choose to use RBD-based instances, there's no need for LVM
-provisioning. However, this feature is experimental, and is not yet
-recommended for production clusters.
+If you plan on using ``file`` please make sure to have enough available
+disk space on your root partition or (**recommended**) a dedicated filesystem
+mounted that will hold your instances. We do not recommend any specific type
+of filesystem at this time.
 
-While you can use an existing system, please note that the Ganeti
-installation is intrusive in terms of changes to the system
-configuration, and it's best to use a newly-installed system without
-important data on it.
+If you plan on using ``sharedfile`` please make sure all your nodes have
+access to the shared storage (e.g. NFS). 
 
-Also, for best results, it's advised that the nodes have as much as
-possible the same hardware and software configuration. This will make
-administration much easier.
+If you plan on using ``rbd`` (Ceph) or ``gluster`` you need to setup that
+first. This will not be covered by this document. 
 
 Hostname issues
 ~~~~~~~~~~~~~~~
@@ -137,9 +137,9 @@ Installing The Hypervisor
 
 While Ganeti is developed with the ability to modularly run on different
 virtualization environments in mind the only two currently useable on a
-live system are Xen and KVM. Supported Xen versions are: 3.0.3 and later
-3.x versions, and 4.x (tested up to 4.1).  Supported KVM versions are 72
-and above.
+live system are Xen (both in PVM and HVM mode) and KVM. Supported Xen
+versions are: 3.0.3 and later 3.x versions, and 4.x (tested up to 4.1).
+Supported KVM versions are 72 and above.
 
 Please follow your distribution's recommended way to install and set up
 Xen, or install Xen from the upstream source, if you wish, following
@@ -153,11 +153,14 @@ kernels. For KVM no reboot should be necessary.
 
 .. admonition:: Xen on Debian
 
-   Under Debian you can install the relevant ``xen-linux-system``
+   Under Debian you can install the relevant ``xen-system-amd64``
    package, which will pull in both the hypervisor and the relevant
-   kernel. Also, if you are installing a 32-bit system, you should
-   install the ``libc6-xen`` package (run ``apt-get install
-   libc6-xen``).
+   kernel. 
+
+.. admonition:: KVM on Debian
+
+   It should be sufficient to install the packages ``qemu-kvm`` and
+   ``qemu-utils``.
 
 Xen settings
 ~~~~~~~~~~~~
@@ -177,6 +180,7 @@ To obtain this make sure the variable ``XENDOMAINS_SAVE`` in the file
 You may need to restart the Xen daemon for some of these settings to
 take effect. The best way to do this depends on your distribution.
 
+
 Selecting the instance kernel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -187,349 +191,13 @@ from your initrd to ``/boot/initrd-3-xenU`` [#defkernel]_. Note that
 if you don't use an initrd for the domU kernel, you don't need to create
 the initrd symlink.
 
-.. admonition:: Debian
-
-   After installation of the ``xen-linux-system`` package, you need to
-   run (replace the exact version number with the one you have)::
-
-     $ cd /boot
-     $ ln -s vmlinuz-%2.6.26-1%-xen-amd64 vmlinuz-3-xenU
-     $ ln -s initrd.img-%2.6.26-1%-xen-amd64 initrd-3-xenU
-
-   By default, the initrd doesn't contain the Xen block drivers needed
-   to mount the root device, so it is recommended to update the initrd
-   by following these two steps:
-
-   - edit ``/etc/initramfs-tools/modules`` and add ``xen_blkfront``
-   - run ``update-initramfs -u``
-
-Installing DRBD
-+++++++++++++++
-
-Recommended on all nodes: DRBD_ is required if you want to use the high
-availability (HA) features of Ganeti, but optional if you don't require
-them or only run Ganeti on single-node clusters. You can upgrade a
-non-HA cluster to an HA one later, but you might need to convert all
-your instances to DRBD to take advantage of the new features.
-
-.. _DRBD: http://www.drbd.org/
-
-Supported DRBD versions: 8.0-8.4. It's recommended to have at least
-version 8.0.12. Note that for version 8.2 and newer it is needed to pass
-the ``usermode_helper=/bin/true`` parameter to the module, either by
-configuring ``/etc/modules`` or when inserting it manually. When using
-Xen and DRBD 8.3.2 or higher, it is recommended_ to use the
-``disable_sendpage=1`` setting as well.
-
-.. _recommended: https://docs.linbit.com/docs/users-guide-8.4/#s-xen-drbd-mod-params
-
-Now the bad news: unless your distribution already provides it
-installing DRBD might involve recompiling your kernel or anyway fiddling
-with it. Hopefully at least the Xen-ified kernel source to start from
-will be provided (if you intend to use Xen).
-
-The good news is that you don't need to configure DRBD at all. Ganeti
-will do it for you for every instance you set up.  If you have the DRBD
-utils installed and the module in your kernel you're fine. Please check
-that your system is configured to load the module at every boot, and
-that it passes the following option to the module:
-``minor_count=NUMBER``. We recommend that you use 128 as the value of
-the minor_count - this will allow you to use up to 64 instances in total
-per node (both primary and secondary, when using only one disk per
-instance). You can increase the number up to 255 if you need more
-instances on a node.
-
-
-.. admonition:: Debian
-
-   On Debian, you only need to install the drbd utils with the
-   following command, making sure you are running the target (Xen or
-   KVM) kernel::
-
-     $ apt-get install drbd8-utils
-
-   Then to configure it for Ganeti::
-
-     $ echo "options drbd minor_count=128 usermode_helper=/bin/true" \
-        > /etc/modprobe.d/drbd.conf
-     $ echo "drbd" >> /etc/modules
-     $ depmod -a
-     $ modprobe drbd
-
-   It is also recommended that you comment out the default resources (if any)
-   in the ``/etc/drbd.conf`` file, so that the init script doesn't try to
-   configure any drbd devices. You can do this by prefixing all
-   *resource* lines in the file with the keyword *skip*, like this:
-
-   .. code-block:: text
-
-     skip {
-       resource r0 {
-         ...
-       }
-     }
-
-     skip {
-       resource "r1" {
-         ...
-       }
-     }
-
-Installing RBD
-++++++++++++++
-
-Recommended on all nodes: RBD_ is required if you want to create
-instances with RBD disks residing inside a RADOS cluster (make use of
-the rbd disk template). RBD-based instances can failover or migrate to
-any other node in the ganeti cluster, enabling you to exploit of all
-Ganeti's high availabilily (HA) features.
-
-.. attention::
-   Be careful though: rbd is still experimental! For now it is
-   recommended only for testing purposes.  No sensitive data should be
-   stored there.
-
-.. _RBD: http://ceph.newdream.net/
-
-You will need the ``rbd`` and ``libceph`` kernel modules, the RBD/Ceph
-userspace utils (ceph-common Debian package) and an appropriate
-Ceph/RADOS configuration file on every VM-capable node.
-
-You will also need a working RADOS Cluster accessible by the above
-nodes.
-
-RADOS Cluster
-~~~~~~~~~~~~~
-
-You will need a working RADOS Cluster accesible by all VM-capable nodes
-to use the RBD template. For more information on setting up a RADOS
-Cluster, refer to the `official docs <https://ceph.io/>`_.
-
-If you want to use a pool for storing RBD disk images other than the
-default (``rbd``), you should first create the pool in the RADOS
-Cluster, and then set the corresponding rbd disk parameter named
-``pool``.
-
-Kernel Modules
-~~~~~~~~~~~~~~
-
-Unless your distribution already provides it, you might need to compile
-the ``rbd`` and ``libceph`` modules from source. You will need Linux
-Kernel 3.2 or above for the kernel modules. Alternatively you will have
-to build them as external modules (from Linux Kernel source 3.2 or
-above), if you want to run a less recent kernel, or your kernel doesn't
-include them.
-
-Userspace Utils
-~~~~~~~~~~~~~~~
-
-The RBD template has been tested with ``ceph-common`` v0.38 and
-above. We recommend using the latest version of ``ceph-common``.
-
-.. admonition:: Debian
-
-   On Debian, you can just install the RBD/Ceph userspace utils with
-   the following command::
-
-      $ apt-get install ceph-common
-
-KVM userspace access
-~~~~~~~~~~~~~~~~~~~~
-
-If your cluster uses a sufficiently new version of KVM (you will need at
-least QEMU 0.14 with RBD support compiled in), you can take advantage of
-KVM's native support for ceph in order to have better performance and
-avoid potential deadlocks_ in low memory scenarios.
-
-.. _deadlocks: http://tracker.ceph.com/issues/3076
-
-To initialize a cluster with support for this feature, use a command
-like the following. Note, that you possibly need to follow the more
-general installation instructions before invoking this command (see
-`Initializing the cluster`_ ).
-
-  $ gnt-cluster init \
-      --enabled-disk-templates=rbd \
-      --ipolicy-disk-templates=rbd \
-      --enabled-hypervisors=kvm \
-      -D rbd:access=userspace
-
-(You may want to enable more templates than just ``rbd``.)
-
-You can also change this setting on a live cluster by giving the same
-switches to ``gnt-cluster modify``, or change those settings at the node
-group level with ``gnt-group modify``.
-
-Configuration file
-~~~~~~~~~~~~~~~~~~
-
-You should also provide an appropriate configuration file
-(``ceph.conf``) in ``/etc/ceph``. For the rbd userspace utils, you'll
-only need to specify the IP addresses of the RADOS Cluster monitors.
-
-.. admonition:: ceph.conf
-
-   Sample configuration file:
-
-   .. code-block:: text
-
-    [mon.a]
-           host = example_monitor_host1
-           mon addr = 1.2.3.4:6789
-    [mon.b]
-           host = example_monitor_host2
-           mon addr = 1.2.3.5:6789
-    [mon.c]
-           host = example_monitor_host3
-           mon addr = 1.2.3.6:6789
-
-For more information, please see the `Ceph Docs
-<https://docs.ceph.com/docs/master/>`_
-
-Installing Gluster
-++++++++++++++++++
-
-For Gluster integration, Ganeti requires that ``mount.glusterfs`` is
-installed on each and every node. On Debian Wheezy and newer, you can
-satisfy this requirement with the ``glusterfs-client`` package; see
-`this guide
-<https://docs.gluster.org/en/latest/Administrator%20Guide/Setting%20Up%20Clients/>`_
-for details.
-
-KVM userspace access
-~~~~~~~~~~~~~~~~~~~~
-
-If your cluster uses a sufficiently new version of KVM (you will need at
-least QEMU 1.3 with Gluster support compiled in), you can take advantage
-of KVM's native support for gluster in order to have better performance
-and avoid potential deadlocks in low memory scenarios.
-
-Other required software
-+++++++++++++++++++++++
-
-Please install all software requirements mentioned in :doc:`install-quick`.
-If you want to build Ganeti from source, don't forget to follow the steps
-required for that as well.
-
-Setting up the environment for Ganeti
--------------------------------------
-
-Configuring the network
-+++++++++++++++++++++++
-
-**Mandatory** on all nodes.
-
-You can run Ganeti either in "bridged mode", "routed mode" or
-"openvswitch mode". In bridged mode, the default, the instances network
-interfaces will be attached to a software bridge running in dom0. Xen by
-default creates such a bridge at startup, but your distribution might
-have a different way to do things, and you'll definitely need to
-manually set it up under KVM.
-
-Beware that the default name Ganeti uses is ``xen-br0`` (which was used
-in Xen 2.0) while Xen 3.0 uses ``xenbr0`` by default. See the
-`Initializing the cluster`_ section to learn how to choose a different
-bridge, or not to use one at all and use "routed mode".
-
-In order to use "routed mode" under Xen, you'll need to change the
-relevant parameters in the Xen config file. Under KVM instead, no config
-change is necessary, but you still need to set up your network
-interfaces correctly.
-
-By default, under KVM, the "link" parameter you specify per-nic will
-represent, if non-empty, a different routing table name or number to use
-for your instances. This allows isolation between different instance
-groups, and different routing policies between node traffic and instance
-traffic.
-
-You will need to configure your routing table basic routes and rules
-outside of ganeti. The vif scripts will only add /32 routes to your
-instances, through their interface, in the table you specified (under
-KVM, and in the main table under Xen).
-
-Also for "openvswitch mode" under Xen a custom network script is needed.
-Under KVM everything should work, but you'll need to configure your
-switches outside of Ganeti (as for bridges).
-
-.. admonition:: Bridging issues with certain kernels
-
-    Some kernel versions (e.g. 2.6.32) have an issue where the bridge
-    will automatically change its ``MAC`` address to the lower-numbered
-    slave on port addition and removal. This means that, depending on
-    the ``MAC`` address of the actual NIC on the node and the addresses
-    of the instances, it could be that starting, stopping or migrating
-    instances will lead to timeouts due to the address of the bridge
-    (and thus node itself) changing.
-
-    To prevent this, it's enough to set the bridge manually to a
-    specific ``MAC`` address, which will disable this automatic address
-    change. In Debian, this can be done as follows in the bridge
-    configuration snippet::
-
-      up ip link set addr $(cat /sys/class/net/$IFACE/address) dev $IFACE
-
-    which will "set" the bridge address to the initial one, disallowing
-    changes.
-
-.. admonition:: Bridging under Debian
-
-   The recommended way to configure the Xen bridge is to edit your
-   ``/etc/network/interfaces`` file and substitute your normal
-   Ethernet stanza with the following snippet::
-
-     auto xen-br0
-     iface xen-br0 inet static
-        address %YOUR_IP_ADDRESS%
-        netmask %YOUR_NETMASK%
-        network %YOUR_NETWORK%
-        broadcast %YOUR_BROADCAST_ADDRESS%
-        gateway %YOUR_GATEWAY%
-        bridge_ports eth0
-        bridge_stp off
-        bridge_fd 0
-        # example for setting manually the bridge address to the eth0 NIC
-        up ip link set addr $(cat /sys/class/net/eth0/address) dev $IFACE
-
-The following commands need to be executed on the local console::
-
-  $ ifdown eth0
-  $ ifup xen-br0
-
-To check if the bridge is setup, use the ``ip`` and ``brctl show``
-commands::
-
-  $ ip a show xen-br0
-  9: xen-br0: <BROADCAST,MULTICAST,UP,10000> mtu 1500 qdisc noqueue
-      link/ether 00:20:fc:1e:d5:5d brd ff:ff:ff:ff:ff:ff
-      inet 10.1.1.200/24 brd 10.1.1.255 scope global xen-br0
-      inet6 fe80::220:fcff:fe1e:d55d/64 scope link
-         valid_lft forever preferred_lft forever
-
-  $ brctl show xen-br0
-  bridge name     bridge id               STP enabled     interfaces
-  xen-br0         8000.0020fc1ed55d       no              eth0
-
-In order to have a custom and more advanced networking configuration in Xen
-which can vary among instances, after having successfully installed Ganeti
-you have to create a symbolic link to the vif-script provided by Ganeti
-inside /etc/xen/scripts (assuming you installed Ganeti under /usr/lib)::
-
-  $ ln -s /usr/lib/ganeti/vif-ganeti /etc/xen/scripts/vif-ganeti
-
-This has to be done on all nodes. Afterwards you can set the ``vif_script``
-hypervisor parameter to point to that script by::
-
-  $ gnt-cluster modify -H xen-pvm:vif_script=/etc/xen/scripts/vif-ganeti
-
-Having this hypervisor parameter you are able to create your own scripts
-and create instances with different networking configurations.
-
 .. _configure-lvm-label:
 
 Configuring LVM
 +++++++++++++++
 
-**Mandatory** on all nodes.
+**Mandatory** on all nodes if you want to use ``plain`` or ``DRBD``
+storage backends.
 
 The volume group is required to be at least 20GiB.
 
@@ -553,31 +221,211 @@ command::
   $ pvcreate /dev/%sdd1%
   $ vgextend xenvg /dev/%sdd1%
 
-Optional: it is recommended to configure LVM not to scan the DRBD
-devices for physical volumes. This can be accomplished by editing
-``/etc/lvm/lvm.conf`` and adding the ``/dev/drbd[0-9]+`` regular
-expression to the ``filter`` variable, like this:
+Optional: it is recommended to only scan relevant devices for LVM signatures.
+Otherwise the LVM on your node might find LVM signatures *inside* your
+instance's disks and activate them on the node!
+
+This can be accomplished by editing ``/etc/lvm/lvm.conf`` and adding your
+devices as regular expression to the ``global_filter`` variable, like this:
 
 .. code-block:: text
 
-  filter = ["r|/dev/cdrom|", "r|/dev/drbd[0-9]+|" ]
+  global_filter = [ "a|^/dev/(sd|nvme).+$|", "r/.*/" ]
 
 Note that with Ganeti a helper script is provided - ``lvmstrap`` which
 will erase and configure as LVM any not in-use disk on your system. This
 is dangerous and it's recommended to read its ``--help`` output if you
 want to use it.
 
+Installing DRBD
++++++++++++++++
+
+DRBD_ is one option if you want to use the high-availability (HA) features
+of Ganeti, but optional if you don't require them or only run Ganeti on
+single-node clusters. You can upgrade a non-HA cluster to an HA one later,
+but you might need to convert all your instances to DRBD to take advantage
+of the new features.
+
+.. _DRBD: http://www.drbd.org/
+
+Supported DRBD versions: 8.0-8.4. It's recommended to have at least
+version 8.0.12. Note that for version 8.2 and newer it is needed to pass
+the ``usermode_helper=/bin/true`` parameter to the module, either by
+configuring ``/etc/modules`` or when inserting it manually. When using
+Xen and DRBD 8.3.2 or higher with Xen, it is recommended_ to use the
+``disable_sendpage=1`` setting as well.
+
+.. _recommended: https://docs.linbit.com/docs/users-guide-8.4/#s-xen-drbd-mod-params
+
+.. admonition:: Debian
+
+   On Debian, you only need to install the drbd utils with the
+   following command, making sure you are running the target (Xen or
+   KVM) kernel::
+
+     $ apt-get install drbd8-utils
+
+   Then to configure it for Ganeti::
+
+     $ echo "options drbd minor_count=128 usermode_helper=/bin/true" \
+        > /etc/modprobe.d/drbd.conf
+     $ echo "drbd" >> /etc/modules
+     $ depmod -a
+     $ modprobe drbd
+
+Installing RBD
+++++++++++++++
+
+Another way of making use of Ganeti's high-availability features is to
+configure and install RBD_ (Ceph) on all of your nodes.
+
+.. _RBD: https://ceph.com/en/users/getting-started/
+
+Documenting the steps required to use RBD is out of scope for this document.
+Please refer to your distribution's documentation or to the official Ceph
+documentation to find the optimal way to install RBD in your environment.
+
+
+Installing Gluster
+++++++++++++++++++
+
+For GlusterFS_ integration, Ganeti requires that ``mount.glusterfs`` is
+installed on each and every node. On Debian systems, you can satisfy this
+requirement with the ``glusterfs-client`` package. Further steps for optimal
+GlusterFS configuration are out of scope for this document. Please refer to
+your distribution's documentation or to the official GlusterFS documentation
+to find the optimal way to install GlusterFS in your environment.
+
+.. _GlusterFS: https://docs.gluster.org/en/latest/Quick-Start-Guide/Quickstart/
+
+Other required software
++++++++++++++++++++++++
+
+If you plan on building Ganeti yourself, please install all (build) dependencies
+as noted in the `INSTALL` file. If you use your distribution's packages there
+is nothing more to do here.
+
+Setting up the environment for Ganeti
+-------------------------------------
+
+Configuring the network
++++++++++++++++++++++++
+
+**Mandatory** on all nodes.
+
+Ganeti can operate on a single network interface but you can also split
+this into up to three separate interfaces:
+
+.. admonition:: The main interface
+
+  This interface will hold your Ganeti node's main/public IP address and this
+  is where you will most likely SSH in for management. A cluster also has a
+  dedicated cluster IP address which will be configured by Ganeti on the master
+  node on this interface.
+
+.. admonition:: The replication interface
+
+  This optional interface will only be used for replication (e.g. DRBD) 
+  and live migration traffic. If not configured, said traffic will use the
+  main interface. You need to make sure all nodes are connected to this network
+  and can reach each other.
+
+.. admonition:: The instance network
+
+  You will most likely use a bridge to connect your instances to the outside
+  world. While you *could* make this bridge your main interface you can also
+  configure the bridge to use a separate interface and hence separate instance
+  traffic from replication and management/cluster traffic. With vlan-aware
+  bridges (only supported with KVM) you can provision instances easily on
+  different vlans without altering your node's configuration (e.g. create one
+  bridge per vlan).
+
+You can use plain network interfaces or make use of the linux bonding driver
+to achieve redundant connectivity for each of the above.
+
+In additional to "bridged mode" Ganeti also supports "routed mode" or
+"openvswitch mode" for your instance network.
+
+In order to use "routed mode" under Xen, you'll need to change the
+relevant parameters in the Xen config file. Under KVM instead, no config
+change is necessary, but you still need to set up your network
+interfaces correctly.
+
+By default, under KVM, the "link" parameter you specify per-nic will
+represent, if non-empty, a different routing table name or number to use
+for your instances. This allows isolation between different instance
+groups, and different routing policies between node traffic and instance
+traffic.
+
+You will need to configure your routing table basic routes and rules
+outside of ganeti. The vif scripts will only add /32 routes to your
+instances, through their interface, in the table you specified (under
+KVM, and in the main table under Xen).
+
+Also for "openvswitch mode" under Xen a custom network script is needed.
+Under KVM everything should work, but you'll need to configure your
+switches outside of Ganeti (as for bridges).
+
+It is recommended to use a dedicated network interface for your instances
+
+.. admonition:: Bridging under Debian
+
+   The recommended way to configure the bridge is to edit your
+   ``/etc/network/interfaces`` file and substitute your normal
+   Ethernet stanza with the following snippet if you want to
+   have instance traffic on your main network interface::
+
+    auto gnt-bridge
+    iface gnt-bridge inet static
+      address %YOUR_IP_ADDRESS%/%YOUR_PREFIX%
+      gateway %YOUR_GATEWAY%
+      bridge_ports eth0
+      bridge_stp off
+      bridge_waitport 0
+      bridge_fd 0
+
+   The following configures a bridge to a dedicated interface
+   (``eth1``) and also enables vlan-aware bridging::
+
+    auto gnt-bridge
+    iface gnt-bridge inet manual
+      bridge_ports eth1
+      bridge_vlan_aware yes
+      bridge_stp off
+      bridge_waitport 0
+      bridge_fd 0
+
+In order to have a custom and more advanced networking configuration in Xen
+which can vary among instances, after having successfully installed Ganeti
+you have to create a symbolic link to the vif-script provided by Ganeti
+inside /etc/xen/scripts (assuming you installed Ganeti under /usr/lib)::
+
+  $ ln -s /usr/lib/ganeti/vif-ganeti /etc/xen/scripts/vif-ganeti
+
+This has to be done on all nodes. Afterwards you can set the ``vif_script``
+hypervisor parameter to point to that script by::
+
+  $ gnt-cluster modify -H xen-pvm:vif_script=/etc/xen/scripts/vif-ganeti
+
+Having this hypervisor parameter you are able to create your own scripts
+and create instances with different networking configurations.
+
 Installing Ganeti
 +++++++++++++++++
 
 **Mandatory** on all nodes.
 
+.. admonition:: Use distribution packages
+
+  If possible use your distribution's packages. For Debian you only need
+  to install ``ganeti`` and ``ganeti-3.0``.
+
 It's now time to install the Ganeti software itself.  Download the
 source from the project page at `<https://github.com/ganeti/ganeti/releases>`_,
-and install it (replace 2.16.1 with the latest version)::
+and install it (replace 3.0.2 with the latest version)::
 
-  $ tar xvzf ganeti-%2.16.1%.tar.gz
-  $ cd ganeti-%2.16.1%
+  $ tar xvzf ganeti-%3.0.2%.tar.gz
+  $ cd ganeti-%3.0.2%
   $ ./configure --localstatedir=/var --sysconfdir=/etc
   $ make
   $ make install
@@ -630,7 +478,7 @@ Installing the Operating System support packages
 To be able to install instances you need to have an Operating System
 installation script. An example OS that works under Debian and can
 install Debian and Ubuntu instace OSes is provided on the project web
-site.  Download it from the project page and follow the instructions in
+site. Download it from the project page and follow the instructions in
 the ``README`` file.  Here is the installation procedure (replace 0.14
 with the latest version that is compatible with your ganeti version)::
 
@@ -659,22 +507,14 @@ installed.
 
      $ apt-get install ganeti-instance-debootstrap
 
-.. admonition:: KVM
-
-   In order for debootstrap instances to be able to shutdown cleanly
-   they must have basic ACPI support installed inside the instance. Which
-   packages are needed depend on the exact flavor of Debian or Ubuntu
-   which you're installing, but the example defaults file has a
-   commented out configuration line that works for Debian Lenny and
-   Squeeze::
-
-     EXTRA_PKGS="acpi-support-base,console-tools,udev"
-
-   ``kbd`` can be used instead of ``console-tools``, and more packages
-   can be added, of course, if needed.
-
 Please refer to the ``README`` file of ``ganeti-instance-debootstrap`` for
 further documentation.
+
+.. admonition:: no-op OS Provider
+
+  On Debian you can also install ``ganeti-os-noop``. This dummy OS provider
+  will not do anything and can be used to e.g. bootstrap KVM instances using
+  PXE boot.
 
 Alternatively, you can create your own OS definitions. See the manpage
 :manpage:`ganeti-os-interface(7)`.
@@ -687,9 +527,76 @@ Initializing the cluster
 The last step is to initialize the cluster. After you have repeated the
 above process on all of your nodes and choose one as the master. Make sure
 there is a SSH key pair on the master node (optionally generating one using
-``ssh-keygen``). Finally execute::
+``ssh-keygen``). Before we can run the command ``gnt-cluster init``, we need
+to decide how this cluster is supposed to operate.
 
-  $ gnt-cluster init %CLUSTERNAME%
+.. admonition:: Hypervisor selection
+
+  Choose which hypervisor to enable::
+
+    --enabled-hypervisor kvm [or xen-pvm, xen-hvm]
+
+.. admonition:: LVM
+
+  If you have LVM included in your setup, you may need to specify your volume
+  group's name::
+
+   --vg-name vg-ganeti
+
+.. admonition:: Network
+
+  You need to specify your main network interface (e.g. where your node's main
+  IP address resides). Ganeti will use this interface to configure the cluster
+  IP address on the master node::
+
+   --master-netdev eth0
+
+  Each Ganeti cluster has a name which needs to resolve to an available IP on
+  your node's IP network. Ganeti will resolve the IP address by itself but you
+  need to specify the netmask that goes along with it::
+
+   --master-netmask 24
+
+  You should also configure the default network, the following configures your
+  instances to use 'bridged mode' with ``gnt-bridge`` as default bridge::
+
+   --nic-parameters mode=bridged,link=gnt-bridge
+
+.. admonition:: Storage
+
+  You can enable multiple storage backends (comma separated), but choose at
+  least one::
+
+   --enabled-disk-templates drbd [,plain,file,...]
+
+  Please note that most storage backends require additional parameters -
+  refer to :manpage:`gnt-cluster(8)` for additional details.
+
+.. admonition:: iAllocator
+
+  While you *can* place your instances manually on your cluster it is recommended
+  to use an iallocator script for this. Ganeti ships ``hail`` as a built-in
+  solution and it should be enabled by default::
+
+   --default-iallocator hail
+
+.. admonition:: Hypervisor parameters
+
+  It is a good practice to set sane default hypervisor parameters for all of your
+  instances (they can still be overriden at instance level later). The following
+  configures KVM for full boot emulation and makes all of the node's CPU features
+  available to the guest (if you plan on using live migration all CPUs on your
+  cluster need to be the same for this to work!)::
+
+   --hypervisor-parameters kvm:kernel_path=,initrd_path=,cpu_type=host
+
+  Please refer to :manpage:`gnt-instance(8)` for a full list of hypervisor
+  parameters and their values/defaults.
+
+
+Finally execute::
+
+  $ gnt-cluster init [your parameters here] %CLUSTERNAME%
 
 The *CLUSTERNAME* is a hostname, which must be resolvable (e.g. it must
 exist in DNS or in ``/etc/hosts``) by all the nodes in the cluster. You
@@ -700,35 +607,6 @@ able to expand it later without any problems. Please note that the
 hostname used for this must resolve to an IP address reserved
 **exclusively** for this purpose, and cannot be the name of the first
 (master) node.
-
-If you want to use a bridge which is not ``xen-br0``, or no bridge at
-all, change it with the ``--nic-parameters`` option. For example to
-bridge on br0 you can add::
-
-  --nic-parameters link=br0
-
-Or to not bridge at all, and use a separate routing table::
-
-  --nic-parameters mode=routed,link=100
-
-If you don't have a ``xen-br0`` interface you also have to specify a
-different network interface which will get the cluster IP, on the master
-node, by using the ``--master-netdev <device>`` option.
-
-You can use a different name than ``xenvg`` for the volume group (but
-note that the name must be identical on all nodes). In this case you
-need to specify it by passing the *--vg-name <VGNAME>* option to
-``gnt-cluster init``.
-
-To set up the cluster as an Xen HVM cluster, use the
-``--enabled-hypervisors=xen-hvm`` option to enable the HVM hypervisor
-(you can also add ``,xen-pvm`` to enable the PVM one too). You will also
-need to create the VNC cluster password file
-``/etc/ganeti/vnc-cluster-password`` which contains one line with the
-default VNC password for the cluster.
-
-To setup the cluster for KVM-only usage (KVM and Xen cannot be mixed),
-pass ``--enabled-hypervisors=kvm`` to the init command.
 
 You can also invoke the command with the ``--help`` option in order to
 see all the possibilities.
@@ -743,20 +621,6 @@ modify``.
 
 Your instance types, networking environment, hypervisor type and version
 may all affect what kind of parameters should be used on your cluster.
-
-.. admonition:: KVM
-
-  Instances are by default configured to use a host kernel, and to be
-  reached via serial console, which works nice for Linux paravirtualized
-  instances. If you want fully virtualized instances you may want to
-  handle their kernel inside the instance, and to use VNC.
-
-  Some versions of KVM have a bug that will make an instance hang when
-  configured to use the serial console (which is the default) unless a
-  connection is made to it within about 2 seconds of the instance's
-  startup. For such case it's recommended to disable the
-  ``serial_console`` option.
-
 
 Joining the nodes to the cluster
 ++++++++++++++++++++++++++++++++
