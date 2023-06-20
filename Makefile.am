@@ -295,7 +295,6 @@ APIDOC_PY_DIR = $(APIDOC_DIR)/py
 APIDOC_HS_DIR = $(APIDOC_DIR)/hs
 
 MAINTAINERCLEANFILES = \
-	doc/install-quick.rst \
 	doc/news.rst \
 	doc/upgrade.rst \
 	vcs-version
@@ -736,12 +735,10 @@ docinput = \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
 	doc/dev-codestyle.rst \
-	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
 	doc/iallocator.rst \
 	doc/index.rst \
-	doc/install-quick.rst \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/manpages-disabled.rst \
@@ -752,8 +749,7 @@ docinput = \
 	doc/rapi.rst \
 	doc/security.rst \
 	doc/upgrade.rst \
-	doc/virtual-cluster.rst \
-	doc/walkthrough.rst
+	doc/virtual-cluster.rst
 
 # Generates file names such as "doc/man-gnt-instance.rst"
 mandocrst = $(addprefix doc/man-,$(notdir $(manrst)))
@@ -1206,11 +1202,10 @@ doc/html: doc/html/index.html
 
 doc/man-html: doc/man-html/index.html
 
-doc/install-quick.rst: INSTALL
 doc/news.rst: NEWS
 doc/upgrade.rst: UPGRADE
 
-doc/install-quick.rst doc/news.rst doc/upgrade.rst:
+doc/news.rst doc/upgrade.rst:
 	set -e; \
 	{ echo '.. This file is automatically updated at build time from $<.'; \
 	  echo '.. Do not edit.'; \

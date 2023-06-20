@@ -20,7 +20,6 @@ Installing Ganeti
 Use the following resources to install and/or upgrade Ganeti:
 
 - :doc:`install`: Comprehensive instructions for installing Ganeti.
-- :doc:`install-quick`: A shortened installation guide for the experienced Ganeti user.
 - :doc:`upgrade`: Instructions for upgrading an existing Ganeti installation to the latest version.
 
 Using Ganeti
@@ -29,14 +28,11 @@ Using Ganeti
 The following resources provide guidance on how to use Ganeti:
 
 - :doc:`admin`: Information about how to manage a Ganeti cluster after it is installed (including management of nodes and instances, and information about Ganeti's tools and monitoring agent).
-- :doc:`walkthrough`: An example-oriented guide to Ganeti.
 - :doc:`manpages`: Descriptions of the various tools that are part of Ganeti.
 - :doc:`security`: A description of the security model underlying a Ganeti cluster.
 - :doc:`hooks`: Information on hooking scripts, which extend Ganeti functionalities by automatically activating when certain events occur.
-- :doc:`iallocator`: Description of the API for external tools, which can allocate instances either manually or automatically.
 - :doc:`rapi`: Description of the Ganeti remote API, which allows programmatic access to most of the functionalities of Ganeti.
 - :doc:`ovfconverter`: Description of a tool that provides compatibility with the standard OVF virtual machine interchange format.
-- :doc:`virtual-cluster`: Explanation of how to use virtual cluster support, which is utilized mainly for testing reasons.
 
 Some features are explicitly targeted for large Ganeti installations,
 in which multiple clusters are present:
@@ -48,11 +44,11 @@ Developing Ganeti
 +++++++++++++++++
 
 There are a few documents particularly useful for developers who want
-to modify Ganeti:
+to modify or extend Ganeti:
 
 - :doc:`locking`: Describes Ganeti's locking strategy and lock order dependencies.
-- :doc:`devnotes`: Details build dependencies and other useful development-related information.
-
+- :doc:`iallocator`: Description of the API for external tools, which can allocate instances either manually or automatically.
+- :doc:`virtual-cluster`: Explanation of how to use virtual cluster support, which is utilized mainly for testing reasons.
 
 Implemented designs
 -------------------
@@ -151,13 +147,11 @@ Draft designs
    design-systemd.rst
    design-upgrade.rst
    design-virtual-clusters.rst
-   devnotes.rst
    dev-codestyle.rst
    glossary.rst
    hooks.rst
    iallocator.rst
    install.rst
-   install-quick.rst
    locking.rst
    manpages.rst
    monitoring-query-format.rst
@@ -168,6 +162,5 @@ Draft designs
    security.rst
    upgrade.rst
    virtual-cluster.rst
-   walkthrough
 
 .. vim: set textwidth=72 :
