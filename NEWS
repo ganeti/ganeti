@@ -3963,7 +3963,7 @@ New features
 ~~~~~~~~~~~~
 
 - The ganeti-htools project has been merged into the ganeti-core source
-  tree and will be built as part of Ganeti (see :doc:`install-quick`).
+  tree and will be built as part of Ganeti.
 - Implemented support for :doc:`shared storage <design-shared-storage>`.
 - Add support for disks larger than 2 TB in ``lvmstrap`` by supporting
   GPT-style partition tables (requires `parted
@@ -4527,8 +4527,7 @@ Version 2.3.1 rc1
 *(Released Wed, 1 Dec 2010)*
 
 - impexpd: Disable OpenSSL compression in socat if possible (backport
-  from master, commit e90739d625b, see :doc:`installation guide
-  <install-quick>` for details)
+  from master, commit e90739d625b)
 - Changed unittest coverage report to exclude test scripts
 - Added script to check version format
 
@@ -4573,7 +4572,7 @@ Version 2.3.0 rc0
   cluster-wide option and can be set/modified using
   ``gnt-cluster {init,modify} --prealloc-wipe-disks``.
 - Added IPv6 support, see :doc:`design document <design-2.3>` and
-  :doc:`install-quick`
+  install-quick
 - Added a new watcher option (``--ignore-pause``)
 - Added option to ignore offline node on instance start/stop
   (``--ignore-offline``)
