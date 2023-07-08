@@ -286,8 +286,11 @@ def GetClient():
 
     master, myself = ssconf.GetMasterAndMyself(ss=ss)
     if master != myself:
-      raise errors.OpPrereqError("This is not the master node, please connect"
-                                 " to node '%s' and rerun the command" %
-                                 master, errors.ECODE_INVAL)
+      # print our own name to aid debugging, esp. re FQDN
+      # common error is: hostname != hostname.domain.tld
+      raise errors.OpPrereqError("This node, '%s', is not the master node,
+                                 " please connect to node '%s' and rerun "
+                                 " the command" %
+                                 % (myself, master), errors.ECODE_INVAL)
     raise
   return client
