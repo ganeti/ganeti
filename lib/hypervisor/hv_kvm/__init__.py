@@ -40,6 +40,7 @@ import tempfile
 import time
 import logging
 import pwd
+import shlex
 import shutil
 import urllib.request, urllib.error, urllib.parse
 from bitarray import bitarray
@@ -1681,7 +1682,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         ])
 
     if hvp[constants.HV_KVM_EXTRA]:
-      kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
+      kvm_cmd.extend(
+        shlex.split(hvp[constants.HV_KVM_EXTRA])
+      )
 
     def _generate_kvm_device(dev_type, dev):
       """Helper for generating a kvm device out of a Ganeti device."""
