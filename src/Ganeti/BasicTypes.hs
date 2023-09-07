@@ -206,12 +206,12 @@ instance MonadTrans (ResultT a) where
 instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
   liftIO = ResultT . liftIO
                    . liftM (either (failError . show) return)
-                   . (try :: IO a -> IO (Either IOError a))
+                   . (try :: IO α -> IO (Either IOError α))
 
 instance (MonadBase IO m, Error a) => MonadBase IO (ResultT a m) where
   liftBase = ResultT . liftBase
                    . liftM (either (failError . show) return)
-                   . (try :: IO a -> IO (Either IOError a))
+                   . (try :: IO α -> IO (Either IOError α))
 
 instance (Error a) => MonadTransControl (ResultT a) where
 #if MIN_VERSION_monad_control(1,0,0)

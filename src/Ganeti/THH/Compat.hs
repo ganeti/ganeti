@@ -41,6 +41,7 @@ module Ganeti.THH.Compat
   , myNotStrict
   , nonUnaryTupE
   , mkDoE
+  , myConP
   ) where
 
 import Language.Haskell.TH
@@ -129,3 +130,11 @@ mkDoE s =
 #else
     DoE s
 #endif
+
+-- | ConP is now qualified with an optional [Type].
+myConP :: Name -> [Pat] -> Pat
+myConP n patterns = ConP n
+#if MIN_VERSION_template_haskell(2,18,0)
+                           []
+#endif
+                           patterns
