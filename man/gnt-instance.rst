@@ -880,9 +880,8 @@ kvm\_extra
     Valid for the KVM hypervisor.
 
     Any other option to the KVM hypervisor, useful tweaking anything
-    that Ganeti doesn't support. Note that values set with this
-    parameter are split on a space character and currently don't support
-    quoting.
+    that Ganeti doesn't support. Values with a space in the parameter must be
+    be double quoted.
 
 machine\_version
     Valid for the KVM hypervisor.
