@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [bullseye, focal, jammy, debian-testing]
+        os: [bookworm, focal, jammy, debian-testing]
     container:
       image: ganeti/ci:${{ matrix.os }}-py3
       options: "--init"
