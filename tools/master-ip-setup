@@ -65,7 +65,7 @@ start() {
   fi
 
   if ! ip addr add $MASTER_IP/$MASTER_NETMASK \
-     dev $MASTER_NETDEV label $MASTER_NETDEV:0; then
+     dev $MASTER_NETDEV label $MASTER_NETDEV:0 preferred_lft 0; then
     echo "Error during the activation of the master IP address" >&2
     exit 1
   fi
