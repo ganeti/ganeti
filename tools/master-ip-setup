@@ -42,7 +42,7 @@ start() {
       ARP_COMMAND="arping -q -U -c 3 -I $MASTER_NETDEV -s $MASTER_IP $MASTER_IP"
       ;;
     6)
-      ARP_COMMAND="ndisc6 -q r 3 $MASTER_IP $MASTER_NETDEV"
+      ARP_COMMAND="ndisc6 -q -r 3 $MASTER_IP $MASTER_NETDEV"
       ;;
     *)
       echo "Invalid cluster IP version specified: $CLUSTER_IP_VERSION" >&2
