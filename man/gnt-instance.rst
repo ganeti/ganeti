@@ -31,7 +31,7 @@ ADD
 | {\--disk=*N*: {size=*VAL*[,spindles=*VAL*] \| adopt=*LV*}[,options...]
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
-| [\--no-ip-check] [\--no-name-check] [\--no-conflicts-check]
+| [\--ip-check] [\--name-check] [\--no-conflicts-check]
 | [\--no-start] [\--no-install] [{\--forthcoming \| \--commit}]
 | [\--net=*N* [:options...] \| \--no-nics]
 | [{-B|\--backend-parameters} *BEPARAMS*]
@@ -118,14 +118,12 @@ The minimum information needed to specify an ExtStorage disk are the
 ``size`` and the ``provider``. For example:
 ``--disk 0:size=20G,provider=pvdr1``.
 
-The ``--no-ip-check`` skips the checks that are done to see if the
-instance's IP is not already alive (i.e. reachable from the master
-node).
+The ``--ip-check`` option checks that the instance's IP is not already
+alive (i.e. reachable from the master node).
 
-The ``--no-name-check`` skips the check for the instance name via
-the resolver (e.g. in DNS or /etc/hosts, depending on your setup).
-Since the name check is used to compute the IP address, if you pass
-this option you must also pass the ``--no-ip-check`` option.
+The ``--name-check`` checks for the instance name via the resolver (e.g.
+in DNS or /etc/hosts, depending on your setup). The name check can be
+used to compute the IP address (when set to ``auto``).
 
 If you don't want the instance to automatically start after
 creation, this is possible via the ``--no-start`` option. This will
@@ -150,9 +148,10 @@ ip
     connected to the said network. ``--no-conflicts-check`` can be used
     to override this check. The special value **pool** causes Ganeti to
     select an IP from the network the NIC is or will be connected to.
-    One can pick an externally reserved IP of a network along with
-    ``--no-conflict-check``. Note that this IP cannot be assigned to
-    any other instance until it gets released.
+    The special value **auto** must be combined with ``--name-check``
+    and will use the resolved IP. One can pick an externally reserved IP
+    of a network along with ``--no-conflict-check``. Note that this IP
+    cannot be assigned to any other instance until it gets released.
 
 mode
     specifies the connection mode for this NIC: routed, bridged or
@@ -210,9 +209,9 @@ an instance with that name has already been added to the configuration
 as a forthcoming instance and the request is to replace this instance
 by the newly created real one.
 Note that if the reason for reserving an instance is that DNS names
-still need to be propagated, the reservation has to be done with
-``--no-name-check`` and ``--no-ip-check`` as these options are not
-implied by ``--forthcoming``.
+still need to be propagated, the reservation has to be done without
+``--name-check`` and ``--ip-check`` as these options are not implied
+by ``--forthcoming``.
 
 The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
@@ -1591,29 +1590,20 @@ options.
 
 RENAME
 ^^^^^^
-| **rename** [\--no-ip-check] [\--no-name-check] [\--force]
+| **rename** [\--ip-check] [\--name-check]
 | [\--submit] [\--print-jobid]
 | {*instance*} {*new_name*}
 
 Renames the given instance. The instance must be stopped when running
-this command. The requirements for the new name are the same as for
-adding an instance: the new name must be resolvable and the IP it
-resolves to must not be reachable (in order to prevent duplicate IPs
-the next time the instance is started). The IP test can be skipped if
-the ``--no-ip-check`` option is passed.
+this command. The ``--name-check`` checks for the new instance name via
+the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
+that the resolved name matches the new name. In addition the
+``--ip-check`` can be used to prevent duplicate IPs, by the new name's
+IP is not already alive (i.e. reachable from the master node).
 
 Note that you can rename an instance to its same name, to force
 re-executing the os-specific rename script for that instance, if
 needed.
-
-The ``--no-name-check`` skips the check for the new instance name via
-the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
-that the resolved name matches the provided name. Since the name check
-is used to compute the IP address, if you pass this option you must also
-pass the ``--no-ip-check`` option.
-
-The ``--force`` option is used to skip the interactive confirmation
-when ``--no-name-check`` is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.

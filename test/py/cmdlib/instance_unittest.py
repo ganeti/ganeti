@@ -142,7 +142,9 @@ class TestLUInstanceCreate(CmdlibTestCase):
       mode=constants.INSTANCE_CREATE,
       nics=[{}],
       disks=[],
-      os_type=self.os_name_variant)
+      os_type=self.os_name_variant,
+      name_check=True,
+      ip_check=True)
 
     self.plain_op = opcodes.OpInstanceCreate(
       instance_name="plain.example.com",
@@ -259,7 +261,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
                          ip_check=False,
                          name_check=False)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "IP address set to auto but name checks have been skipped")
+      op, "IP address set to auto but name checks not enabled")
 
   def testAutoIp(self):
     op = self.CopyOpCode(self.diskless_op,
@@ -1923,7 +1925,9 @@ class TestLUInstanceRename(CmdlibTestCase):
 
   def testIpAlreadyInUse(self):
     self.netutils_mod.TcpPing.return_value = True
-    op = self.CopyOpCode(self.op)
+    op = self.CopyOpCode(self.op,
+                         name_check=True,
+                         ip_check=True)
     self.ExecOpCodeExpectOpPrereqError(
       op, "IP .* of instance .* already in use")
 
