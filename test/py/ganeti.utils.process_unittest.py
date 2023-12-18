@@ -751,6 +751,12 @@ class GetCmdline(unittest.TestCase):
     sample_cmd = "sleep 20; true"
     child = subprocess.Popen(sample_cmd, shell=True)
     pid = child.pid
+    # this is somewhat silly, but apparently sometimes the cmdline has not
+    # yet been set and the call to GetProcCmdline() will return an emptry
+    # string. This problem has surfaced recently and especially on Docker
+    # containers used for testing via Github Actions (could not reproduce
+    # locally)
+    time.sleep(1)
     cmdline = utils.GetProcCmdline(pid)
     # As the popen will quote and pass on the sample_cmd, it should be returned
     # by the function as an element in the list of arguments
