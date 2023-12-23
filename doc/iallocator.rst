@@ -631,8 +631,7 @@ Reference implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Ganeti's default iallocator is "hail" which is available when "htools"
-components have been enabled at build time (see :doc:`install-quick` for
-more details).
+components have been enabled at build time.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
