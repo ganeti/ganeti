@@ -33,7 +33,7 @@
 """
 
 from collections import defaultdict
-import mock
+from unittest import mock
 
 from ganeti import compat
 from ganeti import constants

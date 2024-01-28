@@ -31,10 +31,10 @@
 """Script for unittesting the cmdlib module"""
 
 
-import mock
 import unittest
 import itertools
 import copy
+from unittest import mock
 
 from ganeti import constants
 from ganeti import mcpu

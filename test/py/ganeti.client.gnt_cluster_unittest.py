@@ -35,6 +35,7 @@ import optparse
 import os
 import shutil
 import tempfile
+from unittest import mock
 
 from ganeti import errors
 from ganeti.client import gnt_cluster
@@ -44,7 +45,6 @@ from ganeti import constants
 from ganeti import ssh
 from ganeti import cli
 
-import mock
 import testutils
 
 

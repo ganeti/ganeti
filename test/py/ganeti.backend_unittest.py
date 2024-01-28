@@ -32,13 +32,13 @@
 
 import collections
 import copy
-import mock
 import os
 import shutil
 import tempfile
 import testutils
 import testutils_ssh
 import unittest
+from unittest import mock
 
 from ganeti import backend
 from ganeti import constants

@@ -33,6 +33,7 @@
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 from ganeti import bootstrap
 from ganeti import constants
@@ -41,7 +42,6 @@ from ganeti import errors
 from ganeti import pathutils
 
 import testutils
-import mock
 
 
 class TestPrepareFileStorage(unittest.TestCase):

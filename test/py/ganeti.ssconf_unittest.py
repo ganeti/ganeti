@@ -35,6 +35,7 @@ import unittest
 import tempfile
 import shutil
 import errno
+from unittest import mock
 
 from ganeti import utils
 from ganeti import constants
@@ -42,7 +43,6 @@ from ganeti import errors
 from ganeti import ssconf
 
 import testutils
-import mock
 
 
 class TestReadSsconfFile(unittest.TestCase):

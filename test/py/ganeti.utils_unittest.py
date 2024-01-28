@@ -34,7 +34,6 @@ import array
 import errno
 import fcntl
 import glob
-import mock
 import os
 import os.path
 import random
@@ -47,6 +46,7 @@ import tempfile
 import time
 import unittest
 import warnings
+from unittest import mock
 
 import testutils
 from ganeti import constants

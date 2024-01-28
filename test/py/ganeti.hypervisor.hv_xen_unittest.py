@@ -36,7 +36,7 @@ import tempfile
 import shutil
 import random
 import os
-import mock
+from unittest import mock
 
 from ganeti import constants
 from ganeti import objects
