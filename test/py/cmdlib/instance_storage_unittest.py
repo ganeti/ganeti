@@ -30,8 +30,9 @@
 
 """Script for unittesting the cmdlib module 'instance_storage'"""
 
-
+import time
 import unittest
+from unittest import mock
 
 from ganeti import constants
 from ganeti.cmdlib import instance_storage
@@ -40,8 +41,6 @@ from ganeti import objects
 from ganeti import opcodes
 
 import testutils
-import mock
-import time
 
 from testsupport import CmdlibTestCase
 

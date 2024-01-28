@@ -30,9 +30,8 @@
 
 """Script for unittesting the ganeti.utils.storage module"""
 
-import mock
-
 import unittest
+from unittest import mock
 
 from ganeti import constants
 from ganeti.utils import storage

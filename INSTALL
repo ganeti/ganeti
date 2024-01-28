@@ -73,7 +73,7 @@ To install the optional package, run the following line.::
 
 If you want to run the QA suite, you also need the follwing packages::
 
-  $ apt-get install python3-yaml python3-mock
+  $ apt-get install python3-yaml
 
 If some of the python packages are not available in your system,
 you can try installing them using ``easy_install`` command.

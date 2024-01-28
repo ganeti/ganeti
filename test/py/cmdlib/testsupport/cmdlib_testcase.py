@@ -32,11 +32,11 @@
 
 
 import inspect
-import mock
 import re
 import traceback
 import functools
 import sys
+from unittest import mock
 
 from testutils.config_mock import ConfigMock, ConfigObjectMatcher
 from cmdlib.testsupport.iallocator_mock import patchIAllocator

@@ -31,7 +31,7 @@
 """Support for mocking the RPC runner"""
 
 
-import mock
+from unittest import mock
 
 from ganeti import objects
 from ganeti.rpc import node as rpc

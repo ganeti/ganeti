@@ -259,7 +259,6 @@ case ${DIST_RELEASE}${VARIANT} in
         unittest2==0.5.1 \
         logilab-astng==0.24.1 \
         logilab-common==0.58.3 \
-        mock==1.0.1 \
         pylint==0.26.0
 
     in_chroot -- \
@@ -359,7 +358,6 @@ case ${DIST_RELEASE}${VARIANT} in
       easy_install \
         logilab-astng==0.24.1 \
         logilab-common==0.58.3 \
-        mock==1.0.1 \
         pylint==0.26.0 \
         pep8==1.3.3
 
@@ -446,7 +444,6 @@ case ${DIST_RELEASE}${VARIANT} in
       easy_install \
         logilab-astng==0.24.1 \
         logilab-common==0.58.3 \
-        mock==1.0.1 \
         pylint==0.26.0
 
     in_chroot -- \
@@ -535,7 +532,6 @@ EOF
       easy_install \
         logilab-astng==0.24.1 \
         logilab-common==0.58.3 \
-        mock==1.0.1 \
         pylint==0.26.0 \
         pep8==1.3.3
 
@@ -618,7 +614,7 @@ esac
 in_chroot -- \
   $APT_INSTALL lvm2 ssh bridge-utils iproute iputils-arping \
                ndisc6 python-openssl openssl \
-               python-mock fping qemu-utils
+               fping qemu-utils
 
 in_chroot -- \
   easy_install psutil

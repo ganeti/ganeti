@@ -37,6 +37,7 @@ import shutil
 import tempfile
 import operator
 import json
+from unittest import mock
 
 from ganeti import cli
 from ganeti import constants
@@ -48,7 +49,6 @@ from ganeti.utils import version
 from ganeti.tools.cfgupgrade import CfgUpgrade, ParseOptions, Error
 
 import testutils
-import mock
 
 
 def GetMinimalConfig():

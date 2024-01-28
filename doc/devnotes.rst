@@ -16,8 +16,6 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `python3-pydoctor <https://github.com/twisted/pydoctor>`_
 - `python-sphinx <http://sphinx.pocoo.org/>`_
   (tested with version 3.4.3)
-- `python-mock <http://www.voidspace.org.uk/python/mock/>`_
-  (tested with version 4.0.3)
 - `graphviz <http://www.graphviz.org/>`_
 - the `en_US.UTF-8` locale must be enabled on the system
 - `pylint <https://github.com/PyCQA/pylint>`_ and its associated
@@ -49,7 +47,7 @@ Installation of all dependencies listed here::
 
      $ apt install python3-setuptools automake git fakeroot \
            pandoc graphviz python3-sphinx python3-pydoctor \
-           python3-yaml python3-coverage python3-mock \
+           python3-yaml python3-coverage \
            pylint pycodestyle
 
 For Haskell development, again all things from the quick install

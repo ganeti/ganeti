@@ -30,7 +30,7 @@
 
 """Support for mocking the netutils module"""
 
-import mock
+from unittest import mock
 
 from ganeti import compat
 from ganeti import netutils

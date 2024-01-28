@@ -42,7 +42,7 @@ from ganeti.hypervisor import hv_base
 from ganeti.hypervisor import hv_lxc
 from ganeti.hypervisor.hv_lxc import LXCHypervisor, LXCVersion
 
-import mock
+from unittest import mock
 import os
 import shutil
 import tempfile
