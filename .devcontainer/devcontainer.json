@@ -1,0 +1,17 @@
+{
+    "name": "Ganeti Dev Container",
+    "image": "ganeti/ci:jammy-py3",
+
+    "customizations":{
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.debugpy",
+                "ms-python.vscode-pylance",
+                "ms-python.isort",
+
+                "haskell.haskell"
+            ]
+        }
+    }
+}
