@@ -283,7 +283,8 @@ DIRCHECK_EXCLUDE = \
 	doc/html/_* \
 	doc/man-html/_* \
 	tools/shebang \
-	autom4te.cache
+	autom4te.cache \
+	.devcontainer
 
 # some helper vars
 COVERAGE_DIR = doc/coverage
