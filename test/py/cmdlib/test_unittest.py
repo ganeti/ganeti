@@ -30,7 +30,7 @@
 
 """Tests for LUTest*"""
 
-import mock
+from unittest import mock
 
 from ganeti import constants
 from ganeti import opcodes

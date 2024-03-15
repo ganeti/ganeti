@@ -31,7 +31,7 @@
 """Utility functions or the cmdlib test framework"""
 
 
-import mock
+from unittest import mock
 
 
 # pylint: disable=C0103

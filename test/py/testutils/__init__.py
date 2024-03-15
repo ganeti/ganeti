@@ -40,22 +40,8 @@ import tempfile
 import unittest
 import logging
 
-# Unified patch_object for various versions of Python Mock.
-#
-# Different Python Mock versions provide incompatible versions of patching an
-# object. More recent versions use _patch_object, older ones used patch_object.
-# This unifies the different variations.
-import mock
-
-try:
-  # pylint: disable=W0212
-  _patcher = mock._patch_object
-except AttributeError:
-  # pylint: disable=E1101
-  try:
-    _patcher = mock.patch_object
-  except AttributeError:
-    _patcher = mock.patch.object
+from unittest import mock
+_patcher = mock._patch_object
 
 from ganeti import utils
 

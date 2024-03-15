@@ -36,8 +36,8 @@ import copy
 import itertools
 import re
 import unittest
-import mock
 import os
+from unittest import mock
 
 from ganeti import backend
 from ganeti import compat

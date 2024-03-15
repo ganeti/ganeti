@@ -37,6 +37,7 @@ import socket
 import os
 import struct
 import re
+from unittest import mock
 
 from ganeti import serializer
 from ganeti import constants
@@ -51,7 +52,6 @@ import ganeti.hypervisor.hv_kvm.netdev as netdev
 import ganeti.hypervisor.hv_kvm.monitor as monitor
 import ganeti.hypervisor.hv_kvm.validation as validation
 
-import mock
 import testutils
 
 from testutils.config_mock import ConfigMock

@@ -35,6 +35,7 @@ import unittest
 import os
 import tempfile
 import operator
+from unittest import mock
 
 from ganeti import bootstrap
 from ganeti import config
@@ -50,7 +51,6 @@ from ganeti.config import TemporaryReservationManager
 
 import testutils
 import mocks
-import mock
 from testutils.config_mock import ConfigMock, _UpdateIvNames
 
 

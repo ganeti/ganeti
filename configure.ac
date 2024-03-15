@@ -912,10 +912,6 @@ AC_PYTHON_MODULE(yaml)
 if test $HAVE_PYMOD_YAML == "no"; then
   PY_NODEV="$PY_NODEV yaml"
 fi
-AC_PYTHON_MODULE(mock)
-if test $HAVE_PYMOD_MOCK == "no"; then
-  PY_NODEV="$PY_NODEV mock"
-fi
 
 if test -n "$PY_NODEV"; then
   AC_MSG_WARN(m4_normalize([Required development modules ($PY_NODEV) were not
