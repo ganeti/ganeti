@@ -93,14 +93,14 @@ makeCustomLenses' name lst = makeCustomLensesFiltered f name
 -- Most often the @g@ functor is @(,) r@ and 'traverseOf2' is used to
 -- traverse an effectful computation that also returns an additional output
 -- value.
-traverseOf2 :: Over (->) (Compose f g) s t a b
-            -> (a -> f (g b)) -> s -> f (g t)
+-- traverseOf2 :: Over (->) (Compose f g) s t a b
+--             -> (a -> f (g b)) -> s -> f (g t)
 traverseOf2 k f = getCompose . traverseOf k (Compose . f)
 
 -- | Traverses over a composition of a monad and a functor.
 -- See 'traverseOf2'.
-mapMOf2 :: Over (->) (Compose (WrappedMonad m) g) s t a b
-        -> (a -> m (g b)) -> s -> m (g t)
+-- mapMOf2 :: Over (->) (Compose (WrappedMonad m) g) s t a b
+--         -> (a -> m (g b)) -> s -> m (g t)
 mapMOf2 k f = unwrapMonad . traverseOf2 k (WrapMonad . f)
 
 -- | A helper lens over sets.
