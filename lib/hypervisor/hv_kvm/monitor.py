@@ -774,6 +774,13 @@ class QmpConnection(MonitorSocket):
       "capabilities": []
     }
     for capability in capabilities:
+      # Fix the old capability names
+      # TODO: how do we verify that the new name is supported?
+      # Fixes "error executing the migrate-set-capabilities command:
+      # Parameter 'capability' does not accept value 'x-rdma-pin-all'"
+      if capability == 'x-rdma-pin-all':
+        capability = 'rdma-pin-all'
+      # Setup the caps.
       arguments["capabilities"].append({
         "capability": capability,
         "state": state,
