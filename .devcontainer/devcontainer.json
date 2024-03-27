@@ -9,9 +9,14 @@
                 "ms-python.debugpy",
                 "ms-python.vscode-pylance",
                 "ms-python.isort",
+                "ms-python.pylint",
 
                 "haskell.haskell"
-            ]
+            ],
+            "settings": {
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true
+            }
         }
     }
 }
