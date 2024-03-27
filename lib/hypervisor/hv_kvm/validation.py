@@ -53,6 +53,7 @@ _SPICE_ADDITIONAL_PARAMS = frozenset([
 
 _SPICE_RE = re.compile(r"^-spice\s", re.M)
 _CHECK_MACHINE_VERSION_RE = [lambda x: re.compile(r"^(%s)[ ]+.*PC" % x, re.M)]
+_VERSION_RE = re.compile(r"\b(\d+)\.(\d+)(\.(\d+))?\b")
 
 
 def check_spice_parameters(hvparams):
@@ -204,3 +205,13 @@ def check_disk_cache_parameters(hvparams):
                                      "only supported value for 'disk_cache' is "
                                      "'none'.")
     return True
+
+
+def validate_disk_parameters(hvparams, kvm_version):
+    v_all, v_maj, v_min, v_rev = kvm_version
+
+    disk_aio = hvparams[constants.HV_KVM_DISK_AIO]
+    if disk_aio == constants.HT_KVM_AIO_IO_URING:
+        if v_maj < 5:
+            raise errors.HypervisorError("At least QEMU 5.0 required to use"
+                                         "'disk_aio=io_uring'.")

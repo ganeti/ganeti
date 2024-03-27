@@ -2822,9 +2822,6 @@ htValidCacheTypes =
                        htCacheWback,
                        htCacheWthrough]
 
-htDiscardDefault :: String
-htDiscardDefault = "default"
-
 htDiscardIgnore :: String
 htDiscardIgnore = "ignore"
 
@@ -2833,8 +2830,7 @@ htDiscardUnmap = "unmap"
 
 htValidDiscardTypes :: FrozenSet String
 htValidDiscardTypes =
-  ConstantUtils.mkSet [htDiscardDefault,
-                       htDiscardIgnore,
+  ConstantUtils.mkSet [htDiscardIgnore,
                        htDiscardUnmap]
 
 htKvmAioThreads :: String
@@ -2843,10 +2839,14 @@ htKvmAioThreads = "threads"
 htKvmAioNative :: String
 htKvmAioNative = "native"
 
+htKvmAioIoUring :: String
+htKvmAioIoUring = "io_uring"
+
 htKvmValidAioTypes :: FrozenSet String
 htKvmValidAioTypes =
   ConstantUtils.mkSet [htKvmAioThreads,
-                       htKvmAioNative]
+                       htKvmAioNative,
+                       htKvmAioIoUring]
 
 -- * Mouse types
 
@@ -4126,7 +4126,7 @@ hvcDefaults =
           , (hvUseGuestAgent,                   PyValueEx False)
           , (hvUseLocaltime,                    PyValueEx False)
           , (hvDiskCache,                       PyValueEx htCacheDefault)
-          , (hvDiskDiscard,                     PyValueEx htDiscardDefault)
+          , (hvDiskDiscard,                     PyValueEx htDiscardIgnore)
           , (hvSecurityModel,                   PyValueEx htSmNone)
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
