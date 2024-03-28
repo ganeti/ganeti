@@ -34,9 +34,9 @@ import os
 import tempfile
 import unittest
 import shutil
-import OpenSSL
-import distutils.version
 import string
+import OpenSSL
+from packaging import version
 
 from ganeti import constants
 from ganeti import utils
@@ -78,10 +78,11 @@ class TestGetX509CertValidity(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
 
-    pyopenssl_version = distutils.version.LooseVersion(OpenSSL.__version__)
+    pyopenssl_version = version.parse(OpenSSL.__version__)
+    desired_pyopenssl_version = version.parse("0.7")
 
-    # Test whether we have pyOpenSSL 0.7 or above
-    self.pyopenssl0_7 = (pyopenssl_version >= "0.7")
+    # Test whether we have pyOpenSSL in desired_pyopenssl_version (0.7) or above
+    self.pyopenssl0_7 = pyopenssl_version >= desired_pyopenssl_version
 
     if not self.pyopenssl0_7:
       warnings.warn("This test requires pyOpenSSL 0.7 or above to"
