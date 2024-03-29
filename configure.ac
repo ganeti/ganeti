@@ -898,7 +898,6 @@ m4_define_default([_AM_PYTHON_INTERPRETER_LIST],
                   [python3 python3.8 python3.7 python3.6 python])
 AM_PATH_PYTHON([3.6])
 AC_PYTHON_MODULE(OpenSSL, t)
-AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
