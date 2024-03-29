@@ -36,9 +36,8 @@
 
 import copy
 import itertools
+import json
 import logging
-
-import simplejson
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -280,7 +279,7 @@ def BatchCreate(opts, args):
   cl = GetClient()
 
   try:
-    instance_data = simplejson.loads(utils.ReadFile(json_filename))
+    instance_data = json.loads(utils.ReadFile(json_filename))
   except Exception as err: # pylint: disable=W0703
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1

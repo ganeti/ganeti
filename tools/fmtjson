@@ -32,7 +32,7 @@
 """
 
 import sys
-import simplejson
+import json
 
 
 def main():
@@ -45,8 +45,8 @@ def main():
                      " no options or arguments.\n")
     sys.exit(1)
 
-  data = simplejson.load(sys.stdin)
-  simplejson.dump(data, sys.stdout, indent=2, sort_keys=True)
+  data = json.load(sys.stdin)
+  json.dump(data, sys.stdout, indent=2, sort_keys=True)
   sys.stdout.write("\n")
 
 

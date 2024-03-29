@@ -243,7 +243,6 @@ case ${DIST_RELEASE}${VARIANT} in
         hscolour pandoc \
         graphviz qemu-utils \
         python-docutils \
-        python-simplejson \
         python-pyparsing \
         python-pyinotify \
         python-pycurl \
@@ -340,7 +339,7 @@ case ${DIST_RELEASE}${VARIANT} in
       libghc-zlib-dev libghc-psqueue-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-simplejson python-pycurl python-paramiko \
+      python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev openssh-client vim git git-email exuberant-ctags
 
@@ -392,7 +391,7 @@ case ${DIST_RELEASE}${VARIANT} in
       libghc-cabal-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-simplejson python-pycurl python-pyinotify python-paramiko \
+      python-pycurl python-pyinotify python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags
@@ -426,7 +425,6 @@ case ${DIST_RELEASE}${VARIANT} in
         hlint hscolour pandoc \
         graphviz qemu-utils \
         python-docutils \
-        python-simplejson \
         python-pyparsing \
         python-pyinotify \
         python-pycurl \
@@ -523,7 +521,7 @@ EOF
       cabal-install \
       libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-simplejson python-pyinotify python-pycurl python-paramiko \
+      python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       python-dev pylint openssh-client vim git git-email exuberant-ctags \
       build-essential
@@ -575,7 +573,7 @@ EOF
       cabal-install \
       libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-simplejson python-pyinotify python-pycurl python-paramiko \
+      python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags \

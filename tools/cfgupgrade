@@ -30,8 +30,8 @@
 
 """Tool to upgrade the configuration file.
 
-This code handles only the types supported by simplejson. As an
-example, 'set' is a 'list'.
+This code handles only the types supported by the json python build-in module.
+As an example, 'set' is a 'list'.
 
 """
 

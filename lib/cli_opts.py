@@ -34,7 +34,7 @@ import re
 
 from optparse import (Option, OptionValueError)
 
-import simplejson
+import json
 
 from ganeti import utils
 from ganeti import errors
@@ -474,7 +474,7 @@ def check_json(option, opt, value): # pylint: disable=W0613
   Takes a string containing JSON, returns a Python object.
 
   """
-  return simplejson.loads(value)
+  return json.loads(value)
 
 
 def check_filteraction(option, opt, value): # pylint: disable=W0613

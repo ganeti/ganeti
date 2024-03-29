@@ -36,7 +36,6 @@ Before installing, please verify that you have the following programs:
 - `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
 - `Python <http://www.python.org/>`_, version 3.6 or above
 - `Python OpenSSL bindings <https://www.pyopenssl.org/>`_
-- `simplejson Python module <https://simplejson.readthedocs.io/>`_
 - `pyparsing Python module <https://pyparsing-docs.readthedocs.io/>`_, version
   1.5.7 or above
 - `pyinotify Python module <https://github.com/seb-m/pyinotify>`_
@@ -63,7 +62,7 @@ packages, except for RBD, DRBD and Xen::
 
   $ apt-get install lvm2 ssh iproute iputils-arping make m4 \
                     ndisc6 python3 python3-openssl openssl \
-                    python3-pyparsing python3-simplejson python3-bitarray \
+                    python3-pyparsing python3-bitarray \
                     python3-pyinotify python3-pycurl socat fping
 
 Note that the previous instructions don't install optional packages.
@@ -87,7 +86,7 @@ For example::
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
   $ yum install openssh openssh-clients iproute ndisc6 make \
-                pyOpenSSL pyparsing python-simplejson python-inotify \
+                pyOpenSSL pyparsing python-inotify \
                 python-lxm socat fping python-bitarray python-ipaddr
 
 For optional packages use the command::
