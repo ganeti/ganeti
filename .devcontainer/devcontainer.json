@@ -1,6 +1,6 @@
 {
     "name": "Ganeti Dev Container",
-    "image": "ganeti/ci:jammy-py3",
+    "image": "ganeti/ci:bookworm-py3",
 
     "customizations":{
         "vscode": {
