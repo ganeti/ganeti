@@ -261,7 +261,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
                          ip_check=False,
                          name_check=False)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "IP address set to auto but name checks not enabled")
+      op, "IP address set to auto but the name checks are not enabled")
 
   def testAutoIp(self):
     op = self.CopyOpCode(self.diskless_op,

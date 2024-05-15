@@ -210,8 +210,7 @@ as a forthcoming instance and the request is to replace this instance
 by the newly created real one.
 Note that if the reason for reserving an instance is that DNS names
 still need to be propagated, the reservation has to be done without
-``--name-check`` and ``--ip-check`` as these options are not implied
-by ``--forthcoming``.
+``--name-check`` and ``--ip-check``.
 
 The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
@@ -1598,8 +1597,9 @@ Renames the given instance. The instance must be stopped when running
 this command. The ``--name-check`` checks for the new instance name via
 the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
 that the resolved name matches the new name. In addition the
-``--ip-check`` can be used to prevent duplicate IPs, by the new name's
-IP is not already alive (i.e. reachable from the master node).
+``--ip-check`` can be used to prevent duplicate IPs, by checking that
+the new name's IP is not already alive (i.e. reachable from the master
+node).
 
 Note that you can rename an instance to its same name, to force
 re-executing the os-specific rename script for that instance, if
