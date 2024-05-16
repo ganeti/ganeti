@@ -126,14 +126,16 @@ def GetInstanceInfo(instance):
   storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
 
   hvparams = {}
-  for param, value in info["Hypervisor parameters"].items():
-    if type(value) == str and value.startswith("default ("):
-        result = re.search(r'^default \((.*)\)$', value)
-        try:
-            value = yaml.load(result.group(1), Loader=yaml.SafeLoader)
-        except yaml.YAMLError:
-            value = ''
-    hvparams[param] = value
+  # make sure to not iterate on hypervisors w/o parameters (e.g. fake HV)
+  if isinstance(info["Hypervisor parameters"], dict):
+    for param, value in info["Hypervisor parameters"].items():
+      if type(value) == str and value.startswith("default ("):
+          result = re.search(r'^default \((.*)\)$', value)
+          try:
+              value = yaml.load(result.group(1), Loader=yaml.SafeLoader)
+          except yaml.YAMLError:
+              value = ''
+      hvparams[param] = value
 
   assert nodes
   assert len(nodes) < 2 or vols
