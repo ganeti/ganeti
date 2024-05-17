@@ -467,8 +467,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   # first do a rename to a different actual name, expecting it to fail
   qa_utils.AddToEtcHosts(["meeeeh-not-exists", rename_target])
   try:
-    AssertCommand(["gnt-instance", "rename", rename_source, rename_target],
-                  fail=True)
+    AssertCommand(["gnt-instance", "rename", "--name-check",
+                  rename_source, rename_target], fail=True)
     CheckSsconfInstanceList(rename_source)
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
@@ -491,7 +491,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
     tags_cmd = "false"
 
   # and now rename instance to rename_target...
-  AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
+  AssertCommand(["gnt-instance", "rename", "--name-check", rename_source,
+                rename_target])
   CheckSsconfInstanceList(rename_target)
   qa_utils.RunInstanceCheck(rename_source, False)
   qa_utils.RunInstanceCheck(rename_target, False)
@@ -505,7 +506,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
       AssertCommand(tags_cmd + rename_target, node=node, fail=False)
 
   # and back
-  AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
+  AssertCommand(["gnt-instance", "rename", "--name-check", rename_target,
+                rename_source])
   CheckSsconfInstanceList(rename_source)
   qa_utils.RunInstanceCheck(rename_target, False)
 

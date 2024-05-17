@@ -1055,8 +1055,8 @@ class TestParseRenameInstanceRequest(RAPITestCase):
 
       self.assertEqual(op.instance_name, name)
       self.assertEqual(op.new_name, new_name)
-      self.assertTrue(op.ip_check)
-      self.assertTrue(op.name_check)
+      self.assertFalse(op.ip_check)
+      self.assertFalse(op.name_check)
       self.assertFalse(op.dry_run)
       self.assertFalse(hasattr(op, "force"))
 

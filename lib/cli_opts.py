@@ -35,6 +35,8 @@ import re
 from optparse import (Option, OptionValueError)
 
 import json
+import sys
+import textwrap
 
 from ganeti import utils
 from ganeti import errors
@@ -168,10 +170,12 @@ __all__ = [
   "NODEGROUP_OPT",
   "NODEGROUP_OPT_NAME",
   "NOHDR_OPT",
+  "IPCHECK_OPT",
   "NOIPCHECK_OPT",
+  "NAMECHECK_OPT",
+  "NONAMECHECK_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
   "NOMODIFY_SSH_SETUP_OPT",
-  "NONAMECHECK_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NONPLUS1_OPT",
@@ -818,15 +822,33 @@ HVLIST_OPT = cli_option("-H", "--hypervisor-parameters", dest="hvparams",
                         " format hypervisor:option=value,option=value,...",
                         default=[], action="append", type="identkeyval")
 
-NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
-                           action="store_false",
-                           help="Don't check that the instance's IP"
-                           " is alive")
+IPCHECK_OPT = cli_option("--ip-check", dest="ip_check", default=False,
+                           action="store_true",
+                           help="Check that the instance's IP is alive (ping)")
 
-NONAMECHECK_OPT = cli_option("--no-name-check", dest="name_check",
-                             default=True, action="store_false",
-                             help="Don't check that the instance's name"
-                             " is resolvable")
+def WarnDeprecatedOption(option, opt_str, value, parser):
+  """Callback for processing deprecated options.
+
+  """
+  msg = textwrap.fill(option.help, subsequent_indent="    ")
+  print("Warning: %s: %s" % (opt_str, msg), file=sys.stderr)
+
+NOIPCHECK_OPT = cli_option("--no-ip-check",
+                           action="callback", callback=WarnDeprecatedOption,
+                           help="This option is deprecated/without any"
+                           " effect. IP check is now disabled by default."
+                           " Use --ip-check for connection test.")
+
+NAMECHECK_OPT = cli_option("--name-check", dest="name_check",
+                             default=False, action="store_true",
+                             help="Check that the instance's name is"
+                             " resolvable")
+
+NONAMECHECK_OPT = cli_option("--no-name-check",
+                             action="callback", callback=WarnDeprecatedOption,
+                             help="This option is deprecated/without any"
+                             " effect. Name check is now disabled by default."
+                             " Use --name-check for resolving names.")
 
 NET_OPT = cli_option("--net",
                      help="NIC parameters", default=[],
@@ -1632,9 +1654,11 @@ COMMON_CREATE_OPTS = [
   NET_OPT,
   NODE_PLACEMENT_OPT,
   NODEGROUP_OPT,
+  IPCHECK_OPT,
   NOIPCHECK_OPT,
-  NOCONFLICTSCHECK_OPT,
+  NAMECHECK_OPT,
   NONAMECHECK_OPT,
+  NOCONFLICTSCHECK_OPT,
   NONICS_OPT,
   NWSYNC_OPT,
   OSPARAMS_OPT,
