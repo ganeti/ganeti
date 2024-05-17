@@ -119,7 +119,10 @@ The minimum information needed to specify an ExtStorage disk are the
 ``--disk 0:size=20G,provider=pvdr1``.
 
 The ``--ip-check`` option checks that the instance's IP is not already
-alive (i.e. reachable from the master node).
+alive (i.e. reachable from the master node). If you pass this option you
+must also pass the ``--name-check`` option, because the name check is
+used to compute the IP address via the resolver (e.g. in DNS or
+/etc/hosts, depending on your setup).
 
 The ``--name-check`` checks for the instance name via the resolver (e.g.
 in DNS or /etc/hosts, depending on your setup). The name check can be
