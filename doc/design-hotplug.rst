@@ -222,7 +222,7 @@ support only disk addition/deletion.
 ::
 
  gnt-instance modify --disk add:size=1G --hotplug test
- gnt-instance modify --net 1:remove --hotplug test
+ gnt-instance modify --disk 1:remove --hotplug test
 
 
 Dealing with chroot and uid pool (and disks in general)
