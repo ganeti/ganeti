@@ -427,6 +427,20 @@ class LuxiError(GenericError):
 
   """
 
+class SocketTimeoutError(GenericError):
+  """Socket Timeout error.
+
+  """
+
+class QGAError(GenericError):
+  """Generic Qemu Guest agent error.
+
+  """
+
+class QGATimeoutError(QGAError):
+  """QGA timeout error.
+
+  """
 
 class QueryFilterParseError(ParseError):
   """Error while parsing query filter.

@@ -3231,6 +3231,52 @@ def HotplugDevice(instance, action, dev_type, device, extra, seq):
   return fn(instance, dev_type, device, extra, seq)
 
 
+def HotplugvCPUs(instance, amount: int):
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+
+  try:
+    hyper.VerifyvCPUHotplugSupport(instance, amount)
+  except errors.HotplugError as err:
+    _Fail("Hotplug of vCPUs is not supported: %s", err)
+
+  return hyper.HotModvCPUs(instance, amount)
+
+
+def HotplugvCPUsSupported(instance, amount: int):
+  """Checks if vCPUs hotplug is generally supported.
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.HotplugvCPUsSupported(instance, amount)
+  except errors.HotplugError as err:
+    _Fail("Hotplug of vCPUs is not supported: %s", err)
+
+
+def HotplugMemory(instance, amount):
+  """Hotplug memory to the given amount.
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.VerifyMemoryHotplugSupport(instance, amount)
+  except errors.HotplugError as err:
+    _Fail("Memory hotplug is not supported: %s", err)
+
+  return hyper.HotModMemory(instance, amount)
+
+
+def HotplugMemorySupported(instance, amount):
+  """Checks if memory hotplug to the given amount is supported.
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.HotplugMemorySupported(instance, amount)
+  except errors.HotplugError as err:
+    _Fail("Hotplug of vCPUs is not supported: %s", err)
+
+
 def HotplugSupported(instance):
   """Checks if hotplug is generally supported.
 

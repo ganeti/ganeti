@@ -53,7 +53,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
   GetUpdatedParams, CheckInstanceState, ExpandNodeUuidAndName, \
   IsValidDiskAccessModeCombination, AnnotateDiskParams, \
-  CheckIAllocatorOrNode
+  CheckIAllocatorOrNode, IsInstanceRunning
 from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckDiskExtProvider, CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, \
   CheckSpindlesExclusiveStorage, ComputeDiskSizePerVG, ComputeDisksInfo, \
@@ -1580,6 +1580,41 @@ class LUInstanceSetParams(LogicalUnit):
       msg += "done"
     return msg
 
+
+  def _HotplugVCPUs(self, new):
+    if self.op.hotplug:
+      self.LogInfo(f"Trying to hotplug vCPUs to {new} ...")
+      msg = "vcpu-hotplug:"
+      result = self.rpc.call_hotplug_vcpus(self.instance.primary_node,
+                                            self.instance, new)
+
+      if result.fail_msg:
+        self.LogWarning(f"Could not hotplug vcpus: { result.fail_msg}")
+        self.LogInfo("Continuing execution..")
+        msg += "failed"
+      else:
+        self.LogInfo(f"Hotplug to {new} vCPUs done.")
+        msg += "done"
+      return msg
+
+
+  def _HotplugMemory(self, new):
+    if self.op.hotplug:
+      self.LogInfo(f"Trying to hotplug memory to {new} ...")
+      msg = "memory-hotplug:"
+      result = self.rpc.call_hotplug_memory(self.instance.primary_node,
+                                            self.instance, new)
+
+      if result.fail_msg:
+        self.LogWarning(f"Could not hotplug memory: {result.fail_msg}")
+        self.LogInfo("Continuing execution..")
+        msg += "failed"
+      else:
+        self.LogInfo(f"Hotplug to {new} memory done.")
+        msg += "done"
+      return msg
+
+
   def _FillFileDriver(self):
     if not self.op.file_driver:
       self.op.file_driver = constants.FD_DEFAULT
@@ -1901,6 +1936,21 @@ class LUInstanceSetParams(LogicalUnit):
                        self._CreateNewDisk, self._AttachDisk, self._ModifyDisk,
                        self._RemoveDisk, self._DetachDisk,
                        post_add_fn=self._PostAddDisk)
+
+    # do Hotplug action if instance is running
+    if IsInstanceRunning(self, self.instance):
+      # do vcpu hotplug if the vcpu backend param has changed
+      feedback_fn(f"self: {self.op.beparams.items()}")
+      feedback_fn(f"be_new: {self.be_new}")
+      feedback_fn(f"be_inst: {self.be_inst}")
+      feedback_fn(f"be: {self.instance.beparams}")
+      if constants.BE_VCPUS in self.op.beparams:
+        self._HotplugVCPUs(self.op.beparams[constants.BE_VCPUS])
+
+      # do memory hotplug
+      if constants.BE_MEMORY in self.op.beparams:
+        self._HotplugMemory(self.op.beparams[constants.BE_MEMORY])
+
 
     if self.op.disk_template:
       if __debug__:

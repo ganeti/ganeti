@@ -670,6 +670,44 @@ class NodeRequestHandler(http.server.HttpServerHandler):
       assert dev_type in constants.HOTPLUG_ALL_TARGETS
     return backend.HotplugDevice(instance, action, dev_type, device, extra, seq)
 
+
+  @staticmethod
+  def perspective_hotplug_vcpus(params):
+    """vCPU hotplug to a running instance.
+
+    """
+    (idict, amount) = params
+    instance = objects.Instance.FromDict(idict)
+    return backend.HotplugvCPUs(instance, amount)
+
+
+  @staticmethod
+  def perspective_hotplug_vcpus_supported(params):
+    """Verify vCPU Hotplug to a running instance.
+
+    """
+    (idict, amount) = params
+    instance = objects.Instance.FromDict(idict)
+    return backend.HotplugvCPUsSupported(instance, amount)
+
+  @staticmethod
+  def perspective_hotplug_memory(params):
+    """Memory hotplug to a running instance.
+
+    """
+    (idict, amount) = params
+    instance = objects.Instance.FromDict(idict)
+    return backend.HotplugMemory(instance, amount)
+
+  @staticmethod
+  def perspective_hotplug_memory_supported(params):
+    """Verify vCPU Hotplug to a running instance.
+
+    """
+    (idict, amount) = params
+    instance = objects.Instance.FromDict(idict)
+    return backend.HotplugMemorySupported(instance, amount)
+
   @staticmethod
   def perspective_hotplug_supported(params):
     """Checks if hotplug is supported.

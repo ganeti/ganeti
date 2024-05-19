@@ -39,7 +39,7 @@ import io
 import logging
 import time
 
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from collections import namedtuple
 from bitarray import bitarray
 
@@ -573,6 +573,24 @@ class QmpConnection(QemuMonitorSocket):
     devices = bus["devices"]
     return devices
 
+
+  @_ensure_connection
+  def HotAddvCPU(self, cpu: Dict) -> None:
+    # cpu = Dict object von query-cpus...
+    # device_add id=cpu-2 driver=IvyBridge-IBRS-x86_64-cpu socket-id=1 core-id=0 thread-id=0
+
+    arguments = cpu['props'].copy()
+    arguments["id"] = f"cpu-{cpu['props']['socket-id']}"
+    arguments["driver"] = cpu['type']
+
+    self.Execute("device_add", arguments)
+
+
+  @_ensure_connection
+  def HotDelvCPU(self, cpu_id: str) -> None:
+    self.Execute("device_del", {"id": cpu_id})
+
+
   def _HasPCIDevice(self, devid):
     """Check if a specific device ID exists on the PCI bus.
 
@@ -771,6 +789,7 @@ class QmpConnection(QemuMonitorSocket):
 
     return self.Execute("query-cpus-fast")
 
+
   @_ensure_connection
   def GetHotpluggableCPUs(self):
     """ Get CPU type which could be plugged
@@ -779,12 +798,14 @@ class QmpConnection(QemuMonitorSocket):
 
     return self.Execute("query-hotpluggable-cpus")
 
+
   @_ensure_connection
   def QueryMemorySummary(self):
     """Returns the memory size summary.
 
     """
     return self.Execute("query-memory-size-summary")
+
 
   @_ensure_connection
   def GetMigrationStatus(self):
@@ -932,3 +953,12 @@ class QgaConnection(QemuMonitorSocket):
     self.version = info["version"]
     self.supported_commands = [cmd['name'] for cmd
                                in info['supported_commands'] if cmd['enabled']]
+
+  @_ensure_connection
+  def GetvCPUs(self):
+    return self.execute_qmp("guest-get-vcpus")
+
+
+  @_ensure_connection
+  def SetvCPUs(self, vcpus: List[Dict]):
+    self.execute_qmp("guest-set-vcpus", {"vcpus": vcpus})

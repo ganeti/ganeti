@@ -40,6 +40,7 @@ from ganeti.hypervisor import hv_xen
 from ganeti.hypervisor import hv_kvm
 from ganeti.hypervisor import hv_chroot
 from ganeti.hypervisor import hv_lxc
+from ganeti.hypervisor import hv_base
 
 
 _HYPERVISOR_MAP = {
@@ -69,7 +70,7 @@ def GetHypervisorClass(ht_kind):
   return cls
 
 
-def GetHypervisor(ht_kind):
+def GetHypervisor(ht_kind) -> hv_base.BaseHypervisor:
   """Return a Hypervisor instance.
 
   This is a wrapper over L{GetHypervisorClass} which returns an

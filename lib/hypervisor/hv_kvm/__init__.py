@@ -43,6 +43,7 @@ import pwd
 import shlex
 import shutil
 import urllib.request, urllib.error, urllib.parse
+from typing import List
 from bitarray import bitarray
 try:
   import psutil   # pylint: disable=F0401
@@ -69,8 +70,8 @@ from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 from ganeti.utils import wrapper as utils_wrapper
 
-from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage \
-
+from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, \
+                                             QmpMessage, QgaConnection
 from ganeti.hypervisor.hv_kvm.netdev import OpenTap
 
 from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
@@ -86,6 +87,12 @@ from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 validate_disk_parameters
 
 import ganeti.hypervisor.hv_kvm.kvm_utils as kvm_utils
+
+from ganeti.hypervisor.hv_kvm.types import QMPVCPUItem, \
+                                           QMPMemoryBackendItem, \
+                                           QMPMemoryDimmItem
+from ganeti.hypervisor.hv_kvm.kvm_runtime import KVMRuntime
+
 
 _KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
@@ -185,6 +192,23 @@ def _with_qmp(fn):
     return fn(self, *args, **kwargs)
   return wrapper
 
+def _with_qga(fn):
+  """Wrapper used on qemu guest agent related methods"""
+  def wrapper(self, *args, **kwargs):
+    """Create a QGAConnection and run the wrapped method"""
+
+    if not getattr(self, "qga", None):
+      for arg in args:
+        if isinstance(arg, objects.Instance):
+          instance = arg
+          break
+      else:
+        raise(RuntimeError("QGA decorator could not find"
+                           " a valid ganeti instance object"))
+      filename = self._InstanceQemuGuestAgentMonitor(instance.name)# pylint: disable=W0212
+      self.qga = QgaConnection(filename, 5) # Timeout of 5 secods
+    return fn(self, *args, **kwargs)
+  return wrapper
 
 def _GetDriveURI(disk, link, uri):
   """Helper function to get the drive uri to be used in -blockdev kvm option
@@ -330,146 +354,6 @@ def _GetExistingDeviceInfo(dev_type, device, runtime):
                               (dev_type, device.uuid))
 
   return found[0]
-
-
-def _UpgradeSerializedRuntime(serialized_runtime):
-  """Upgrade runtime data
-
-  Remove any deprecated fields or change the format of the data.
-  The runtime files are not upgraded when Ganeti is upgraded, so the required
-  modification have to be performed here.
-
-  @type serialized_runtime: string
-  @param serialized_runtime: raw text data read from actual runtime file
-  @return: (cmd, nic dicts, hvparams, bdev dicts)
-  @rtype: tuple
-
-  """
-  loaded_runtime = serializer.Load(serialized_runtime)
-  kvm_cmd, serialized_nics, hvparams = loaded_runtime[:3]
-  if len(loaded_runtime) >= 4:
-    serialized_disks = loaded_runtime[3]
-  else:
-    serialized_disks = []
-
-  def update_hvinfo(dev, dev_type):
-    """ Remove deprecated pci slot and substitute it with hvinfo """
-    if "hvinfo" not in dev:
-      dev["hvinfo"] = {}
-      uuid = dev["uuid"]
-      # Ganeti used to save the PCI slot of paravirtual devices
-      # (virtio-blk-pci, virtio-net-pci) in runtime files during
-      # _GenerateKVMRuntime() and HotAddDevice().
-      # In this case we had a -device QEMU option in the command line with id,
-      # drive|netdev, bus, and addr params. All other devices did not have an
-      # id nor placed explicitly on a bus.
-      # hot- prefix is removed in 2.16. Here we add it explicitly to
-      # handle old instances in the cluster properly.
-      if "pci" in dev:
-        # This is practically the old _GenerateDeviceKVMId()
-        hv_dev_type = _DEVICE_TYPE[dev_type](hvparams)
-        dev["hvinfo"]["driver"] = _DEVICE_DRIVER[dev_type](hv_dev_type)
-        dev["hvinfo"]["id"] = "hot%s-%s-%s-%s" % (dev_type.lower(),
-                                                  uuid.split("-")[0],
-                                                  "pci",
-                                                  dev["pci"])
-        dev["hvinfo"]["addr"] = hex(dev["pci"])
-        dev["hvinfo"]["bus"] = _PCI_BUS
-        del dev["pci"]
-
-  for nic in serialized_nics:
-    # Add a dummy uuid slot if an pre-2.8 NIC is found
-    if "uuid" not in nic:
-      nic["uuid"] = utils.NewUUID()
-    update_hvinfo(nic, constants.HOTPLUG_TARGET_NIC)
-
-  for disk_entry in serialized_disks:
-    # We have a (Disk, link, uri) tuple
-    update_hvinfo(disk_entry[0], constants.HOTPLUG_TARGET_DISK)
-
-  # Handle KVM command line argument changes
-  try:
-    idx = kvm_cmd.index("-localtime")
-  except ValueError:
-    pass
-  else:
-    kvm_cmd[idx:idx+1] = ["-rtc", "base=localtime"]
-
-  try:
-    idx = kvm_cmd.index("-balloon")
-  except ValueError:
-    pass
-  else:
-    balloon_args = kvm_cmd[idx+1].split(",")[1:]
-    balloon_str = "virtio-balloon"
-    if balloon_args:
-      balloon_str += ",%s" % ",".join(balloon_args)
-
-    kvm_cmd[idx:idx+2] = ["-device", balloon_str]
-
-  try:
-    idx = kvm_cmd.index("-vnc")
-  except ValueError:
-    pass
-  else:
-    # Check to see if TLS is enabled
-    orig_vnc_args = kvm_cmd[idx+1].split(",")
-    vnc_args = []
-    tls_obj = None
-    tls_obj_args = ["id=vnctls0", "endpoint=server"]
-    for arg in orig_vnc_args:
-      if arg == "tls":
-        tls_obj = "tls-creds-anon"
-        vnc_args.append("tls-creds=vnctls0")
-        continue
-
-      elif arg.startswith("x509verify=") or arg.startswith("x509="):
-        pki_path = arg.split("=", 1)[-1]
-        tls_obj = "tls-creds-x509"
-        tls_obj_args.append("dir=%s" % pki_path)
-        if arg.startswith("x509verify="):
-          tls_obj_args.append("verify-peer=yes")
-        else:
-          tls_obj_args.append("verify-peer=no")
-        continue
-
-      vnc_args.append(arg)
-
-    if tls_obj is not None:
-      vnc_cmd = ["-vnc", ",".join(vnc_args)]
-      tls_obj_cmd = ["-object",
-                     "%s,%s" % (tls_obj, ",".join(tls_obj_args))]
-
-      # Replace the original vnc argument with the new ones
-      kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
-
-    # with 3.1 the 'default' value for disk_discard has been dropped
-    # and replaced by 'ignore'
-    if constants.HV_DISK_DISCARD in hvparams \
-      and hvparams[constants.HV_DISK_DISCARD] not in \
-        constants.HT_VALID_DISCARD_TYPES:
-      hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
-
-  return kvm_cmd, serialized_nics, hvparams, serialized_disks
-
-
-def _AnalyzeSerializedRuntime(serialized_runtime):
-  """Return runtime entries for a serialized runtime file
-
-  @type serialized_runtime: string
-  @param serialized_runtime: raw text data read from actual runtime file
-  @return: (cmd, nics, hvparams, bdevs)
-  @rtype: tuple
-
-  """
-  kvm_cmd, serialized_nics, hvparams, serialized_disks = \
-    _UpgradeSerializedRuntime(serialized_runtime)
-  kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
-  kvm_disks = [(objects.Disk.FromDict(sdisk), link, uri)
-               for sdisk, link, uri in serialized_disks]
-
-  return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
-
 
 class HeadRequest(urllib.request.Request):
   def get_method(self):
@@ -724,7 +608,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type pid: string or int
     @param pid: process id of the instance to check
     @rtype: tuple
-    @return: (instance_name, memory, vcpus)
+    @return: (instance_name, memory, vcpus, maxmem)
     @raise errors.HypervisorError: when an instance cannot be found
 
     """
@@ -742,6 +626,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     instance = None
     memory = 0
     vcpus = 0
+    maxmem = 0
 
     arg_list = cmdline.split("\x00")
     while arg_list:
@@ -749,7 +634,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if arg == "-name":
         instance = arg_list.pop(0).split(",")[0]
       elif arg == "-m":
-        memory = int(arg_list.pop(0))
+        memory_arg = arg_list.pop(0)
+        # to support old instances without ,slots,maxmem parameter
+        if ',' in memory_arg:
+          memory = int(memory_arg.split(",")[0])
+          maxmem_re = re.search(r'maxmem=(\d+)M', memory_arg)
+          if maxmem_re is not None:
+            maxmem = int(maxmem_re.group(1))
+        else:
+          memory = int(memory_arg)
       elif arg == "-smp":
         vcpus = int(arg_list.pop(0).split(",")[0])
 
@@ -757,7 +650,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Pid %s doesn't contain a ganeti kvm"
                                    " instance" % pid)
 
-    return (instance, memory, vcpus)
+    return (instance, memory, vcpus, maxmem)
 
   @classmethod
   def _InstancePidAlive(cls, instance_name):
@@ -1101,7 +994,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         return None
 
-    _, memory, vcpus = self._InstancePidInfo(pid)
+    _, memory, vcpus, _ = self._InstancePidInfo(pid)
     istat = hv_base.HvInstanceState.RUNNING
     times = 0
 
@@ -1349,7 +1242,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                     "-device",   ",".join(dev_opts)])
 
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
-                          kvmhelp):
+                          kvmhelp) -> KVMRuntime:
     """Generate KVM information to start an instance.
 
     @type kvmhelp: string
@@ -1374,7 +1267,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       name_parameter = "%s,debug-threads=off" % (instance.name)
     kvm_cmd.extend(["-name", name_parameter])
-    kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
+    m_list = [str(instance.beparams[constants.BE_MAXMEM])]
+    m_list.append("slots=16")
+    m_list.append(f"maxmem={instance.beparams[constants.BE_MAXMEM] * 4}M")
+
+    kvm_cmd.extend(["-m", ",".join(m_list)])
 
     smp_list = ["%s" % instance.beparams[constants.BE_VCPUS]]
     if hvp[constants.HV_CPU_CORES]:
@@ -1383,6 +1280,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       smp_list.append("threads=%s" % hvp[constants.HV_CPU_THREADS])
     if hvp[constants.HV_CPU_SOCKETS]:
       smp_list.append("sockets=%s" % hvp[constants.HV_CPU_SOCKETS])
+
+    # for CPU Hotplug
+    smp_list.append(f"maxcpus={instance.beparams[constants.BE_VCPUS] * 4}")
 
     kvm_cmd.extend(["-smp", ",".join(smp_list)])
 
@@ -1729,7 +1629,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     hvparams = hvp
 
-    return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
+    kvm_vcpus = []
+
+    return KVMRuntime([kvm_cmd, kvm_nics, hvparams, kvm_disks, kvm_vcpus])
 
   def _WriteKVMRuntime(self, instance_name, data):
     """Write an instance's KVM runtime
@@ -1751,28 +1653,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
     return file_content
 
-  def _SaveKVMRuntime(self, instance, kvm_runtime):
+  def _SaveKVMRuntime(self, instance, kvm_runtime: KVMRuntime):
     """Save an instance's KVM runtime
 
     """
-    kvm_cmd, kvm_nics, hvparams, kvm_disks = kvm_runtime
 
-    serialized_nics = [nic.ToDict() for nic in kvm_nics]
-    serialized_disks = [(blk.ToDict(), link, uri)
-                        for blk, link, uri in kvm_disks]
-    serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams,
-                                      serialized_disks))
+    self._WriteKVMRuntime(instance.name, kvm_runtime.serialize())
 
-    self._WriteKVMRuntime(instance.name, serialized_form)
-
-  def _LoadKVMRuntime(self, instance, serialized_runtime=None):
+  def _LoadKVMRuntime(self, instance, serialized_runtime=None) -> KVMRuntime:
     """Load an instance's KVM runtime
 
     """
     if not serialized_runtime:
       serialized_runtime = self._ReadKVMRuntime(instance.name)
 
-    return _AnalyzeSerializedRuntime(serialized_runtime)
+    return KVMRuntime.from_serialized(serialized_runtime)
 
   def _RunKVMCmd(self, name, kvm_cmd, tap_fds=None):
     """Run the KVM cmd and check for errors
@@ -1886,7 +1781,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # too many local variables
   # pylint: disable=R0914
   @_with_qmp
-  def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
+  def _ExecuteKVMRuntime(self, instance, kvm_runtime: KVMRuntime, kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
     @type instance: L{objects.Instance} object
@@ -1918,7 +1813,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     temp_files = []
 
-    kvm_cmd, kvm_nics, up_hvp, kvm_disks = kvm_runtime
+    kvm_cmd = kvm_runtime.kvm_cmd
+    kvm_nics = kvm_runtime.kvm_nics
+    up_hvp = kvm_runtime.up_hvp
+    kvm_disks = kvm_runtime.kvm_disks
+
     # the first element of kvm_cmd is always the path to the kvm binary
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
@@ -2187,7 +2086,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if version < (1, 7, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
-  def _GetBusSlots(self, hvp=None, runtime=None):
+  def _GetBusSlots(self, hvp=None, runtime: KVMRuntime=None):
     """Helper function to get the slots of PCI and SCSI QEMU buses.
 
     This will return the status of the first PCI and SCSI buses. By default
@@ -2222,8 +2121,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # This is during hot-add
     if runtime:
-      _, nics, _, disks = runtime
-      disks = [d for d, _, _ in disks]
+      nics = runtime.kvm_nics
+      disks = [d for d, _, _ in runtime.kvm_disks]
       for d in disks + nics:
         if not d.hvinfo or "bus" not in d.hvinfo:
           continue
@@ -2353,6 +2252,223 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # putting it back in the same bus and slot
       device.hvinfo = self.HotDelDevice(instance, dev_type, device, _, seq)
       self.HotAddDevice(instance, dev_type, device, _, seq)
+
+
+  def HotModvCPUs(self, instance, amount):
+    """ Hot modify the new amount of vCPUs.
+
+    """
+    current_vcpus = self.GetCurrentvCPUs(instance)
+
+    diff = abs(current_vcpus - amount)
+    if amount > current_vcpus:
+      self.HotAddvCPUs(instance, diff)
+
+      # make vcpus online with the guest agent
+      self.EnablevCPUs(instance)
+    elif amount < current_vcpus:
+      self.HotRemovevCPUs(instance, diff)
+
+
+  def HotModMemory(self, instance, amount: int):
+    """ Hot modify the new amount of memory.
+
+    amount in mibibytes
+
+    """
+
+    amount_bytes = amount * (1024 ** 2)
+    current = self.GetCurrentMemory(instance)
+    diff = abs(amount_bytes - current)
+    if amount_bytes > current:
+      self.HotAddMemory(self, diff)
+    elif amount_bytes < current:
+      # self.HotRemoveMemory(self, diff)
+      raise errors.HotplugError("Hotunplug of memory is not supported yet.")
+
+  def VerifyMemoryHotplugSupport(self, instance, amount):
+    """Verifies that memory hotplug is supported.
+
+    Given the new amount of memory if hotplug is
+    actually supported.
+    """
+
+    amount_bytes = amount * (1024**2)
+    current = self.GetCurrentMemory(instance)
+    diff = abs(amount_bytes - amount)
+
+    # KVM supports vCPU add & remove online
+    if amount_bytes > current:
+      # check available memory
+      maxmem = self.GetMaxMemory(instance)
+      if amount_bytes > maxmem:
+        raise errors.HotplugError("Maxmem is reached. Hotplug is not possible.")
+
+      # maxmen from cmdline
+      # available slots
+
+      # todo
+      pass
+    elif amount_bytes < current:
+      raise errors.HotplugError("Hotunplug of memory is not supported yet.")
+
+  def GetMaxMemory(self, instance) -> int:
+    """ Returns the maxmen in bytes"""
+
+    _, pid, alive = self._InstancePidAlive(instance.name)
+    if not alive:
+      return 0
+
+    _, _, _, maxmem = self._InstancePidInfo(pid)
+    return maxmem * (1024 ** 2)
+
+  def VerifyvCPUHotplugSupport(self, instance, amount):
+    """Verifies that hotplug is supported.
+
+    Given the current and the new amount of vCPUs if hotplug is
+    actually supported.
+    """
+    current_vcpus = self.GetCurrentvCPUs(instance)
+
+    diff = abs(current_vcpus - amount)
+
+    pluggable_count = len(self.GetHotpluggablevCPUs(instance))
+    plugged_count = len(self.GetHotpluggedvCPUs(instance))
+
+    # KVM supports vCPU add & remove online
+    if amount > current_vcpus:
+      # add
+      # Check the amount of vcpus are available
+      if diff > pluggable_count:
+        raise errors.HotplugError(f"Not enough hotpluggable vCPUs are available. Pluggable: {pluggable_count}")
+    elif amount < current_vcpus:
+      # only hotplugged vcpus can unplugged
+      if diff > plugged_count:
+        raise errors.HotplugError(f"Not enough hotplugged vCPUs that can be unplugged. Plugged: {plugged_count}")
+
+
+  @_with_qmp
+  def HotAddvCPUs(self, instance, amount: int):
+    hotpluggable_cpus = self.GetHotpluggablevCPUs(instance)
+
+    to_add = hotpluggable_cpus[:amount]
+
+    logging.warning(f"hotpluggable_cpus: {hotpluggable_cpus}")
+    logging.warning(f"To-Add: {to_add}")
+
+    runtime = self._LoadKVMRuntime(instance)
+
+    for qmp_vcpu in to_add:
+      vcpu = QMPVCPUItem.from_qmp_vcpu(qmp_vcpu)
+
+      self.qmp.HotAddvCPU(vcpu)
+
+      logging.warning(f"Added CPU: {vcpu}")
+
+      runtime.kvm_vcpus.append(vcpu)
+
+    self._SaveKVMRuntime(instance, runtime)
+
+
+  def HotRemovevCPUs(self, instance, amount: int):
+    hotplugged_cpus = self.GetHotpluggedvCPUs(instance)
+
+    to_remove = hotplugged_cpus[::-1][-amount:]
+
+    logging.warning(f"To Remove: {to_remove}")
+
+    runtime = self._LoadKVMRuntime(instance)
+
+    for qmp_vcpu in to_remove:
+      vcpu = QMPVCPUItem.from_qmp_vcpu(qmp_vcpu)
+
+      self.qmp.HotDelvCPU(vcpu.cpu_id)
+
+      runtime.kvm_vcpus.remove(vcpu)
+
+    self._SaveKVMRuntime(instance, runtime)
+
+  @_with_qmp
+  def GetCurrentvCPUs(self, instance):
+    """
+    Get current CPU count with hot cpus.
+    """
+
+    return len(self.qmp.GetCpuInformation())
+
+  @_with_qmp
+  def GetHotpluggablevCPUs(self, instance) -> List:
+    hotplug_info = self.qmp.GetHotpluggableCPUs()
+
+    pluggable = []
+    for cpu in hotplug_info:
+      if "qom-path" not in cpu:
+        pluggable.append(cpu)
+
+    # sort
+    pluggable.sort(key=lambda vcpu: vcpu['props']['socket-id'], reverse=False)
+
+    return pluggable
+
+  @_with_qmp
+  def GetHotpluggedvCPUs(self, instance) -> List:
+
+    hotplug_info = self.qmp.GetHotpluggableCPUs()
+
+    plugged = []
+    for cpu in hotplug_info:
+      if "qom-path" in cpu and cpu["qom-path"] != "/machine/unattached/device[0]":
+        plugged.append(cpu)
+
+    plugged.sort(key=lambda vcpu: vcpu['props']['socket-id'], reverse=False)
+
+    return plugged
+
+
+  def HotAddMemory(self, instance, amount: int):
+    """
+      amount in bytes !
+    """
+    logging.warning(f"Create dimm with size {amount}")
+    memobj = QMPMemoryBackendItem("mem1", amount)
+    memdimm = QMPMemoryDimmItem("dimm1", memobj)
+
+
+    self.qmp.AddMemoryDimm(memdimm)
+    pass
+
+
+  def HotRemoveMemory(self, instance, amount: int):
+    """
+      amount in bytes !
+    """
+    raise errors.HotplugError("Hotunplug of memory is not supported yet.")
+
+
+  @_with_qmp
+  def GetCurrentMemory(self, instance) -> int:
+    """ Returns the current memory (startet + hotplugged) in bytes.
+
+    """
+    memory_summary = self.qmp.QueryMemorySummary()
+
+    return memory_summary['base-memory'] + memory_summary['plugged-memory']
+
+
+  @_with_qga
+  def EnablevCPUs(self, instance):
+
+    vcpus = self.qga.GetvCPUs()
+
+    to_online = []
+
+    for vcpu in vcpus:
+      if not vcpu['online']:
+        vcpu['online'] = True
+        to_online.append(vcpu)
+
+    self.qga.SetvCPUs(to_online)
+
 
   @classmethod
   def _ParseKVMVersion(cls, text):

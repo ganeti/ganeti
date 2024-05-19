@@ -795,6 +795,52 @@ class BaseHypervisor(object):
     """
     raise errors.HotplugError("Hotplug is not supported by this hypervisor")
 
+  def HotModvCPUs(self, instance, amount):
+    """ Hot modify the new amount of vCPUs.
+
+    """
+
+  def HotModMemory(self, instance, amount):
+    """ Hot modify the new amount of memory.
+
+    """
+    raise errors.HotplugError("Hotplug of memory is not supported.")
+
+
+  def HotplugvCPUsSupported(self, instance, amount):
+    """ Hot modify the new amount of memory.
+
+    """
+    raise errors.HotplugError("Hotplug of memory is not supported.")
+
+  def VerifyvCPUHotplugSupport(self, instance, amount):
+    """Verifies that hotplug is supported.
+
+    Given the current and the new amount of vCPUs if hotplug is
+    actually supported.
+    """
+
+    raise errors.HotplugError("Hotplug of vCPUs is not supported.")
+
+
+  def VerifyMemoryHotplugSupport(self, instance, amount):
+    """Verifies that memory hotplug is supported.
+
+    Given the new amount of memory if hotplug is
+    actually supported.
+    """
+
+    raise errors.HotplugError("Hotplug of memory is not supported.")
+
+
+  def HotplugvMemorySupported(self, instance, amount):
+    """Checks if hot mofify is supported.
+
+    By default is not. Currently only KVM hypervisor supports it.
+
+    """
+    raise errors.HotplugError("Hotplug is not supported by this hypervisor")
+
   # pylint: disable=R0201,W0613
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.

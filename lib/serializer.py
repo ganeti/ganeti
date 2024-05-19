@@ -41,6 +41,7 @@ backend (currently json).
 import re
 import json
 from copy import deepcopy
+from dataclasses import is_dataclass, asdict
 
 from ganeti import errors
 from ganeti import utils
@@ -392,9 +393,16 @@ class PrivateDict(dict):
     return returndict
 
 
+# to support dataclass json encoding
+class DataClassEncoder(json.JSONEncoder):
+  def default(self, o):
+    if is_dataclass(o):
+      return asdict(o)
+    return super().default(o)
+
 # This class extends the default JsonEncoder to serialize byte arrays.
 # Unlike simplejson, python build-in json cannot encode byte arrays.
-class ByteEncoder(json.JSONEncoder):
+class ByteEncoder(DataClassEncoder):
   def default(self, o):
     if isinstance(o, bytes):
       return str(o, encoding="ascii")
