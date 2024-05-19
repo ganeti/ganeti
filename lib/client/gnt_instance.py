@@ -1432,7 +1432,6 @@ def SetInstanceParams(opts, args):
                                    nics=nics,
                                    disks=disks,
                                    hotplug=opts.hotplug,
-                                   hotplug_if_possible=opts.hotplug_if_possible,
                                    disk_template=opts.disk_template,
                                    ext_params=ext_params,
                                    file_driver=opts.file_driver,
@@ -1660,8 +1659,8 @@ commands = {
      OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
-     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
-     HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT,
+     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT,
+     NOHOTPLUG_OPT, INSTANCE_COMMUNICATION_OPT,
      EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT],
     "<instance-name>", "Alters the parameters of an instance"),
   "shutdown": (
