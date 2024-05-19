@@ -1090,11 +1090,11 @@ class Burner(JobHandler):
 
       op_stop = self.StopInstanceOp(instance)
       op_add = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_ADD, {"size": self.disk_size[0],
                                     "name": disk_name})])
       op_detach = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_DETACH, {})])
       op_start = self.StartInstanceOp(instance)
       Log("adding a disk with name %s" % disk_name, indent=2)
@@ -1118,10 +1118,10 @@ class Burner(JobHandler):
 
       disk_name = self.FindMatchingDisk(instance)
       op_attach = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_ATTACH, {"name": disk_name})])
       op_rem = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_REMOVE, {})])
       op_stop = self.StopInstanceOp(instance)
       op_start = self.StartInstanceOp(instance)
