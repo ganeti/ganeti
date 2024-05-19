@@ -60,8 +60,7 @@ object manipulation and is ensured not to be written back to the config.
 
 We propose to make use of QEMU 1.7 QMP commands so that
 modifications to devices take effect instantly without the need for hard
-reboot. The only change exposed to the end-user will be the addition of
-a ``--hotplug`` option to the ``gnt-instance modify`` command.
+reboot.
 
 Upon hotplugging the PCI configuration of an instance is changed.
 Runtime files should be updated correspondingly. Currently this is
@@ -173,15 +172,15 @@ socket). The open file is passed as a socket-level control message
 User interface
 --------------
 
-The new ``--hotplug`` option to gnt-instance modify is introduced, which
-forces live modifications.
+The new ``--no-hotplug`` option to gnt-instance modify is introduced, which
+skips live modifications.
 
 
 Enabling hotplug
 ++++++++++++++++
 
-Hotplug will be optional during gnt-instance modify.  For existing
-instance, after installing a version that supports hotplugging we
+Hotplug is enabled by default for gnt-instance modify if it is supported.
+For existing instance, after installing a version that supports hotplugging we
 have the restriction that hotplug will not be supported for existing
 devices. The reason is that old runtime files lack of:
 
@@ -207,9 +206,9 @@ well.
 
 ::
 
- gnt-instance modify --net add --hotplug test
- gnt-instance modify --net 1:mac=aa:00:00:55:44:33 --hotplug test
- gnt-instance modify --net 1:remove --hotplug test
+ gnt-instance modify --net add test
+ gnt-instance modify --net 1:mac=aa:00:00:55:44:33 test
+ gnt-instance modify --net 1:remove test
 
 
 Disk Hotplug
@@ -221,8 +220,8 @@ support only disk addition/deletion.
 
 ::
 
- gnt-instance modify --disk add:size=1G --hotplug test
- gnt-instance modify --disk 1:remove --hotplug test
+ gnt-instance modify --disk add:size=1G test
+ gnt-instance modify --disk 1:remove test
 
 
 Dealing with chroot and uid pool (and disks in general)
