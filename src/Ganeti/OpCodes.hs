@@ -704,7 +704,6 @@ $(genOpCode "OpCode"
      , withDoc "Whether to mark the instance as offline" pOffline
      , pIpConflictsCheck
      , pHotplug
-     , pHotplugIfPossible
      , pOptInstanceCommunication
      ],
      "instance_name")
