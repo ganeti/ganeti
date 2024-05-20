@@ -996,8 +996,8 @@ buildAccessor fnm fpfx rnm rpfx nm pfx field = do
       f_body = AppE (VarE fpfx_name) $ VarE x
   return $ [ SigD pfx_name $ ArrowT `AppT` ConT nm `AppT` ftype
            , FunD pfx_name
-             [ Clause [ConP rnm [VarP x]] (NormalB r_body) []
-             , Clause [ConP fnm [VarP x]] (NormalB f_body) []
+             [ Clause [myConP rnm [VarP x]] (NormalB r_body) []
+             , Clause [myConP fnm [VarP x]] (NormalB f_body) []
              ]]
 
 -- | Build lense declartions for a field.
@@ -1037,10 +1037,10 @@ buildLens (fnm, fdnm) (rnm, rdnm) nm pfx ar (field, i) = do
                         (ConE cdn)
                      $ zip [0..] vars
   let setterE = LamE [VarP context, VarP var] $ CaseE (VarE context)
-                   [ Match (ConP fnm [ConP fdnm . set (element i) WildP
+                   [ Match (myConP fnm [myConP fdnm . set (element i) WildP
                                         $ map VarP vars])
                            (body (not isSimple) fnm fdnm) []
-                   , Match (ConP rnm [ConP rdnm . set (element i) WildP
+                   , Match (myConP rnm [myConP rdnm . set (element i) WildP
                                         $ map VarP vars])
                            (body False rnm rdnm) []
                    ]
@@ -1098,9 +1098,9 @@ buildObjectWithForthcoming sname field_pfx fields = do
                           $ JSON.showJSON $(varE x) |]
   let rdjson = FunD 'JSON.readJSON [Clause [] (NormalB read_body) []]
       shjson = FunD 'JSON.showJSON
-                 [ Clause [ConP (mkName real_nm) [VarP x]]
+                 [ Clause [myConP (mkName real_nm) [VarP x]]
                     (NormalB show_real_body) []
-                 , Clause [ConP (mkName forth_nm) [VarP x]]
+                 , Clause [myConP (mkName forth_nm) [VarP x]]
                     (NormalB show_forth_body) []
                  ]
       instJSONdecl = gntInstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
@@ -1121,9 +1121,9 @@ buildObjectWithForthcoming sname field_pfx fields = do
                                    (fromDictWKeys $(varE xs)) |]
   todictx_r <- [| toDict $(varE x) |]
   todictx_f <- [| ("forthcoming", JSON.JSBool True) : toDict $(varE x) |]
-  let todict = FunD 'toDict [ Clause [ConP (mkName real_nm) [VarP x]]
+  let todict = FunD 'toDict [ Clause [myConP (mkName real_nm) [VarP x]]
                                (NormalB todictx_r) []
-                            , Clause [ConP (mkName forth_nm) [VarP x]]
+                            , Clause [myConP (mkName forth_nm) [VarP x]]
                                (NormalB todictx_f) []
                             ]
       fromdict = FunD 'fromDictWKeys [ Clause [VarP xs]
@@ -1136,9 +1136,9 @@ buildObjectWithForthcoming sname field_pfx fields = do
   let forthPredDecls = [ SigD forthPredName
                            $ ArrowT `AppT` ConT name `AppT` ConT ''Bool
                        , FunD forthPredName
-                         [ Clause [ConP (mkName real_nm) [WildP]]
+                         [ Clause [myConP (mkName real_nm) [WildP]]
                                    (NormalB $ ConE 'False) []
-                         , Clause [ConP (mkName forth_nm) [WildP]]
+                         , Clause [myConP (mkName forth_nm) [WildP]]
                                    (NormalB $ ConE 'True) []
                          ]
                        ]
@@ -1412,9 +1412,9 @@ savePParamField fvar field = do
   normalexpr <- saveObjectField actualVal field
   -- we have to construct the block here manually, because we can't
   -- splice-in-splice
-  return $ CaseE (VarE fvar) [ Match (ConP 'Nothing [])
+  return $ CaseE (VarE fvar) [ Match (myConP 'Nothing [])
                                        (NormalB (ConE '[])) []
-                             , Match (ConP 'Just [VarP actualVal])
+                             , Match (myConP 'Just [VarP actualVal])
                                        (NormalB normalexpr) []
                              ]
 
@@ -1440,9 +1440,9 @@ fillParam sname field_pfx fields = do
   -- due to apparent bugs in some older GHC versions, we need to add these
   -- prefixes to avoid "binding shadows ..." errors
   fbinds <- mapM (newName . ("f_" ++) . nameBase) fnames
-  let fConP = ConP name_f (map VarP fbinds)
+  let fConP = myConP name_f (map VarP fbinds)
   pbinds <- mapM (newName . ("p_" ++) . nameBase) pnames
-  let pConP = ConP name_p (map VarP pbinds)
+  let pConP = myConP name_p (map VarP pbinds)
   -- PartialParams instance --------
   -- fillParams
   let fromMaybeExp fn pn = AppE (AppE (VarE 'fromMaybe) (VarE fn)) (VarE pn)
@@ -1462,7 +1462,7 @@ fillParam sname field_pfx fields = do
       memptyClause = Clause [] (NormalB memptyExp) []
   -- mappend
   pbinds2 <- mapM (newName . ("p2_" ++) . nameBase) pnames
-  let pConP2 = ConP name_p (map VarP pbinds2)
+  let pConP2 = myConP name_p (map VarP pbinds2)
   -- note the reversal of 'l' and 'r' in the call to <|>
   -- as we want the result to be the rightmost value
   let altExp = zipWith (\l r -> AppE (AppE (VarE '(<|>)) (VarE r)) (VarE l))
@@ -1575,9 +1575,9 @@ genLoadExc tname sname opdefs = do
     opdefs
   -- the first function clause; we can't use [| |] due to TH
   -- limitations, so we have to build the AST by hand
-  let clause1 = Clause [ConP 'JSON.JSArray
-                               [ListP [ConP 'JSON.JSString [VarP exc_name],
-                                            VarP exc_args]]]
+  let clause1 = Clause [myConP 'JSON.JSArray
+                         [ListP [myConP 'JSON.JSString [VarP exc_name],
+                                  VarP exc_args]]]
                 (NormalB (CaseE (AppE (VarE 'JSON.fromJSString)
                                         (VarE exc_name))
                           (str_matches ++ [defmatch]))) []
