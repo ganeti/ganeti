@@ -597,6 +597,19 @@ class QmpConnection(MonitorSocket):
     devices = bus["devices"]
     return devices
 
+
+  @_ensure_connection
+  def ResizeBlockDevice(self, disk_id: str, new_size: int):
+    """ Notify the guest about a disk change.
+    """
+    arguments = {
+      "node-name": disk_id,
+      "size": new_size
+    }
+
+    self.Execute("block_resize", arguments)
+
+
   def _HasPCIDevice(self, devid):
     """Check if a specific device ID exists on the PCI bus.
 

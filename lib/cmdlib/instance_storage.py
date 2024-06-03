@@ -50,7 +50,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   ComputeIPolicyDiskSizesViolation, \
   CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
   IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes, \
-  CheckDiskTemplateEnabled
+  CheckDiskTemplateEnabled, IsInstanceRunning
 from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
   CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
@@ -1903,6 +1903,20 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     assert self.owned_locks(locking.LEVEL_NODE_RES)
     assert set([self.instance.name]) == self.owned_locks(locking.LEVEL_INSTANCE)
+
+    # Notifify the hv about the change if the instance is running
+    if IsInstanceRunning(self, self.instance):
+      feedback_fn("Try to notify the Hypervisor about the disk change")
+
+      new_size = self.target * (1024 ** 2)
+
+      result = self.rpc.call_resize_disk(self.instance.primary_node,
+                                         self.instance,
+                                         self.disk.ToDict(), new_size)
+
+      if result.fail_msg:
+        self.LogWarning(f"Disk resize in hypervisor failed: {result.fail_msg}")
+
 
 
 class LUInstanceReplaceDisks(LogicalUnit):

@@ -645,6 +645,17 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.StartInstance(instance, startup_paused, trail)
 
   @staticmethod
+  def perspective_resize_disk(params):
+    """Notify the hypervisor about a disk change.
+
+    """
+    (idict, disk, new_size) = params
+    instance = objects.Instance.FromDict(idict)
+    disk = objects.Disk.FromDict(disk)
+
+    return backend.ResizeDisk(instance, disk, new_size)
+
+  @staticmethod
   def perspective_hotplug_device(params):
     """Hotplugs device to a running instance.
 
