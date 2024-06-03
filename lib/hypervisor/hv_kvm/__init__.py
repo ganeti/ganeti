@@ -2155,6 +2155,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if action == constants.HOTPLUG_ACTION_ADD:
         self.qmp.CheckNicHotAddSupport()
 
+
+  @_with_qmp
+  def ResizeDisk(self, instance, disk, new_size):
+    """ Notify the HV about a disk change.
+    """
+
+    disk_id = _GenerateDeviceKVMId('disk', disk)
+
+    self.qmp.ResizeBlockDevice(disk_id, new_size)
+
+
   @_with_qmp
   def HotplugSupported(self, instance):
     """Checks if hotplug is generally supported.

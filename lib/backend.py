@@ -3180,6 +3180,20 @@ def GetMigrationStatus(instance):
     _Fail("Failed to get migration status: %s", err, exc=True)
 
 
+def ResizeDisk(instance, disk, new_size):
+  """Notify the hypervisor about a disk change.
+
+    @type disk: L{objects.Disk}
+    @param disk: the disk to be changed
+    @type new_size: int
+    @param new_size: the new size in bytes
+    @raise errors.HotplugError: if disk resize is not supported
+  """
+
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+
+  return hyper.ResizeDisk(instance, disk, new_size)
+
 def HotplugDevice(instance, action, dev_type, device, extra, seq):
   """Hotplug a device
 

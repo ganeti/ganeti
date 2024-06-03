@@ -761,6 +761,19 @@ class BaseHypervisor(object):
     else:
       return None
 
+  def ResizeDisk(self, instance, disk, new_size):
+    """Notify the hypervisor about a disk change.
+
+    @type disk: L{objects.Disk}
+    @param disk: the disk to be changed
+    @type new_size: int
+    @param new_size: the new size in bytes
+    @raise errors.HotplugError: if disk resize is not supported
+    """
+
+    raise errors.HotplugError("Disk resize is not supported by this hypervisor")
+
+
   # pylint: disable=R0201,W0613
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """Hot-add a device.

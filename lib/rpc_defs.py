@@ -304,6 +304,11 @@ _INSTANCE_CALLS = [
     ("extra", None, "Extra info for device (dev_path for disk)"),
     ("seq", None, "Device seq"),
     ], None, None, "Hotplug a device to a running instance"),
+  ("resize_disk", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("instance", ED_INST_DICT, "Instance object"),
+    ("disk", None, "The disk to be resized"),
+    ("new_size", None, "The new disk size in bytes"),
+    ], None, None, "Notify the HV about a disk resize"),
   ("hotplug_supported", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),
     ], None, None, "Check if hotplug is supported"),
