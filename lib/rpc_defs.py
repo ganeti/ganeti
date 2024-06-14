@@ -303,7 +303,7 @@ _INSTANCE_CALLS = [
     ("device", ED_DEVICE_DICT, "Device dict"),
     ("extra", None, "Extra info for device (dev_path for disk)"),
     ("seq", None, "Device seq"),
-    ], None, None, "Hoplug a device to a running instance"),
+    ], None, None, "Hotplug a device to a running instance"),
   ("hotplug_supported", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),
     ], None, None, "Check if hotplug is supported"),
