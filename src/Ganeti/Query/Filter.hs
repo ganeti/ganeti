@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, GADTs, StandaloneDeriving #-}
+{-# LANGUAGE Rank2Types, GADTs, StandaloneDeriving #-}
 
 {-| Implementation of the Ganeti Query2 filterning.
 

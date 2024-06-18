@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, FlexibleContexts #-}
+{-# LANGUAGE Rank2Types, FlexibleContexts #-}
 
 {-| Implementation of functions specific to configuration management.
 

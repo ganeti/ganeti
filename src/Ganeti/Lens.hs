@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, CPP #-}
+{-# LANGUAGE Rank2Types, CPP #-}
 
 {-| Provides all lens-related functions.
 
