@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Metad.ConfigServer where
 
 import Control.Exception (finally)
-import Control.Monad.Reader
+import Control.Monad (forever)
 
 import Ganeti.Path as Path
 import Ganeti.Daemon (DaemonOptions, cleanupSocket, describeError)
