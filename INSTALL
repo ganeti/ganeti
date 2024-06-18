@@ -130,8 +130,8 @@ deploy Ganeti on production machines). More specifically:
 - or even better, `The Haskell Platform
   <http://hackage.haskell.org/platform/>`_ which gives you a simple way
   to bootstrap Haskell
-- `cabal-install <http://hackage.haskell.org/package/json>`_ and
-  `Cabal <http://hackage.haskell.org/package/json>`_, the Common Architecture
+- `cabal-install <http://hackage.haskell.org/package/cabal-install>`_ and
+  `Cabal <http://hackage.haskell.org/package/Cabal>`_, the Common Architecture
   for Building Haskell Applications and Libraries (executable and library)
 - `json <http://hackage.haskell.org/package/json>`_, a JSON library
 - `network <http://hackage.haskell.org/package/network>`_, a basic
