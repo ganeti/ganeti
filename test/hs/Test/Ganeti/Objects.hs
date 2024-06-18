@@ -59,7 +59,6 @@ import Data.Char
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
-import qualified Data.Set as Set
 import Data.Word (Word32)
 import GHC.Exts (IsString(..))
 import System.Time (ClockTime(..))

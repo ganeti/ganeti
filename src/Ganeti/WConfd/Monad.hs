@@ -74,7 +74,6 @@ import Control.Concurrent (forkIO, myThreadId)
 import Control.Exception.Lifted (bracket)
 import Control.Monad
 import Control.Monad.Base
-import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control

@@ -41,7 +41,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import Control.Lens (Simple)
 import Control.Lens.Iso (Iso, iso)
-import qualified Data.Set as Set
 import System.Time (ClockTime(..))
 
 import Ganeti.Lens (makeCustomLenses, Lens')

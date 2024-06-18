@@ -109,7 +109,7 @@ import Text.JSON.Pretty (pp_value)
 -- itself to build many other modules.
 
 import Ganeti.BasicTypes
-import Ganeti.Compat
+import Ganeti.Compat ()
 
 -- Remove after we require >= 1.8.58
 -- See: https://github.com/ndmitchell/hlint/issues/24

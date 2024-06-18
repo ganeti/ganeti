@@ -83,13 +83,12 @@ import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile )
 import Ganeti.Rpc
-import qualified Ganeti.Query.Exec as Exec
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.THH.HsRPC (runRpcClient, RpcClientMonad)
 import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
-import Ganeti.Utils ( lockFile, exitIfBad, exitUnless, watchFile
+import Ganeti.Utils ( lockFile, exitIfBad, watchFile
                     , safeRenameFile, newUUID, isUUID )
 import Ganeti.Utils.Monad (orM)
 import Ganeti.Utils.MVarLock

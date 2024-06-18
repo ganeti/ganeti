@@ -58,7 +58,6 @@ import qualified Data.Map as M
 import Data.Maybe (mapMaybe, fromJust)
 import System.Environment
 import System.IO.Error (annotateIOError, modifyIOError)
-import System.IO
 import System.Process
 import System.Posix.Process
 import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)

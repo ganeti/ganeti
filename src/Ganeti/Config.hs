@@ -88,7 +88,7 @@ import Control.Monad.State
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
-import Data.List (foldl', nub, any)
+import Data.List (foldl', nub)
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Monoid
 import qualified Data.Map as M
