@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, RankNTypes #-}
+{-# LANGUAGE BangPatterns, Rank2Types #-}
 
 {-| Space efficient bit arrays
 

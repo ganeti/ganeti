@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, TypeFamilies #-}
+{-# LANGUAGE Rank2Types, TypeFamilies #-}
 
 {-| Implements multi-maps - maps that map keys to sets of values
 

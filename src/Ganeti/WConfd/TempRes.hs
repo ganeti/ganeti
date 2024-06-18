@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RankNTypes, FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell, Rank2Types, FlexibleContexts #-}
 
 {-| Pure functions for manipulating reservations of temporary objects
 

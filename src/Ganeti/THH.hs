@@ -1,4 +1,4 @@
-{-# LANGUAGE ParallelListComp, TemplateHaskell, RankNTypes #-}
+{-# LANGUAGE ParallelListComp, TemplateHaskell, Rank2Types #-}
 
 {-| TemplateHaskell helper for Ganeti Haskell code.
 
