@@ -91,7 +91,7 @@ multiMap :: (Ord k, Ord v) => M.Map k (S.Set v) -> MultiMap k v
 multiMap = MultiMap . M.filter (not . S.null)
 
 -- | A 'Lens' that allows to access a set under a given key in a multi-map.
---multiMapL :: (Ord k, Ord v) => k -> Lens' (MultiMap k v) (S.Set v)
+multiMapL :: (Ord k, Ord v) => k -> Lens' (MultiMap k v) (S.Set v)
 multiMapL k f = fmap MultiMap
                  . at k (fmap (mfilter (not . S.null) . Just)
                          . f . fromMaybe S.empty)
@@ -100,7 +100,7 @@ multiMapL k f = fmap MultiMap
 
 -- | Return the set corresponding to a given key.
 lookup :: (Ord k, Ord v) => k -> MultiMap k v -> S.Set v
-lookup = view . multiMapL
+lookup k = view (multiMapL k)
 
 -- | Tests if the given key has a non-empty set of values.
 member :: (Ord k, Ord v) => k -> MultiMap k v -> Bool
