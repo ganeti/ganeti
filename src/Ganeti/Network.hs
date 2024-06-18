@@ -87,11 +87,11 @@ data PoolPart = PoolInstances | PoolExt
 addressPoolIso :: Iso' AddressPool BA.BitArray
 addressPoolIso = iso apReservations AddressPool
 
---poolLens :: PoolPart -> Lens' Network (Maybe AddressPool)
+poolLens :: PoolPart -> Lens' Network (Maybe AddressPool)
 poolLens PoolInstances = networkReservationsL
 poolLens PoolExt = networkExtReservationsL
 
---poolArrayLens :: PoolPart -> Lens' Network (Maybe BA.BitArray)
+poolArrayLens :: PoolPart -> Lens' Network (Maybe BA.BitArray)
 poolArrayLens part = poolLens part . mapping addressPoolIso
 
 netIpv4NumHosts :: Network -> Integer
@@ -135,12 +135,12 @@ withPool_ :: (MonadError e m, Error e)
 withPool_ part f = execStateT $ withPool part ((liftM ((,) ()) .) . f)
 
 readPool :: PoolPart -> Network -> Maybe BA.BitArray
-readPool = view . poolArrayLens
+readPool part = view (poolArrayLens part)
 
 readPoolE :: (MonadError e m, Error e)
           => PoolPart -> Network -> m BA.BitArray
 readPoolE part net =
-  liftM apReservations $ orNewPool net ((view . poolLens) part net)
+  liftM apReservations $ orNewPool net (view (poolLens part) net)
 
 readAllE :: (MonadError e m, Error e)
          => Network -> m BA.BitArray
