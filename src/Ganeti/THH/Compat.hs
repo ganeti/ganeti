@@ -41,6 +41,7 @@ module Ganeti.THH.Compat
   , myNotStrict
   , nonUnaryTupE
   , mkDoE
+  , conP_
   ) where
 
 import Language.Haskell.TH
@@ -128,4 +129,12 @@ mkDoE s =
     DoE Nothing s
 #else
     DoE s
+#endif
+
+
+conP_ :: Name -> [Pat] -> Pat
+#if MIN_VERSION_template_haskell(2,18,0)
+conP_ name = ConP name []
+#else
+conP_ = ConP
 #endif
