@@ -62,6 +62,8 @@ module Ganeti.Luxi
   , allLuxiCalls
   ) where
 
+import Data.Maybe (listToMaybe)
+
 import Control.Applicative (optional, liftA, (<|>))
 import Control.Monad
 import qualified Text.JSON as J
@@ -377,8 +379,8 @@ queryJobsStatus s jids = do
   return $ case rval of
              Bad x -> Bad x
              Ok y -> case J.readJSON y::(J.Result [[JobStatus]]) of
-                       J.Ok vals -> if any null vals
-                                    then Bad $
-                                         LuxiError "Missing job status field"
-                                    else Ok (map head vals)
+                       J.Ok vals ->
+                         case mapM listToMaybe vals of
+                           Nothing -> Bad $ LuxiError "Missing job status field"
+                           Just headVals -> Ok headVals
                        J.Error x -> Bad $ LuxiError x

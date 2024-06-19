@@ -107,6 +107,7 @@ import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph
 import qualified Data.IntMap as IntMap
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Ord (comparing)
@@ -1398,13 +1399,10 @@ defaultFields =
   , "pfmem", "pfdsk", "rcpu"
   , "cload", "mload", "dload", "nload" ]
 
-{-# ANN computeGroups "HLint: ignore Use alternative" #-}
 -- | Split a list of nodes into a list of (node group UUID, list of
 -- associated nodes).
 computeGroups :: [Node] -> [(T.Gdx, [Node])]
 computeGroups nodes =
   let nodes' = List.sortBy (comparing group) nodes
-      nodes'' = List.groupBy ((==) `on` group) nodes'
-  -- use of head here is OK, since groupBy returns non-empty lists; if
-  -- you remove groupBy, also remove use of head
-  in map (\nl -> (group (head nl), nl)) nodes''
+      nodes'' = NonEmpty.groupBy ((==) `on` group) nodes'
+  in map (\nl -> (group (NonEmpty.head nl), NonEmpty.toList nl)) nodes''
