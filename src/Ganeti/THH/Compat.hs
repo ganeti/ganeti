@@ -64,7 +64,9 @@ derivesFromNames names = map ConT names
 --
 -- Handle TH 2.11 and 2.12 changes in a transparent manner using the pre-2.11
 -- API.
-#if MIN_VERSION_template_haskell(2,17,0)
+#if MIN_VERSION_template_haskell(2,21,0)
+gntDataD :: Cxt -> Name -> [TyVarBndr BndrVis] -> [Con] -> [Name] -> Dec
+#elif MIN_VERSION_template_haskell(2,17,0)
 gntDataD :: Cxt -> Name -> [TyVarBndr ()] -> [Con] -> [Name] -> Dec
 #else
 gntDataD :: Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Dec
