@@ -77,11 +77,11 @@ library
     , regex-pcre                    >= 0.94.2     && < 0.96
     , temporary                     >= 1.1.2.3    && < 1.4
     , transformers-base             >= 0.4.1      && < 0.5
-    , zlib                          >= 0.5.3.3    && < 0.7
+    , zlib                          >= 0.5.3.3    && < 0.8
 
   if flag(network_bsd)
     build-depends:
-        network                     >= 2.9        && < 3.2
+        network                     >= 2.9        && < 3.3
       , network-bsd                 >= 2.8        && < 2.9
   else
     build-depends:
@@ -95,14 +95,14 @@ library
   if flag(htest)
     build-depends:
         HUnit                         >= 1.2.4.2    && < 1.7
-      , QuickCheck                    >= 2.8        && < 2.15
+      , QuickCheck                    >= 2.8        && < 2.16
       , test-framework                >= 0.6        && < 0.9
       , test-framework-hunit          >= 0.2.7      && < 0.4
       , test-framework-quickcheck2    >= 0.2.12.1   && < 0.4
 
   if flag(mond)
     build-depends:
-        PSQueue                       >= 1.1        && < 1.2
+        PSQueue                       >= 1.1        && < 1.3
       , snap-core                     >= 1.0.0
       , snap-server                   >= 1.0.0
 
