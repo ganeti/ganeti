@@ -52,7 +52,6 @@ module Ganeti.Runtime
   ) where
 
 import Control.Monad
-import Control.Monad.Error
 import qualified Data.Map as M
 import System.Exit
 import System.FilePath

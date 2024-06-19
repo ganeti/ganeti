@@ -102,7 +102,6 @@ module Ganeti.Utils
 import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad
-import Control.Monad.Error
 import Control.Monad.Fail (MonadFail)
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.ByteString.UTF8 as UTF8

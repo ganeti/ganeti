@@ -53,8 +53,7 @@ import qualified Data.Map as Map (empty, fromList, keys, insert)
 import Data.Monoid
 
 import qualified AutoConf
-import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
-                             buildVersion)
+import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import qualified Ganeti.HTools.Types as Types
 import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))

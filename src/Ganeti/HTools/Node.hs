@@ -107,7 +107,7 @@ import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph
 import qualified Data.IntMap as IntMap
-import Data.List hiding (group)
+import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Ord (comparing)
 import qualified Data.Set as Set
@@ -265,7 +265,7 @@ addTag t s = Map.insertWith (+) s 1 t
 
 -- | Add multiple values.
 addTags :: (Ord k) => Map.Map k Int -> [k] -> Map.Map k Int
-addTags = foldl' addTag
+addTags = List.foldl' addTag
 
 -- | Adjust or delete a value from a map.
 delTag :: (Ord k) => Map.Map k Int -> k -> Map.Map k Int
@@ -276,7 +276,7 @@ delTag t s = Map.update (\v -> if v > 1
 
 -- | Remove multiple value.
 delTags :: (Ord k) => Map.Map k Int -> [k] -> Map.Map k Int
-delTags = foldl' delTag
+delTags = List.foldl' delTag
 
 -- | Check if we can add a list of tags to a tagmap.
 rejectAddTags :: TagMap -> [String] -> Bool
@@ -730,7 +730,7 @@ removePri t inst =
 
       updateForthcomingFields n =
         let
-            new_plist_forth = delete iname (pListForth n)
+            new_plist_forth = List.delete iname (pListForth n)
             new_mem_forth = fMemForth n + Instance.mem inst
             new_dsk_forth = incIf uses_disk (fDskForth n) (Instance.dsk inst)
             new_free_sp_forth = calcNewFreeSpindlesForth False n inst
@@ -760,7 +760,7 @@ removePri t inst =
   in if forthcoming
        then updateForthcomingFields t
        else let
-                new_plist = delete iname (pList t)
+                new_plist = List.delete iname (pList t)
 
                 (new_i_mem, new_free_mem) = prospectiveMem t inst False
                 new_p_mem = fromIntegral new_free_mem / tMem t
@@ -800,7 +800,7 @@ removeSec t inst =
 
       updateForthcomingFields n =
         let
-            new_slist_forth = delete iname (sListForth n)
+            new_slist_forth = List.delete iname (sListForth n)
             new_dsk_forth = incIf uses_disk (fDskForth n) (Instance.dsk inst)
             new_free_sp_forth = calcNewFreeSpindlesForth False n inst
             new_inst_sp_forth = calcSpindleUseForth False n inst
@@ -823,7 +823,7 @@ removeSec t inst =
   in if forthcoming
        then updateForthcomingFields t
        else let
-                new_slist = delete iname (sList t)
+                new_slist = List.delete iname (sList t)
                 new_dsk = incIf uses_disk cur_dsk (Instance.dsk inst)
                 new_free_sp = calcNewFreeSpindles False t inst
                 new_inst_sp = calcSpindleUse False t inst
@@ -1239,7 +1239,7 @@ mkRebootNodeGraph :: List -> List -> Instance.List -> Maybe Graph.Graph
 mkRebootNodeGraph allnodes nl il =
   liftM (`Graph.buildG` filterValid nl edges) (nodesToBounds nl)
   where
-    edges = instancesToEdges il `union`
+    edges = instancesToEdges il `List.union`
             (Container.elems allnodes >>= nodeToSharedSecondaryEdge il)
 
 -- * Display functions
@@ -1280,7 +1280,7 @@ showField t field =
     "mload" -> printf "%5.3f" uM
     "dload" -> printf "%5.3f" uD
     "nload" -> printf "%5.3f" uN
-    "ptags" -> intercalate "," . map (uncurry (printf "%s=%d")) .
+    "ptags" -> List.intercalate "," . map (uncurry (printf "%s=%d")) .
                Map.toList $ pTags t
     "peermap" -> show $ peers t
     "spindle_count" -> show $ tSpindles t
@@ -1403,8 +1403,8 @@ defaultFields =
 -- associated nodes).
 computeGroups :: [Node] -> [(T.Gdx, [Node])]
 computeGroups nodes =
-  let nodes' = sortBy (comparing group) nodes
-      nodes'' = groupBy ((==) `on` group) nodes'
+  let nodes' = List.sortBy (comparing group) nodes
+      nodes'' = List.groupBy ((==) `on` group) nodes'
   -- use of head here is OK, since groupBy returns non-empty lists; if
   -- you remove groupBy, also remove use of head
   in map (\nl -> (group (head nl), nl)) nodes''

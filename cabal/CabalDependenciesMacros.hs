@@ -21,7 +21,9 @@ import qualified Distribution.Types.LocalBuildInfo as LocalBuildInfo
 import qualified Distribution.Compat.Graph as Graph
 #endif
 
-#if MIN_VERSION_Cabal(2,2,0)
+#if MIN_VERSION_Cabal(3,8,0)
+import Distribution.Simple.PackageDescription (readGenericPackageDescription)
+#elif MIN_VERSION_Cabal(2,2,0)
 import Distribution.PackageDescription.Parsec (readGenericPackageDescription)
 #elif MIN_VERSION_Cabal(2,0,0)
 import Distribution.PackageDescription.Parse (readGenericPackageDescription)
