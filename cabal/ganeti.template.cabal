@@ -60,7 +60,6 @@ library
     , template-haskell              >= 2.11.0.0
     , text                          >= 0.11.1.13
     , transformers                  >= 0.3.0.0
-    , unix                          >= 2.5.1.0
     , utf8-string                   >= 0.3.7
 
     , attoparsec                    >= 0.10.1.1   && < 0.15
@@ -77,6 +76,7 @@ library
     , regex-pcre                    >= 0.94.2     && < 0.96
     , temporary                     >= 1.1.2.3    && < 1.4
     , transformers-base             >= 0.4.1      && < 0.5
+    , unix                          >= 2.5.1.0    && < 2.9
     , zlib                          >= 0.5.3.3    && < 0.8
 
   if flag(network_bsd)
