@@ -42,11 +42,14 @@ module Ganeti.Compat
   , maybeFilePath'
   , toInotifyPath
   , getPid'
+  , openFd
+  , Posix.closeFd
   ) where
 
 import qualified Data.ByteString.UTF8 as UTF8
 import System.FilePath (FilePath)
 import System.Posix.ByteString.FilePath (RawFilePath)
+import qualified System.Posix as Posix
 import qualified System.INotify
 import qualified Text.JSON
 import qualified Control.Monad.Fail as Fail
@@ -105,4 +108,18 @@ getPid' (ProcessHandle mh _) = do
   case p_ of
     OpenHandle pid -> return $ Just pid
     _ -> return Nothing
+#endif
+
+
+openFd ::
+  FilePath ->
+  Posix.OpenMode ->
+  Maybe Posix.FileMode ->
+  Posix.OpenFileFlags ->
+  IO Posix.Fd
+#if MIN_VERSION_unix(2,8,0)
+openFd path openMode mFileMode fileFlags =
+  Posix.openFd path openMode (fileFlags {Posix.creat = mFileMode})
+#else
+openFd = Posix.openFd
 #endif

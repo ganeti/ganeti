@@ -77,14 +77,15 @@ import System.Exit
 import System.Environment
 import System.IO
 import System.IO.Error (isDoesNotExistError, modifyIOError, annotateIOError)
+import qualified System.Posix as Posix
 import System.Posix.Directory
 import System.Posix.Files
-import System.Posix.IO
 import System.Posix.Process
 import System.Posix.Types
 import System.Posix.Signals
 
 import Ganeti.Common as Common
+import Ganeti.Compat (openFd, closeFd)
 import Ganeti.Logging
 import Ganeti.Runtime
 import Ganeti.BasicTypes
@@ -252,19 +253,20 @@ parseArgs cmd options = do
 
 -- | PID file mode.
 pidFileMode :: FileMode
-pidFileMode = unionFileModes ownerReadMode ownerWriteMode
+pidFileMode = Posix.unionFileModes Posix.ownerReadMode Posix.ownerWriteMode
 
 -- | PID file open flags.
-pidFileFlags :: OpenFileFlags
-pidFileFlags = defaultFileFlags { noctty = True, trunc = False }
+pidFileFlags :: Posix.OpenFileFlags
+pidFileFlags =
+  Posix.defaultFileFlags { Posix.noctty = True, Posix.trunc = False }
 
 -- | Writes a PID file and locks it.
 writePidFile :: FilePath -> IO Fd
 writePidFile path = do
-  fd <- openFd path ReadWrite (Just pidFileMode) pidFileFlags
-  setLock fd (WriteLock, AbsoluteSeek, 0, 0)
+  fd <- openFd path Posix.ReadWrite (Just pidFileMode) pidFileFlags
+  Posix.setLock fd (Posix.WriteLock, AbsoluteSeek, 0, 0)
   my_pid <- getProcessID
-  _ <- fdWrite fd (show my_pid ++ "\n")
+  _ <- Posix.fdWrite fd (show my_pid ++ "\n")
   return fd
 
 -- | Helper function to ensure a socket doesn't exist. Should only be
@@ -423,13 +425,13 @@ describeError descr hndl fpath =
 -- only one OS thread, i.e. -N1).
 daemonize :: FilePath -> (Maybe Fd -> IO ()) -> IO ()
 daemonize logfile action = do
-  (rpipe, wpipe) <- createPipe
+  (rpipe, wpipe) <- Posix.createPipe
   -- first fork
   _ <- forkProcess $ do
     -- in the child
     closeFd rpipe
     let wpipe' = Just wpipe
-    setupDaemonEnv "/" (unionFileModes groupModes otherModes)
+    setupDaemonEnv "/" (Posix.unionFileModes Posix.groupModes Posix.otherModes)
     setupDaemonFDs (Just logfile) `Control.Exception.catch`
       handlePrepErr False wpipe'
     -- second fork, launches the actual child code; standard
@@ -437,7 +439,7 @@ daemonize logfile action = do
     _ <- forkProcess (action wpipe')
     exitImmediately ExitSuccess
   closeFd wpipe
-  hndl <- fdToHandle rpipe
+  hndl <- Posix.fdToHandle rpipe
   errors <- hGetContents hndl
   ecode <- if null errors
              then return ExitSuccess
@@ -543,7 +545,7 @@ handlePrepErr logging_setup fd err = do
   case fd of
     -- explicitly writing to the fd directly, since when forking it's
     -- better (safer) than trying to convert this into a full handle
-    Just fd' -> fdWrite fd' msg >> return ()
+    Just fd' -> Posix.fdWrite fd' msg >> return ()
     Nothing  -> hPutStrLn stderr (daemonStartupErr msg)
   when logging_setup $ logError msg
   exitWith $ ExitFailure 1

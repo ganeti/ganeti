@@ -45,12 +45,13 @@ import Control.Monad.Error
 import System.Directory (doesFileExist, getDirectoryContents)
 import System.FilePath.Posix ((</>))
 import System.IO
-import System.Posix.IO
+import qualified System.Posix.IO as Posix
 import System.Posix.Types (Fd)
 import System.Time (ClockTime(..), getClockTime)
 
 import Ganeti.BasicTypes
 import Ganeti.Logging
+import Ganeti.Compat (openFd, closeFd)
 import Ganeti.Path (livelockFile, livelockDir)
 import Ganeti.Utils (lockFile)
 
@@ -89,8 +90,10 @@ isDead :: Livelock -> IO Bool
 isDead fpath = fmap (isOk :: Result () -> Bool) . runResultT . liftIO $ do
   filepresent <- doesFileExist fpath
   when filepresent
-    . E.bracket (openFd fpath ReadOnly Nothing defaultFileFlags) closeFd
+    . E.bracket
+          (openFd fpath Posix.ReadOnly Nothing Posix.defaultFileFlags)
+          closeFd
                 $ \fd -> do
                     logDebug $ "Attempting to get a lock of " ++ fpath
-                    setLock fd (ReadLock, AbsoluteSeek, 0, 0)
+                    Posix.setLock fd (Posix.ReadLock, AbsoluteSeek, 0, 0)
                     logDebug "Got the lock, the process is dead"

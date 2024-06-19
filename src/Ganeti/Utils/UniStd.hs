@@ -42,9 +42,11 @@ module Ganeti.Utils.UniStd
 
 import Control.Exception (bracket)
 import Foreign.C
-import System.Posix.IO
+
+import qualified System.Posix as Posix
 import System.Posix.Types
 
+import Ganeti.Compat (openFd, closeFd)
 import Ganeti.BasicTypes
 
 foreign import ccall "fsync" fsync :: CInt -> IO CInt
@@ -55,7 +57,9 @@ foreign import ccall "fsync" fsync :: CInt -> IO CInt
 -- to get the file descriptor leaks memory. Therefore we open a given file
 -- just to sync it and close it again.
 fsyncFile :: (Error e) => FilePath -> ResultT e IO ()
-fsyncFile path = liftIO
-  $ bracket (openFd path ReadOnly Nothing defaultFileFlags) closeFd callfsync
-  where
-    callfsync (Fd fd) = throwErrnoPathIfMinus1_ "fsyncFile" path $ fsync fd
+fsyncFile path =
+  liftIO $
+  bracket
+    (openFd path Posix.ReadOnly Nothing Posix.defaultFileFlags)
+    closeFd $
+  \(Fd fd) -> throwErrnoPathIfMinus1_ "fsyncFile" path $ fsync fd
