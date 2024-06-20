@@ -74,7 +74,7 @@ module Ganeti.WConfd.TempRes
   ) where
 
 import Control.Lens.At
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 import qualified Data.ByteString as BS

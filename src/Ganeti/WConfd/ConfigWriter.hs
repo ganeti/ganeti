@@ -44,7 +44,7 @@ module Ganeti.WConfd.ConfigWriter
   ) where
 
 import Control.Monad.Base
-import Control.Monad.Error
+import Control.Monad.Except
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Trans.Control
 import Data.Monoid

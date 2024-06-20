@@ -53,7 +53,7 @@ module Ganeti.Query.Exec
 
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except (catchError, throwError)
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe, fromJust)
 import System.Environment
