@@ -995,7 +995,7 @@ instance Applicative Private where
 
 instance Monad Private where
   (Private x) >>= f = f x
-  return = Private
+  return = pure
 
 showPrivateJSObject :: (JSON.JSON a) =>
                        [(String, a)] -> JSON.JSObject (Private JSON.JSValue)
@@ -1025,7 +1025,7 @@ instance Applicative Secret where
 
 instance Monad Secret where
   (Secret x) >>= f = f x
-  return = Secret
+  return = pure
 
 -- | We return "\<redacted\>" here to satisfy the idempotence of serialization
 -- and deserialization, although this will impact the meaningfulness of secret

@@ -117,7 +117,7 @@ type Result = GenericResult String
 instance (Error a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
-  return = Ok
+  return = pure
 #if !MIN_VERSION_base(4,13,0)
   fail   = Bad . strMsg
 #endif
@@ -175,11 +175,11 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
 {-# INLINE elimResultT #-}
 
 instance (Applicative m, Monad m, Error a) => Applicative (ResultT a m) where
-  pure = return
+  pure = lift . pure
   (<*>) = ap
 
 instance (Monad m, Error a) => Monad (ResultT a m) where
-  return   = lift . return
+  return   = pure
   (>>=)    = flip (elimResultT throwError)
 #if !MIN_VERSION_base(4,13,0)
   fail err = ResultT (return . Bad $ strMsg err)
