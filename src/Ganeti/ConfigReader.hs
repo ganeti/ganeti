@@ -42,6 +42,7 @@ module Ganeti.ConfigReader
 import Control.Concurrent
 import Control.Exception
 import Control.Monad (unless)
+import System.IO.Error (catchIOError)
 import System.INotify
 
 import Ganeti.BasicTypes
@@ -236,9 +237,6 @@ onPollInner inotiaction path save_fn
                    _            -> True
   return (state' { reloadModel = newmode }, continue)
 
--- the following hint is because hlint doesn't understand our const
--- (return False) is so that we can give a signature to 'e'
-{-# ANN addNotifier "HLint: ignore Evaluate" #-}
 -- | Setup inotify watcher.
 --
 -- This tries to setup the watch descriptor; in case of any IO errors,
@@ -246,10 +244,10 @@ onPollInner inotiaction path save_fn
 addNotifier :: INotify -> FilePath -> (Result ConfigData -> IO ())
             -> MVar ServerState -> IO Bool
 addNotifier inotify path save_fn mstate =
-  Control.Exception.catch
+  catchIOError
         (addWatch inotify [CloseWrite] (toInotifyPath path)
             (onInotify inotify path save_fn mstate) >> return True)
-        (\e -> const (return False) (e::IOError))
+        (\_e -> return False)
 
 -- | Inotify event handler.
 onInotify :: INotify -> String -> (Result ConfigData -> IO ())
