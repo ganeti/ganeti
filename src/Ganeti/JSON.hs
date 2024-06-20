@@ -85,7 +85,7 @@ module Ganeti.JSON
 
 import Control.Applicative
 import Control.DeepSeq
-import Control.Monad.Error.Class
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Fail (MonadFail)
 import Control.Monad.Writer
 import qualified Data.ByteString as BS

@@ -58,7 +58,7 @@ module Ganeti.Objects.BitArray
 import Prelude hiding (foldr)
 
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import qualified Data.IntSet as IS
 import qualified Text.JSON as J
 

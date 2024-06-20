@@ -48,7 +48,7 @@ module Ganeti.BasicTypes
   , toErrorBase
   , toErrorStr
   , tryError
-  , Error(..) -- re-export from Control.Monad.Error
+  , Error(..)
   , MonadIO(..) -- re-export from Control.Monad.IO.Class
   , isOk
   , isBad
@@ -79,10 +79,11 @@ module Ganeti.BasicTypes
 
 import System.IO.Error (tryIOError)
 import Control.Applicative
+import Control.Exception (IOException)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
 import Control.Monad.Base
-import Control.Monad.Error.Class
+import Control.Monad.Except (MonadError, throwError, catchError)
 import Control.Monad.Trans
 import Control.Monad.Trans.Control
 import Data.Function
@@ -112,6 +113,15 @@ genericResult _ g (Ok b) = g b
 
 -- | Type alias for a string Result.
 type Result = GenericResult String
+
+class Error e where
+  strMsg :: String -> e
+
+instance (a ~ Char) => Error [a] where
+  strMsg = id
+
+instance Error IOException where
+  strMsg = userError
 
 -- | 'Monad' instance for 'GenericResult'.
 instance (Error a) => Monad (GenericResult a) where
@@ -192,7 +202,7 @@ instance (Monad m, Error a) => MonadError a (ResultT a m) where
   throwError = ResultT . return . Bad
   catchError = catchErrorT
 
-instance MonadTrans (ResultT a) where
+instance (Error a) => MonadTrans (ResultT a) where
   lift = ResultT . liftM Ok
 
 -- | The instance catches any 'IOError' using 'tryIOError'
