@@ -55,7 +55,7 @@ module Ganeti.Network
   ) where
 
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.State
 import Data.Bits ((.&.))
 import Data.Function (on)

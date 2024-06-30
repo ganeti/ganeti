@@ -45,7 +45,7 @@ import Control.Lens.Setter ((.~), (%~))
 import qualified Data.ByteString.UTF8 as UTF8
 import Control.Lens.Traversal (mapMOf)
 import Control.Monad (unless, when, forM_, foldM, liftM2)
-import Control.Monad.Error (throwError, MonadError)
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Fail (MonadFail)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,

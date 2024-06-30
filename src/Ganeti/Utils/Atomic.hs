@@ -43,7 +43,7 @@ module Ganeti.Utils.Atomic
 import qualified Control.Exception.Lifted as L
 import Control.Monad
 import Control.Monad.Base (MonadBase(..))
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Trans.Control
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 import System.IO

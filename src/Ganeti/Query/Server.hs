@@ -45,7 +45,7 @@ import Control.Exception
 import Control.Lens ((.~))
 import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void)
 import Control.Monad.Base (MonadBase, liftBase)
-import Control.Monad.Error (MonadError)
+import Control.Monad.Except (MonadError)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
