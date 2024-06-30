@@ -107,8 +107,7 @@ __all__ = [
   "HELPER_SHUTDOWN_TIMEOUT_OPT",
   "HELPER_STARTUP_TIMEOUT_OPT",
   "HID_OS_OPT",
-  "HOTPLUG_IF_POSSIBLE_OPT",
-  "HOTPLUG_OPT",
+  "NOHOTPLUG_OPT",
   "HV_STATE_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
@@ -1540,15 +1539,9 @@ INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
                                  default=False, action="store_true",
                                  help="Include default values")
 
-HOTPLUG_OPT = cli_option("--hotplug", dest="hotplug",
-                         action="store_true", default=False,
+NOHOTPLUG_OPT = cli_option("--no-hotplug", dest="hotplug",
+                         action="store_false", default=True,
                          help="Hotplug supported devices (NICs and Disks)")
-
-HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
-                                     dest="hotplug_if_possible",
-                                     action="store_true", default=False,
-                                     help="Hotplug devices in case"
-                                          " hotplug is supported")
 
 INSTALL_IMAGE_OPT = \
     cli_option("--install-image",

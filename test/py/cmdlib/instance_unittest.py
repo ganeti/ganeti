@@ -2344,17 +2344,16 @@ class TestLUInstanceSetParams(CmdlibTestCase):
   def testNoHotplugSupport(self):
     op = self.CopyOpCode(self.op,
                          nics=[(constants.DDM_ADD, -1, {})],
-                         hotplug=True)
+                         )
     self.rpc.call_hotplug_supported.return_value = \
       self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master)
-    self.ExecOpCodeExpectOpPrereqError(op, "Hotplug is not possible")
-    self.assertTrue(self.rpc.call_hotplug_supported.called)
+    self.assertFalse(self.rpc.call_hotplug_supported.called)
 
   def testHotplugIfPossible(self):
     op = self.CopyOpCode(self.op,
-                         nics=[(constants.DDM_ADD, -1, {})],
-                         hotplug_if_possible=True)
+                         nics=[(constants.DDM_ADD, -1, {})]
+                         )
     self.rpc.call_hotplug_supported.return_value = \
       self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master)
@@ -3072,8 +3071,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                           self.cfg.CreateDisk()])
     op = self.CopyOpCode(self.op,
                          instance_name=inst.name,
-                         disks=[[constants.DDM_REMOVE, -1,
-                                 {}]]) # without hotplug
+                         disks=[[constants.DDM_REMOVE, -1, {}]],
+                         hotplug=False) # without hotplug
     self.rpc.call_instance_info.side_effect = [
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master,
