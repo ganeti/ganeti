@@ -42,6 +42,8 @@ import Test.HUnit
 
 import Data.Char (isSpace)
 import qualified Data.Either as Either
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.List
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
@@ -67,6 +69,9 @@ genNonCommaString :: Gen String
 genNonCommaString = do
   size <- choose (0, 20) -- arbitrary max size
   vectorOf size (arbitrary `suchThat` (/=) ',')
+
+genNonEmpty :: (Arbitrary a) => Gen (NonEmpty a)
+genNonEmpty = fmap (uncurry (:|)) arbitrary
 
 -- | If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idempotent.
@@ -122,30 +127,32 @@ prop_select def lst1 lst2 =
           flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
-{-# ANN prop_select_undefd "HLint: ignore Use alternative" #-}
 -- | Test basic select functionality with undefined default
-prop_select_undefd :: [Int]            -- ^ List of False values
-                   -> NonEmptyList Int -- ^ List of True values
+prop_select_undefd_plain
+                   :: [Int]            -- ^ List of False values
+                   -> NonEmpty Int     -- ^ List of True values
                    -> Property         -- ^ Test result
-prop_select_undefd lst1 (NonEmpty lst2) =
-  -- head is fine as NonEmpty "guarantees" a non-empty list, but not
-  -- via types
-  select undefined (flist ++ tlist) ==? head lst2
+prop_select_undefd_plain lst1 lst2 =
+  select undefined (flist ++ tlist) ==? NonEmpty.head lst2
     where flist = zip (repeat False) lst1
-          tlist = zip (repeat True)  lst2
+          tlist = zip (repeat True)  (NonEmpty.toList lst2)
 
-{-# ANN prop_select_undefv "HLint: ignore Use alternative" #-}
+prop_select_undefd :: [Int] -> Property
+prop_select_undefd lst1 = forAll genNonEmpty $ prop_select_undefd_plain lst1
+
 -- | Test basic select functionality with undefined list values
-prop_select_undefv :: [Int]            -- ^ List of False values
-                   -> NonEmptyList Int -- ^ List of True values
+prop_select_undefv_plain
+                   :: [Int]            -- ^ List of False values
+                   -> NonEmpty Int     -- ^ List of True values
                    -> Property         -- ^ Test result
-prop_select_undefv lst1 (NonEmpty lst2) =
-  -- head is fine as NonEmpty "guarantees" a non-empty list, but not
-  -- via types
-  select undefined cndlist ==? head lst2
+prop_select_undefv_plain lst1 lst2 =
+  select undefined cndlist ==? NonEmpty.head lst2
     where flist = zip (repeat False) lst1
-          tlist = zip (repeat True)  lst2
+          tlist = zip (repeat True)  (NonEmpty.toList lst2)
           cndlist = flist ++ tlist ++ [undefined]
+
+prop_select_undefv :: [Int] -> Property
+prop_select_undefv lst1 = forAll genNonEmpty $ prop_select_undefv_plain lst1
 
 prop_parseUnit :: NonNegative Int -> Property
 prop_parseUnit (NonNegative n) =

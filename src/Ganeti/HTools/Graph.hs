@@ -156,12 +156,14 @@ verticesColorSet cMap = IntSet.fromList . verticesColors cMap
 neighColors :: Graph.Graph -> VertColorMap -> Graph.Vertex -> [Color]
 neighColors g cMap v = verticesColors cMap $ neighbors g v
 
-{-# ANN colorNode "HLint: ignore Use alternative" #-}
 -- | Color one node.
 colorNode :: Graph.Graph -> VertColorMap -> Graph.Vertex -> Color
--- use of "head" is A-ok as the source is an infinite list
-colorNode g cMap v = head $ filter notNeighColor [0..]
-    where notNeighColor = (`notElem` neighColors g cMap v)
+colorNode g cMap v =
+    case filter (`notElem` neighColors g cMap v) [0..] of
+        c:_ -> c
+        [] -> error $ "colorNode: " ++
+            "we excluded finitely many colors from an infinite list, " ++
+            "thus the remaining list should be non-empty"
 
 -- | Color a node returning the updated color map.
 colorNodeInMap :: Graph.Graph -> Graph.Vertex -> VertColorMap -> VertColorMap
@@ -233,5 +235,5 @@ colorDsatur g =
 -- | ColorVertMap from VertColorMap.
 colorVertMap :: VertColorMap -> ColorVertMap
 colorVertMap = IntMap.foldrWithKey
-                 (flip (IntMap.insertWith ((:) . head)) . replicate 1)
+                 (flip (IntMap.insertWith (++)) . replicate 1)
                  IntMap.empty
