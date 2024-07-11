@@ -229,20 +229,20 @@ class TestUpdateSshRoot(unittest.TestCase):
   def testUpdate(self):
     data = {
       constants.SSHS_SSH_ROOT_KEY: [
-        (constants.SSHK_DSA, "privatedsa", "ssh-dss pubdsa"),
+        (constants.SSHK_RSA, "privatersa", "ssh-rsa pubrsa"),
         ],
-      constants.SSHS_SSH_KEY_TYPE: "dsa",
-      constants.SSHS_SSH_KEY_BITS: 1024,
+      constants.SSHS_SSH_KEY_TYPE: "rsa",
+      constants.SSHS_SSH_KEY_BITS: 2048,
       }
 
     prepare_node_join.UpdateSshRoot(data, False,
                                     _homedir_fn=self._GetHomeDir)
     self.assertEqual(os.listdir(self.tmpdir), [".ssh"])
     self.assertEqual(sorted(os.listdir(self.sshdir)),
-                     sorted(["authorized_keys", "id_dsa", "id_dsa.pub"]))
-    self.assertTrue(utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa"))
+                     sorted(["authorized_keys", "id_rsa", "id_rsa.pub"]))
+    self.assertTrue(utils.ReadFile(utils.PathJoin(self.sshdir, "id_rsa"))
                     is not None)
-    pub_key = utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa.pub"))
+    pub_key = utils.ReadFile(utils.PathJoin(self.sshdir, "id_rsa.pub"))
     self.assertTrue(pub_key is not None)
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
                                                     "authorized_keys")),
