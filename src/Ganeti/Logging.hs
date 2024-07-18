@@ -61,7 +61,7 @@ module Ganeti.Logging
   ) where
 
 import Control.Monad
-import Control.Monad.Error (Error(..), MonadError(..), catchError)
+import Control.Monad.Except (MonadError(..), catchError)
 import Control.Monad.Reader
 import qualified Control.Monad.RWS.Strict as RWSS
 import qualified Control.Monad.State.Strict as SS
@@ -74,7 +74,7 @@ import System.Log.Handler (setFormatter, LogHandler)
 import System.Log.Formatter
 import System.IO
 
-import Ganeti.BasicTypes (ResultT(..))
+import Ganeti.BasicTypes (Error(..), ResultT(..))
 import Ganeti.THH
 import qualified Ganeti.ConstantUtils as ConstantUtils
 

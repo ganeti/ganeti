@@ -41,7 +41,7 @@ module Ganeti.Utils.Livelock
 
 import qualified Control.Exception as E
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import System.Directory (doesFileExist, getDirectoryContents)
 import System.FilePath.Posix ((</>))
 import System.IO
