@@ -87,6 +87,7 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Fail (MonadFail)
+import Control.Monad (liftM, (<=<))
 import Control.Monad.Writer
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8

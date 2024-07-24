@@ -42,6 +42,7 @@ module Ganeti.Codec
 import Codec.Compression.Zlib
 import qualified Codec.Compression.Zlib.Internal as I
 import Control.Monad.Except
+import Control.Monad (liftM)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
 
