@@ -40,7 +40,7 @@ module Test.Ganeti.PartialParams
   , testToFilledMonoidLaw2
   ) where
 
-import Data.Monoid
+import Data.Semigroup ((<>))
 
 import Test.QuickCheck
 
