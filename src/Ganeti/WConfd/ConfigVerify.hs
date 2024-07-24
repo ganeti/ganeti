@@ -40,6 +40,7 @@ module Ganeti.WConfd.ConfigVerify
   ) where
 
 import Control.Monad.Except
+import Control.Monad (forM_)
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import qualified Data.Map as M

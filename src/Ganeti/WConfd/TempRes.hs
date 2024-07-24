@@ -77,6 +77,7 @@ import Control.Lens.At
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
+import Control.Monad (liftM, when, unless, mfilter, forM, forM_, (>=>))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
