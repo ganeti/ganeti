@@ -60,8 +60,8 @@ module Ganeti.Daemon
   , getFQDN
   ) where
 
-import Control.Concurrent
-import Control.Exception
+import Control.Concurrent (ThreadId, myThreadId, throwTo)
+import Control.Exception (catchJust, finally)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
 import Data.Maybe (fromMaybe, listToMaybe)
@@ -296,7 +296,7 @@ handleSigTerm mainTID =
   -- Throw termination exception to the main thread, so that the daemon is
   -- actually stopped in the proper way, executing all the functions waiting on
   -- "finally" statement.
-  Control.Exception.throwTo mainTID ExitSuccess
+  throwTo mainTID ExitSuccess
 
 -- | Signal handler for reopening log files.
 handleSigHup :: FilePath -> IO ()

@@ -41,7 +41,7 @@ module Ganeti.Query.Server
   ) where
 
 import Control.Concurrent
-import Control.Exception
+import Control.Exception (finally)
 import Control.Lens ((.~))
 import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void)
 import Control.Monad.Base (MonadBase, liftBase)
