@@ -453,10 +453,10 @@ class TestGetUserFiles(testutils.GanetiTestCase):
     ssh_tmpdir = os.path.join(self.tmpdir, ".ssh")
     os.makedirs(ssh_tmpdir)
 
-    self.priv_filename = os.path.join(ssh_tmpdir, "id_dsa")
+    self.priv_filename = os.path.join(ssh_tmpdir, "id_rsa")
     utils.WriteFile(self.priv_filename, data=self._PRIV_KEY)
 
-    self.pub_filename = os.path.join(ssh_tmpdir, "id_dsa.pub")
+    self.pub_filename = os.path.join(ssh_tmpdir, "id_rsa.pub")
     utils.WriteFile(self.pub_filename, data=self._PUB_KEY)
 
     self.auth_filename = os.path.join(ssh_tmpdir, "authorized_keys")
@@ -474,13 +474,13 @@ class TestGetUserFiles(testutils.GanetiTestCase):
     return self.tmpdir
 
   def testNewKeysOverrideOldKeys(self):
-    ssh.InitSSHSetup("dsa", 1024, _homedir_fn=self._GetTempHomedir)
+    ssh.InitSSHSetup("rsa", 2048, _homedir_fn=self._GetTempHomedir)
     self.assertFileContentNotEqual(self.priv_filename, self._PRIV_KEY)
     self.assertFileContentNotEqual(self.pub_filename, self._PUB_KEY)
 
   def testSuffix(self):
     suffix = "_pinkbunny"
-    ssh.InitSSHSetup("dsa", 1024, _homedir_fn=self._GetTempHomedir,
+    ssh.InitSSHSetup("rsa", 2048, _homedir_fn=self._GetTempHomedir,
                      _suffix=suffix)
     self.assertFileContent(self.priv_filename, self._PRIV_KEY)
     self.assertFileContent(self.pub_filename, self._PUB_KEY)
