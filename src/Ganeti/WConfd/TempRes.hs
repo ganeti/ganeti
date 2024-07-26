@@ -250,7 +250,7 @@ computeDRBDMap cfg trs = do
   let dups = filterNested ((>= 2) . length) m
   unless (M.null dups) . resError
     $ "Duplicate DRBD ports detected: " ++ show (M.toList $ fmap M.toList dups)
-  return $ fmap (fmap head . M.filter ((== 1) . length)) m
+  return $ fmap (M.mapMaybe listToMaybe) m
            `M.union` (fmap (const mempty) . J.fromContainer . configNodes $ cfg)
 
 -- Allocate a drbd minor.

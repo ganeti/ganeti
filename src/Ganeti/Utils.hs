@@ -110,6 +110,7 @@ import qualified Data.Either as E
 import Data.Function (on)
 import Data.IORef
 import Data.List
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -813,8 +814,7 @@ ordNub =
         else x : go (S.insert x s) xs
   in go S.empty
 
-{-# ANN frequency "HLint: ignore Use alternative" #-}
 -- | Returns a list of tuples of elements and the number of times they occur
 -- in a list
 frequency :: Ord t => [t] -> [(Int, t)]
-frequency xs = map (\x -> (length x, head x)) . group . sort $ xs
+frequency = map (\x -> (length x, NonEmpty.head x)) . NonEmpty.group . sort
