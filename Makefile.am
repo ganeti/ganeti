@@ -1348,9 +1348,19 @@ HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) \
               | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		-itest/hs \
-		$(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
+# Run dependency generation for every executable.
+# Up to GHC-9.2 we could perform this in one run of 'ghc -M'.
+# Due to https://gitlab.haskell.org/ghc/ghc/-/issues/25113
+# we have to process every executable manually now.
+# This way, many dependencies in Makefile.ghc are duplicate now
+# but 'make' should cope with this.
+	-mv $@ $@.bak
+	for prog_hs in $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS); do \
+		$(GHC) -M -dep-makefile $@.part $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
+			-itest/hs $$prog_hs ; \
+		cat $@.part >>$@ ; \
+		rm $@.part ; \
+	done
 # Since ghc -M does not generate dependency line for object files, dependencies
 # from a target executable seed object (e.g. src/hluxid.o) to objects which
 # finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
