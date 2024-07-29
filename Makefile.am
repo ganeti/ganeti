@@ -812,7 +812,6 @@ HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
 	-O -Wall -isrc \
-	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	-hide-all-packages \
