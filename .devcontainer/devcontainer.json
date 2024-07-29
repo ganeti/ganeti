@@ -1,6 +1,6 @@
 {
     "name": "Ganeti Dev Container",
-    "image": "ganeti/ci:bookworm-py3",
+    "image": "docker.io/ganeti/ci:bookworm-py3",
 
     "customizations":{
         "vscode": {
