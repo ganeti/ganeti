@@ -38,8 +38,14 @@ jobs:
              && LC_ALL=C make check-local
              && mv /tmp/.github/ .
 
-      - name: Python tests
-        run: make py-tests
+      - name: Python unit tests
+        run: make py-tests-unit
+
+      - name: Python integration tests
+        run: make py-tests-integration
+
+      - name: Python legacy tests
+        run: make py-tests-legacy
 
       - name: Haskell tests
         run: make -j 2 hs-tests
