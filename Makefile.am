@@ -257,10 +257,15 @@ DIRS = \
 	test/data/cgroup_root/devices/some_group/lxc \
 	test/data/cgroup_root/devices/some_group/lxc/instance1 \
 	test/py \
-	test/py/testutils \
-	test/py/cmdlib \
-	test/py/cmdlib/testsupport \
+	test/py/legacy \
+	test/py/legacy/testutils \
+	test/py/legacy/cmdlib \
+	test/py/legacy/cmdlib/testsupport \
 	tools
+
+PYTHON_TEST_DIRS = \
+	test/py/unit \
+	test/py/integration
 
 ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR) \
@@ -389,6 +394,7 @@ BUILDTIME_DIRS = \
 
 DIRCHECK_EXCLUDE = \
 	$(BUILDTIME_DIRS) \
+	$(PYTHON_TEST_DIRS) \
 	ganeti-[0-9]*.[0-9]*.[0-9]* \
 	doc/html/_* \
 	doc/man-html/_* \
@@ -1903,144 +1909,144 @@ TEST_FILES = \
 	test/data/xen-xl-list-4.0.1-four-instances.txt \
 	test/data/xen-xl-list-long-4.0.1.txt \
 	test/data/xen-xl-uptime-4.0.1.txt \
-	test/py/ganeti-cli.test \
-	test/py/gnt-cli.test \
-	test/py/import-export_unittest-helper
+	test/py/legacy/ganeti-cli.test \
+	test/py/legacy/gnt-cli.test \
+	test/py/legacy/import-export_unittest-helper
 
 
-python_tests = \
+python_tests_legacy = \
 	doc/examples/rapi_testutils.py \
-	test/py/cmdlib/backup_unittest.py \
-	test/py/cmdlib/cluster_unittest.py \
-	test/py/cmdlib/cmdlib_unittest.py \
-	test/py/cmdlib/group_unittest.py \
-	test/py/cmdlib/instance_unittest.py \
-	test/py/cmdlib/instance_migration_unittest.py \
-	test/py/cmdlib/instance_storage_unittest.py \
-	test/py/cmdlib/node_unittest.py \
-	test/py/cmdlib/test_unittest.py \
-	test/py/cfgupgrade_unittest.py \
-	test/py/docs_unittest.py \
-	test/py/ganeti.asyncnotifier_unittest.py \
-	test/py/ganeti.backend_unittest-runasroot.py \
-	test/py/ganeti.backend_unittest.py \
-	test/py/ganeti.bootstrap_unittest.py \
-	test/py/ganeti.cli_unittest.py \
-	test/py/ganeti.cli_opts_unittest.py \
-	test/py/ganeti.client.gnt_cluster_unittest.py \
-	test/py/ganeti.client.gnt_instance_unittest.py \
-	test/py/ganeti.client.gnt_job_unittest.py \
-	test/py/ganeti.compat_unittest.py \
-	test/py/ganeti.confd.client_unittest.py \
-	test/py/ganeti.config_unittest.py \
-	test/py/ganeti.constants_unittest.py \
-	test/py/ganeti.daemon_unittest.py \
-	test/py/ganeti.errors_unittest.py \
-	test/py/ganeti.hooks_unittest.py \
-	test/py/ganeti.ht_unittest.py \
-	test/py/ganeti.http_unittest.py \
-	test/py/ganeti.hypervisor.hv_chroot_unittest.py \
-	test/py/ganeti.hypervisor.hv_fake_unittest.py \
-	test/py/ganeti.hypervisor.hv_kvm_unittest.py \
-	test/py/ganeti.hypervisor.hv_lxc_unittest.py \
-	test/py/ganeti.hypervisor.hv_xen_unittest.py \
-	test/py/ganeti.hypervisor_unittest.py \
-	test/py/ganeti.impexpd_unittest.py \
-	test/py/ganeti.jqueue_unittest.py \
-	test/py/ganeti.jstore_unittest.py \
-	test/py/ganeti.locking_unittest.py \
-	test/py/ganeti.luxi_unittest.py \
-	test/py/ganeti.masterd.iallocator_unittest.py \
-	test/py/ganeti.masterd.instance_unittest.py \
-	test/py/ganeti.mcpu_unittest.py \
-	test/py/ganeti.netutils_unittest.py \
-	test/py/ganeti.objects_unittest.py \
-	test/py/ganeti.opcodes_unittest.py \
-	test/py/ganeti.outils_unittest.py \
-	test/py/ganeti.ovf_unittest.py \
-	test/py/ganeti.qlang_unittest.py \
-	test/py/ganeti.query_unittest.py \
-	test/py/ganeti.rapi.baserlib_unittest.py \
-	test/py/ganeti.rapi.client_unittest.py \
-	test/py/ganeti.rapi.resources_unittest.py \
-	test/py/ganeti.rapi.rlib2_unittest.py \
-	test/py/ganeti.rapi.testutils_unittest.py \
-	test/py/ganeti.rpc_unittest.py \
-	test/py/ganeti.rpc.client_unittest.py \
-	test/py/ganeti.runtime_unittest.py \
-	test/py/ganeti.serializer_unittest.py \
-	test/py/ganeti.server.rapi_unittest.py \
-	test/py/ganeti.ssconf_unittest.py \
-	test/py/ganeti.ssh_unittest.py \
-	test/py/ganeti.storage.bdev_unittest.py \
-	test/py/ganeti.storage.container_unittest.py \
-	test/py/ganeti.storage.drbd_unittest.py \
-	test/py/ganeti.storage.filestorage_unittest.py \
-	test/py/ganeti.storage.gluster_unittest.py \
-	test/py/ganeti.tools.burnin_unittest.py \
-	test/py/ganeti.tools.ensure_dirs_unittest.py \
-	test/py/ganeti.tools.node_daemon_setup_unittest.py \
-	test/py/ganeti.tools.prepare_node_join_unittest.py \
-	test/py/ganeti.uidpool_unittest.py \
-	test/py/ganeti.utils.algo_unittest.py \
-	test/py/ganeti.utils.filelock_unittest.py \
-	test/py/ganeti.utils.hash_unittest.py \
-	test/py/ganeti.utils.io_unittest-runasroot.py \
-	test/py/ganeti.utils.io_unittest.py \
-	test/py/ganeti.utils.log_unittest.py \
-	test/py/ganeti.utils.livelock_unittest.py \
-	test/py/ganeti.utils.lvm_unittest.py \
-	test/py/ganeti.utils.mlock_unittest.py \
-	test/py/ganeti.utils.nodesetup_unittest.py \
-	test/py/ganeti.utils.process_unittest.py \
-	test/py/ganeti.utils.retry_unittest.py \
-	test/py/ganeti.utils.security_unittest.py \
-	test/py/ganeti.utils.storage_unittest.py \
-	test/py/ganeti.utils.text_unittest.py \
-	test/py/ganeti.utils.version_unittest.py \
-	test/py/ganeti.utils.wrapper_unittest.py \
-	test/py/ganeti.utils.x509_unittest.py \
-	test/py/ganeti.utils.bitarrays_unittest.py \
-	test/py/ganeti.utils_unittest.py \
-	test/py/ganeti.vcluster_unittest.py \
-	test/py/ganeti.workerpool_unittest.py \
-	test/py/qa.qa_config_unittest.py \
-	test/py/tempfile_fork_unittest.py
+	test/py/legacy/cmdlib/backup_unittest.py \
+	test/py/legacy/cmdlib/cluster_unittest.py \
+	test/py/legacy/cmdlib/cmdlib_unittest.py \
+	test/py/legacy/cmdlib/group_unittest.py \
+	test/py/legacy/cmdlib/instance_unittest.py \
+	test/py/legacy/cmdlib/instance_migration_unittest.py \
+	test/py/legacy/cmdlib/instance_storage_unittest.py \
+	test/py/legacy/cmdlib/node_unittest.py \
+	test/py/legacy/cmdlib/test_unittest.py \
+	test/py/legacy/cfgupgrade_unittest.py \
+	test/py/legacy/docs_unittest.py \
+	test/py/legacy/ganeti.asyncnotifier_unittest.py \
+	test/py/legacy/ganeti.backend_unittest-runasroot.py \
+	test/py/legacy/ganeti.backend_unittest.py \
+	test/py/legacy/ganeti.bootstrap_unittest.py \
+	test/py/legacy/ganeti.cli_unittest.py \
+	test/py/legacy/ganeti.cli_opts_unittest.py \
+	test/py/legacy/ganeti.client.gnt_cluster_unittest.py \
+	test/py/legacy/ganeti.client.gnt_instance_unittest.py \
+	test/py/legacy/ganeti.client.gnt_job_unittest.py \
+	test/py/legacy/ganeti.compat_unittest.py \
+	test/py/legacy/ganeti.confd.client_unittest.py \
+	test/py/legacy/ganeti.config_unittest.py \
+	test/py/legacy/ganeti.constants_unittest.py \
+	test/py/legacy/ganeti.daemon_unittest.py \
+	test/py/legacy/ganeti.errors_unittest.py \
+	test/py/legacy/ganeti.hooks_unittest.py \
+	test/py/legacy/ganeti.ht_unittest.py \
+	test/py/legacy/ganeti.http_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_chroot_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_fake_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_kvm_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_lxc_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_xen_unittest.py \
+	test/py/legacy/ganeti.hypervisor_unittest.py \
+	test/py/legacy/ganeti.impexpd_unittest.py \
+	test/py/legacy/ganeti.jqueue_unittest.py \
+	test/py/legacy/ganeti.jstore_unittest.py \
+	test/py/legacy/ganeti.locking_unittest.py \
+	test/py/legacy/ganeti.luxi_unittest.py \
+	test/py/legacy/ganeti.masterd.iallocator_unittest.py \
+	test/py/legacy/ganeti.masterd.instance_unittest.py \
+	test/py/legacy/ganeti.mcpu_unittest.py \
+	test/py/legacy/ganeti.netutils_unittest.py \
+	test/py/legacy/ganeti.objects_unittest.py \
+	test/py/legacy/ganeti.opcodes_unittest.py \
+	test/py/legacy/ganeti.outils_unittest.py \
+	test/py/legacy/ganeti.ovf_unittest.py \
+	test/py/legacy/ganeti.qlang_unittest.py \
+	test/py/legacy/ganeti.query_unittest.py \
+	test/py/legacy/ganeti.rapi.baserlib_unittest.py \
+	test/py/legacy/ganeti.rapi.client_unittest.py \
+	test/py/legacy/ganeti.rapi.resources_unittest.py \
+	test/py/legacy/ganeti.rapi.rlib2_unittest.py \
+	test/py/legacy/ganeti.rapi.testutils_unittest.py \
+	test/py/legacy/ganeti.rpc_unittest.py \
+	test/py/legacy/ganeti.rpc.client_unittest.py \
+	test/py/legacy/ganeti.runtime_unittest.py \
+	test/py/legacy/ganeti.serializer_unittest.py \
+	test/py/legacy/ganeti.server.rapi_unittest.py \
+	test/py/legacy/ganeti.ssconf_unittest.py \
+	test/py/legacy/ganeti.ssh_unittest.py \
+	test/py/legacy/ganeti.storage.bdev_unittest.py \
+	test/py/legacy/ganeti.storage.container_unittest.py \
+	test/py/legacy/ganeti.storage.drbd_unittest.py \
+	test/py/legacy/ganeti.storage.filestorage_unittest.py \
+	test/py/legacy/ganeti.storage.gluster_unittest.py \
+	test/py/legacy/ganeti.tools.burnin_unittest.py \
+	test/py/legacy/ganeti.tools.ensure_dirs_unittest.py \
+	test/py/legacy/ganeti.tools.node_daemon_setup_unittest.py \
+	test/py/legacy/ganeti.tools.prepare_node_join_unittest.py \
+	test/py/legacy/ganeti.uidpool_unittest.py \
+	test/py/legacy/ganeti.utils.algo_unittest.py \
+	test/py/legacy/ganeti.utils.filelock_unittest.py \
+	test/py/legacy/ganeti.utils.hash_unittest.py \
+	test/py/legacy/ganeti.utils.io_unittest-runasroot.py \
+	test/py/legacy/ganeti.utils.io_unittest.py \
+	test/py/legacy/ganeti.utils.log_unittest.py \
+	test/py/legacy/ganeti.utils.livelock_unittest.py \
+	test/py/legacy/ganeti.utils.lvm_unittest.py \
+	test/py/legacy/ganeti.utils.mlock_unittest.py \
+	test/py/legacy/ganeti.utils.nodesetup_unittest.py \
+	test/py/legacy/ganeti.utils.process_unittest.py \
+	test/py/legacy/ganeti.utils.retry_unittest.py \
+	test/py/legacy/ganeti.utils.security_unittest.py \
+	test/py/legacy/ganeti.utils.storage_unittest.py \
+	test/py/legacy/ganeti.utils.text_unittest.py \
+	test/py/legacy/ganeti.utils.version_unittest.py \
+	test/py/legacy/ganeti.utils.wrapper_unittest.py \
+	test/py/legacy/ganeti.utils.x509_unittest.py \
+	test/py/legacy/ganeti.utils.bitarrays_unittest.py \
+	test/py/legacy/ganeti.utils_unittest.py \
+	test/py/legacy/ganeti.vcluster_unittest.py \
+	test/py/legacy/ganeti.workerpool_unittest.py \
+	test/py/legacy/qa.qa_config_unittest.py \
+	test/py/legacy/tempfile_fork_unittest.py
 
 python_test_support = \
-	test/py/__init__.py \
-	test/py/lockperf.py \
-	test/py/testutils_ssh.py \
-	test/py/mocks.py \
-	test/py/testutils/__init__.py \
-	test/py/testutils/config_mock.py \
-	test/py/cmdlib/__init__.py \
-	test/py/cmdlib/testsupport/__init__.py \
-	test/py/cmdlib/testsupport/cmdlib_testcase.py \
-	test/py/cmdlib/testsupport/iallocator_mock.py \
-	test/py/cmdlib/testsupport/livelock_mock.py \
-	test/py/cmdlib/testsupport/netutils_mock.py \
-	test/py/cmdlib/testsupport/pathutils_mock.py \
-	test/py/cmdlib/testsupport/processor_mock.py \
-	test/py/cmdlib/testsupport/rpc_runner_mock.py \
-	test/py/cmdlib/testsupport/ssh_mock.py \
-	test/py/cmdlib/testsupport/utils_mock.py \
-	test/py/cmdlib/testsupport/util.py \
-	test/py/cmdlib/testsupport/wconfd_mock.py
+	test/py/legacy/__init__.py \
+	test/py/legacy/lockperf.py \
+	test/py/legacy/testutils_ssh.py \
+	test/py/legacy/mocks.py \
+	test/py/legacy/testutils/__init__.py \
+	test/py/legacy/testutils/config_mock.py \
+	test/py/legacy/cmdlib/__init__.py \
+	test/py/legacy/cmdlib/testsupport/__init__.py \
+	test/py/legacy/cmdlib/testsupport/cmdlib_testcase.py \
+	test/py/legacy/cmdlib/testsupport/iallocator_mock.py \
+	test/py/legacy/cmdlib/testsupport/livelock_mock.py \
+	test/py/legacy/cmdlib/testsupport/netutils_mock.py \
+	test/py/legacy/cmdlib/testsupport/pathutils_mock.py \
+	test/py/legacy/cmdlib/testsupport/processor_mock.py \
+	test/py/legacy/cmdlib/testsupport/rpc_runner_mock.py \
+	test/py/legacy/cmdlib/testsupport/ssh_mock.py \
+	test/py/legacy/cmdlib/testsupport/utils_mock.py \
+	test/py/legacy/cmdlib/testsupport/util.py \
+	test/py/legacy/cmdlib/testsupport/wconfd_mock.py
 
 haskell_tests = exe/htest
 
 dist_TESTS = \
-	test/py/check-cert-expired_unittest.bash \
-	test/py/daemon-util_unittest.bash \
-	test/py/systemd_unittest.bash \
-	test/py/ganeti-cleaner_unittest.bash \
-	test/py/import-export_unittest.bash \
-	test/py/cli-test.bash \
-	test/py/bash_completion.bash
+	test/py/legacy/check-cert-expired_unittest.bash \
+	test/py/legacy/daemon-util_unittest.bash \
+	test/py/legacy/systemd_unittest.bash \
+	test/py/legacy/ganeti-cleaner_unittest.bash \
+	test/py/legacy/import-export_unittest.bash \
+	test/py/legacy/cli-test.bash \
+	test/py/legacy/bash_completion.bash
 
 if PY_UNIT
-dist_TESTS += $(python_tests)
+dist_TESTS += $(python_tests_legacy)
 endif
 
 nodist_TESTS =
@@ -2067,7 +2073,7 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 # Environment for all tests
 PLAIN_TESTS_ENVIRONMENT = \
-	PYTHONPATH=.:./test/py \
+	PYTHONPATH=.:./test/py/legacy \
 	TOP_SRCDIR=$(abs_top_srcdir) TOP_BUILDDIR=$(abs_top_builddir) \
 	PYTHON=$(PYTHON) FAKEROOT=$(FAKEROOT_PATH) \
 	$(RUN_IN_TEMPDIR)
@@ -2106,7 +2112,7 @@ all_python_code = \
 	$(qa_scripts)
 
 if PY_UNIT
-all_python_code += $(python_tests)
+all_python_code += $(python_tests_legacy)
 all_python_code += $(python_test_support)
 all_python_code += $(python_test_utils)
 endif
@@ -2659,18 +2665,26 @@ hs-tests: exe/htest
 	@rm -f htest.tix
 	$<
 
-.PHONY: py-tests
-py-tests: $(python_tests) ganeti $(built_python_sources)
+.PHONY: py-tests-legacy
+py-tests-legacy: $(python_tests_legacy) ganeti $(built_python_sources)
 	@if [ "$(PY_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
 	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
 	error=; \
-	for file in $(python_tests); \
+	for file in $(python_tests_legacy); \
 	  do if ! $(TESTS_ENVIRONMENT) $$file; then error=1; fi; \
 	done; \
 	test -z "$$error"
+
+.PHONY: py-tests-unit
+py-tests-unit: ganeti $(built_python_sources)
+	PYTHONPATH=: $(RUN_IN_TEMPDIR) pytest-3 ./test/py/unit/
+
+.PHONY: py-tests-integration
+py-tests-integration: ganeti $(built_python_sources)
+	PYTHONPATH=: $(RUN_IN_TEMPDIR) pytest-3 ./test/py/integration/
 
 .PHONY: hs-shell-%
 hs-shell-%: test/hs/hpc-htools test/hs/hpc-mon-collector \
@@ -2944,7 +2958,7 @@ coverage: $(COVERAGE_TESTS)
 test/py/docs_unittest.py: $(gnt_scripts)
 
 .PHONY: py-coverage
-py-coverage: $(GENERATED_FILES) $(python_tests)
+py-coverage: $(GENERATED_FILES) $(python_tests_legacy)
 	@test -n "$(PYCOVERAGE)" || \
 	    { echo 'python-coverage' not found during configure; exit 1; }
 	set -e; \
@@ -2954,7 +2968,7 @@ py-coverage: $(GENERATED_FILES) $(python_tests)
 	HTML_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR) \
 	$(PLAIN_TESTS_ENVIRONMENT) \
 	$(abs_top_srcdir)/autotools/gen-py-coverage \
-	$(python_tests)
+	$(python_tests_legacy)
 
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests) test/hs/hpc-htools test/hs/hpc-mon-collector
