@@ -1394,7 +1394,8 @@ HASKELL_PACKAGE_IDS_FILE = ganeti.depsflags
 HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
 
 $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
-                                  cabal/CabalDependenciesMacros.hs
+                                  cabal/CabalDependenciesMacros.hs \
+                                  $(CABAL_EXECUTABLES_APPS_STAMPS)
 	touch empty-cabal-config
 	$(CABAL) --config-file=empty-cabal-config \
 	  $(CABAL_CONFIGURE_CMD) --user \
@@ -1609,7 +1610,6 @@ EXTRA_DIST += \
 	autotools/sphinx-wrapper \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
-	cabal/cabal-from-modules.py \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -1641,7 +1641,6 @@ EXTRA_DIST += \
 	doc/users/groups.in \
 	doc/users/users.in \
 	ganeti.cabal \
-	cabal/ganeti.template.cabal \
 	cabal/CabalDependenciesMacros.hs \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
@@ -3032,28 +3031,6 @@ apps/%.hs.stamp: Makefile
 	rm -f $(basename $@)
 	ln -s ../$(filter %/$(basename $(notdir $@)),$(CABAL_EXECUTABLES_HS)) $(basename $@)
 	touch $@
-
-# Builds the cabal file
-ganeti.cabal: cabal/ganeti.template.cabal Makefile cabal/cabal-from-modules.py $(CABAL_EXECUTABLES_APPS_STAMPS)
-	@echo $(subst /,.,$(patsubst %.hs,%,$(patsubst test/hs/%,%,$(patsubst src/%,%,$(HS_SRCS))))) \
-	  | $(PYTHON) $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
-
-	for p in $(CABAL_EXECUTABLES); do \
-	  echo                                   >> $@; \
-	  echo "executable `basename $$p`"       >> $@; \
-	  echo "  hs-source-dirs: apps"          >> $@; \
-	  echo "  main-is: `basename $$p`.hs"    >> $@; \
-	  echo "  default-language: Haskell2010" >> $@; \
-	  echo "  build-depends:"                >> $@; \
-	  echo "      base"                      >> $@; \
-	  echo "    , ganeti"                    >> $@; \
-	  if [ $$p == test/hs/htest ]; then \
-	    echo "    , hslogger"                  >> $@; \
-	    echo "    , test-framework"            >> $@; \
-	  elif [ $$p == src/rpc-test ]; then \
-	    echo "    , json"                      >> $@; \
-	  fi \
-	done
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
