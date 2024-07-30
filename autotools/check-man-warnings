@@ -37,5 +37,6 @@ fi
 
 ! LANG="$loc" LC_ALL="$loc" MANWIDTH=80 \
   man --warnings --encoding=utf8 --local-file "$1" 2>&1 >/dev/null | \
-  grep -v -e "cannot adjust line" -e "can't break line" | \
+  grep -v -e "cannot adjust line" -e "can't break line" \
+    -e "cannot select font" | \
   grep .
