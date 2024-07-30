@@ -374,8 +374,7 @@ clean-local:
 	rm -rf dist
 	find -D exec . -type d -name __pycache__ -exec rm -rf {} +
 
-HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
-	src/hconfd src/ganeti-confd
+HS_GENERATED_FILES = $(HS_PROGS) src/ganeti-luxid src/ganeti-confd
 if ENABLE_MOND
 HS_GENERATED_FILES += src/ganeti-mond
 endif
@@ -771,8 +770,8 @@ endif
 HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
 	src/ganeti-wconfd \
-	src/hconfd \
-	src/hluxid \
+	src/ganeti-confd \
+	src/ganeti-luxid \
 	src/hs2py \
 	src/rpc-test
 if ENABLE_MOND
@@ -1362,15 +1361,15 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) 
 		rm $@.part ; \
 	done
 # Since ghc -M does not generate dependency line for object files, dependencies
-# from a target executable seed object (e.g. src/hluxid.o) to objects which
+# from a target executable seed object (e.g. src/ganeti-luxid.o) to objects which
 # finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
 # missing in Makefile.ghc.
 # see: https://www.haskell.org/ghc/docs/7.6.2/html/users_guide/separate-compilation.html#makefile-dependencies
 # Following substitutions will add dependencies between object files which
 # corresponds to the interface file already there as a dependency for each
 # object listed in Makefile.ghc.
-# e.g. src/hluxid.o : src/Ganeti/Daemon.hi
-#        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
+# e.g. src/ganeti-luxid.o : src/Ganeti/Daemon.hi
+#        => src/ganeti-luxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
 	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
 
 @include_makefile_ghc@
@@ -1492,16 +1491,10 @@ nodist_sbin_SCRIPTS = \
 	src/ganeti-confd \
 	src/ganeti-wconfd
 
-src/ganeti-luxid: src/hluxid
-	cp -pf $< $@
-
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = \
 	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst scripts/%,%,\
 	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
-
-src/ganeti-confd: src/hconfd
-	cp -pf $< $@
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
