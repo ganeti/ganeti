@@ -45,7 +45,6 @@ import docutils.parsers.rst
 from docutils.parsers.rst import Directive
 
 import sphinx.errors
-import sphinx.util.compat
 import sphinx.roles
 import sphinx.addnodes
 
