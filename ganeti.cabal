@@ -1,0 +1,439 @@
+Cabal-Version:       2.4
+Name:                ganeti
+Version:             3.0
+Homepage:            http://www.ganeti.org
+License:             BSD-2-Clause
+License-File:        COPYING
+Author:              Google Inc.
+Maintainer:          ganeti-devel@googlegroups.com
+Copyright:           2006-2015 Google Inc.
+Category:            System
+Build-Type:          Simple
+Extra-Source-Files:  README
+Synopsis:            Cluster-based virtualization management software
+Description:
+  Cluster-based virtualization management software
+  .
+  See <http://www.ganeti.org>
+
+
+Flag mond
+  Description: enable the ganeti monitoring daemon
+  Default:     True
+
+Flag metad
+  Description: enable the ganeti metadata daemon
+  Default:     True
+
+Flag htest
+  Description: enable tests
+  Default:     True
+
+Flag mcio_xformers
+  Description: use MonadCatchIO-transformers (deprecated)
+  Default:     True
+
+Flag network_bsd
+  Description: use the split network-bsd package
+  Default:     False
+
+Library
+  Exposed-Modules:
+    AutoConf
+    Ganeti.BasicTypes
+    Ganeti.Codec
+    Ganeti.Common
+    Ganeti.Compat
+    Ganeti.Confd.Client
+    Ganeti.Confd.ClientFunctions
+    Ganeti.Confd.Server
+    Ganeti.Confd.Types
+    Ganeti.Confd.Utils
+    Ganeti.Config
+    Ganeti.ConfigReader
+    Ganeti.ConstantUtils
+    Ganeti.Constants
+    Ganeti.Cpu.LoadParser
+    Ganeti.Cpu.Types
+    Ganeti.Curl.Internal
+    Ganeti.Curl.Multi
+    Ganeti.Daemon
+    Ganeti.Daemon.Utils
+    Ganeti.DataCollectors
+    Ganeti.DataCollectors.CLI
+    Ganeti.DataCollectors.CPUload
+    Ganeti.DataCollectors.Diskstats
+    Ganeti.DataCollectors.Drbd
+    Ganeti.DataCollectors.InstStatus
+    Ganeti.DataCollectors.InstStatusTypes
+    Ganeti.DataCollectors.Lv
+    Ganeti.DataCollectors.Program
+    Ganeti.DataCollectors.Types
+    Ganeti.DataCollectors.XenCpuLoad
+    Ganeti.Errors
+    Ganeti.HTools.AlgorithmParams
+    Ganeti.HTools.Backend.IAlloc
+    Ganeti.HTools.Backend.Luxi
+    Ganeti.HTools.Backend.MonD
+    Ganeti.HTools.Backend.Rapi
+    Ganeti.HTools.Backend.Simu
+    Ganeti.HTools.Backend.Text
+    Ganeti.HTools.CLI
+    Ganeti.HTools.Cluster
+    Ganeti.HTools.Cluster.AllocatePrimitives
+    Ganeti.HTools.Cluster.AllocateSecondary
+    Ganeti.HTools.Cluster.AllocationSolution
+    Ganeti.HTools.Cluster.Evacuate
+    Ganeti.HTools.Cluster.Metrics
+    Ganeti.HTools.Cluster.Moves
+    Ganeti.HTools.Cluster.Utils
+    Ganeti.HTools.Container
+    Ganeti.HTools.Dedicated
+    Ganeti.HTools.ExtLoader
+    Ganeti.HTools.GlobalN1
+    Ganeti.HTools.Graph
+    Ganeti.HTools.Group
+    Ganeti.HTools.Instance
+    Ganeti.HTools.Loader
+    Ganeti.HTools.Nic
+    Ganeti.HTools.Node
+    Ganeti.HTools.PeerMap
+    Ganeti.HTools.Program.Hail
+    Ganeti.HTools.Program.Harep
+    Ganeti.HTools.Program.Hbal
+    Ganeti.HTools.Program.Hcheck
+    Ganeti.HTools.Program.Hinfo
+    Ganeti.HTools.Program.Hroller
+    Ganeti.HTools.Program.Hscan
+    Ganeti.HTools.Program.Hspace
+    Ganeti.HTools.Program.Hsqueeze
+    Ganeti.HTools.Program.Main
+    Ganeti.HTools.Tags
+    Ganeti.HTools.Tags.Constants
+    Ganeti.HTools.Types
+    Ganeti.Hash
+    Ganeti.Hs2Py.GenConstants
+    Ganeti.Hs2Py.GenOpCodes
+    Ganeti.Hs2Py.ListConstants
+    Ganeti.Hs2Py.OpDoc
+    Ganeti.Hypervisor.Xen
+    Ganeti.Hypervisor.Xen.Types
+    Ganeti.Hypervisor.Xen.XlParser
+    Ganeti.JQScheduler
+    Ganeti.JQScheduler.Filtering
+    Ganeti.JQScheduler.ReasonRateLimiting
+    Ganeti.JQScheduler.Types
+    Ganeti.JQueue
+    Ganeti.JQueue.Lens
+    Ganeti.JQueue.Objects
+    Ganeti.JSON
+    Ganeti.Jobs
+    Ganeti.Kvmd
+    Ganeti.Lens
+    Ganeti.Locking.Allocation
+    Ganeti.Locking.Locks
+    Ganeti.Locking.Types
+    Ganeti.Locking.Waiting
+    Ganeti.Logging
+    Ganeti.Logging.Lifted
+    Ganeti.Logging.WriterLog
+    Ganeti.Luxi
+    -- some Metad modules are also used by hs2py
+    Ganeti.Metad.Config
+    Ganeti.Metad.ConfigCore
+    Ganeti.Metad.Types
+    Ganeti.Network
+    Ganeti.Objects
+    Ganeti.Objects.BitArray
+    Ganeti.Objects.Disk
+    Ganeti.Objects.Instance
+    Ganeti.Objects.Lens
+    Ganeti.Objects.Nic
+    Ganeti.OpCodes
+    Ganeti.OpCodes.Lens
+    Ganeti.OpParams
+    Ganeti.Parsers
+    Ganeti.PartialParams
+    Ganeti.Path
+    Ganeti.PyValue
+    Ganeti.Query.Cluster
+    Ganeti.Query.Common
+    Ganeti.Query.Exec
+    Ganeti.Query.Export
+    Ganeti.Query.Filter
+    Ganeti.Query.FilterRules
+    Ganeti.Query.Group
+    Ganeti.Query.Instance
+    Ganeti.Query.Job
+    Ganeti.Query.Language
+    Ganeti.Query.Locks
+    Ganeti.Query.Network
+    Ganeti.Query.Node
+    Ganeti.Query.Query
+    Ganeti.Query.Server
+    Ganeti.Query.Types
+    Ganeti.Rpc
+    Ganeti.Runtime
+    Ganeti.SlotMap
+    Ganeti.Ssconf
+    Ganeti.Storage.Diskstats.Parser
+    Ganeti.Storage.Diskstats.Types
+    Ganeti.Storage.Drbd.Parser
+    Ganeti.Storage.Drbd.Types
+    Ganeti.Storage.Lvm.LVParser
+    Ganeti.Storage.Lvm.Types
+    Ganeti.Storage.Utils
+    Ganeti.THH
+    Ganeti.THH.Compat
+    Ganeti.THH.Field
+    Ganeti.THH.HsRPC
+    Ganeti.THH.PyRPC
+    Ganeti.THH.PyType
+    Ganeti.THH.RPC
+    Ganeti.THH.Types
+    Ganeti.Types
+    Ganeti.UDSServer
+    Ganeti.Utils
+    Ganeti.Utils.AsyncWorker
+    Ganeti.Utils.Atomic
+    Ganeti.Utils.IORef
+    Ganeti.Utils.Livelock
+    Ganeti.Utils.MVarLock
+    Ganeti.Utils.Monad
+    Ganeti.Utils.MultiMap
+    Ganeti.Utils.Random
+    Ganeti.Utils.Statistics
+    Ganeti.Utils.UniStd
+    Ganeti.Utils.Validate
+    Ganeti.VCluster
+    Ganeti.Version
+    Ganeti.WConfd.Client
+    Ganeti.WConfd.ConfigModifications
+    Ganeti.WConfd.ConfigState
+    Ganeti.WConfd.ConfigVerify
+    Ganeti.WConfd.ConfigWriter
+    Ganeti.WConfd.Core
+    Ganeti.WConfd.DeathDetection
+    Ganeti.WConfd.Language
+    Ganeti.WConfd.Monad
+    Ganeti.WConfd.Persistent
+    Ganeti.WConfd.Server
+    Ganeti.WConfd.Ssconf
+    Ganeti.WConfd.TempRes
+  Other-Extensions:
+      TemplateHaskell
+  Build-Depends:
+      base                          >= 4.9.0.0
+    , array                         >= 0.4.0.0
+    , bytestring                    >= 0.9.2.1
+    , containers                    >= 0.4.2.1
+    , cryptonite                    >= 0.23
+    , deepseq                       >= 1.3.0.0
+    , directory                     >= 1.1.0.2
+    , filepath                      >= 1.3.0.0
+    , mtl                           >= 2.2.1
+    , old-time                      >= 1.1.0.0
+    , pretty                        >= 1.1.1.0
+    , process                       >= 1.1.0.1
+    , random                        >= 1.0.1.1
+    , template-haskell              >= 2.11.0.0
+    , text                          >= 0.11.1.13
+    , transformers                  >= 0.3.0.0    && < 0.7
+    , utf8-string                   >= 0.3.7
+
+    , attoparsec                    >= 0.10.1.1   && < 0.15
+    , base64-bytestring             >= 1.0.0.1    && < 1.3
+    , case-insensitive              >= 0.4.0.1    && < 1.3
+    , curl                          >= 1.3.7      && < 1.4
+    , hinotify                      >= 0.3.2      && < 0.5
+    , hslogger                      >= 1.1.4      && < 1.4
+    , json                          >= 0.5        && < 1.0
+    , lens                          >= 3.10       && < 6.0
+    , lifted-base                   >= 0.2.0.3    && < 0.3
+    , monad-control                 >= 0.3.1.3    && < 1.1
+    , parallel                      >= 3.2.0.2    && < 3.3
+    , regex-pcre                    >= 0.94.2     && < 0.96
+    , transformers-base             >= 0.4.1      && < 0.5
+    , unix                          >= 2.5.1.0    && < 2.9
+    , zlib                          >= 0.5.3.3    && < 0.8
+
+  If flag(network_bsd)
+    Build-Depends:
+        network                     >= 2.9        && < 3.3
+      , network-bsd                 >= 2.8        && < 2.9
+  Else
+    Build-Depends:
+        network                     >= 2.3.0.13   && < 2.9
+
+  If flag(mond)
+    Build-Depends:
+        PSQueue                       >= 1.1        && < 1.3
+      , snap-core                     >= 1.0.0
+      , snap-server                   >= 1.0.0
+    Exposed-Modules:
+      Ganeti.Monitoring.Server
+
+  If flag(metad)
+    Build-Depends:
+        snap-core                     >= 0.8.1
+      , snap-server                   >= 0.8.1
+    Exposed-Modules:
+      Ganeti.Metad.ConfigServer
+      Ganeti.Metad.Server
+      Ganeti.Metad.WebServer
+
+
+  If flag(mcio_xformers)
+    Build-Depends:
+        MonadCatchIO-transformers
+
+  Hs-Source-Dirs:     src
+  Build-Tool-Depends: hsc2hs:hsc2hs
+  Default-Language:   Haskell2010
+  GHC-Options:
+    -Wall
+    -ddump-splices -ddump-to-file
+
+Common app
+  Hs-Source-Dirs: app
+  Default-Language: Haskell2010
+  GHC-Options: -Wall
+  Build-Depends: ganeti, base
+
+Executable htools
+  Import: app
+  Main-Is: htools.hs
+
+Executable mon-collector
+  Import: app
+  Main-Is: mon-collector.hs
+
+Executable ganeti-kvmd
+  Import: app
+  Main-Is: ganeti-kvmd.hs
+
+Executable ganeti-wconfd
+  Import: app
+  Main-Is: ganeti-wconfd.hs
+
+Executable ganeti-confd
+  Import: app
+  Main-Is: ganeti-confd.hs
+
+Executable ganeti-luxid
+  Import: app
+  Main-Is: ganeti-luxid.hs
+
+Executable hs2py
+  Import: app
+  Main-Is: hs2py.hs
+
+Executable rpc-test
+  Import: app
+  Main-Is: rpc-test.hs
+  Build-Depends: json
+
+Executable ganeti-mond
+  Import: app
+  Main-Is: ganeti-mond.hs
+  If !flag(mond)
+    Buildable: False
+
+Executable ganeti-metad
+  Import: app
+  Main-Is: ganeti-metad.hs
+  If !flag(metad)
+    Buildable: False
+
+Executable htest
+  Import: app
+  Hs-Source-Dirs: test/hs
+  Main-Is: htest.hs
+  Build-Depends:
+    HUnit                         >= 1.2.4.2    && < 1.7,
+    QuickCheck                    >= 2.8        && < 2.16,
+    test-framework                >= 0.6        && < 0.9,
+    test-framework-hunit          >= 0.2.7      && < 0.4,
+    test-framework-quickcheck2    >= 0.2.12.1   && < 0.4,
+    temporary                     >= 1.1.2.3    && < 1.4,
+    attoparsec,
+    containers,
+    text,
+    bytestring,
+    utf8-string,
+    directory,
+    process,
+    json,
+    template-haskell,
+    hslogger,
+    base64-bytestring,
+    filepath,
+    lens,
+    network,
+    unix,
+    old-time
+  Other-Modules:
+    Test.AutoConf
+    Test.Ganeti.Attoparsec
+    Test.Ganeti.BasicTypes
+    Test.Ganeti.Common
+    Test.Ganeti.Confd.Types
+    Test.Ganeti.Confd.Utils
+    Test.Ganeti.Constants
+    Test.Ganeti.Daemon
+    Test.Ganeti.Errors
+    Test.Ganeti.HTools.Backend.MonD
+    Test.Ganeti.HTools.Backend.Simu
+    Test.Ganeti.HTools.Backend.Text
+    Test.Ganeti.HTools.CLI
+    Test.Ganeti.HTools.Cluster
+    Test.Ganeti.HTools.Container
+    Test.Ganeti.HTools.Graph
+    Test.Ganeti.HTools.Instance
+    Test.Ganeti.HTools.Loader
+    Test.Ganeti.HTools.Node
+    Test.Ganeti.HTools.PeerMap
+    Test.Ganeti.HTools.Types
+    Test.Ganeti.Hypervisor.Xen.XlParser
+    Test.Ganeti.JQScheduler
+    Test.Ganeti.JQueue
+    Test.Ganeti.JQueue.Objects
+    Test.Ganeti.JSON
+    Test.Ganeti.Jobs
+    Test.Ganeti.Kvmd
+    Test.Ganeti.Locking.Allocation
+    Test.Ganeti.Locking.Locks
+    Test.Ganeti.Locking.Waiting
+    Test.Ganeti.Luxi
+    Test.Ganeti.Network
+    Test.Ganeti.Objects
+    Test.Ganeti.Objects.BitArray
+    Test.Ganeti.OpCodes
+    Test.Ganeti.PartialParams
+    Test.Ganeti.PyValue
+    Test.Ganeti.Query.Aliases
+    Test.Ganeti.Query.Filter
+    Test.Ganeti.Query.Instance
+    Test.Ganeti.Query.Language
+    Test.Ganeti.Query.Network
+    Test.Ganeti.Query.Query
+    Test.Ganeti.Rpc
+    Test.Ganeti.Runtime
+    Test.Ganeti.SlotMap
+    Test.Ganeti.Ssconf
+    Test.Ganeti.Storage.Diskstats.Parser
+    Test.Ganeti.Storage.Drbd.Parser
+    Test.Ganeti.Storage.Drbd.Types
+    Test.Ganeti.Storage.Lvm.LVParser
+    Test.Ganeti.THH
+    Test.Ganeti.THH.Types
+    Test.Ganeti.TestCommon
+    Test.Ganeti.TestHTools
+    Test.Ganeti.TestHelper
+    Test.Ganeti.TestImports
+    Test.Ganeti.Types
+    Test.Ganeti.Utils
+    Test.Ganeti.Utils.MultiMap
+    Test.Ganeti.Utils.Statistics
+    Test.Ganeti.WConfd.Ssconf
+    Test.Ganeti.WConfd.TempRes
