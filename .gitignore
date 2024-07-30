@@ -160,8 +160,6 @@
 # haskell-specific rules
 /src/mon-collector
 /src/htools
-/src/hconfd
-/src/hluxid
 /src/hs2py
 /src/hs2py-constants
 /src/ganeti-confd
