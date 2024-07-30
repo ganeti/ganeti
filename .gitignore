@@ -55,7 +55,6 @@
 /empty-cabal-config
 /epydoc.conf
 /ganeti
-/ganeti.cabal
 /ganeti.depsflags
 /stamp-srclinks
 /stamp-directories
