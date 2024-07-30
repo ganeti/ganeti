@@ -185,7 +185,8 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/Query \
 	test/hs/Test/Ganeti/THH \
 	test/hs/Test/Ganeti/Utils \
-	test/hs/Test/Ganeti/WConfd
+	test/hs/Test/Ganeti/WConfd \
+	app
 
 # Haskell directories without the roots (src, test/hs)
 HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
@@ -193,7 +194,6 @@ HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
 DIRS = \
 	$(HS_DIRS) \
 	autotools \
-	cabal \
 	daemons \
 	devel \
 	devel/data \
@@ -269,11 +269,113 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(COVERAGE_PY_DIR) \
 	.hpc
 
+# ToDo: I think all these subdirectories of dist/build
+# are an implementation detail of Cabal.
+# But Automake seems to require it this way.
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
-	apps \
 	dist \
 	dist/build \
+	dist/build/Ganeti \
+	dist/build/Ganeti/Confd \
+	dist/build/Ganeti/Cpu \
+	dist/build/Ganeti/Curl \
+	dist/build/Ganeti/Daemon \
+	dist/build/Ganeti/DataCollectors \
+	dist/build/Ganeti/HTools \
+	dist/build/Ganeti/HTools/Backend \
+	dist/build/Ganeti/HTools/Cluster \
+	dist/build/Ganeti/HTools/Program \
+	dist/build/Ganeti/HTools/Tags \
+	dist/build/Ganeti/Hs2Py \
+	dist/build/Ganeti/Hypervisor \
+	dist/build/Ganeti/Hypervisor/Xen \
+	dist/build/Ganeti/JQScheduler \
+	dist/build/Ganeti/JQueue \
+	dist/build/Ganeti/Locking \
+	dist/build/Ganeti/Logging \
+	dist/build/Ganeti/Metad \
+	dist/build/Ganeti/Monitoring \
+	dist/build/Ganeti/Objects \
+	dist/build/Ganeti/OpCodes \
+	dist/build/Ganeti/Query \
+	dist/build/Ganeti/Storage \
+	dist/build/Ganeti/Storage/Diskstats \
+	dist/build/Ganeti/Storage/Drbd \
+	dist/build/Ganeti/Storage/Lvm \
+	dist/build/Ganeti/THH \
+	dist/build/Ganeti/Utils \
+	dist/build/Ganeti/WConfd \
+	dist/build/autogen \
+	dist/build/ganeti-confd \
+	dist/build/ganeti-confd/autogen \
+	dist/build/ganeti-confd/ganeti-confd-tmp \
+	dist/build/ganeti-kvmd \
+	dist/build/ganeti-kvmd/autogen \
+	dist/build/ganeti-kvmd/ganeti-kvmd-tmp \
+	dist/build/ganeti-luxid \
+	dist/build/ganeti-luxid/autogen \
+	dist/build/ganeti-luxid/ganeti-luxid-tmp \
+	dist/build/ganeti-metad \
+	dist/build/ganeti-metad/autogen \
+	dist/build/ganeti-metad/ganeti-metad-tmp \
+	dist/build/ganeti-mond \
+	dist/build/ganeti-mond/autogen \
+	dist/build/ganeti-mond/ganeti-mond-tmp \
+	dist/build/ganeti-wconfd \
+	dist/build/ganeti-wconfd/autogen \
+	dist/build/ganeti-wconfd/ganeti-wconfd-tmp \
+	dist/build/htools \
+	dist/build/htools/autogen \
+	dist/build/htools/htools-tmp \
+	dist/build/mon-collector \
+	dist/build/mon-collector/autogen \
+	dist/build/mon-collector/mon-collector-tmp \
+	dist/build/hs2py \
+	dist/build/hs2py/autogen \
+	dist/build/hs2py/hs2py-tmp \
+	dist/build/htest \
+	dist/build/htest/autogen \
+	dist/build/htest/htest-tmp \
+	dist/build/htest/htest-tmp/Test \
+	dist/build/htest/htest-tmp/Test/Ganeti \
+	dist/build/htest/htest-tmp/Test/Ganeti/Confd \
+	dist/build/htest/htest-tmp/Test/Ganeti/HTools \
+	dist/build/htest/htest-tmp/Test/Ganeti/HTools/Backend \
+	dist/build/htest/htest-tmp/Test/Ganeti/Hypervisor \
+	dist/build/htest/htest-tmp/Test/Ganeti/Hypervisor/Xen \
+	dist/build/htest/htest-tmp/Test/Ganeti/JQueue \
+	dist/build/htest/htest-tmp/Test/Ganeti/Locking \
+	dist/build/htest/htest-tmp/Test/Ganeti/Objects \
+	dist/build/htest/htest-tmp/Test/Ganeti/Query \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage/Diskstats \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage/Drbd \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage/Lvm \
+	dist/build/htest/htest-tmp/Test/Ganeti/THH \
+	dist/build/htest/htest-tmp/Test/Ganeti/Utils \
+	dist/build/htest/htest-tmp/Test/Ganeti/WConfd \
+	dist/build/rpc-test \
+	dist/build/rpc-test/autogen \
+	dist/build/rpc-test/rpc-test-tmp \
+	dist/build/src \
+	dist/build/src/Ganeti \
+	dist/build/src/Ganeti/Confd \
+	dist/build/src/Ganeti/Cpu \
+	dist/build/src/Ganeti/DataCollectors \
+	dist/build/src/Ganeti/HTools \
+	dist/build/src/Ganeti/Hs2Py \
+	dist/build/src/Ganeti/JQScheduler \
+	dist/build/src/Ganeti/JQueue \
+	dist/build/src/Ganeti/Metad \
+	dist/build/src/Ganeti/Objects \
+	dist/build/src/Ganeti/OpCodes \
+	dist/build/src/Ganeti/Query \
+	dist/build/src/Ganeti/Storage \
+	dist/build/src/Ganeti/Storage/Diskstats \
+	dist/build/src/Ganeti/Storage/Lvm \
+	dist/build/src/Ganeti/WConfd \
+	dist/package.conf.inplace \
 	doc/html \
 	doc/man-html
 
@@ -311,9 +413,7 @@ CLEANFILES = \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
-	$(CABAL_EXECUTABLES_APPS_STAMPS) \
 	empty-cabal-config \
-	ganeti.cabal \
 	$(HASKELL_PACKAGE_IDS_FILE) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	Makefile.ghc \
@@ -370,7 +470,6 @@ GENERATED_FILES = \
 
 clean-local:
 	rm -rf tools/shebang
-	rm -rf apps
 	rm -rf dist
 	find -D exec . -type d -name __pycache__ -exec rm -rf {} +
 
@@ -781,6 +880,8 @@ if ENABLE_METADATA
 HS_COMPILE_PROGS += src/ganeti-metad
 endif
 
+CABAL_SETUP = runhaskell Setup
+
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
 
@@ -796,7 +897,7 @@ HS_DEFAULT_PROGS = \
 	$(HS_COMPILE_PROGS)
 
 if HTEST
-HS_DEFAULT_PROGS += test/hs/htest
+HS_DEFAULT_PROGS += dist/build/htest/htest
 else
 EXTRA_DIST += test/hs/htest.hs
 endif
@@ -806,7 +907,18 @@ HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
 HS_TEST_PROGS = $(filter test/%,$(HS_ALL_PROGS))
 HS_SRC_PROGS = $(filter-out test/%,$(HS_ALL_PROGS))
 
-HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_DEFAULT_PROGS)) src/mon-collector.hs
+HS_PROG_SRCS = \
+	app/ganeti-confd.hs \
+	app/ganeti-kvmd.hs \
+	app/ganeti-luxid.hs \
+	app/ganeti-metad.hs \
+	app/ganeti-mond.hs \
+	app/ganeti-wconfd.hs \
+	app/hs2py.hs \
+	app/htools.hs \
+	app/mon-collector.hs \
+	app/rpc-test.hs
+
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
@@ -854,7 +966,7 @@ HEXTRA =
 # combination of HEXTRA and HEXTRA_CONFIGURE
 HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
 
-# extra flags used for test/hs/htest
+# extra flags used for htest
 # Only use the threaded runtime and run tests in parallel for GHC > 7.6. A bug
 # in base that wasn't fixed until 4.7.0.0 in GHC 7.8 causes random file lock
 # errors in the JQueue tests with the threaded runtime.
@@ -1340,144 +1452,16 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
-if WANT_HSTESTS
-HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
-endif
-Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) \
-              | $(built_base_sources) $(HS_BUILT_SRCS)
-# Run dependency generation for every executable.
-# Up to GHC-9.2 we could perform this in one run of 'ghc -M'.
-# Due to https://gitlab.haskell.org/ghc/ghc/-/issues/25113
-# we have to process every executable manually now.
-# This way, many dependencies in Makefile.ghc are duplicate now
-# but 'make' should cope with this.
-	-mv $@ $@.bak
-	for prog_hs in $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS); do \
-		$(GHC) -M -dep-makefile $@.part $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-			-itest/hs $$prog_hs ; \
-		cat $@.part >>$@ ; \
-		rm $@.part ; \
-	done
-# Since ghc -M does not generate dependency line for object files, dependencies
-# from a target executable seed object (e.g. src/ganeti-luxid.o) to objects which
-# finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
-# missing in Makefile.ghc.
-# see: https://www.haskell.org/ghc/docs/7.6.2/html/users_guide/separate-compilation.html#makefile-dependencies
-# Following substitutions will add dependencies between object files which
-# corresponds to the interface file already there as a dependency for each
-# object listed in Makefile.ghc.
-# e.g. src/ganeti-luxid.o : src/Ganeti/Daemon.hi
-#        => src/ganeti-luxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
-	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
+$(HS_SRC_PROGS) dist/build/htest/htest: dist/app.stamp
 
-@include_makefile_ghc@
-
-# Contains the package-id flags for the current build: "-package-id" followed
-# by the name and hash of the package, one for each dependency.
-# Obtained from the setup-config using the Cabal API
-# (CabalDependenciesMacros.hs) after `cabal configure`.
-# This file is created along with HASKELL_PACKAGE_VERSIONS_FILE; if you want
-# to depend on it in a rule, depend on HASKELL_PACKAGE_VERSIONS_FILE instead.
-HASKELL_PACKAGE_IDS_FILE = ganeti.depsflags
-
-# Defines the MIN_VERSION_* macros for all Haskell packages used in this
-# compilation.
-# The versions are determined using `cabal configure`, which takes them from
-# the ghc-pkg database.
-# At the moment, we don't support cabal sandboxes, so we use cabal configure
-# with the --user flag.
-# Note: `cabal configure` and CabalDependenciesMacros.hs perform no
-# downloading (only `cabal install` can do that).
-HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
-
-$(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
-                                  cabal/CabalDependenciesMacros.hs
-	touch empty-cabal-config
-	$(CABAL) --config-file=empty-cabal-config \
-	  $(CABAL_CONFIGURE_CMD) --user \
-	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
-	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
-	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
-	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"`
-	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
-	  ganeti.cabal \
-	  $(HASKELL_PACKAGE_IDS_FILE) \
-	  $(HASKELL_PACKAGE_VERSIONS_FILE)
-
-# Like the %.o rule, but allows access to the test/hs directory.
-# This uses HFLAGS instead of HTEST_FLAGS because it's only for generating
-# object files (.o for GHC <= 7.6, .o/.so for newer GHCs) that are loaded
-# in GHCI when evaluating TH. The actual test-with-coverage .hpc_o files
-# are created in the `%.$(HTEST_SUFFIX)_o` rule.
-test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
-	@echo '[GHC|test]: $@ <- test/hs/$^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.o=%.hs) | \
-		sed '/^Loading package /d'
-
-%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
-	@echo '[GHC]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
-		sed '/^Loading package /d'
-
-# For TH+profiling we need to compile twice: Once without profiling,
-# and then once with profiling. See
-# http://www.haskell.org/ghc/docs/7.0.4/html/users_guide/template-haskell.html#id636646
-if HPROFILE
-%.$(HPROF_SUFFIX)_o: %.o
-	@echo '[GHC|prof]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) \
-	  $(HPROFFLAGS) \
-		$(HEXTRA_COMBINED) \
-		$(@:%.$(HPROF_SUFFIX)_o=%.hs) | \
-		sed '/^Loading package /d'
-endif
-
-# We depend on the non-test .o file here because we need the corresponding .so
-# file for GHC > 7.6 ghci dynamic loading for TH, and creating the .o file
-# will create the .so file since we use -dynamic-too (using the `test/hs/%.o`
-# rule).
-%.$(HTEST_SUFFIX)_o: %.o
-	@echo '[GHC|test]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
-		sed '/^Loading package /d'
-
-%.hi: %.o ;
-%.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
-%.$(HPROF_SUFFIX)_hi: %.$(HPROF_SUFFIX)_o ;
-
-if HPROFILE
-$(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
-	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
-else
-$(HS_SRC_PROGS): %: %.o | stamp-directories
-	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
-endif
-	@rm -f $(notdir $@).tix
-	@touch "$@"
-
-$(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
-			   | stamp-directories $(built_python_sources)
-	@if [ "$(HS_NODEV)" ]; then \
-	  echo "Error: cannot run unittests without the development" \
-	       " libraries (see devnotes.rst)" 1>&2; \
-	  exit 1; \
-	fi
-	@echo '[GHC-link|test]: $@'
-	$(GHC) $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) --make $(@:%=%.hs)
-	@rm -f $(notdir $@).tix
+dist/app.stamp: dist/setup-config
+	$(CABAL_SETUP) build
+	-(cd src; \
+	 for exe in ganeti-kvmd ganeti-wconfd ganeti-confd ganeti-luxid \
+		hs2py rpc-test ganeti-mond ganeti-metad \
+		htools mon-collector ; do \
+	   $(LN_S) ../dist/build/$$exe/$$exe; \
+	 done)
 	@touch "$@"
 
 dist_sbin_SCRIPTS = \
@@ -1601,7 +1585,6 @@ EXTRA_DIST += \
 	autotools/sphinx-wrapper \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
-	cabal/cabal-from-modules.py \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -1633,8 +1616,7 @@ EXTRA_DIST += \
 	doc/users/groups.in \
 	doc/users/users.in \
 	ganeti.cabal \
-	cabal/ganeti.template.cabal \
-	cabal/CabalDependenciesMacros.hs \
+	Setup.lhs \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	$(python_test_support) \
@@ -2026,7 +2008,7 @@ python_test_support = \
 	test/py/cmdlib/testsupport/util.py \
 	test/py/cmdlib/testsupport/wconfd_mock.py
 
-haskell_tests = test/hs/htest
+haskell_tests = dist/build/htest/htest
 
 dist_TESTS = \
 	test/py/check-cert-expired_unittest.bash \
@@ -2054,6 +2036,12 @@ check_SCRIPTS += \
 	test/hs/hpc-mon-collector \
 	$(HS_BUILT_TEST_HELPERS)
 endif
+
+test/hs/hpc-htools:	src/htools
+	$(LN_S) ../../$< $@
+
+test/hs/hpc-mon-collector:	src/mon-collector
+	$(LN_S) ../../$< $@
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
@@ -2644,14 +2632,14 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-test-%
-hs-test-%: test/hs/htest
+hs-test-%: dist/build/htest/htest
 	@rm -f htest.tix
-	test/hs/htest -t $*
+	$< -t $*
 
 .PHONY: hs-tests
-hs-tests: test/hs/htest
+hs-tests: dist/build/htest/htest
 	@rm -f htest.tix
-	./test/hs/htest
+	$<
 
 .PHONY: py-tests
 py-tests: $(python_tests) ganeti $(built_python_sources)
@@ -3012,38 +3000,13 @@ gitignore-check:
 .PHONY: man
 man: $(man_MANS) $(manhtml)
 
-CABAL_EXECUTABLES = $(HS_DEFAULT_PROGS)
-CABAL_EXECUTABLES_HS = $(patsubst %,%.hs,$(CABAL_EXECUTABLES))
-CABAL_EXECUTABLES_APPS_STAMPS = $(patsubst src/%,apps/%.hs.stamp,$(patsubst test/hs/%,apps/%.hs.stamp,$(CABAL_EXECUTABLES)))
+dist/setup-config: ganeti.cabal $(HS_BUILT_SRCS)
+	$(CABAL_SETUP) configure --user \
+	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
+	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
+	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
+	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"`
 
-# Executable symlinks
-apps/%.hs.stamp: Makefile
-	mkdir -p apps
-	rm -f $(basename $@)
-	ln -s ../$(filter %/$(basename $(notdir $@)),$(CABAL_EXECUTABLES_HS)) $(basename $@)
-	touch $@
-
-# Builds the cabal file
-ganeti.cabal: cabal/ganeti.template.cabal Makefile cabal/cabal-from-modules.py $(CABAL_EXECUTABLES_APPS_STAMPS)
-	@echo $(subst /,.,$(patsubst %.hs,%,$(patsubst test/hs/%,%,$(patsubst src/%,%,$(HS_SRCS))))) \
-	  | $(PYTHON) $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
-
-	for p in $(CABAL_EXECUTABLES); do \
-	  echo                                   >> $@; \
-	  echo "executable `basename $$p`"       >> $@; \
-	  echo "  hs-source-dirs: apps"          >> $@; \
-	  echo "  main-is: `basename $$p`.hs"    >> $@; \
-	  echo "  default-language: Haskell2010" >> $@; \
-	  echo "  build-depends:"                >> $@; \
-	  echo "      base"                      >> $@; \
-	  echo "    , ganeti"                    >> $@; \
-	  if [ $$p == test/hs/htest ]; then \
-	    echo "    , hslogger"                  >> $@; \
-	    echo "    , test-framework"            >> $@; \
-	  elif [ $$p == src/rpc-test ]; then \
-	    echo "    , json"                      >> $@; \
-	  fi \
-	done
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
