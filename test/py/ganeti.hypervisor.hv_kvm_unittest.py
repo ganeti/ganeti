@@ -558,7 +558,7 @@ class TestQmpMessage(testutils.GanetiTestCase):
     self.assertEqual(len(serialized.splitlines()), 1,
                      msg="Got multi-line message")
 
-    rebuilt_message = hv_kvm.QmpMessage.BuildFromJsonString(serialized)
+    rebuilt_message = hv_kvm.QmpMessage.build_from_json_string(serialized)
     self.assertEqual(rebuilt_message, message)
     self.assertEqual(len(rebuilt_message), len(test_data))
 
@@ -619,7 +619,7 @@ class TestQmp(testutils.GanetiTestCase):
       # Format the script
       for request, expected_response in zip(self.REQUESTS,
                                             self.EXPECTED_RESPONSES):
-        response = qmp_connection.Execute(request["execute"],
+        response = qmp_connection.execute_qmp(request["execute"],
                                           request["arguments"])
         self.assertEqual(response, expected_response)
         msg = hv_kvm.QmpMessage({"return": expected_response})
@@ -627,7 +627,7 @@ class TestQmp(testutils.GanetiTestCase):
                          msg="Got multi-line message")
 
       self.assertRaises(monitor.QmpCommandNotSupported,
-                        qmp_connection.Execute,
+                        qmp_connection.execute_qmp,
                       "unsupported-command")
     finally:
       qmp_stub.shutdown()
@@ -645,7 +645,7 @@ class TestQmp(testutils.GanetiTestCase):
       with hv_kvm.QmpConnection(socket_file.name) as qmp:
         for request, expected_response in zip(self.REQUESTS,
                                               self.EXPECTED_RESPONSES):
-          response = qmp.Execute(request["execute"], request["arguments"])
+          response = qmp.execute_qmp(request["execute"], request["arguments"])
           self.assertEqual(response, expected_response)
     finally:
       qmp_stub.shutdown()

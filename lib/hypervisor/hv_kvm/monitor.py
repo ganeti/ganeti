@@ -34,13 +34,13 @@
 
 
 import os
-import stat
-import errno
 import socket
 import io
 import logging
 import time
 
+from typing import Dict, Optional
+from collections import namedtuple
 from bitarray import bitarray
 
 from ganeti import errors
@@ -61,18 +61,15 @@ class QmpCommandNotSupported(errors.HypervisorError):
   """
   pass
 
+class QmpTimeoutError(errors.HypervisorError):
+  """QMP socket timeout error """
 
-class QmpMessage(object):
+
+class QmpMessage:
   """QEMU Messaging Protocol (QMP) message.
 
   """
-  def __init__(self, data):
-    """Creates a new QMP message based on the passed data.
-
-    """
-    if not isinstance(data, dict):
-      raise TypeError("QmpMessage must be initialized with a dict")
-
+  def __init__(self, data: Dict):
     self.data = data
 
   def __getitem__(self, field_name):
@@ -87,9 +84,6 @@ class QmpMessage(object):
     return self.data.get(field_name, None)
 
   def __setitem__(self, field_name, field_value):
-    """Set the value of the required field_name to field_value.
-
-    """
     self.data[field_name] = field_value
 
   def __len__(self):
@@ -99,18 +93,13 @@ class QmpMessage(object):
     return len(self.data)
 
   def __delitem__(self, key):
-    """Delete the specified element from the QmpMessage.
-
-    """
     del self.data[key]
 
   @staticmethod
-  def BuildFromJsonString(json_string):
+  def build_from_json_string(json_string: str) -> 'QmpMessage':
     """Build a QmpMessage from a JSON encoded string.
 
-    @type json_string: str
     @param json_string: JSON string representing the message
-    @rtype: L{QmpMessage}
     @return: a L{QmpMessage} built from json_string
 
     """
@@ -118,100 +107,56 @@ class QmpMessage(object):
     data = serializer.LoadJson(json_string)
     return QmpMessage(data)
 
-  def to_bytes(self):
+  def to_bytes(self) -> bytes:
     # The protocol expects the JSON object to be sent as a single line.
     return serializer.DumpJson(self.data)
 
-  def __eq__(self, other):
-    # When comparing two QmpMessages, we are interested in comparing
-    # their internal representation of the message data
+  # debug only
+  def to_json_string(self) -> str:
+    return self.to_bytes().decode("utf-8")
+
+  def __eq__(self, other: 'QmpMessage') -> bool:
+    # compare only the data dict
     return self.data == other.data
 
 
-class MonitorSocket(object):
-  _SOCKET_TIMEOUT = 5
+# define QMP timestamp as namedtuple
+QmpTimestamp = namedtuple('QMPTimestamp', 'seconds microseconds')
 
-  def __init__(self, monitor_filename):
-    """Instantiates the MonitorSocket object.
 
-    @type monitor_filename: string
-    @param monitor_filename: the filename of the UNIX raw socket on which the
-                             monitor (QMP or simple one) is listening
+class QmpEvent:
+  """QEMU event message from a qmp socket.
 
-    """
-    self.monitor_filename = monitor_filename
-    self._connected = False
+  """
 
-  def _check_socket(self):
-    sock_stat = None
-    try:
-      sock_stat = os.stat(self.monitor_filename)
-    except EnvironmentError as err:
-      if err.errno == errno.ENOENT:
-        raise errors.HypervisorError("No monitor socket found")
-      else:
-        raise errors.HypervisorError("Error checking monitor socket: %s",
-                                     utils.ErrnoOrStr(err))
-    if not stat.S_ISSOCK(sock_stat.st_mode):
-      raise errors.HypervisorError("Monitor socket is not a socket")
+  def __init__(self, timestamp: QmpTimestamp, event_type: str, data: Dict):
+    self._timestamp = timestamp
+    self._event_type = event_type
+    self._data = data
 
-  def _check_connection(self):
-    """Make sure that the connection is established.
+  def __getitem__(self, field_name: str) -> any:
+    return self._data.get(field_name, None)
 
-    """
-    if not self._connected:
-      raise errors.ProgrammerError("To use a MonitorSocket you need to first"
-                                   " invoke connect() on it")
+  @property
+  def timestamp(self) -> QmpTimestamp:
+    return self._timestamp
 
-  def connect(self):
-    """Connect to the monitor socket if not already connected.
+  @property
+  def event_type(self)-> str:
+    return self._event_type
 
-    """
-    if not self._connected:
-      self._connect()
-
-  def is_connected(self):
-    """Return whether there is a connection to the socket or not.
-
-    """
-    return self._connected
-
-  def _connect(self):
-    """Connects to the monitor.
-
-    Connects to the UNIX socket
-
-    @raise errors.HypervisorError: when there are communication errors
-
-    """
-    if self._connected:
-      raise errors.ProgrammerError("Cannot connect twice")
-
-    self._check_socket()
-
-    # Check file existance/stuff
-    try:
-      self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      # We want to fail if the server doesn't send a complete message
-      # in a reasonable amount of time
-      self.sock.settimeout(self._SOCKET_TIMEOUT)
-      self.sock.connect(self.monitor_filename)
-    except EnvironmentError:
-      raise errors.HypervisorError("Can't connect to qmp socket")
-    self._connected = True
-
-  def close(self):
-    """Closes the socket
-
-    It cannot be used after this call.
-
-    """
-    if self._connected:
-      self._close()
-
-  def _close(self):
-    self.sock.close()
-    self._connected = False
+  @staticmethod
+  def build_from_data(data: Dict) -> 'QmpEvent':
+    """Build a QmpEvent from a data dict."""
+    timestamp = QmpTimestamp(
+      seconds=data['timestamp']['seconds'],
+      microseconds=data['timestamp']['microseconds']
+    )
+    return QmpEvent(
+      timestamp=timestamp,
+      event_type=data['event'],
+      data=data['data']
+    )
 
 
 def _ensure_connection(fn):
@@ -234,19 +179,168 @@ def _ensure_connection(fn):
   return wrapper
 
 
-class QmpConnection(MonitorSocket):
-  """Connection to the QEMU Monitor using the QEMU Monitor Protocol (QMP).
+class UnixFileSocketConnection:
 
-  """
-  _FIRST_MESSAGE_KEY = "QMP"
-  _EVENT_KEY = "event"
-  _ERROR_KEY = "error"
-  _RETURN_KEY = "return"
-  _ACTUAL_KEY = ACTUAL_KEY = "actual"
+  def __init__(self, socket_path: str, timeout: int):
+    self.socket_path = socket_path
+    self.timeout = timeout
+    self.sock = None
+    self._connected = False
+
+  def __enter__(self):
+    self.connect()
+    return self
+
+  def __exit__(self, exc_type, exc_value, exc_traceback):
+    self.close()
+
+  def connect(self):
+    if not self.is_connected():
+      self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      self.sock.settimeout(self.timeout)
+      self.sock.connect(self.socket_path)
+
+      logging.debug("Create Socket Connection to %s.", {self.socket_path})
+
+  def close(self):
+    if self.is_connected():
+      self.sock.close()
+      self._connected = False
+
+      logging.debug("Socket Connection to %s closed.", {self.socket_path})
+
+  def is_connected(self) -> bool:
+    return self._connected
+
+  def send(self, data: bytes):
+    self.sock.sendall(data)
+
+  def recv(self, bufsize: int) -> bytes:
+    return self.sock.recv(bufsize)
+
+  def reset_timeout(self) -> None:
+    """Reset the timeout to self.timeout"""
+    self.sock.settimeout(self.timeout)
+
+
+class QemuMonitorSocket(UnixFileSocketConnection):
   _ERROR_CLASS_KEY = "class"
   _ERROR_DESC_KEY = "desc"
   _EXECUTE_KEY = "execute"
   _ARGUMENTS_KEY = "arguments"
+  _EVENT_KEY = "event"
+  _ERROR_KEY = "error"
+  _RETURN_KEY = "return"
+  _MESSAGE_END_TOKEN = b"\r\n"
+  _SEND_END_TOKEN = b"\n"
+
+  def __init__(self, socket_path: str, timeout):
+    super().__init__(socket_path, timeout)
+    self._buffer = b""
+
+  def execute_qmp(self, command: str, arguments: Dict = None) -> QmpMessage:
+    message = QmpMessage({self._EXECUTE_KEY: command})
+
+    if arguments:
+      message[self._ARGUMENTS_KEY] = arguments
+
+    self.send_qmp(message)
+    return self.get_qmp_response(command)
+
+  def send_qmp(self, message: QmpMessage):
+    self.send(message.to_bytes() + b'\n')
+
+  def get_qmp_response(self, command) -> Dict:
+    while True:
+      response = self.recv_qmp()
+      err = response[self._ERROR_KEY]
+      if err:
+        raise errors.HypervisorError("kvm: error executing the {}"
+                                     " command: {} ({}):".format(
+                                      command,
+                                      err[self._ERROR_DESC_KEY],
+                                      err[self._ERROR_CLASS_KEY]))
+      elif response[self._EVENT_KEY]:
+        continue
+
+      return response[self._RETURN_KEY]
+
+  def wait_for_qmp_event(self, event_type: str,
+                         timeout: int) -> Optional[QmpEvent]:
+    """Waits for the specified event and returns it.
+       If the timeout is reached, None returns.
+
+    """
+
+    self.sock.settimeout(timeout)
+    try:
+      while True:
+        response = self.recv_qmp()
+        if response[self._EVENT_KEY]:
+          event = QmpEvent.build_from_data(response.data)
+          if event.event_type == event_type:
+            self.reset_timeout()
+            return event
+          else:
+            continue
+    except QmpTimeoutError:
+      self.reset_timeout()
+
+    return None
+
+  def recv_qmp(self) -> QmpMessage:
+
+    message = self._read_buffer()
+    # check if the message is already in the buffer
+    if message:
+      return message
+
+    recv_buffer = io.BytesIO(self._buffer)
+    recv_buffer.seek(len(self._buffer))
+
+    try:
+      while True:
+        data = self.recv(4096)
+        if not data:
+          break
+        recv_buffer.write(data)
+        self._buffer = recv_buffer.getvalue()
+
+        message = self._read_buffer()
+        if message:
+          return message
+
+    except socket.timeout as err:
+      raise QmpTimeoutError("Timeout while receiving a QMP message: "
+                                   f"{err}") from err
+    except socket.error as err:
+      raise errors.HypervisorError("Unable to receive data from KVM using the"
+                                   f" QMP protocol: {err}")
+
+  def _read_buffer(self) -> QmpMessage:
+    message = None
+
+    # Check if we got the message end token (CRLF, as per the QEMU Protocol
+    # Specification 0.1 - Section 2.1.1)
+    pos = self._buffer.find(self._MESSAGE_END_TOKEN)
+    if pos >= 0:
+      try:
+        message = QmpMessage.build_from_json_string(self._buffer[:pos + 1])
+      except Exception as err:
+        raise errors.ProgrammerError(f"QMP data serialization error: {err}")
+      self._buffer = self._buffer[pos + 1:]
+
+    return message
+
+
+class QmpConnection(QemuMonitorSocket):
+  """Connection to the QEMU Monitor using the QEMU Monitor Protocol (QMP).
+
+  """
+  _QMP_TIMEOUT = 5
+  _FIRST_MESSAGE_KEY = "QMP"
+  _RETURN_KEY = "return"
+  _ACTUAL_KEY = ACTUAL_KEY = "actual"
   _VERSION_KEY = "version"
   _PACKAGE_KEY = "package"
   _QEMU_KEY = "qemu"
@@ -259,11 +353,10 @@ class QmpConnection(MonitorSocket):
     "driver", "id", "bus", "addr", "channel", "scsi-id", "lun"
     ]
 
-  def __init__(self, monitor_filename):
-    super(QmpConnection, self).__init__(monitor_filename)
+  def __init__(self, socket_path: str):
+    super().__init__(socket_path, self._QMP_TIMEOUT)
     self.version = None
     self.package = None
-    self._buf = b""
     self.supported_commands = None
 
   def __enter__(self):
@@ -272,6 +365,25 @@ class QmpConnection(MonitorSocket):
 
   def __exit__(self, exc_type, exc_value, tb):
     self.close()
+
+  def execute_qmp(self, command: str, arguments: Dict = None) -> QmpMessage:
+    # During the first calls of Execute, the list of supported commands has not
+    # yet been populated, so we can't use it.
+    if (self.supported_commands is not None and
+        command not in self.supported_commands):
+      raise QmpCommandNotSupported(f"Instance does not support the '{command}'"
+                                    " QMP command.")
+
+    message = QmpMessage({self._EXECUTE_KEY: command})
+    if arguments:
+      message[self._ARGUMENTS_KEY] = arguments
+    logging.debug("QMP JSON Command: %s", message.to_json_string())
+    self.send_qmp(message)
+
+    ret = self.get_qmp_response(command)
+    if command not in [self._QUERY_COMMANDS, self._CAPABILITIES_COMMAND]:
+      logging.debug("QMP Response: %s %s: %s\n", command, arguments, ret)
+    return ret
 
   def connect(self):
     """Connects to the QMP monitor.
@@ -290,7 +402,7 @@ class QmpConnection(MonitorSocket):
     for x in range(0, 4):
       # Check if we receive a correct greeting message from the server
       # (As per the QEMU Protocol Specification 0.1 - section 2.2)
-      greeting = self._Recv()
+      greeting = self.recv_qmp()
       if greeting[self._EVENT_KEY]:
         continue
       if not greeting[self._FIRST_MESSAGE_KEY]:
@@ -311,160 +423,20 @@ class QmpConnection(MonitorSocket):
 
     # This is needed because QMP can return more than one greetings
     # see https://groups.google.com/d/msg/ganeti-devel/gZYcvHKDooU/SnukC8dgS5AJ
-    self._buf = b""
+    self._buffer = b""
 
     # Let's put the monitor in command mode using the qmp_capabilities
     # command, or else no command will be executable.
     # (As per the QEMU Protocol Specification 0.1 - section 4)
-    self.Execute(self._CAPABILITIES_COMMAND)
+    self.execute_qmp(self._CAPABILITIES_COMMAND)
     self.supported_commands = self._GetSupportedCommands()
-
-  def _ParseMessage(self, buf):
-    """Extract and parse a QMP message from the given buffer.
-
-    Seeks for a QMP message in the given buf. If found, it parses it and
-    returns it together with the rest of the characters in the buf.
-    If no message is found, returns None and the whole buffer.
-
-    @raise errors.ProgrammerError: when there are data serialization errors
-
-    """
-    message = None
-    # Check if we got the message end token (CRLF, as per the QEMU Protocol
-    # Specification 0.1 - Section 2.1.1)
-    pos = buf.find(self._MESSAGE_END_TOKEN)
-    if pos >= 0:
-      try:
-        message = QmpMessage.BuildFromJsonString(buf[:pos + 1])
-      except Exception as err:
-        raise errors.ProgrammerError("QMP data serialization error: %s" % err)
-      buf = buf[pos + 1:]
-
-    return (message, buf)
-
-  def _Recv(self):
-    """Receives a message from QMP and decodes the received JSON object.
-
-    @rtype: QmpMessage
-    @return: the received message
-    @raise errors.HypervisorError: when there are communication errors
-    @raise errors.ProgrammerError: when there are data serialization errors
-
-    """
-    self._check_connection()
-
-    # Check if there is already a message in the buffer
-    (message, self._buf) = self._ParseMessage(self._buf)
-    if message:
-      return message
-
-    recv_buffer = io.BytesIO(self._buf)
-    recv_buffer.seek(len(self._buf))
-    try:
-      while True:
-        data = self.sock.recv(4096)
-        if not data:
-          break
-        recv_buffer.write(data)
-
-        (message, self._buf) = self._ParseMessage(recv_buffer.getvalue())
-        if message:
-          return message
-
-    except socket.timeout as err:
-      raise errors.HypervisorError("Timeout while receiving a QMP message: "
-                                   "%s" % (err))
-    except socket.error as err:
-      raise errors.HypervisorError("Unable to receive data from KVM using the"
-                                   " QMP protocol: %s" % err)
-
-  def _Send(self, message):
-    """Encodes and sends a message to KVM using QMP.
-
-    @type message: QmpMessage
-    @param message: message to send to KVM
-    @raise errors.HypervisorError: when there are communication errors
-    @raise errors.ProgrammerError: when there are data serialization errors
-
-    """
-    self._check_connection()
-    try:
-      self.sock.sendall(message.to_bytes())
-    except socket.timeout as err:
-      raise errors.HypervisorError("Timeout while sending a QMP message: "
-                                   "%s" % err)
-    except socket.error as err:
-      raise errors.HypervisorError("Unable to send data from KVM using the"
-                                   " QMP protocol: %s" % err)
 
   def _GetSupportedCommands(self):
     """Update the list of supported commands.
 
     """
-    result = self.Execute(self._QUERY_COMMANDS)
+    result = self.execute_qmp(self._QUERY_COMMANDS)
     return frozenset(com["name"] for com in result)
-
-  def Execute(self, command, arguments=None):
-    """Executes a QMP command and returns the response of the server.
-
-    @type command: str
-    @param command: the command to execute
-    @type arguments: dict
-    @param arguments: dictionary of arguments to be passed to the command
-    @rtype: dict
-    @return: dictionary representing the received JSON object
-    @raise errors.HypervisorError: when there are communication errors
-    @raise errors.ProgrammerError: when there are data serialization errors
-
-    """
-    self._check_connection()
-
-    # During the first calls of Execute, the list of supported commands has not
-    # yet been populated, so we can't use it.
-    if (self.supported_commands is not None and
-        command not in self.supported_commands):
-      raise QmpCommandNotSupported("Instance does not support the '%s'"
-                                    " QMP command." % command)
-
-    message = QmpMessage({self._EXECUTE_KEY: command})
-    if arguments:
-      message[self._ARGUMENTS_KEY] = arguments
-    self._Send(message)
-
-    ret = self._GetResponse(command)
-    # log important qmp commands..
-    if command not in [self._QUERY_COMMANDS, self._CAPABILITIES_COMMAND]:
-      logging.debug("QMP %s %s: %s\n", command, arguments, ret)
-    return ret
-
-  def _GetResponse(self, command):
-    """Parse the QMP response
-
-    If error key found in the response message raise HypervisorError.
-    Ignore any async event and thus return the response message
-    related to command.
-
-    """
-    # According the the QMP specification, there are only two reply types to a
-    # command: either error (containing the "error" key) or success (containing
-    # the "return" key). There is also a third possibility, that of an
-    # (unrelated to the command) asynchronous event notification, identified by
-    # the "event" key.
-    while True:
-      response = self._Recv()
-      err = response[self._ERROR_KEY]
-      if err:
-        raise errors.HypervisorError("kvm: error executing the %s"
-                                     " command: %s (%s):" %
-                                     (command,
-                                      err[self._ERROR_DESC_KEY],
-                                      err[self._ERROR_CLASS_KEY]))
-
-      elif response[self._EVENT_KEY]:
-        # Filter-out any asynchronous events
-        continue
-
-      return response[self._RETURN_KEY]
 
   def _filter_hvinfo(self, hvinfo):
     """Filter non valid keys of the device's hvinfo (if any)."""
@@ -516,7 +488,7 @@ class QmpConnection(MonitorSocket):
         "vhost": True,
         "vhostfds": ":".join(fdnames),
         })
-    self.Execute("netdev_add", arguments)
+    self.execute_qmp("netdev_add", arguments)
 
     arguments = {
       "netdev": devid,
@@ -535,15 +507,15 @@ class QmpConnection(MonitorSocket):
         "mq": "on",
         "vectors": (2 * virtio_net_queues + 2),
         })
-    self.Execute("device_add", arguments)
+    self.execute_qmp("device_add", arguments)
 
   @_ensure_connection
   def HotDelNic(self, devid):
     """Hot-del a NIC
 
     """
-    self.Execute("device_del", {"id": devid})
-    self.Execute("netdev_del", {"id": devid})
+    self.execute_qmp("device_del", {"id": devid})
+    self.execute_qmp("netdev_del", {"id": devid})
 
   @_ensure_connection
   def HotAddDisk(self, disk, access_mode, cache_writeback, blockdevice):
@@ -568,8 +540,8 @@ class QmpConnection(MonitorSocket):
     # addr or channel, scsi-id, and lun keys
     dev_arguments.update(self._filter_hvinfo(disk.hvinfo))
 
-    self.Execute("blockdev-add", blockdevice)
-    self.Execute("device_add", dev_arguments)
+    self.execute_qmp("blockdev-add", blockdevice)
+    self.execute_qmp("device_add", dev_arguments)
 
     if fdset is not None:
       self._RemoveFdset(fdset)
@@ -579,20 +551,19 @@ class QmpConnection(MonitorSocket):
     """Hot-del a Disk
 
     """
-    self.Execute("device_del", {"id": devid})
+    self.execute_qmp("device_del", {"id": devid})
 
     # TODO: implement receiving of QMP events
     # We need to wait for the DEVICE_DELETED event via QMP before proceeding.
     # The old implementation using HMP only worked because it is so slow.
     time.sleep(1)
-    self.Execute("blockdev-del", {"node-name": devid})
+    self.execute_qmp("blockdev-del", {"node-name": devid})
 
   def _GetPCIDevices(self):
     """Get the devices of the first PCI bus of a running instance.
 
     """
-    self._check_connection()
-    pci = self.Execute("query-pci")
+    pci = self.execute_qmp("query-pci")
     bus = pci[0]
     devices = bus["devices"]
     return devices
@@ -607,7 +578,7 @@ class QmpConnection(MonitorSocket):
       "size": new_size
     }
 
-    self.Execute("block_resize", arguments)
+    self.execute_qmp("block_resize", arguments)
 
 
   def _HasPCIDevice(self, devid):
@@ -632,9 +603,9 @@ class QmpConnection(MonitorSocket):
     @return: Info about the virtual disks of the instance.
 
     """
-    self._check_connection()
-    devices = self.Execute("query-block")
+    devices = self.execute_qmp("query-block")
     return devices
+
 
   def _HasBlockDevice(self, devid):
     """Check if a specific device ID exists among block devices.
@@ -664,7 +635,7 @@ class QmpConnection(MonitorSocket):
 
     """
     slots = bitarray(constants.QEMU_PCI_SLOTS)
-    slots.setall(False) # pylint: disable=E1101
+    slots.setall(False)  # pylint: disable=E1101
     for d in self._GetPCIDevices():
       slot = d["slot"]
       slots[slot] = True
@@ -705,7 +676,6 @@ class QmpConnection(MonitorSocket):
     if "netdev_add" not in self.supported_commands:
       _raise("netdev_add qmp command is not supported")
 
-
   @_ensure_connection
   def GetVersion(self):
     """Return the QMP/qemu version field
@@ -716,7 +686,6 @@ class QmpConnection(MonitorSocket):
     """
     return self.version
 
-
   @_ensure_connection
   def HasDynamicAutoReadOnly(self):
     """Check if QEMU uses dynamic auto-read-only for block devices
@@ -724,7 +693,7 @@ class QmpConnection(MonitorSocket):
     Use QMP schema introspection (QEMU 2.5+) to check for the
     dynamic-auto-read-only feature.
     """
-    schema = self.Execute("query-qmp-schema")
+    schema = self.execute_qmp("query-qmp-schema")
 
     # QEMU 4.0 did not have a feature flag, but has dynamic auto-read-only
     # support.
@@ -748,7 +717,7 @@ class QmpConnection(MonitorSocket):
     if self.version >= (3, 0, 0):
       arguments["max-postcopy-bandwidth"] = max_bandwidth
 
-    self.Execute("migrate-set-parameters", arguments)
+    self.execute_qmp("migrate-set-parameters", arguments)
 
   @_ensure_connection
   def SetMigrationCapabilities(self, capabilities, state):
@@ -765,7 +734,7 @@ class QmpConnection(MonitorSocket):
         "state": state,
       })
 
-    self.Execute("migrate-set-capabilities", arguments)
+    self.execute_qmp("migrate-set-capabilities", arguments)
 
   @_ensure_connection
   def StopGuestEmulation(self):
@@ -773,7 +742,7 @@ class QmpConnection(MonitorSocket):
 
     """
 
-    self.Execute("stop")
+    self.execute_qmp("stop")
 
   @_ensure_connection
   def ContinueGuestEmulation(self):
@@ -781,7 +750,7 @@ class QmpConnection(MonitorSocket):
 
     """
 
-    self.Execute("cont")
+    self.execute_qmp("cont")
 
   @_ensure_connection
   def StartMigration(self, target, port):
@@ -793,7 +762,7 @@ class QmpConnection(MonitorSocket):
       "uri": "tcp:%s:%s" % (target, port)
     }
 
-    self.Execute("migrate", arguments)
+    self.execute_qmp("migrate", arguments)
 
   @_ensure_connection
   def StartPostcopyMigration(self):
@@ -801,7 +770,7 @@ class QmpConnection(MonitorSocket):
 
     """
 
-    self.Execute("migrate-start-postcopy")
+    self.execute_qmp("migrate-start-postcopy")
 
   @_ensure_connection
   def GetCpuInformation(self):
@@ -809,7 +778,7 @@ class QmpConnection(MonitorSocket):
         uses the query-cpus-fast which does not interrupt the guest
     """
 
-    return self.Execute("query-cpus-fast")
+    return self.execute_qmp("query-cpus-fast")
 
   @_ensure_connection
   def GetMigrationStatus(self):
@@ -817,7 +786,7 @@ class QmpConnection(MonitorSocket):
 
     """
 
-    return self.Execute("query-migrate")
+    return self.execute_qmp("query-migrate")
 
   @_ensure_connection
   def SetSpicePassword(self, spice_pwd):
@@ -829,7 +798,7 @@ class QmpConnection(MonitorSocket):
       "password": spice_pwd,
     }
 
-    self.Execute("set_password", arguments)
+    self.execute_qmp("set_password", arguments)
 
   @_ensure_connection
   def SetVNCPassword(self, vnc_pwd):
@@ -841,15 +810,15 @@ class QmpConnection(MonitorSocket):
       "password": vnc_pwd,
     }
 
-    self.Execute("set_password", arguments)
+    self.execute_qmp("set_password", arguments)
 
   @_ensure_connection
   def SetBalloonMemory(self, memory):
-    self.Execute("balloon", {"value": memory * 1048576})
+    self.execute_qmp("balloon", {"value": memory * 1048576})
 
   @_ensure_connection
   def Powerdown(self):
-    self.Execute("system_powerdown")
+    self.execute_qmp("system_powerdown")
 
   def _GetFd(self, fd, fdname):
     """Wrapper around the getfd qmp command
@@ -863,13 +832,12 @@ class QmpConnection(MonitorSocket):
     @raise errors.HypervisorError: If getfd fails for some reason
 
     """
-    self._check_connection()
     try:
       utils.SendFds(self.sock, b" ", [fd])
       arguments = {
           "fdname": fdname,
           }
-      self.Execute("getfd", arguments)
+      self.execute_qmp("getfd", arguments)
     except errors.HypervisorError as err:
       logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
       raise
@@ -887,11 +855,10 @@ class QmpConnection(MonitorSocket):
     @raise errors.HypervisorError: If add-fd fails for some reason
 
     """
-    self._check_connection()
     try:
       utils.SendFds(self.sock, b" ", [fd])
       # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
-      response = self.Execute("add-fd")
+      response = self.execute_qmp("add-fd")
       fdset = response["fdset-id"]
     except errors.HypervisorError as err:
       logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
@@ -906,10 +873,9 @@ class QmpConnection(MonitorSocket):
     (e.g. during disk hotplug), it can be safely removed.
 
     """
-    self._check_connection()
     # Omit the fd to cleanup all fds in the fdset (see qemu/qmp-commands.hx)
     try:
-      self.Execute("remove-fd", {"fdset-id": fdset})
+      self.execute_qmp("remove-fd", {"fdset-id": fdset})
     except errors.HypervisorError as err:
       # There is no big deal if we cannot remove an fdset. This cleanup here is
       # done on a best effort basis. Upon next hot-add a new fdset will be
