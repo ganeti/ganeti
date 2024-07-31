@@ -69,8 +69,7 @@ from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 from ganeti.utils import wrapper as utils_wrapper
 
-from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage, \
-                                             MonitorSocket
+from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage
 from ganeti.hypervisor.hv_kvm.netdev import OpenTap
 
 from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
@@ -1108,10 +1107,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     try:
       qmp = QmpConnection(self._InstanceQmpMonitor(instance_name))
       qmp.connect()
-      vcpus = len(qmp.Execute("query-cpus-fast"))
+      vcpus = len(qmp.execute_qmp("query-cpus-fast"))
       # Will fail if ballooning is not enabled, but we can then just resort to
       # the value above.
-      mem_bytes = qmp.Execute("query-balloon")[qmp.ACTUAL_KEY]
+      mem_bytes = qmp.execute_qmp("query-balloon")[qmp.ACTUAL_KEY]
       memory = mem_bytes // 1048576
     except errors.HypervisorError:
       pass
