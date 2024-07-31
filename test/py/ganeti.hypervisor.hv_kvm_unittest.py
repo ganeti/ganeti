@@ -558,7 +558,7 @@ class TestQmpMessage(testutils.GanetiTestCase):
     self.assertEqual(len(serialized.splitlines()), 1,
                      msg="Got multi-line message")
 
-    rebuilt_message = hv_kvm.QmpMessage.BuildFromJsonString(serialized)
+    rebuilt_message = hv_kvm.QmpMessage.build_from_json_string(serialized)
     self.assertEqual(rebuilt_message, message)
     self.assertEqual(len(rebuilt_message), len(test_data))
 
