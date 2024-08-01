@@ -10,6 +10,8 @@ on:
   schedule:
     - cron: '42 3 * * *'
 
+permissions: read-all
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
