@@ -865,13 +865,15 @@ else
 HS_MYEXECLIB_PROGS=
 endif
 
+HS2PY_PROG = dist/build/hs2py/hs2py
+
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
 	src/ganeti-wconfd \
 	src/ganeti-confd \
 	src/ganeti-luxid \
-	src/hs2py \
+	$(HS2PY_PROG) \
 	src/rpc-test
 if ENABLE_MOND
 HS_COMPILE_PROGS += src/ganeti-mond
@@ -1459,7 +1461,7 @@ dist/app.stamp: dist/setup-config
 	$(CABAL_SETUP) build
 	-(cd src; \
 	 for exe in ganeti-kvmd ganeti-wconfd ganeti-confd ganeti-luxid \
-		hs2py rpc-test ganeti-mond ganeti-metad \
+		rpc-test ganeti-mond ganeti-metad \
 		htools mon-collector ; do \
 	   $(LN_S) ../dist/build/$$exe/$$exe; \
 	 done)
@@ -2310,9 +2312,9 @@ test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	  done ; \
 	} > $@
 
-lib/_constants.py: Makefile src/hs2py lib/_constants.py.in | stamp-directories
+lib/_constants.py: Makefile $(HS2PY_PROG) lib/_constants.py.in | stamp-directories
 	cat $(abs_top_srcdir)/lib/_constants.py.in > $@
-	src/hs2py --constants >> $@
+	$(HS2PY_PROG) --constants >> $@
 
 lib/constants.py: lib/_constants.py
 
@@ -2416,10 +2418,10 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
-lib/opcodes.py: Makefile src/hs2py lib/opcodes.py.in_before \
+lib/opcodes.py: Makefile $(HS2PY_PROG) lib/opcodes.py.in_before \
 		lib/opcodes.py.in_after | stamp-directories
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_before > $@
-	src/hs2py --opcodes >> $@
+	$(HS2PY_PROG) --opcodes >> $@
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_after >> $@
 
 # Generating the RPC wrappers depends on many things, so make sure
@@ -2428,12 +2430,12 @@ lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC) | $(built_base_sources) $(bu
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
 
 if ENABLE_METADATA
-lib/rpc/stub/metad.py: Makefile src/hs2py | stamp-directories
-	src/hs2py --metad-rpc > $@
+lib/rpc/stub/metad.py: Makefile $(HS2PY_PROG) | stamp-directories
+	$(HS2PY_PROG) --metad-rpc > $@
 endif
 
-lib/rpc/stub/wconfd.py: Makefile src/hs2py | stamp-directories
-	src/hs2py --wconfd-rpc > $@
+lib/rpc/stub/wconfd.py: Makefile $(HS2PY_PROG) | stamp-directories
+	$(HS2PY_PROG) --wconfd-rpc > $@
 
 $(SHELL_ENV_INIT): Makefile stamp-directories
 	set -e; \
