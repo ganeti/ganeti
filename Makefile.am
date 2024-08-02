@@ -1478,9 +1478,7 @@ nodist_sbin_SCRIPTS = \
 	src/ganeti-wconfd
 
 # strip path prefixes off the sbin scripts
-all_sbin_scripts = \
-	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst scripts/%,%,\
-	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
+all_sbin_scripts = $(notdir $(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS))
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
@@ -1562,8 +1560,7 @@ myexeclib_SCRIPTS = \
 	$(HS_MYEXECLIB_PROGS)
 
 # compute the basenames of the myexeclib_scripts
-myexeclib_scripts_basenames = \
-	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst src/%,%,$(myexeclib_SCRIPTS))))
+myexeclib_scripts_basenames = $(notdir $(myexeclib_SCRIPTS))
 
 EXTRA_DIST += \
 	NEWS \
