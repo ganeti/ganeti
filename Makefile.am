@@ -984,7 +984,7 @@ HPCEXCL = --exclude Main \
 	--exclude Test.Ganeti.TestHTools \
 	--exclude Test.Ganeti.TestHelper \
 	--exclude Test.Ganeti.TestImports \
-	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
+	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(HS_LIB_STEMS)))
 
 HS_LIB_SRCS = \
 	src/Ganeti/BasicTypes.hs \
@@ -1002,6 +1002,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/ConstantUtils.hs \
 	src/Ganeti/Cpu/LoadParser.hs \
 	src/Ganeti/Cpu/Types.hs \
+	src/Ganeti/Curl/Internal.hsc \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/Daemon/Utils.hs \
@@ -1251,17 +1252,17 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/WConfd/TempRes.hs
 
 
+HS_LIB_STEMS = $(patsubst %.hsc,%, $(patsubst %.hs,%, $(HS_LIB_SRCS)))
+
 HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
 	src/AutoConf.hs \
 	src/Ganeti/Hs2Py/ListConstants.hs \
-	src/Ganeti/Curl/Internal.hs \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = \
-	$(patsubst %,%.in,$(filter-out src/Ganeti/Curl/Internal.hs,$(HS_BUILT_SRCS))) \
-	src/Ganeti/Curl/Internal.hsc \
+	$(patsubst %,%.in,$(HS_BUILT_SRCS)) \
 	lib/_constants.py.in \
 	lib/opcodes.py.in_after \
 	lib/opcodes.py.in_before
@@ -2299,15 +2300,12 @@ src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 	m4 -DPY_CONSTANT_NAMES="$$NAMES" \
 		$(abs_top_srcdir)/src/Ganeti/Hs2Py/ListConstants.hs.in > $@
 
-src/Ganeti/Curl/Internal.hs: src/Ganeti/Curl/Internal.hsc | stamp-directories
-	hsc2hs -o $@ $<
-
 test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	$(built_base_sources)
 	set -e; \
 	{ cat $< ; \
 	  echo ; \
-	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst %.hs,%,$(patsubst src/%,%,$(HS_LIB_SRCS))))) ; do \
+	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst src/%,%,$(HS_LIB_STEMS)))) ; do \
 	    echo "import $$name ()" ; \
 	  done ; \
 	} > $@
