@@ -2889,27 +2889,11 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	    { echo 'HsColour' not found during configure; exit 1; }
 	@test -n "$(HADDOCK)" || \
 	    { echo 'haddock' not found during configure; exit 1; }
-	rm -rf $(APIDOC_HS_DIR)/*
-	for i in $(ALL_APIDOC_HS_DIRS); do \
-	  @mkdir_p@ $$i; \
-	  $(HSCOLOUR) -print-css > $$i/hscolour.css; \
-	done
-	set -e ; \
+	rm -rf $(APIDOC_HS_DIR)
 	export LC_ALL=$(UTF8_LOCALE); \
-	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
-	OPTGHC="$$OPTGHC --optghc=-optP-include --optghc=-optP$(HASKELL_PACKAGE_VERSIONS_FILE)"; \
-	for file in $(HS_LIBTESTBUILT_SRCS); do \
-	  f_nosrc=$${file##src/}; \
-	  f_notst=$${f_nosrc##test/hs/}; \
-	  f_html=$${f_notst%%.hs}.html; \
-	  $(HSCOLOUR) -css -anchor $$file > $(APIDOC_HS_DIR)/$$f_html ; \
-	done ; \
-	$(HADDOCK) --odir $(APIDOC_HS_DIR) --html --hoogle --ignore-all-exports -w \
-	  -t ganeti -p src/haddock-prologue \
-	  --source-module="%{MODULE/.//}.html" \
-	  --source-entity="%{MODULE/.//}.html#%{NAME}" \
-	  $$OPTGHC \
-	  $(HS_LIBTESTBUILT_SRCS)
+	  $(CABAL_SETUP) haddock
+	mv dist/doc/html/ganeti $(APIDOC_HS_DIR)
+	rm -r dist/doc
 
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
