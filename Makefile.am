@@ -2613,8 +2613,8 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	error= ; \
 	if [ "x`echo $(VERSION_SUFFIX)|grep 'alpha'`" == "x" ]; then \
 	  expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
-	  if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
-	    echo "Incorrect version in README, expected $$expver" >&2; \
+	  if test "`head -n 1 $(top_srcdir)/README.md`" != "# Ganeti $$expver"; then \
+	    echo "Incorrect version in README.md, expected $$expver" >&2; \
 	    error=1; \
 	  fi; \
 	  for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
