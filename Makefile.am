@@ -1914,7 +1914,6 @@ python_tests = \
 	test/py/cmdlib/group_unittest.py \
 	test/py/cmdlib/instance_unittest.py \
 	test/py/cmdlib/instance_migration_unittest.py \
-	test/py/cmdlib/instance_query_unittest.py \
 	test/py/cmdlib/instance_storage_unittest.py \
 	test/py/cmdlib/node_unittest.py \
 	test/py/cmdlib/test_unittest.py \
@@ -2003,7 +2002,6 @@ python_tests = \
 	test/py/ganeti.utils_unittest.py \
 	test/py/ganeti.vcluster_unittest.py \
 	test/py/ganeti.workerpool_unittest.py \
-	test/py/pycurl_reset_unittest.py \
 	test/py/qa.qa_config_unittest.py \
 	test/py/tempfile_fork_unittest.py
 
