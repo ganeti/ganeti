@@ -598,6 +598,17 @@ class QmpConnection(QemuMonitorSocket):
     devices = self.Execute("query-block")
     return devices
 
+  @_ensure_connection
+  def ResizeBlockDevice(self, disk_id: str, new_size: int):
+    """ Notify the guest about a disk change.
+    """
+    arguments = {
+      "node-name": disk_id,
+      "size": new_size
+    }
+
+    self.Execute("block_resize", arguments)
+
   def _HasBlockDevice(self, devid):
     """Check if a specific device ID exists among block devices.
 
@@ -770,21 +781,6 @@ class QmpConnection(QemuMonitorSocket):
     """
 
     return self.Execute("query-cpus-fast")
-
-  @_ensure_connection
-  def GetHotpluggableCPUs(self):
-    """ Get CPU type which could be plugged
-        uses the query-hotpluggable-cpus which does not interrupt the guest
-    """
-
-    return self.Execute("query-hotpluggable-cpus")
-
-  @_ensure_connection
-  def QueryMemorySummary(self):
-    """Returns the memory size summary.
-
-    """
-    return self.Execute("query-memory-size-summary")
 
   @_ensure_connection
   def GetMigrationStatus(self):
