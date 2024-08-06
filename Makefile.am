@@ -274,6 +274,7 @@ BUILDTIME_DIR_AUTOCREATE = \
 # But Automake seems to require it this way.
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
+	exe \
 	dist \
 	dist/build \
 	dist/build/Ganeti \
@@ -454,12 +455,13 @@ CLEANFILES = \
 	$(gnt_scripts) \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
-	src/ganeti-confd \
-	src/ganeti-wconfd \
-	src/ganeti-luxid \
-	src/ganeti-metad \
-	src/ganeti-mond \
-	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
+	exe/ganeti-confd \
+	exe/ganeti-wconfd \
+	exe/ganeti-luxid \
+	exe/ganeti-metad \
+	exe/ganeti-mond \
+	exe/htest \
+	.hpc/*.mix exe/*.tix test/hs/*.tix *.tix \
 	doc/hs-lint.html
 
 GENERATED_FILES = \
@@ -473,12 +475,12 @@ clean-local:
 	rm -rf dist
 	find -D exec . -type d -name __pycache__ -exec rm -rf {} +
 
-HS_GENERATED_FILES = $(HS_PROGS) src/ganeti-luxid src/ganeti-confd
+HS_GENERATED_FILES = $(HS_PROGS) exe/ganeti-luxid exe/ganeti-confd
 if ENABLE_MOND
-HS_GENERATED_FILES += src/ganeti-mond
+HS_GENERATED_FILES += exe/ganeti-mond
 endif
 if ENABLE_METADATA
-HS_GENERATED_FILES += src/ganeti-metad
+HS_GENERATED_FILES += exe/ganeti-metad
 endif
 
 built_base_sources = \
@@ -856,30 +858,30 @@ docinput = \
 mandocrst = $(addprefix doc/man-,$(notdir $(manrst)))
 
 # Haskell programs to be installed in $PREFIX/bin
-HS_BIN_PROGS=src/htools
+HS_BIN_PROGS=exe/htools
 
 # Haskell programs to be installed in the MYEXECLIB dir
 if ENABLE_MOND
-HS_MYEXECLIB_PROGS=src/mon-collector
+HS_MYEXECLIB_PROGS=exe/mon-collector
 else
 HS_MYEXECLIB_PROGS=
 endif
 
-HS2PY_PROG = dist/build/hs2py/hs2py
+HS2PY_PROG = exe/hs2py
 
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS = \
-	src/ganeti-kvmd \
-	src/ganeti-wconfd \
-	src/ganeti-confd \
-	src/ganeti-luxid \
+	exe/ganeti-kvmd \
+	exe/ganeti-wconfd \
+	exe/ganeti-confd \
+	exe/ganeti-luxid \
 	$(HS2PY_PROG) \
-	src/rpc-test
+	exe/rpc-test
 if ENABLE_MOND
-HS_COMPILE_PROGS += src/ganeti-mond
+HS_COMPILE_PROGS += exe/ganeti-mond
 endif
 if ENABLE_METADATA
-HS_COMPILE_PROGS += src/ganeti-metad
+HS_COMPILE_PROGS += exe/ganeti-metad
 endif
 
 CABAL_SETUP = runhaskell Setup
@@ -899,7 +901,7 @@ HS_DEFAULT_PROGS = \
 	$(HS_COMPILE_PROGS)
 
 if HTEST
-HS_DEFAULT_PROGS += dist/build/htest/htest
+HS_DEFAULT_PROGS += exe/htest
 else
 EXTRA_DIST += test/hs/htest.hs
 endif
@@ -1455,37 +1457,40 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-$(HS_SRC_PROGS) dist/build/htest/htest: dist/app.stamp
+$(HS_SRC_PROGS) exe/htest: dist/app.stamp
 
-dist/app.stamp: dist/setup-config
+dist/app.stamp: exe/ dist/setup-config
 	$(CABAL_SETUP) build
-	-(cd src; \
-	 for exe in ganeti-kvmd ganeti-wconfd ganeti-confd ganeti-luxid \
+	-(cd exe; \
+	 for name in ganeti-kvmd ganeti-wconfd ganeti-confd ganeti-luxid \
 		rpc-test ganeti-mond ganeti-metad \
-		htools mon-collector ; do \
-	   $(LN_S) ../dist/build/$$exe/$$exe; \
+		htools mon-collector hs2py htest ; do \
+	   $(LN_S) ../dist/build/$$name/$$name; \
 	 done)
 	@touch "$@"
+
+exe/:
+	@mkdir_p@ exe
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
-	src/ganeti-kvmd \
-	src/ganeti-luxid \
-	src/ganeti-confd \
-	src/ganeti-wconfd
+	exe/ganeti-kvmd \
+	exe/ganeti-luxid \
+	exe/ganeti-confd \
+	exe/ganeti-wconfd
 
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = $(notdir $(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS))
 
 if ENABLE_MOND
-nodist_sbin_SCRIPTS += src/ganeti-mond
+nodist_sbin_SCRIPTS += exe/ganeti-mond
 endif
 
 if ENABLE_METADATA
-nodist_sbin_SCRIPTS += src/ganeti-metad
+nodist_sbin_SCRIPTS += exe/ganeti-metad
 endif
 
 python_scripts = \
@@ -2008,7 +2013,7 @@ python_test_support = \
 	test/py/cmdlib/testsupport/util.py \
 	test/py/cmdlib/testsupport/wconfd_mock.py
 
-haskell_tests = dist/build/htest/htest
+haskell_tests = exe/htest
 
 dist_TESTS = \
 	test/py/check-cert-expired_unittest.bash \
@@ -2629,12 +2634,12 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-test-%
-hs-test-%: dist/build/htest/htest
+hs-test-%: exe/htest
 	@rm -f htest.tix
 	$< -t $*
 
 .PHONY: hs-tests
-hs-tests: dist/build/htest/htest
+hs-tests: exe/htest
 	@rm -f htest.tix
 	$<
 
@@ -2955,7 +2960,7 @@ live-test: all
 	rm -f .hpc; $(LN_S) ../.hpc .hpc; \
 	rm -f *.tix *.mix; \
 	./live-test.sh; \
-	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:src/%=%)) \
+	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:exe/%=%)) \
 	  --output=live-test.tix ; \
 	@mkdir_p@ ../$(COVERAGE_HS_DIR) ; \
 	hpc markup --destdir=../$(COVERAGE_HS_DIR) live-test \

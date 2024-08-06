@@ -27,10 +27,11 @@ ln -s $PWD/test/hs $tmpdir/test
 mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
 
-mkdir -p $tmpdir/src $tmpdir/test/hs
+mkdir -p $tmpdir/exe $tmpdir/test/hs
 for hfile in htools ganeti-confd mon-collector hs2py; do
-  if [ -e src/$hfile ]; then
-    ln -s $PWD/src/$hfile $tmpdir/src/
+  exe=exe/$hfile
+  if [ -e $exe ]; then
+    ln -s $PWD/$exe $tmpdir/exe/
   fi
 done
 
