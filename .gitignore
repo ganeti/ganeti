@@ -35,7 +35,6 @@
 /Makefile.local
 /Session.vim
 /TAGS*
-/apps/
 /aclocal.m4
 /autom4te.cache
 /autotools/install-sh
@@ -54,8 +53,8 @@
 /dist/
 /empty-cabal-config
 /epydoc.conf
+/exe/
 /ganeti
-/ganeti.cabal
 /ganeti.depsflags
 /stamp-srclinks
 /stamp-directories
@@ -158,18 +157,18 @@
 /scripts/gnt-storage
 
 # haskell-specific rules
-/src/mon-collector
-/src/htools
-/src/hs2py
-/src/hs2py-constants
-/src/ganeti-confd
-/src/ganeti-wconfd
-/src/ganeti-kvmd
-/src/ganeti-luxid
-/src/ganeti-maintd
-/src/ganeti-metad
-/src/ganeti-mond
-/src/rpc-test
+/dist/build/hpc-mon-collector/hpc-mon-collector
+/dist/build/hpc-htools/hpc-htools
+/dist/build/hs2py/hs2py
+/dist/build/hs2py-constants/hs2py-constants
+/dist/build/ganeti-confd/ganeti-confd
+/dist/build/ganeti-wconfd/ganeti-wconfd
+/dist/build/ganeti-kvmd/ganeti-kvmd
+/dist/build/ganeti-luxid/ganeti-luxid
+/dist/build/ganeti-maintd/ganeti-maintd
+/dist/build/ganeti-metad/ganeti-metad
+/dist/build/ganeti-mond/ganeti-mond
+/dist/build/rpc-test/rpc-test
 
 # automatically-built Haskell files
 /src/AutoConf.hs
