@@ -69,8 +69,8 @@ from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 from ganeti.utils import wrapper as utils_wrapper
 
-from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage, \
-                                             MonitorSocket
+from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage \
+
 from ganeti.hypervisor.hv_kvm.netdev import OpenTap
 
 from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
