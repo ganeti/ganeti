@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, CPP, DeriveFunctor, DeriveFoldable,
+{-# LANGUAGE TemplateHaskell, DeriveFunctor, DeriveFoldable,
              DeriveTraversable #-}
 
 {-| Implementation of the Ganeti Query2 language.
@@ -72,9 +72,7 @@ import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import Text.JSON
-#ifdef VERSION_regex_pcre
 import qualified Text.Regex.PCRE as PCRE
-#endif
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
@@ -166,13 +164,6 @@ instance JSON ItemType where
   readJSON = decodeItemType
 
 -- * Sub data types for query2 queries and responses.
-
--- | Internal type of a regex expression (not exported).
-#ifdef VERSION_regex_pcre
-type RegexType = PCRE.Regex
-#else
-type RegexType = ()
-#endif
 
 -- | List of requested fields.
 type Fields = [ String ]
@@ -332,25 +323,14 @@ instance JSON FilterValue where
 -- we don't re-compile the regex at each match attempt.
 data FilterRegex = FilterRegex
   { stringRegex   :: String      -- ^ The string version of the regex
-  , compiledRegex :: RegexType   -- ^ The compiled regex
+  , compiledRegex :: PCRE.Regex  -- ^ The compiled regex
   }
 
 -- | Builder for 'FilterRegex'. We always attempt to compile the
 -- regular expression on the initialisation of the data structure;
 -- this might fail, if the RE is not well-formed.
 mkRegex :: (MonadFail m) => String -> m FilterRegex
-#ifdef VERSION_regex_pcre
-mkRegex str = do
-  compiled <- case PCRE.getVersion of
-                Nothing -> fail $ "regex-pcre library compiled without" ++
-                                  " libpcre, regex functionality not available"
-                _ -> PCRE.makeRegexM str
-  return $ FilterRegex str compiled
-#else
-mkRegex _ =
-  fail $ "regex-pcre not found at compile time," ++
-         " regex functionality not available"
-#endif
+mkRegex str = FilterRegex str <$> PCRE.makeRegexM str
 
 -- | 'Show' instance: we show the constructor plus the string version
 -- of the regex.
