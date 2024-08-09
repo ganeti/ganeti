@@ -330,12 +330,7 @@ data FilterRegex = FilterRegex
 -- regular expression on the initialisation of the data structure;
 -- this might fail, if the RE is not well-formed.
 mkRegex :: (MonadFail m) => String -> m FilterRegex
-mkRegex str = do
-  compiled <- case PCRE.getVersion of
-                Nothing -> fail $ "regex-pcre library compiled without" ++
-                                  " libpcre, regex functionality not available"
-                _ -> PCRE.makeRegexM str
-  return $ FilterRegex str compiled
+mkRegex str = FilterRegex str <$> PCRE.makeRegexM str
 
 -- | 'Show' instance: we show the constructor plus the string version
 -- of the regex.
