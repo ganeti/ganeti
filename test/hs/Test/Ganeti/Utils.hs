@@ -291,7 +291,8 @@ prop_clockTimeToString ts pico =
   clockTimeToString (TOD ts pico) ==? show ts
 
 instance Arbitrary ClockTime where
-  arbitrary = TOD <$> choose (946681200, 2082754800) <*> choose (0, 99999999999)
+  arbitrary =
+    TOD <$> choose (946681200, 2082754800) <*> choose (0, 999999999999)
 
 -- | Verify our work-around for ghc bug #2519. Taking `diffClockTimes` form
 -- `System.Time`, this test fails with an exception.
