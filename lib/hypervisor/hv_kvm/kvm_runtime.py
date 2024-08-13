@@ -4,13 +4,17 @@ from ganeti import utils
 from ganeti import serializer
 from ganeti import constants
 from ganeti import objects
-from ganeti.hypervisor.hv_kvm.types import QMPVCPUItem
+from ganeti.hypervisor.hv_kvm.types import QMPVCPUItem, \
+                                        QMPMemoryDimmItem
+
+import logging
 
 _KVM_CMD_RUNTIME_INDEX = 0
 _KVM_NICS_RUNTIME_INDEX = 1
 _KVM_HV_RUNTIME_INDEX = 2
 _KVM_DISKS_RUNTIME_INDEX = 3
 _KVM_VCPU_RUNTIME_INDEX = 4
+_KVM_MEM_RUNTIME_INDEX = 5
 
 # Constans File?
 _PCI_BUS = "pci.0"
@@ -33,12 +37,19 @@ class KVMRuntime:
     self.data = []
 
   def __init__(self, data: List):
-    assert len(data) == 5
+    assert len(data) == 6
     self.data = data
-
 
   def __getitem__(self, idx):
     return self.data[idx]
+
+  def __eq__(self, other: 'KVMRuntime'):
+    return self.kvm_cmd == other.kvm_cmd \
+        and self.kvm_nics == other.kvm_nics \
+        and self.up_hvp == other.up_hvp \
+        and self.kvm_disks == other.kvm_disks \
+        and self.kvm_vcpus == other.kvm_vcpus \
+        and self.kvm_mem == other.kvm_mem
 
 
   @property
@@ -80,6 +91,10 @@ class KVMRuntime:
   def kvm_vcpus(self) -> List[QMPVCPUItem]:
     return self.data[_KVM_VCPU_RUNTIME_INDEX]
 
+  @property
+  def kvm_mem(self) -> List[QMPMemoryDimmItem]:
+    return self.data[_KVM_MEM_RUNTIME_INDEX]
+
 
   def serialize(self) -> str:
     serialized_nics = [nic.ToDict() for nic in self.kvm_nics]
@@ -89,16 +104,21 @@ class KVMRuntime:
     serialized = serializer.Dump((self.kvm_cmd, serialized_nics,
                                       self.up_hvp,
                                       serialized_disks,
-                                      self.kvm_vcpus))
+                                      self.kvm_vcpus,
+                                      self.kvm_mem))
 
     return serialized
 
 
   @staticmethod
-  def from_serialized(serialized: str) -> 'KVMRuntime':
+  def from_serialized(serialized: str, upgrade=True) -> 'KVMRuntime':
+    logging.warning(f"serialized Runtime: '{serialized}'")
+
+
     loaded_runtime = serializer.Load(serialized)
-    # hier muss der Upgrade Blödsinn hin
-    _upgrade_serialized_runtime(loaded_runtime)
+
+    if upgrade:
+      loaded_runtime = _upgrade_serialized_runtime(loaded_runtime)
 
     kvm_cmd = loaded_runtime[_KVM_CMD_RUNTIME_INDEX]
     up_hvp = loaded_runtime[_KVM_HV_RUNTIME_INDEX]
@@ -106,8 +126,9 @@ class KVMRuntime:
     disks = [(objects.Disk.FromDict(sdisk), link, uri)
                for sdisk, link, uri in loaded_runtime[_KVM_DISKS_RUNTIME_INDEX]]
     vcpus = [QMPVCPUItem.from_dict(vcpu) for vcpu in loaded_runtime[_KVM_VCPU_RUNTIME_INDEX]]
+    mem = [QMPMemoryDimmItem.from_dict(mem_item) for mem_item in loaded_runtime[_KVM_MEM_RUNTIME_INDEX]]
 
-    return KVMRuntime([kvm_cmd, nics, up_hvp, disks, vcpus])
+    return KVMRuntime([kvm_cmd, nics, up_hvp, disks, vcpus, mem])
 
 # Upgrade durchführen vor Deserialisierung
 def _upgrade_serialized_runtime(loaded_runtime: Any) -> List:
@@ -133,6 +154,11 @@ def _upgrade_serialized_runtime(loaded_runtime: Any) -> List:
     kvm_vcpus = loaded_runtime[4]
   else:
     kvm_vcpus = []
+
+  if len(loaded_runtime) >= 6:
+    kvm_mem = loaded_runtime[5]
+  else:
+    kvm_mem = []
 
   def update_hvinfo(dev, dev_type):
     """ Remove deprecated pci slot and substitute it with hvinfo """
@@ -232,4 +258,4 @@ def _upgrade_serialized_runtime(loaded_runtime: Any) -> List:
         constants.HT_VALID_DISCARD_TYPES:
       hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
 
-  return [kvm_cmd, serialized_nics, hvparams, serialized_disks, kvm_vcpus]
+  return [kvm_cmd, serialized_nics, hvparams, serialized_disks, kvm_vcpus, kvm_mem]

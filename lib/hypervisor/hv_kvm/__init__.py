@@ -43,6 +43,7 @@ import pwd
 import shlex
 import shutil
 import urllib.request, urllib.error, urllib.parse
+import uuid
 from typing import List
 from bitarray import bitarray
 try:
@@ -1630,8 +1631,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     hvparams = hvp
 
     kvm_vcpus = []
+    kvm_mem = []
 
-    return KVMRuntime([kvm_cmd, kvm_nics, hvparams, kvm_disks, kvm_vcpus])
+    return KVMRuntime([kvm_cmd, kvm_nics, hvparams, kvm_disks, kvm_vcpus, kvm_mem])
 
   def _WriteKVMRuntime(self, instance_name, data):
     """Write an instance's KVM runtime
@@ -1930,6 +1932,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     start_kvm_paused = not (_KVM_START_PAUSED_FLAG in kvm_cmd) and not incoming
     if start_kvm_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
+
+    # handle hotplugged ram dimms
+    for dimm in kvm_runtime.kvm_mem:
+      kvm_cmd.extend(["-object", f"qom-type=memory-backend-ram,id={dimm.memdev.id},size={dimm.memdev.size}"])
+      kvm_cmd.extend(["-device", f"driver=pc-dimm,node={dimm.node},memdev={dimm.memdev.id},id={dimm.id},slot={dimm.slot},addr={dimm.addr}"])
+
 
     # Note: CPU pinning is using up_hvp since changes take effect
     # during instance startup anyway, and to avoid problems when soft
@@ -2281,7 +2289,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     current = self.GetCurrentMemory(instance)
     diff = abs(amount_bytes - current)
     if amount_bytes > current:
-      self.HotAddMemory(self, diff)
+      self.HotAddMemory(instance, diff)
     elif amount_bytes < current:
       # self.HotRemoveMemory(self, diff)
       raise errors.HotplugError("Hotunplug of memory is not supported yet.")
@@ -2425,17 +2433,29 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return plugged
 
 
+  @_with_qmp
   def HotAddMemory(self, instance, amount: int):
     """
       amount in bytes !
     """
-    logging.warning(f"Create dimm with size {amount}")
-    memobj = QMPMemoryBackendItem("mem1", amount)
-    memdimm = QMPMemoryDimmItem("dimm1", memobj)
+    mem_uuid = str(uuid.uuid4())
 
+    memobj = QMPMemoryBackendItem(f"mem-{mem_uuid}", amount)
+    memdimm = QMPMemoryDimmItem(f"dimm-{mem_uuid}", memobj)
+
+    runtime = self._LoadKVMRuntime(instance)
 
     self.qmp.AddMemoryDimm(memdimm)
-    pass
+
+    # get address, slot & node information
+    for item in self.qmp.GetMemoryDevices():
+      if item['data']['id'] == memdimm.id:
+        memdimm.node = item['data']['node']
+        memdimm.addr = item['data']['addr']
+        memdimm.slot = item['data']['slot']
+
+    runtime.kvm_mem.append(memdimm)
+    self._SaveKVMRuntime(instance, runtime)
 
 
   def HotRemoveMemory(self, instance, amount: int):
@@ -2628,6 +2648,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
                             incoming=incoming_address)
+
+    # handle hotplugged vcpus
+    for vcpu in kvm_runtime.kvm_vcpus:
+      self.qmp.HotAddvCPU(vcpu)
+
     self._SetInstanceMigrationCapabilities(instance)
 
   def _ConfigureRoutedNICs(self, instance, info):

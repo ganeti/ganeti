@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 from dataclasses import dataclass, asdict
 
 @dataclass
@@ -62,7 +62,7 @@ class QMPMemoryBackendItem:
   def __post_init__(self):
     # force size is an integer
     if not isinstance(self.size, int):
-        self.value = int(self.size)
+      self.value = int(self.size)
 
   def to_qmp(self) -> Dict:
     return {
@@ -71,10 +71,19 @@ class QMPMemoryBackendItem:
       "qom-type": "memory-backend-ram"
     }
 
+  @staticmethod
+  def from_dict(items: Dict)-> 'QMPMemoryBackendItem':
+    return QMPMemoryBackendItem(**items)
+
 @dataclass
 class QMPMemoryDimmItem:
   id: str
   memdev: QMPMemoryBackendItem
+
+  # known after plugging in
+  addr: Optional[int] = None
+  slot: Optional[int] = None
+  node: Optional[int] = None
 
   def to_qmp(self) -> Dict:
     return {
@@ -82,3 +91,9 @@ class QMPMemoryDimmItem:
       "memdev": self.memdev.id,
       "driver": "pc-dimm"
     }
+
+  @staticmethod
+  def from_dict(items: Dict)-> 'QMPMemoryDimmItem':
+    items['memdev'] = QMPMemoryBackendItem.from_dict(items['memdev'])
+
+    return QMPMemoryDimmItem(**items)

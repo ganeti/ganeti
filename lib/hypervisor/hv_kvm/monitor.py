@@ -48,6 +48,8 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import serializer
 
+from ganeti.hypervisor.hv_kvm.types import QMPMemoryBackendItem, QMPMemoryDimmItem
+
 
 class QmpCommandNotSupported(errors.HypervisorError):
   """QMP command not supported by the monitor.
@@ -591,6 +593,14 @@ class QmpConnection(QemuMonitorSocket):
     self.Execute("device_del", {"id": cpu_id})
 
 
+  @_ensure_connection
+  def AddMemoryDimm(self, memdimm: QMPMemoryDimmItem):
+    # test
+    self.execute_qmp('object-add', memdimm.memdev.to_qmp())
+    self.execute_qmp('device_add', memdimm.to_qmp())
+    event = self.wait_for_qmp_event('ACPI_DEVICE_OST', 1)
+    logging.info("Event ACPI_DEVICE_OST arrived.")
+
   def _HasPCIDevice(self, devid):
     """Check if a specific device ID exists on the PCI bus.
 
@@ -805,6 +815,12 @@ class QmpConnection(QemuMonitorSocket):
 
     """
     return self.Execute("query-memory-size-summary")
+
+
+  @_ensure_connection
+  def GetMemoryDevices(self):
+
+    return self.Execute("query-memory-devices")
 
 
   @_ensure_connection
