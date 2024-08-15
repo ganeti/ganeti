@@ -1,5 +1,4 @@
 {-# LANGUAGE TemplateHaskell, CPP, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
 
@@ -290,18 +289,27 @@ prop_clockTimeToString :: Integer -> Integer -> Property
 prop_clockTimeToString ts pico =
   clockTimeToString (TOD ts pico) ==? show ts
 
-instance Arbitrary ClockTime where
-  arbitrary =
+genClockTime :: Gen ClockTime
+genClockTime =
     TOD <$> choose (946681200, 2082754800) <*> choose (0, 999999999999)
 
-prop_addToClockTime_identity :: ClockTime -> Property
-prop_addToClockTime_identity a =
+prop_addToClockTime_identity :: Property
+prop_addToClockTime_identity = forAll genClockTime addToClockTime_identity
+
+addToClockTime_identity :: ClockTime -> Property
+addToClockTime_identity a =
   addToClockTime noTimeDiff a ==? a
 
 -- | Verify our work-around for ghc bug #2519. Taking `diffClockTimes` form
 -- `System.Time`, this test fails with an exception.
-prop_timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
-prop_timediffAdd a b c =
+prop_timediffAdd :: Property
+prop_timediffAdd =
+  forAll genClockTime $ \a ->
+  forAll genClockTime $ \b ->
+  forAll genClockTime $ \c -> timediffAdd a b c
+
+timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
+timediffAdd a b c =
   let fwd = Ganeti.Utils.diffClockTimes a b
       back = Ganeti.Utils.diffClockTimes b a
   in addToClockTime fwd (addToClockTime back c) ==? c
