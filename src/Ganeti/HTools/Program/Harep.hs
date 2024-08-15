@@ -64,6 +64,7 @@ import Ganeti.Utils
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Luxi as L
 import qualified Ganeti.Path as Path
+import qualified Ganeti.Utils.Time as Time
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
@@ -269,7 +270,7 @@ updateTag :: AutoRepairData -> AutoRepairData
 updateTag arData =
   let ini = [autoRepairTypeToRaw $ arType arData,
              arUuid arData,
-             clockTimeToString $ arTime arData]
+             Time.clockTimeToString $ arTime arData]
       end = [intercalate "+" . map (show . fromJobId) $ arJobs arData]
       (pfx, middle) =
          case arResult arData of

@@ -48,11 +48,11 @@ import System.INotify
 import Ganeti.BasicTypes
 import Ganeti.Objects
 import Ganeti.Compat
-import Ganeti.Confd.Utils
 import Ganeti.Config
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
+import Ganeti.Utils.Time (getCurrentTime, getCurrentTimeUSec)
 import Ganeti.Utils
 
 -- | A type for functions that can return the configuration when

@@ -1149,6 +1149,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/MVarLock.hs \
 	src/Ganeti/Utils/Random.hs \
 	src/Ganeti/Utils/Statistics.hs \
+	src/Ganeti/Utils/Time.hs \
 	src/Ganeti/Utils/UniStd.hs \
 	src/Ganeti/Utils/Validate.hs \
 	src/Ganeti/VCluster.hs \
@@ -1252,6 +1253,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Utils.hs \
 	test/hs/Test/Ganeti/Utils/MultiMap.hs \
 	test/hs/Test/Ganeti/Utils/Statistics.hs \
+	test/hs/Test/Ganeti/Utils/Time.hs \
 	test/hs/Test/Ganeti/WConfd/Ssconf.hs \
 	test/hs/Test/Ganeti/WConfd/TempRes.hs
 
