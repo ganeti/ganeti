@@ -52,7 +52,7 @@ import qualified Data.Sequence as Seq
 import System.Process (readProcess)
 import qualified Text.JSON as J
 import System.Time (ClockTime, getClockTime)
-import Ganeti.Utils (addToClockTime, diffClockTimes, clockTimeToUSec)
+import Ganeti.Utils.Time (addToClockTime, diffClockTimes, clockTimeToUSec)
 
 import Ganeti.BasicTypes (GenericResult(..), Result, genericResult, runResultT)
 import qualified Ganeti.Constants as C

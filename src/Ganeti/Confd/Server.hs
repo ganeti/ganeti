@@ -67,6 +67,7 @@ import Ganeti.Hash
 import Ganeti.Logging
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Query.Cluster as QCluster
+import qualified Ganeti.Utils.Time as Time
 import Ganeti.Utils
 import Ganeti.DataCollectors.Types (DataCollector(..))
 import Ganeti.DataCollectors (collectors)
@@ -298,7 +299,7 @@ serializeResponse r =
 -- | Main loop for a given client.
 responder :: CRef -> S.Socket -> HashKey -> String -> S.SockAddr -> IO ()
 responder cfgref socket hmac msg peer = do
-  ctime <- getCurrentTime
+  ctime <- Time.getCurrentTime
   case parseRequest hmac msg ctime of
     Ok (origmsg, rq) -> do
               logDebug $ "Processing request: " ++ rStripSpace origmsg

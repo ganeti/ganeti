@@ -137,6 +137,7 @@ import Ganeti.Ssconf
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
+import Ganeti.Utils.Time (cTimeToClockTime)
 import Ganeti.Utils
 import Ganeti.VCluster
 

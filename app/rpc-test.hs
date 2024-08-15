@@ -51,6 +51,7 @@ import Ganeti.Objects
 import qualified Ganeti.Path as P
 import Ganeti.Rpc
 import Ganeti.Utils
+import Ganeti.Utils.Time (getCurrentTimeUSec)
 
 
 -- | Command line options structure.

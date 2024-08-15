@@ -106,7 +106,7 @@ import System.Posix.Files
 import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, sigKILL, signalProcess)
 import System.Posix.Types (ProcessID)
 import System.Time (ClockTime(TOD), getClockTime)
-import Ganeti.Utils (TimeDiff(..), addToClockTime, noTimeDiff)
+import Ganeti.Utils.Time (TimeDiff(..), addToClockTime, noTimeDiff)
 import qualified System.Time as Time
 import qualified Text.JSON
 import Text.JSON.Types

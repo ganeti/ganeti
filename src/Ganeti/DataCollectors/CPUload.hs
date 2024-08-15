@@ -58,6 +58,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Cpu.LoadParser(cpustatParser)
 import Ganeti.DataCollectors.Types
 import qualified Ganeti.JSON as GJ
+import Ganeti.Utils.Time (clockTimeToUSec)
 import Ganeti.Utils
 import Ganeti.Cpu.Types
 

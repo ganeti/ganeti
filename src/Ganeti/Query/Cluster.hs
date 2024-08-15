@@ -47,7 +47,7 @@ import Ganeti.Errors
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Path
-import Ganeti.Utils (getCurrentTime)
+import Ganeti.Utils.Time (getCurrentTime)
 
 -- | Get master node name.
 clusterMasterNodeName :: ConfigData -> ErrorResult String

@@ -99,6 +99,7 @@ import Ganeti.JSON (fromJResult, fromJVal, fromJResultE, fromObj)
 import Ganeti.Logging
 import Ganeti.THH
 import Ganeti.Utils
+import Ganeti.Utils.Time (getCurrentTimeUSec)
 import Ganeti.Constants (privateParametersBlacklist)
 
 -- * Utility functions

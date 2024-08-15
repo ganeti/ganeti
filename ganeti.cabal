@@ -203,6 +203,7 @@ Library
     Ganeti.Utils.MultiMap
     Ganeti.Utils.Random
     Ganeti.Utils.Statistics
+    Ganeti.Utils.Time
     Ganeti.Utils.UniStd
     Ganeti.Utils.Validate
     Ganeti.VCluster
@@ -435,5 +436,6 @@ Executable htest
     Test.Ganeti.Utils
     Test.Ganeti.Utils.MultiMap
     Test.Ganeti.Utils.Statistics
+    Test.Ganeti.Utils.Time
     Test.Ganeti.WConfd.Ssconf
     Test.Ganeti.WConfd.TempRes

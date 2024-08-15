@@ -61,16 +61,6 @@ module Ganeti.Utils
   , rStripSpace
   , newUUID
   , isUUID
-  , getCurrentTime
-  , getCurrentTimeUSec
-  , clockTimeToString
-  , clockTimeToCTime
-  , clockTimeToUSec
-  , cTimeToClockTime
-  , diffClockTimes
-  , addToClockTime
-  , noTimeDiff
-  , TimeDiff(..)
   , chompPrefix
   , warn
   , wrap
@@ -117,7 +107,6 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
-import Foreign.C.Types (CTime(..))
 import Numeric (showOct)
 import System.Directory (renameFile, createDirectoryIfMissing)
 import System.FilePath.Posix (takeDirectory)
@@ -127,6 +116,7 @@ import System.Posix.Types
 import Debug.Trace
 import Network.Socket
 
+import Ganeti.Utils.Time (getCurrentTimeUSec)
 import Ganeti.BasicTypes
 import Ganeti.Compat
 import qualified Ganeti.ConstantUtils as ConstantUtils
@@ -136,8 +126,6 @@ import System.IO
 import System.Exit
 import System.Posix.Files
 import System.Posix.IO
-import System.Time (ClockTime(..), getClockTime)
-import qualified System.Time as STime
 
 -- * Debug functions
 
@@ -444,63 +432,6 @@ uuidCheckParser = do
 isUUID :: String -> Bool
 isUUID =
   isRight . A.parseOnly (uuidCheckParser <* A.endOfInput) . UTF8.fromString
-
--- | Returns the current time as an 'Integer' representing the number
--- of seconds from the Unix epoch.
-getCurrentTime :: IO Integer
-getCurrentTime = do
-  TOD ctime _ <- getClockTime
-  return ctime
-
--- | Returns the current time as an 'Integer' representing the number
--- of microseconds from the Unix epoch (hence the need for 'Integer').
-getCurrentTimeUSec :: IO Integer
-getCurrentTimeUSec = liftM clockTimeToUSec getClockTime
-
--- | Convert a ClockTime into a (seconds-only) timestamp.
-clockTimeToString :: ClockTime -> String
-clockTimeToString (TOD t _) = show t
-
--- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
-clockTimeToCTime :: ClockTime -> EpochTime
-clockTimeToCTime (TOD secs _) = fromInteger secs
-
--- | Convert a ClockTime the number of microseconds since the epoch.
-clockTimeToUSec :: ClockTime -> Integer
-clockTimeToUSec (TOD ctime pico) =
-  -- pico: 10^-12, micro: 10^-6, so we have to shift seconds left and
-  -- picoseconds right
-  ctime * 1000000 + pico `div` 1000000
-
--- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
-cTimeToClockTime :: EpochTime -> ClockTime
-cTimeToClockTime (CTime timet) = TOD (toInteger timet) 0
-
-
-{- |
-Like 'System.Time.TimeDiff' but misses 'tdYear', 'tdMonth'.
-Their meaning depends on the start date and causes bugs like this one:
-<https://github.com/haskell/old-time/issues/18>
-This type is much simpler and less error-prone.
-Also, our 'tdSec' has type 'Integer', which cannot overflow.
-Like in original 'System.Time.TimeDiff' picoseconds can be negative,
-that is, TimeDiff's are not normalized by default.
--}
-data TimeDiff = TimeDiff {tdSec :: Integer, tdPicosec :: Integer}
-  deriving (Show)
-
-noTimeDiff :: TimeDiff
-noTimeDiff = TimeDiff 0 0
-
-diffClockTimes :: ClockTime -> ClockTime -> TimeDiff
-diffClockTimes (STime.TOD secA picoA) (STime.TOD secB picoB) =
-  TimeDiff (secA-secB) (picoA-picoB)
-
-addToClockTime :: TimeDiff -> ClockTime -> ClockTime
-addToClockTime (TimeDiff secDiff picoDiff) (TOD secA picoA) =
-  case divMod (picoA+picoDiff) (1000*1000*1000*1000) of
-    (secD, picoB) ->
-      TOD (secA+secDiff+secD) picoB
 
 
 {-| Strip a prefix from a string, allowing the last character of the prefix

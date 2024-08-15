@@ -41,7 +41,7 @@ module Ganeti.Confd.Utils
   , parseRequest
   , parseReply
   , signMessage
-  , getCurrentTime
+  , Time.getCurrentTime
   , extractJSONPath
   ) where
 
@@ -56,6 +56,7 @@ import Ganeti.Confd.Types
 import Ganeti.Hash
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
+import qualified Ganeti.Utils.Time as Time
 import Ganeti.JSON (fromJResult)
 import Ganeti.Utils
 
