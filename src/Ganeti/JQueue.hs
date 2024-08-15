@@ -105,7 +105,9 @@ import System.IO.Error (isDoesNotExistError)
 import System.Posix.Files
 import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, sigKILL, signalProcess)
 import System.Posix.Types (ProcessID)
-import System.Time
+import System.Time (ClockTime(TOD), getClockTime)
+import Ganeti.Utils (TimeDiff(..), addToClockTime, noTimeDiff)
+import qualified System.Time as Time
 import qualified Text.JSON
 import Text.JSON.Types
 
@@ -586,8 +588,7 @@ waitUntilJobExited ownlivelock job tmout = do
     dead <- maybe (fail $ jName ++ " has not yet started up")
       (liftIO . isDead) . mfilter (/= ownlivelock) . qjLivelock $ job
     curtime <- getClockTime
-    let elapsed = timeDiffToString $ System.Time.diffClockTimes
-                  curtime start
+    let elapsed = Time.timeDiffToString $ Time.diffClockTimes curtime start
     case dead of
       True -> return (True, jName ++ " process exited after " ++ elapsed)
       _ | curtime < deadline -> threadDelay (sleepDelay * 1000) >> loop
@@ -750,7 +751,7 @@ archiveJobs :: ConfigData -- ^ cluster configuration
 archiveJobs cfg age timeout jids = do
   now <- getClockTime
   qDir <- queueDir
-  let endtime = addToClockTime (noTimeDiff { tdSec = timeout }) now
+  let endtime = addToClockTime (noTimeDiff { tdSec = fromIntegral timeout }) now
       cuttime = if age < 0 then noTimestamp
                            else advanceTimestamp (- age) (fromClockTime now)
       mcs = Config.getMasterCandidates cfg

@@ -58,7 +58,7 @@ import Test.Ganeti.TestCommon
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as JSON
-import Ganeti.Utils
+import Ganeti.Utils as Utils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -289,16 +289,21 @@ prop_clockTimeToString :: Integer -> Integer -> Property
 prop_clockTimeToString ts pico =
   clockTimeToString (TOD ts pico) ==? show ts
 
+genPicoseconds :: Gen Integer
+genPicoseconds = choose (0, 999999999999)
+
+genTimeDiff :: Gen Utils.TimeDiff
+genTimeDiff = Utils.TimeDiff <$> arbitrary <*> genPicoseconds
+
 genClockTime :: Gen ClockTime
-genClockTime =
-    TOD <$> choose (946681200, 2082754800) <*> choose (0, 999999999999)
+genClockTime = TOD <$> choose (946681200, 2082754800) <*> genPicoseconds
 
 prop_addToClockTime_identity :: Property
 prop_addToClockTime_identity = forAll genClockTime addToClockTime_identity
 
 addToClockTime_identity :: ClockTime -> Property
 addToClockTime_identity a =
-  addToClockTime noTimeDiff a ==? a
+  Utils.addToClockTime Utils.noTimeDiff a ==? a
 
 -- | Verify our work-around for ghc bug #2519. Taking `diffClockTimes` form
 -- `System.Time`, this test fails with an exception.
@@ -310,9 +315,23 @@ prop_timediffAdd =
 
 timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
 timediffAdd a b c =
-  let fwd = Ganeti.Utils.diffClockTimes a b
-      back = Ganeti.Utils.diffClockTimes b a
-  in addToClockTime fwd (addToClockTime back c) ==? c
+  let fwd = Utils.diffClockTimes a b
+      back = Utils.diffClockTimes b a
+  in Utils.addToClockTime fwd (Utils.addToClockTime back c) ==? c
+
+prop_timediffAddCommutative :: Property
+prop_timediffAddCommutative =
+  forAll genTimeDiff $ \a ->
+  forAll genTimeDiff $ \b ->
+  forAll genClockTime $ \c -> timediffAddCommutative a b c
+
+timediffAddCommutative ::
+  Utils.TimeDiff -> Utils.TimeDiff -> ClockTime -> Property
+timediffAddCommutative a b c =
+  Utils.addToClockTime a (Utils.addToClockTime b c)
+  ==?
+  Utils.addToClockTime b (Utils.addToClockTime a c)
+
 
 -- | Test normal operation for 'chompPrefix'.
 --
@@ -414,6 +433,7 @@ testSuite "Utils"
             , 'prop_clockTimeToString
             , 'prop_addToClockTime_identity
             , 'prop_timediffAdd
+            , 'prop_timediffAddCommutative
             , 'prop_chompPrefix_normal
             , 'prop_chompPrefix_last
             , 'prop_chompPrefix_empty_string
