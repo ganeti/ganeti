@@ -294,6 +294,10 @@ instance Arbitrary ClockTime where
   arbitrary =
     TOD <$> choose (946681200, 2082754800) <*> choose (0, 999999999999)
 
+prop_addToClockTime_identity :: ClockTime -> Property
+prop_addToClockTime_identity a =
+  addToClockTime noTimeDiff a ==? a
+
 -- | Verify our work-around for ghc bug #2519. Taking `diffClockTimes` form
 -- `System.Time`, this test fails with an exception.
 prop_timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
@@ -400,6 +404,7 @@ testSuite "Utils"
             , 'case_new_uuid_regex
 #endif
             , 'prop_clockTimeToString
+            , 'prop_addToClockTime_identity
             , 'prop_timediffAdd
             , 'prop_chompPrefix_normal
             , 'prop_chompPrefix_last
