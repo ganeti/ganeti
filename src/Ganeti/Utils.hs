@@ -68,6 +68,9 @@ module Ganeti.Utils
   , clockTimeToUSec
   , cTimeToClockTime
   , diffClockTimes
+  , addToClockTime
+  , noTimeDiff
+  , TimeDiff(..)
   , chompPrefix
   , warn
   , wrap
@@ -133,7 +136,7 @@ import System.IO
 import System.Exit
 import System.Posix.Files
 import System.Posix.IO
-import System.Time (ClockTime(..), getClockTime, TimeDiff(..))
+import System.Time (ClockTime(..), getClockTime)
 import qualified System.Time as STime
 
 -- * Debug functions
@@ -473,16 +476,32 @@ clockTimeToUSec (TOD ctime pico) =
 cTimeToClockTime :: EpochTime -> ClockTime
 cTimeToClockTime (CTime timet) = TOD (toInteger timet) 0
 
--- | A version of `diffClockTimes` that works around ghc bug #2519.
+
+{- |
+Like 'System.Time.TimeDiff' but misses 'tdYear', 'tdMonth'.
+Their meaning depends on the start date and causes bugs like this one:
+<https://github.com/haskell/old-time/issues/18>
+This type is much simpler and less error-prone.
+Also, our 'tdSec' has type 'Integer', which cannot overflow.
+Like in original 'System.Time.TimeDiff' picoseconds can be negative,
+that is, TimeDiff's are not normalized by default.
+-}
+data TimeDiff = TimeDiff {tdSec :: Integer, tdPicosec :: Integer}
+  deriving (Show)
+
+noTimeDiff :: TimeDiff
+noTimeDiff = TimeDiff 0 0
+
 diffClockTimes :: ClockTime -> ClockTime -> TimeDiff
-diffClockTimes t1 t2 =
-  let delta = STime.diffClockTimes t1 t2
-      secondInPicoseconds = 1000000000000
-  in if tdPicosec delta < 0
-       then delta { tdSec = tdSec delta - 1
-                  , tdPicosec = tdPicosec delta + secondInPicoseconds
-                  }
-       else delta
+diffClockTimes (STime.TOD secA picoA) (STime.TOD secB picoB) =
+  TimeDiff (secA-secB) (picoA-picoB)
+
+addToClockTime :: TimeDiff -> ClockTime -> ClockTime
+addToClockTime (TimeDiff secDiff picoDiff) (TOD secA picoA) =
+  case divMod (picoA+picoDiff) (1000*1000*1000*1000) of
+    (secD, picoB) ->
+      TOD (secA+secDiff+secD) picoB
+
 
 {-| Strip a prefix from a string, allowing the last character of the prefix
 (which is assumed to be a separator) to be absent from the string if the string
