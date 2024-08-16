@@ -637,6 +637,34 @@ AC_ARG_ENABLE([metadata],
   [],
   [enable_metadata=check])
 
+# --enable-regex-pcre-builtin
+ENABLE_REGEX_PCRE_BUILTIN=
+AC_ARG_ENABLE([regex-pcre-builtin],
+  [AS_HELP_STRING([--enable-regex-pcre-builtin],
+  [use regex-pcre-builtin library for regex parsing (default: check)])],
+  [enable_regex_pcre_builtin=$enableval],
+  [enable_regex_pcre_builtin=check])
+if test "$enable_regex_pcre_builtin" != no; then
+  AC_GHC_PKG_REQUIRE(regex-pcre-builtin)
+fi
+
+# --enable-regex-tdfa
+ENABLE_REGEX_TDFA=
+AC_ARG_ENABLE([regex-tdfa],
+  [AS_HELP_STRING([--enable-regex-tdfa],
+  [use regex-tdfa library, that is,
+   POSIX instead of Perl regexes (default: regex-pcre)])],
+  [enable_regex_tdfa=$enableval],
+  [enable_regex_tdfa=no])
+if test "$enable_regex_tdfa" != no; then
+  AC_GHC_PKG_REQUIRE(regex-tdfa)
+fi
+
+if test "$enable_regex_pcre_builtin" == no &&
+   test "$enable_regex_tdfa" == no; then
+  AC_GHC_PKG_REQUIRE(regex-pcre)
+fi
+
 # Check for ghc
 AC_ARG_VAR(GHC, [ghc path])
 AC_PATH_PROG(GHC, [ghc], [])
@@ -697,7 +725,6 @@ AC_GHC_PKG_REQUIRE(hinotify)
 AC_GHC_PKG_REQUIRE(cryptonite)
 AC_GHC_PKG_REQUIRE(lifted-base)
 AC_GHC_PKG_REQUIRE(lens)
-AC_GHC_PKG_REQUIRE(regex-pcre)
 AC_GHC_PKG_REQUIRE(old-time)
 AC_GHC_PKG_REQUIRE(temporary)
 

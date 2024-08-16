@@ -47,7 +47,7 @@ import Data.List
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
 import qualified Text.JSON as J
-import Text.Regex.PCRE
+import Ganeti.Query.RegEx ((=~))
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon

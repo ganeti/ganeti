@@ -167,6 +167,13 @@ HS_DIRS = \
 	src/Ganeti/THH \
 	src/Ganeti/Utils \
 	src/Ganeti/WConfd \
+	regex \
+	regex/tdfa \
+	regex/tdfa/Ganeti \
+	regex/tdfa/Ganeti/Query \
+	regex/pcre \
+	regex/pcre/Ganeti \
+	regex/pcre/Ganeti/Query \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
@@ -1191,6 +1198,10 @@ EXTRA_DIST += \
 	src/Ganeti/Metad/WebServer.hs
 endif
 
+HS_REGEX_SRCS = \
+	regex/tdfa/Ganeti/Query/RegEx.hs \
+	regex/pcre/Ganeti/Query/RegEx.hs
+
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
 	test/hs/Test/Ganeti/Attoparsec.hs \
@@ -1260,7 +1271,7 @@ HS_TEST_SRCS = \
 
 HS_LIB_STEMS = $(patsubst %.hsc,%, $(patsubst %.hs,%, $(HS_LIB_SRCS)))
 
-HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
+HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_REGEX_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
@@ -2314,6 +2325,7 @@ test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst src/%,%,$(HS_LIB_STEMS)))) ; do \
 	    echo "import $$name ()" ; \
 	  done ; \
+	  echo "import Ganeti.Query.RegEx ()" ; \
 	} > $@
 
 lib/_constants.py: Makefile $(HS2PY_PROG) lib/_constants.py.in | stamp-directories
@@ -2993,7 +3005,9 @@ dist/setup-config: ganeti.cabal $(HS_BUILT_SRCS)
 	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
-	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"`
+	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"` \
+	  -f`test $(ENABLE_REGEX_PCRE_BUILTIN) == True && echo "regex-pcre-builtin" || echo "-regex-pcre-builtin"` \
+	  -f`test $(ENABLE_REGEX_TDFA) == True && echo "regex-tdfa" || echo "-regex-tdfa"`
 
 
 # Target that builds all binaries (including those that are not
