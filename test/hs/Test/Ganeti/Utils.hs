@@ -47,9 +47,7 @@ import Data.List
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
 import qualified Text.JSON as J
-#ifdef VERSION_regex_pcre
 import Text.Regex.PCRE
-#endif
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -274,7 +272,6 @@ case_new_uuid = do
   uuid <- newUUID
   assertBool "newUUID" $ isUUID uuid
 
-#ifdef VERSION_regex_pcre
 {-# ANN case_new_uuid_regex "HLint: ignore Use camelCase" #-}
 
 -- | Tests that the newUUID function produces valid UUIDs.
@@ -282,7 +279,6 @@ case_new_uuid_regex :: Assertion
 case_new_uuid_regex = do
   uuid <- newUUID
   assertBool "newUUID" $ uuid =~ C.uuidRegex
-#endif
 
 
 -- | Test normal operation for 'chompPrefix'.
@@ -379,9 +375,7 @@ testSuite "Utils"
             , 'prop_rStripSpace
             , 'prop_trim
             , 'case_new_uuid
-#ifdef VERSION_regex_pcre
             , 'case_new_uuid_regex
-#endif
             , 'prop_chompPrefix_normal
             , 'prop_chompPrefix_last
             , 'prop_chompPrefix_empty_string
