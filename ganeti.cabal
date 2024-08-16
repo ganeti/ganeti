@@ -37,6 +37,14 @@ Flag network_bsd
   Description: use the split network-bsd package
   Default:     False
 
+Flag regex-tdfa
+  Description: use regex-tdfa instead of regex-pcre
+  Default:     False
+
+Flag regex-pcre-builtin
+  Description: use regex-pcre-builtin instead of regex-pcre
+  Default:     False
+
 Library
   Exposed-Modules:
     AutoConf
@@ -253,7 +261,6 @@ Library
     , lifted-base                   >= 0.2.0.3    && < 0.3
     , monad-control                 >= 0.3.1.3    && < 1.1
     , parallel                      >= 3.2.0.2    && < 3.3
-    , regex-pcre                    >= 0.94.2     && < 0.96
     , transformers-base             >= 0.4.1      && < 0.5
     , unix                          >= 2.5.1.0    && < 2.9
     , zlib                          >= 0.5.3.3    && < 0.8
@@ -287,6 +294,20 @@ Library
   If flag(mcio_xformers)
     Build-Depends:
         MonadCatchIO-transformers
+
+  Exposed-Modules: Ganeti.Query.RegEx
+  If flag(regex-tdfa)
+    Hs-Source-Dirs: regex/tdfa
+    Build-Depends:
+      regex-tdfa                      >= 1.2        && < 1.4
+  Else
+    Hs-Source-Dirs: regex/pcre
+    If flag(regex-pcre-builtin)
+      Build-Depends:
+        regex-pcre-builtin            >= 0.94.2     && < 0.96
+    Else
+      Build-Depends:
+        regex-pcre                    >= 0.94.2     && < 0.96
 
   Hs-Source-Dirs:     src
   Build-Tool-Depends: hsc2hs:hsc2hs
@@ -358,7 +379,6 @@ Executable htest
     test-framework-quickcheck2    >= 0.2.12.1   && < 0.4,
     temporary                     >= 1.1.2.3    && < 1.4,
     attoparsec,
-    regex-pcre,
     containers,
     text,
     bytestring,

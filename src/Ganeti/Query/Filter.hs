@@ -73,8 +73,8 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Text.JSON (JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
-import qualified Text.Regex.PCRE as PCRE
 
+import qualified Ganeti.Query.RegEx as RegEx
 import Ganeti.BasicTypes
             (GenericResult (Ok, Bad), goodLookupResult, compareNameComponent)
 import Ganeti.Errors
@@ -173,7 +173,7 @@ binOpFilter _ expr actual =
 -- | Implements the 'RegexpFilter' matching.
 regexpFilter :: FilterRegex -> JSValue -> ErrorResult Bool
 regexpFilter re (JSString val) =
-  Ok $! PCRE.match (compiledRegex re) (fromJSString val)
+  Ok $! RegEx.match (compiledRegex re) (fromJSString val)
 regexpFilter _ x =
   Bad . ParameterError $ "Invalid field value used in regexp matching,\
         \ expecting string but got '" ++ show (pp_value x) ++ "'"
