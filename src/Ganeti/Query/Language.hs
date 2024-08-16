@@ -72,8 +72,8 @@ import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import Text.JSON
-import qualified Text.Regex.PCRE as PCRE
 
+import qualified Ganeti.Query.RegEx as RegEx
 import qualified Ganeti.Constants as C
 import Ganeti.THH
 
@@ -323,14 +323,14 @@ instance JSON FilterValue where
 -- we don't re-compile the regex at each match attempt.
 data FilterRegex = FilterRegex
   { stringRegex   :: String      -- ^ The string version of the regex
-  , compiledRegex :: PCRE.Regex  -- ^ The compiled regex
+  , compiledRegex :: RegEx.Regex  -- ^ The compiled regex
   }
 
 -- | Builder for 'FilterRegex'. We always attempt to compile the
 -- regular expression on the initialisation of the data structure;
 -- this might fail, if the RE is not well-formed.
 mkRegex :: (MonadFail m) => String -> m FilterRegex
-mkRegex str = FilterRegex str <$> PCRE.makeRegexM str
+mkRegex str = FilterRegex str <$> RegEx.makeRegexM str
 
 -- | 'Show' instance: we show the constructor plus the string version
 -- of the regex.
