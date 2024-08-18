@@ -52,6 +52,16 @@ from ganeti import ht
 from ganeti import opcodes_base
 
 
+def FormatDuration(value):
+  """Custom formatter for duration.
+
+  """
+  try:
+    return "%d ns" % round(value * 1e9)
+  except TypeError:
+    return str(value)
+
+
 class OpCode(opcodes_base.BaseOpCode):
   """Abstract OpCode.
 

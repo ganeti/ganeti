@@ -63,6 +63,7 @@ import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Text.JSON
 import Text.JSON (readJSON, JSObject, JSON, JSValue(..), fromJSObject)
+import Text.Printf (printf)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
@@ -1046,7 +1047,8 @@ opSummaryVal OpBackupExport { opInstanceName = s } = Just s
 opSummaryVal OpBackupRemove { opInstanceName = s } = Just s
 opSummaryVal OpTagsGet { opKind = s } = Just (show s)
 opSummaryVal OpTagsSearch { opTagSearchPattern = s } = Just (fromNonEmpty s)
-opSummaryVal OpTestDelay { opDelayDuration = d } = Just (show d)
+opSummaryVal OpTestDelay { opDelayDuration = d } =
+  Just $ printf "%d ns" (round(d * 1e9) :: Integer)
 opSummaryVal OpTestAllocator { opIallocator = s } =
   -- FIXME: Python doesn't handle None fields well, so we have behave the same
   Just $ maybe "None" fromNonEmpty s
