@@ -36,11 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Test.Ganeti.Kvmd (testKvmd) where
 
 import Control.Concurrent
-import Control.Exception (try)
 import qualified Network.Socket as Socket
 import System.Directory
 import System.FilePath
-import System.IO
+import System.IO (Handle, hPrint, hFlush, hGetLine)
+import System.IO.Error (tryIOError)
 
 import qualified Ganeti.Kvmd as Kvmd
 import qualified Ganeti.UDSServer as UDSServer
@@ -74,7 +74,7 @@ detectShutdown putFn =
      -- ensure the KVM directory exists
      createDirectoryIfMissing True monitorDir
      -- ensure the shutdown file does not exist
-     (try (removeFile shutdownFile) :: IO (Either IOError ())) >> return ()
+     tryIOError (removeFile shutdownFile) >> return ()
      -- start KVM daemon
      threadId <- startKvmd monitorDir
      threadDelay 1000
@@ -83,7 +83,7 @@ detectShutdown putFn =
      Socket.listen sock 1
      handle <- UDSServer.acceptSocket sock
      -- read 'qmp_capabilities' message
-     res <- try . hGetLine $ handle :: IO (Either IOError String)
+     res <- tryIOError . hGetLine $ handle
      case res of
        Left err ->
          assertFailure $ "Expecting " ++ show Kvmd.monitorGreeting ++

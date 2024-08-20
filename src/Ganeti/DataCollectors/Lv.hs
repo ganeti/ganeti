@@ -45,7 +45,6 @@ module Ganeti.DataCollectors.Lv
   ) where
 
 
-import qualified Control.Exception as E
 import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
 import Data.List
@@ -53,6 +52,7 @@ import Data.Maybe (mapMaybe)
 import Data.Text.Lazy (pack, unpack)
 import Network.BSD (getHostName)
 import System.Process
+import System.IO.Error (tryIOError)
 import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
@@ -121,10 +121,10 @@ getLvInfo inputFile = do
   let cmd = lvCommand
       params = lvParams
       fromLvs =
-        ((E.try $ readProcess cmd params "") :: IO (Either IOError String)) >>=
+        tryIOError (readProcess cmd params "") >>=
         exitIfBad "running command" . either (BT.Bad . show) BT.Ok
   contents <-
-    maybe fromLvs (\fn -> ((E.try $ readFile fn) :: IO (Either IOError String))
+    maybe fromLvs (\fn -> tryIOError (readFile fn)
       >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok)
       inputFile
   case A.parse lvParser $ pack contents of
@@ -153,13 +153,12 @@ getInstDiskList opts = do
     fromConfd :: IO (BT.Result [(RealInstanceData, [Disk])])
     fromConfd =
       liftM (either (BT.Bad . show) id)
-      (E.try fromConfdUnchecked ::
-          IO (Either IOError (BT.Result [(RealInstanceData, [Disk])])))
+      (tryIOError fromConfdUnchecked)
 
     fromFile :: FilePath -> IO (BT.Result [(RealInstanceData, [Disk])])
     fromFile inputFile = do
       contents <-
-        ((E.try $ readFile inputFile) :: IO (Either IOError String))
+        tryIOError (readFile inputFile)
         >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
       return . fromJResult "Not a list of instances" $ J.decode contents
 

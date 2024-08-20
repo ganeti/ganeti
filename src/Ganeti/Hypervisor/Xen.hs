@@ -39,11 +39,11 @@ module Ganeti.Hypervisor.Xen
   , UptimeInfo(..)
   ) where
 
-import qualified Control.Exception as E
 import Data.Attoparsec.Text as A
 import qualified Data.Map as Map
 import Data.Text (pack)
 import System.Process
+import System.IO.Error (tryIOError)
 
 import qualified Ganeti.BasicTypes as BT
 import Ganeti.Hypervisor.Xen.Types
@@ -57,9 +57,7 @@ import Ganeti.Utils
 -- itself.
 getDomainsInfo :: IO (BT.Result (Map.Map String Domain))
 getDomainsInfo = do
-  contents <-
-        (E.try $ readProcess "xl" ["list", "--long"] "")
-          :: IO (Either IOError String)
+  contents <- tryIOError $ readProcess "xl" ["list", "--long"] ""
   return $
     either (BT.Bad . show) (
       \c ->
@@ -101,8 +99,7 @@ getInferredDomInfo = do
 getUptimeInfo :: IO (Map.Map Int UptimeInfo)
 getUptimeInfo = do
   contents <-
-    ((E.try $ readProcess "xl" ["uptime"] "")
-      :: IO (Either IOError String)) >>=
+    tryIOError (readProcess "xl" ["uptime"] "") >>=
       exitIfBad "running command" . either (BT.Bad . show) BT.Ok
   case A.parseOnly xlUptimeParser $ pack contents of
     Left msg -> exitErr msg

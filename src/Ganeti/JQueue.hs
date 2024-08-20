@@ -86,7 +86,7 @@ module Ganeti.JQueue
 import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Exception
+import Control.Exception (catch)
 import Control.Lens (over)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
@@ -101,7 +101,7 @@ import Data.Ord (comparing)
 import Prelude hiding (id, log)
 import System.Directory
 import System.FilePath
-import System.IO.Error (isDoesNotExistError)
+import System.IO.Error (isDoesNotExistError, tryIOError)
 import System.Posix.Files
 import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, sigKILL, signalProcess)
 import System.Posix.Types (ProcessID)
@@ -519,8 +519,7 @@ allocateJobIds mastercandidates lock n =
           let current = fromJobId jid
               serial_content = show (current + n) ++  "\n"
           serial <- jobQueueSerialFile
-          write_result <- try $ atomicWriteFile serial serial_content
-                          :: IO (Either IOError ())
+          write_result <- tryIOError $ atomicWriteFile serial serial_content
           case write_result of
             Left e -> do
               let msg = "Failed to write serial file: " ++ show e

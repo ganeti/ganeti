@@ -61,7 +61,6 @@ module Ganeti.Kvmd where
 
 import Prelude hiding (rem)
 
-import Control.Exception (try)
 import Control.Concurrent
 import Control.Monad (unless, when)
 import Data.List
@@ -70,7 +69,7 @@ import qualified Data.Set as Set (delete, empty, insert, member)
 import System.Directory
 import System.FilePath
 import System.IO
-import System.IO.Error (isEOFError)
+import System.IO.Error (tryIOError, isEOFError)
 import System.INotify
 
 import qualified AutoConf
@@ -149,7 +148,7 @@ receiveQmp handle = isUserShutdown <$> receive False False False
           = isPowerdown && not isShutdown && not isStop
 
         receive isPowerdown isShutdown isStop =
-          do res <- try $ hGetLine handle
+          do res <- tryIOError $ hGetLine handle
              case res of
                Left err -> do
                  unless (isEOFError err) $
@@ -178,7 +177,7 @@ detectMonitor monitorFile handle =
        else do
          Logging.logInfo $ "Detect admin shutdown, removing file " ++
            show shutdownFile
-         (try (removeFile shutdownFile) :: IO (Either IOError ())) >> return ()
+         tryIOError (removeFile shutdownFile) >> return ()
 
 -- | @runMonitor monitorFile@ creates a monitor for the Qmp socket
 -- @monitorFile@ and calls 'detectMonitor'.
@@ -204,7 +203,7 @@ ensureMonitor monitors monitorFile =
         return $ monitorFile `Set.insert` files
   where tryMonitor =
           do Logging.logInfo $ "Start monitor " ++ show monitorFile
-             res <- try (runMonitor monitorFile) :: IO (Either IOError ())
+             res <- tryIOError (runMonitor monitorFile)
              case res of
                Left err ->
                  Logging.logError $ "Catch monitor exception: " ++ show err

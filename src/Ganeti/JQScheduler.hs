@@ -51,7 +51,7 @@ module Ganeti.JQScheduler
 import Control.Applicative (liftA2)
 import Control.Arrow
 import Control.Concurrent
-import Control.Exception
+import Control.Exception (finally)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Function (on)
@@ -64,6 +64,7 @@ import Data.Ord (comparing)
 import Data.Set (Set)
 import qualified Data.Set as S
 import System.INotify
+import System.IO.Error (tryIOError)
 
 import Ganeti.BasicTypes
 import Ganeti.Compat
@@ -170,8 +171,7 @@ readJobStatus jWS@(JobWithStat {jStat=fstat, jJob=job})  = do
   qdir <- queueDir
   let fpath = liveJobFile qdir jid
   logDebug $ "Checking if " ++ fpath ++ " changed on disk."
-  changedResult <- try $ needsReload fstat fpath
-                   :: IO (Either IOError (Maybe FStat))
+  changedResult <- tryIOError $ needsReload fstat fpath
   let changed = either (const $ Just nullFStat) id changedResult
   case changed of
     Nothing -> do
@@ -511,7 +511,7 @@ readJobFromDisk jid = do
   qdir <- queueDir
   let fpath = liveJobFile qdir jid
   logDebug $ "Reading " ++ fpath
-  tryFstat <- try $ getFStat fpath :: IO (Either IOError FStat)
+  tryFstat <- tryIOError $ getFStat fpath
   let fstat = either (const nullFStat) id tryFstat
   loadResult <- JQ.loadJobFromDisk qdir False jid
   return $ liftM (JobWithStat Nothing fstat . fst) loadResult

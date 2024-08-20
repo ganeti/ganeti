@@ -45,9 +45,9 @@ module Ganeti.WConfd.DeathDetection
   ) where
 
 import Control.Concurrent (threadDelay)
-import qualified Control.Exception as E
 import Control.Monad
 import System.Directory (removeFile)
+import System.IO.Error (tryIOError)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -77,8 +77,7 @@ cleanupLocks = do
           logInfo $ show owner ++ " died, releasing locks and reservations"
           persCleanup persistentTempRes owner
           persCleanup persistentLocks owner
-          _ <- liftIO . E.try $ removeFile fpath
-               :: WConfdMonad (Either IOError ())
+          _ <- liftIO . tryIOError $ removeFile fpath
           return ()
   mapM_ cleanupIfDead owners
 
@@ -96,8 +95,7 @@ cleanupLocksTask = forever . runResultT $ do
                   else liftIO (isDead fpath)
         when died $ do
           logInfo $ "Cleaning up stale file " ++ fpath
-          _ <- liftIO . E.try $ removeFile fpath
-               :: WConfdMonad (Either IOError ())
+          _ <- liftIO . tryIOError $ removeFile fpath
           return ()
   mapM_ cleanupStaleIfDead remainingFiles
   liftIO $ threadDelay cleanupInterval
