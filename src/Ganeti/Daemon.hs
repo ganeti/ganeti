@@ -76,7 +76,8 @@ import System.Directory
 import System.Exit
 import System.Environment
 import System.IO
-import System.IO.Error (isDoesNotExistError, modifyIOError, annotateIOError)
+import System.IO.Error
+        (catchIOError, isDoesNotExistError, modifyIOError, annotateIOError)
 import qualified System.Posix as Posix
 import System.Posix.Directory
 import System.Posix.Files
@@ -349,7 +350,7 @@ parseAddress opts defport = do
   def_family <- Ssconf.getPrimaryIPFamily Nothing
   case optBindAddress opts of
     Nothing -> defaultBindAddr port def_family
-    Just saddr -> Control.Exception.catch
+    Just saddr -> catchIOError
                     (resolveAddr port saddr)
                     (ioErrorToResult $ "Invalid address " ++ saddr)
 
@@ -376,7 +377,7 @@ getFQDNwithHints :: Maybe Socket.AddrInfo -> IO String
 getFQDNwithHints hints = do
   let ioErrorToNothing :: IOError -> IO (Maybe String)
       ioErrorToNothing _ = return Nothing
-  vcluster_node <- Control.Exception.catch
+  vcluster_node <- catchIOError
                      (liftM Just (getEnv vClusterHostNameEnvVar))
                      ioErrorToNothing
   case vcluster_node of
@@ -432,7 +433,7 @@ daemonize logfile action = do
     closeFd rpipe
     let wpipe' = Just wpipe
     setupDaemonEnv "/" (Posix.unionFileModes Posix.groupModes Posix.otherModes)
-    setupDaemonFDs (Just logfile) `Control.Exception.catch`
+    setupDaemonFDs (Just logfile) `catchIOError`
       handlePrepErr False wpipe'
     -- second fork, launches the actual child code; standard
     -- double-fork technique
@@ -531,7 +532,7 @@ innerMain :: GanetiDaemon  -- ^ The daemon we're running
           -> IO ()
 innerMain daemon opts syslog check_result prep_fn exec_fn fd = do
   (pidFile, prep_result) <- fullPrep daemon opts syslog check_result prep_fn
-                 `Control.Exception.catch` handlePrepErr True fd
+                 `catchIOError` handlePrepErr True fd
   -- no error reported, we should now close the fd
   maybeCloseFd fd
   finally (exec_fn opts check_result prep_result)

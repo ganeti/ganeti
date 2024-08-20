@@ -55,14 +55,13 @@ module Ganeti.Ssconf
   ) where
 
 import Control.Arrow ((&&&))
-import Control.Exception
 import Control.Monad (forM, liftM)
 import Control.Monad.Fail (MonadFail)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as Socket
 import System.FilePath ((</>))
-import System.IO.Error (isDoesNotExistError)
+import System.IO.Error (catchIOError, isDoesNotExistError)
 import qualified Text.JSON as J
 
 import qualified AutoConf
@@ -124,7 +123,7 @@ catchIOErrors :: Maybe a         -- ^ Optional default
               -> IO a            -- ^ Action to run
               -> IO (Result a)
 catchIOErrors def action =
-  Control.Exception.catch
+  catchIOError
         (do
           result <- action
           return (Ok result)

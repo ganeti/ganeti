@@ -40,7 +40,6 @@ module Ganeti.ConfigReader
   ) where
 
 import Control.Concurrent
-import Control.Exception
 import Control.Monad (unless)
 import System.IO.Error (catchIOError)
 import System.INotify
@@ -138,7 +137,7 @@ updateConfig path save_fn = do
 safeUpdateConfig :: FilePath -> FStat -> (Result ConfigData -> IO ())
                  -> IO (FStat, ConfigReload)
 safeUpdateConfig path oldfstat save_fn =
-  Control.Exception.catch
+  catchIOError
         (do
           nt <- needsReload oldfstat path
           case nt of
