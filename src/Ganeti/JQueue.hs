@@ -86,7 +86,6 @@ module Ganeti.JQueue
 import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Exception (catch)
 import Control.Lens (over)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
@@ -101,7 +100,7 @@ import Data.Ord (comparing)
 import Prelude hiding (id, log)
 import System.Directory
 import System.FilePath
-import System.IO.Error (isDoesNotExistError, tryIOError)
+import System.IO.Error (isDoesNotExistError, tryIOError, catchIOError)
 import System.Posix.Files
 import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, sigKILL, signalProcess)
 import System.Posix.Types (ProcessID)
@@ -396,13 +395,13 @@ ignoreIOError a ignore_noent msg e = do
 allArchiveDirs :: FilePath -> IO [FilePath]
 allArchiveDirs rootdir = do
   let adir = rootdir </> jobQueueArchiveSubDir
-  contents <- getDirectoryContents adir `Control.Exception.catch`
+  contents <- getDirectoryContents adir `catchIOError`
                ignoreIOError [] False
                  ("Failed to list queue directory " ++ adir)
   let fpaths = map (adir </>) $ filter (not . ("." `isPrefixOf`)) contents
   filterM (\path ->
              liftM isDirectory (getFileStatus (adir </> path))
-               `Control.Exception.catch`
+               `catchIOError`
                ignoreIOError False True
                  ("Failed to stat archive path " ++ path)) fpaths
 
@@ -440,7 +439,7 @@ readJobDataFromDisk rootdir archived jid = do
                     else [(live_path, False)]
   foldM (\state (path, isarchived) ->
            liftM (\r -> Just (r, isarchived)) (readFile path)
-             `Control.Exception.catch`
+             `catchIOError`
              ignoreIOError state True
                ("Failed to read job file " ++ path)) Nothing all_paths
 
