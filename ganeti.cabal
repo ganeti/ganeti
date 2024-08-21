@@ -276,8 +276,8 @@ Library
 
   If flag(metad)
     Build-Depends:
-        snap-core                     >= 0.8.1
-      , snap-server                   >= 0.8.1
+        snap-core                     >= 1.0.0
+      , snap-server                   >= 1.0.0
     Exposed-Modules:
       Ganeti.Metad.ConfigServer
       Ganeti.Metad.Server
