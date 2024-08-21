@@ -284,7 +284,9 @@ DIRCHECK_EXCLUDE = \
 	doc/man-html/_* \
 	tools/shebang \
 	autom4te.cache \
-	.devcontainer
+	.devcontainer \
+	.github \
+	.github/workflows
 
 # some helper vars
 COVERAGE_DIR = doc/coverage
