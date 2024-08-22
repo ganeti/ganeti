@@ -14,7 +14,7 @@ permissions: read-all
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build on ${{ matrix.os }}-${{ matrix.regex }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
