@@ -34,11 +34,11 @@ jobs:
         run: ./autogen.sh
 
       - name: configure
-        if: ${{ matrix.regex = 'pcre' }}
+        if: ${{ matrix.regex == 'pcre' }}
         run: ./configure --enable-haskell-tests
 
       - name: configure
-        if: ${{ matrix.regex = 'tdfa' }}
+        if: ${{ matrix.regex == 'tdfa' }}
         run: ./configure --enable-haskell-tests --enable-regex-tdfa
 
       - name: Build
