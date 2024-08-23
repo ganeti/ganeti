@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [bookworm, focal, jammy, debian-testing]
+        os: [bookworm, focal, jammy, noble, debian-testing]
         regex: [pcre, tdfa]
         exclude:
           - os: debian-testing
