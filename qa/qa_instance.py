@@ -606,15 +606,15 @@ def _TestKVMHotplug(instance, instance_info):
 
   """
   args_to_try = [
-    ["--net", "-1:add", "--hotplug"],
-    ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
-    ["--net", "-1:remove", "--hotplug"]
+    ["--net", "-1:add"],
+    ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--force"],
+    ["--net", "-1:remove"]
   ]
   if instance_info["hypervisor-parameters"]["disk_type"] != \
           constants.HT_DISK_IDE:
     # hotplugging disks is not supported for IDE-type disks
-    args_to_try.append(["--disk", "-1:add,size=1G", "--hotplug"])
-    args_to_try.append(["--disk", "-1:remove", "--hotplug"])
+    args_to_try.append(["--disk", "-1:add,size=1G"])
+    args_to_try.append(["--disk", "-1:remove"])
 
   for alist in args_to_try:
     _, stdout, stderr = \
