@@ -553,10 +553,11 @@ class QmpConnection(QemuMonitorSocket):
     """
     self.execute_qmp("device_del", {"id": devid})
 
-    # TODO: implement receiving of QMP events
-    # We need to wait for the DEVICE_DELETED event via QMP before proceeding.
-    # The old implementation using HMP only worked because it is so slow.
-    time.sleep(1)
+    # wait for the DEVICE_DELETED event with five seconds timeout
+    event = self.wait_for_qmp_event("DEVICE_DELETED", 5)
+    if event is None:
+      raise errors.HypervisorError("DEVICE_DELETED event has not arrived")
+
     self.execute_qmp("blockdev-del", {"node-name": devid})
 
   def _GetPCIDevices(self):
