@@ -2303,6 +2303,9 @@ ldpPlanAhead = "c-plan-ahead"
 ldpPool :: String
 ldpPool = "pool"
 
+ldpUserId :: String
+ldpUserId = "user-id"
+
 ldpProtocol :: String
 ldpProtocol = "protocol"
 
@@ -2330,7 +2333,8 @@ diskLdTypes =
    (ldpDelayTarget, VTypeInt),
    (ldpMaxRate, VTypeInt),
    (ldpMinRate, VTypeInt),
-   (ldpPool, VTypeString)]
+   (ldpPool, VTypeString),
+   (ldpUserId, VTypeString)]
 
 diskLdParameters :: FrozenSet String
 diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
@@ -2394,6 +2398,9 @@ rbdAccess = "access"
 rbdPool :: String
 rbdPool = "pool"
 
+rbdUserId :: String
+rbdUserId = "user-id"
+
 diskDtTypes :: Map String VType
 diskDtTypes =
   Map.fromList [(drbdResyncRate, VTypeInt),
@@ -2414,6 +2421,7 @@ diskDtTypes =
                 (lvStripes, VTypeInt),
                 (rbdAccess, VTypeString),
                 (rbdPool, VTypeString),
+                (rbdUserId, VTypeString),
                 (glusterHost, VTypeString),
                 (glusterVolume, VTypeString),
                 (glusterPort, VTypeInt)
@@ -4227,6 +4235,9 @@ defaultPlanAhead = 20
 defaultRbdPool :: String
 defaultRbdPool = "rbd"
 
+defaultRbdUserId :: String
+defaultRbdUserId = ""
+
 diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
 diskLdDefaults =
   Map.fromList
@@ -4254,6 +4265,7 @@ diskLdDefaults =
   , (DTRbd, Map.fromList
             [ (ldpPool, PyValueEx defaultRbdPool)
             , (ldpAccess, PyValueEx diskKernelspace)
+            , (ldpUserId, PyValueEx defaultRbdUserId)
             ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
@@ -4294,6 +4306,7 @@ diskDtDefaults =
   , (DTRbd,        Map.fromList
                    [ (rbdPool, PyValueEx defaultRbdPool)
                    , (rbdAccess, PyValueEx diskKernelspace)
+                   , (rbdUserId, PyValueEx defaultRbdUserId)
                    ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
