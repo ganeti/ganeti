@@ -200,6 +200,7 @@ HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
 
 DIRS = \
 	$(HS_DIRS) \
+	$(PYTHON_TEST_DIRS) \
 	autotools \
 	daemons \
 	devel \
@@ -394,7 +395,6 @@ BUILDTIME_DIRS = \
 
 DIRCHECK_EXCLUDE = \
 	$(BUILDTIME_DIRS) \
-	$(PYTHON_TEST_DIRS) \
 	ganeti-[0-9]*.[0-9]*.[0-9]* \
 	doc/html/_* \
 	doc/man-html/_* \
@@ -1913,6 +1913,8 @@ TEST_FILES = \
 	test/py/legacy/gnt-cli.test \
 	test/py/legacy/import-export_unittest-helper
 
+python_tests_integration = \
+	test/py/integration/test_dummy.py
 
 python_tests_legacy = \
 	doc/examples/rapi_testutils.py \
@@ -2013,6 +2015,11 @@ python_tests_legacy = \
 	test/py/legacy/qa.qa_config_unittest.py \
 	test/py/legacy/tempfile_fork_unittest.py
 
+python_tests_unit = \
+	test/py/unit/test_dummy.py
+
+python_tests = $(python_tests_integration) $(python_tests_legacy) $(python_tests_unit)
+
 python_test_support = \
 	test/py/legacy/__init__.py \
 	test/py/legacy/lockperf.py \
@@ -2046,7 +2053,7 @@ dist_TESTS = \
 	test/py/legacy/bash_completion.bash
 
 if PY_UNIT
-dist_TESTS += $(python_tests_legacy)
+dist_TESTS += $(python_tests)
 endif
 
 nodist_TESTS =
@@ -2112,7 +2119,7 @@ all_python_code = \
 	$(qa_scripts)
 
 if PY_UNIT
-all_python_code += $(python_tests_legacy)
+all_python_code += $(python_tests)
 all_python_code += $(python_test_support)
 all_python_code += $(python_test_utils)
 endif
@@ -2958,7 +2965,7 @@ coverage: $(COVERAGE_TESTS)
 test/py/docs_unittest.py: $(gnt_scripts)
 
 .PHONY: py-coverage
-py-coverage: $(GENERATED_FILES) $(python_tests_legacy)
+py-coverage: $(GENERATED_FILES) $(python_tests)
 	@test -n "$(PYCOVERAGE)" || \
 	    { echo 'python-coverage' not found during configure; exit 1; }
 	set -e; \
@@ -2968,7 +2975,7 @@ py-coverage: $(GENERATED_FILES) $(python_tests_legacy)
 	HTML_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR) \
 	$(PLAIN_TESTS_ENVIRONMENT) \
 	$(abs_top_srcdir)/autotools/gen-py-coverage \
-	$(python_tests_legacy)
+	$(python_tests)
 
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests) test/hs/hpc-htools test/hs/hpc-mon-collector
