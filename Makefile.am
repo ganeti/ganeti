@@ -268,6 +268,7 @@ PYTHON_TEST_DIRS = \
 	test/py/unit \
 	test/py/unit/hypervisor \
 	test/py/unit/hypervisor/hv_kvm \
+	test/py/unit/test_data \
 	test/py/integration
 
 ALL_APIDOC_HS_DIRS = \
@@ -662,7 +663,8 @@ hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/monitor.py \
 	lib/hypervisor/hv_kvm/netdev.py \
 	lib/hypervisor/hv_kvm/validation.py \
-	lib/hypervisor/hv_kvm/kvm_utils.py
+	lib/hypervisor/hv_kvm/kvm_utils.py \
+	lib/hypervisor/hv_kvm/kvm_runtime.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -1913,7 +1915,9 @@ TEST_FILES = \
 	test/data/xen-xl-uptime-4.0.1.txt \
 	test/py/legacy/ganeti-cli.test \
 	test/py/legacy/gnt-cli.test \
-	test/py/legacy/import-export_unittest-helper
+	test/py/legacy/import-export_unittest-helper \
+	test/py/unit/test_data/serialized_disks.json \
+	test/py/unit/test_data/serialized_nics.json
 
 python_tests_integration = \
 	test/py/integration/test_dummy.py
