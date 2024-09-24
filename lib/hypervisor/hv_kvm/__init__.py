@@ -1079,10 +1079,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
-      # TODO: handle FD_LOOP and FD_BLKTAP (?)
-      if boot_disk:
-        dev_opts.extend(["-boot", "order=c"])
-        boot_disk = False
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
@@ -1094,21 +1090,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       blockdevice = self._GenerateKVMBlockDevice(drive_uri, cfdev, up_hvp,
                                                  kvm_devid)
 
+      dev_val = ""
+
       if disk_type == constants.HT_DISK_IDE:
-        dev_opts.extend(["-device", "ide-hd,drive=%s,write-cache=%s" %
-                         (kvm_devid,
-                          kvm_utils.TranslateBoolToOnOff(writeback))])
+        dev_val += "ide-hd,drive={},write-cache={}".format(
+          kvm_devid, kvm_utils.TranslateBoolToOnOff(writeback)
+        )
       else:
         # hvinfo will exist for paravirtual devices either due to
         # _UpgradeSerializedRuntime() for old instances or due to
         # _GenerateKVMRuntime() for new instances.
 
         # Add driver, id, bus, and addr or channel, scsi-id, lun if any.
-        dev_val = _GenerateDeviceHVInfoStr(cfdev.hvinfo)
-        dev_val += ",drive=%s,write-cache=%s" % (kvm_devid,
-                                                 kvm_utils.TranslateBoolToOnOff(
-                                                   writeback))
-        dev_opts.extend(["-device", dev_val])
+        dev_val += _GenerateDeviceHVInfoStr(cfdev.hvinfo)
+        dev_val += ",drive={},write-cache={}".format(
+          kvm_devid, kvm_utils.TranslateBoolToOnOff(writeback)
+        )
+
+      # TODO: handle FD_LOOP and FD_BLKTAP
+      # add bootindex property to the first disk if disk boot is enabled
+      if boot_disk:
+        dev_val += ",bootindex=1"
+        boot_disk = False
+
+      dev_opts.extend(["-device", dev_val])
 
       # QEMU 4.0 introduced dynamic auto-read-only for file-backed drives. This
       # is unhandled in Ganeti and breaks live migration with
@@ -1138,9 +1143,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param boot_floppy: set boot device to floppy
 
     """
-    if boot_floppy:
-      kvm_cmd.extend(["-boot", "a"])
-
     bdev_opts = [
       "driver=raw",
       "node-name=floppy1",
@@ -1152,6 +1154,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       "floppy",
       "drive=floppy1"
     ]
+
+    if boot_floppy:
+      dev_opts.append("bootindex=1")
 
     kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
                     "-device",   ",".join(dev_opts)])
@@ -1214,7 +1219,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dev_opts.append("drive=%s" % cdrom_id)
     # set boot flag, if needed
     if cdrom_boot:
-      kvm_cmd.extend(["-boot", "order=d"])
+      dev_opts.append("bootindex=1")
 
     # build '-drive' option
     kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
@@ -1301,17 +1306,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
-      boot_cdrom = boot_floppy = boot_network = False
+      boot_cdrom = boot_floppy = False
     else:
       boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
       boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
-      boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
-
-    if boot_network:
-      kvm_cmd.extend(["-boot", "order=n"])
 
     disk_type = hvp[constants.HV_DISK_TYPE]
 
@@ -1825,6 +1826,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     tapfds = []
     taps = []
     devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
+
+    boot_network = (up_hvp.get(constants.HV_BOOT_ORDER, '') ==
+                    constants.HT_BO_NETWORK)
+
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
@@ -1850,6 +1855,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           vhostfd = ""
 
         if kvm_supports_netdev:
+          dev_ops = []
+
           # Non paravirtual NICs hvinfo is empty
           if "id" in nic.hvinfo:
             nic_val = _GenerateDeviceHVInfoStr(nic.hvinfo)
@@ -1857,10 +1864,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           else:
             nic_val = "%s" % nic_model
             netdev = "netdev%d" % nic_seq
+
           nic_val += (",netdev=%s,mac=%s%s" % (netdev, nic.mac, nic_extra))
           tap_val = ("type=tap,id=%s,%s%s%s" %
                      (netdev, tapfd, vhostfd, tap_extra))
-          kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
+          dev_ops.append(nic_val)
+
+          # add bootindex property to the first nic if network boot is enabled
+          if boot_network and incoming is None:
+            dev_ops.append("bootindex=1")
+            boot_network = False
+
+          kvm_cmd.extend(["-netdev", tap_val, "-device", ','.join(dev_ops)])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
                                                          nic.mac, nic_model)
