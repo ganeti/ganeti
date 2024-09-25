@@ -60,7 +60,6 @@ except ImportError:
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
-from ganeti import serializer
 from ganeti import objects
 from ganeti import uidpool
 from ganeti import ssconf
@@ -71,6 +70,8 @@ from ganeti.utils import wrapper as utils_wrapper
 
 from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage
 from ganeti.hypervisor.hv_kvm.netdev import OpenTap
+
+from ganeti.hypervisor.hv_kvm.kvm_runtime import KVMRuntime
 
 from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 check_console_parameters, \
@@ -329,145 +330,6 @@ def _GetExistingDeviceInfo(dev_type, device, runtime):
                               (dev_type, device.uuid))
 
   return found[0]
-
-
-def _UpgradeSerializedRuntime(serialized_runtime):
-  """Upgrade runtime data
-
-  Remove any deprecated fields or change the format of the data.
-  The runtime files are not upgraded when Ganeti is upgraded, so the required
-  modification have to be performed here.
-
-  @type serialized_runtime: string
-  @param serialized_runtime: raw text data read from actual runtime file
-  @return: (cmd, nic dicts, hvparams, bdev dicts)
-  @rtype: tuple
-
-  """
-  loaded_runtime = serializer.Load(serialized_runtime)
-  kvm_cmd, serialized_nics, hvparams = loaded_runtime[:3]
-  if len(loaded_runtime) >= 4:
-    serialized_disks = loaded_runtime[3]
-  else:
-    serialized_disks = []
-
-  def update_hvinfo(dev, dev_type):
-    """ Remove deprecated pci slot and substitute it with hvinfo """
-    if "hvinfo" not in dev:
-      dev["hvinfo"] = {}
-      uuid = dev["uuid"]
-      # Ganeti used to save the PCI slot of paravirtual devices
-      # (virtio-blk-pci, virtio-net-pci) in runtime files during
-      # _GenerateKVMRuntime() and HotAddDevice().
-      # In this case we had a -device QEMU option in the command line with id,
-      # drive|netdev, bus, and addr params. All other devices did not have an
-      # id nor placed explicitly on a bus.
-      # hot- prefix is removed in 2.16. Here we add it explicitly to
-      # handle old instances in the cluster properly.
-      if "pci" in dev:
-        # This is practically the old _GenerateDeviceKVMId()
-        hv_dev_type = _DEVICE_TYPE[dev_type](hvparams)
-        dev["hvinfo"]["driver"] = _DEVICE_DRIVER[dev_type](hv_dev_type)
-        dev["hvinfo"]["id"] = "hot%s-%s-%s-%s" % (dev_type.lower(),
-                                                  uuid.split("-")[0],
-                                                  "pci",
-                                                  dev["pci"])
-        dev["hvinfo"]["addr"] = hex(dev["pci"])
-        dev["hvinfo"]["bus"] = _PCI_BUS
-        del dev["pci"]
-
-  for nic in serialized_nics:
-    # Add a dummy uuid slot if an pre-2.8 NIC is found
-    if "uuid" not in nic:
-      nic["uuid"] = utils.NewUUID()
-    update_hvinfo(nic, constants.HOTPLUG_TARGET_NIC)
-
-  for disk_entry in serialized_disks:
-    # We have a (Disk, link, uri) tuple
-    update_hvinfo(disk_entry[0], constants.HOTPLUG_TARGET_DISK)
-
-  # Handle KVM command line argument changes
-  try:
-    idx = kvm_cmd.index("-localtime")
-  except ValueError:
-    pass
-  else:
-    kvm_cmd[idx:idx+1] = ["-rtc", "base=localtime"]
-
-  try:
-    idx = kvm_cmd.index("-balloon")
-  except ValueError:
-    pass
-  else:
-    balloon_args = kvm_cmd[idx+1].split(",")[1:]
-    balloon_str = "virtio-balloon"
-    if balloon_args:
-      balloon_str += ",%s" % ",".join(balloon_args)
-
-    kvm_cmd[idx:idx+2] = ["-device", balloon_str]
-
-  try:
-    idx = kvm_cmd.index("-vnc")
-  except ValueError:
-    pass
-  else:
-    # Check to see if TLS is enabled
-    orig_vnc_args = kvm_cmd[idx+1].split(",")
-    vnc_args = []
-    tls_obj = None
-    tls_obj_args = ["id=vnctls0", "endpoint=server"]
-    for arg in orig_vnc_args:
-      if arg == "tls":
-        tls_obj = "tls-creds-anon"
-        vnc_args.append("tls-creds=vnctls0")
-        continue
-
-      elif arg.startswith("x509verify=") or arg.startswith("x509="):
-        pki_path = arg.split("=", 1)[-1]
-        tls_obj = "tls-creds-x509"
-        tls_obj_args.append("dir=%s" % pki_path)
-        if arg.startswith("x509verify="):
-          tls_obj_args.append("verify-peer=yes")
-        else:
-          tls_obj_args.append("verify-peer=no")
-        continue
-
-      vnc_args.append(arg)
-
-    if tls_obj is not None:
-      vnc_cmd = ["-vnc", ",".join(vnc_args)]
-      tls_obj_cmd = ["-object",
-                     "%s,%s" % (tls_obj, ",".join(tls_obj_args))]
-
-      # Replace the original vnc argument with the new ones
-      kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
-
-    # with 3.1 the 'default' value for disk_discard has been dropped
-    # and replaced by 'ignore'
-    if constants.HV_DISK_DISCARD in hvparams \
-      and hvparams[constants.HV_DISK_DISCARD] not in \
-        constants.HT_VALID_DISCARD_TYPES:
-      hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
-
-  return kvm_cmd, serialized_nics, hvparams, serialized_disks
-
-
-def _AnalyzeSerializedRuntime(serialized_runtime):
-  """Return runtime entries for a serialized runtime file
-
-  @type serialized_runtime: string
-  @param serialized_runtime: raw text data read from actual runtime file
-  @return: (cmd, nics, hvparams, bdevs)
-  @rtype: tuple
-
-  """
-  kvm_cmd, serialized_nics, hvparams, serialized_disks = \
-    _UpgradeSerializedRuntime(serialized_runtime)
-  kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
-  kvm_disks = [(objects.Disk.FromDict(sdisk), link, uri)
-               for sdisk, link, uri in serialized_disks]
-
-  return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
 
 
 class HeadRequest(urllib.request.Request):
@@ -1348,7 +1210,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                     "-device",   ",".join(dev_opts)])
 
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
-                          kvmhelp):
+                          kvmhelp) -> KVMRuntime:
     """Generate KVM information to start an instance.
 
     @type kvmhelp: string
@@ -1728,7 +1590,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     hvparams = hvp
 
-    return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
+    return KVMRuntime([kvm_cmd, kvm_nics, hvparams, kvm_disks])
 
   def _WriteKVMRuntime(self, instance_name, data):
     """Write an instance's KVM runtime
@@ -1750,28 +1612,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
     return file_content
 
-  def _SaveKVMRuntime(self, instance, kvm_runtime):
+  def _SaveKVMRuntime(self, instance, kvm_runtime: KVMRuntime):
     """Save an instance's KVM runtime
 
     """
-    kvm_cmd, kvm_nics, hvparams, kvm_disks = kvm_runtime
 
-    serialized_nics = [nic.ToDict() for nic in kvm_nics]
-    serialized_disks = [(blk.ToDict(), link, uri)
-                        for blk, link, uri in kvm_disks]
-    serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams,
-                                      serialized_disks))
+    self._WriteKVMRuntime(instance.name, kvm_runtime.serialize())
 
-    self._WriteKVMRuntime(instance.name, serialized_form)
-
-  def _LoadKVMRuntime(self, instance, serialized_runtime=None):
+  def _LoadKVMRuntime(self, instance, serialized_runtime=None) -> KVMRuntime:
     """Load an instance's KVM runtime
 
     """
     if not serialized_runtime:
       serialized_runtime = self._ReadKVMRuntime(instance.name)
 
-    return _AnalyzeSerializedRuntime(serialized_runtime)
+    return KVMRuntime.from_serialized(serialized_runtime)
 
   def _RunKVMCmd(self, name, kvm_cmd, tap_fds=None):
     """Run the KVM cmd and check for errors
@@ -1885,7 +1740,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # too many local variables
   # pylint: disable=R0914
   @_with_qmp
-  def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
+  def _ExecuteKVMRuntime(self, instance, kvm_runtime: KVMRuntime,
+                         kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
     @type instance: L{objects.Instance} object
@@ -1917,7 +1773,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     temp_files = []
 
-    kvm_cmd, kvm_nics, up_hvp, kvm_disks = kvm_runtime
+    kvm_cmd = kvm_runtime.kvm_cmd
+    kvm_nics = kvm_runtime.kvm_nics
+    up_hvp = kvm_runtime.up_hvp
+    kvm_disks = kvm_runtime.kvm_disks
+
     # the first element of kvm_cmd is always the path to the kvm binary
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
@@ -2186,7 +2046,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if version < (1, 7, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
-  def _GetBusSlots(self, hvp=None, runtime=None):
+  def _GetBusSlots(self, hvp=None, runtime: KVMRuntime=None):
     """Helper function to get the slots of PCI and SCSI QEMU buses.
 
     This will return the status of the first PCI and SCSI buses. By default
@@ -2221,8 +2081,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # This is during hot-add
     if runtime:
-      _, nics, _, disks = runtime
-      disks = [d for d, _, _ in disks]
+      nics = runtime.kvm_nics
+      disks = [d for d, _, _ in runtime.kvm_disks]
       for d in disks + nics:
         if not d.hvinfo or "bus" not in d.hvinfo:
           continue

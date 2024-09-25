@@ -53,6 +53,7 @@ import ganeti.hypervisor.hv_kvm.monitor as monitor
 import ganeti.hypervisor.hv_kvm.validation as validation
 
 import testutils
+from lib.hypervisor.hv_kvm.kvm_runtime import KVMRuntime
 
 from testutils.config_mock import ConfigMock
 
@@ -754,7 +755,7 @@ class TestGetRuntimeInfo(unittest.TestCase):
   @classmethod
   def _GetRuntime(cls):
     data = testutils.ReadTestData("kvm_runtime.json")
-    return hv_kvm._AnalyzeSerializedRuntime(data)
+    return KVMRuntime.from_serialized(data)
 
   def _fail(self, target, device, runtime):
     device.uuid = "aaaaaaaa-66a8-4e6d-8b7e-ec4f69751396"
