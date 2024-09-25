@@ -90,7 +90,7 @@ class KVMRuntime:
     return serialized
 
   @staticmethod
-  def from_serialized(serialized: str, upgrade: bool = False) -> 'KVMRuntime':
+  def from_serialized(serialized: str, upgrade: bool = True) -> 'KVMRuntime':
     loaded_runtime = serializer.Load(serialized)
 
     if upgrade:
