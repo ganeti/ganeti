@@ -39,7 +39,7 @@ import io
 import logging
 import time
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from collections import namedtuple
 from bitarray import bitarray
 
@@ -85,6 +85,14 @@ class QmpMessage:
 
   def __setitem__(self, field_name, field_value):
     self.data[field_name] = field_value
+
+  def __eq__(self, other: Union['QmpMessage', Dict]):
+    if isinstance(other, QmpMessage):
+      return self.data == other.data
+    elif isinstance(other, dict):
+      return self.data == other
+
+    return False
 
   def __len__(self):
     """Return the number of fields stored in this QmpMessage.
@@ -181,7 +189,7 @@ def _ensure_connection(fn):
 
 class UnixFileSocketConnection:
 
-  def __init__(self, socket_path: str, timeout: int):
+  def __init__(self, socket_path: str, timeout: Union[int, float]):
     self.socket_path = socket_path
     self.timeout = timeout
     self.sock = None
@@ -266,7 +274,7 @@ class QemuMonitorSocket(UnixFileSocketConnection):
       return response[self._RETURN_KEY]
 
   def wait_for_qmp_event(self, event_type: str,
-                         timeout: int) -> Optional[QmpEvent]:
+                         timeout: Union[int, float]) -> Optional[QmpEvent]:
     """Waits for the specified event and returns it.
        If the timeout is reached, None returns.
 
