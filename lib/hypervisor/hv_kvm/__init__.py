@@ -1292,6 +1292,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         specprop = ""
       machinespec = "%s%s" % (mversion, specprop)
       kvm_cmd.extend(["-machine", machinespec])
+      # if q35 is used, we will initialize a PCIe bus and add
+      # a pcie-to-pci bridge to provide a legacy pci.0 bus for
+      # ganeti devices
+      # this is a first step toward supporting q35 properly
+      if mversion.startswith("q35"):
+        kvm_cmd.extend(["-device",
+                        "pcie-pci-bridge,id=pcie-pci-bridge1,bus=pcie.0"])
+        kvm_cmd.extend(["-device",
+                        "pci-bridge,id=pci.0,bus=pcie-pci-bridge1,"
+                        "chassis_nr=1,addr=02"])
     else:
       kvm_cmd.extend(["-machine", mversion])
       if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
@@ -2107,7 +2117,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: if result is not the expected one
 
     """
-    for i in range(5):
+    for i in range(15):
       found = self.qmp.HasDevice(kvm_devid)
       logging.info("Verifying hotplug command (retry %s): %s", i, found)
       if found and should_exist:
