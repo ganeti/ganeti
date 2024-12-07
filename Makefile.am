@@ -1485,7 +1485,7 @@ HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 $(HS_SRC_PROGS) exe/htest: dist/app.stamp
 
 dist/app.stamp: exe/ dist/setup-config
-	$(CABAL_SETUP) build -j
+	$(CABAL_SETUP) build
 	-(cd exe; \
 	 for name in ganeti-kvmd ganeti-wconfd ganeti-confd ganeti-luxid \
 		rpc-test ganeti-mond ganeti-metad \
