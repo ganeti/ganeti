@@ -390,7 +390,7 @@ class QmpConnection(QemuMonitorSocket):
 
     ret = self.get_qmp_response(command)
     if command not in [self._QUERY_COMMANDS, self._CAPABILITIES_COMMAND]:
-      logging.debug("QMP Response: %s %s: %s\n", command, arguments, ret)
+      logging.debug("QMP Response: %s %s: %s", command, arguments, ret)
     return ret
 
   def connect(self):
@@ -526,13 +526,21 @@ class QmpConnection(QemuMonitorSocket):
     self.execute_qmp("netdev_del", {"id": devid})
 
   @_ensure_connection
-  def HotAddDisk(self, disk, access_mode, cache_writeback, blockdevice):
+  def HotAddDisk(self, disk, access_mode, cache_writeback, direct, blockdevice):
     """Hot-add a disk
 
     """
 
     if access_mode == constants.DISK_KERNELSPACE:
-      fd = os.open(blockdevice["file"]["filename"], os.O_RDWR)
+      qemu_version = self.GetVersion()
+      if qemu_version >= (9, 0, 0) and direct:
+        # starting with qemu v9 it is required to
+        # use O_DIRECT for opening the blockdevice
+        # when `direct` is set
+        flags = os.O_RDWR|os.O_DIRECT
+      else:
+        flags = os.O_RDWR
+      fd = os.open(blockdevice["file"]["filename"], flags)
       fdset = self._AddFd(fd)
       os.close(fd)
       blockdevice["file"]["filename"] = "/dev/fdset/%s" % fdset

@@ -2192,7 +2192,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       blockdevice = self._GenerateKVMBlockDevice(target, disk_info, up_hvp,
                                                  kvm_devid)
 
-      self.qmp.HotAddDisk(device, access_mode, writeback, blockdevice)
+      self.qmp.HotAddDisk(device, access_mode, writeback, direct, blockdevice)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       is_chrooted = instance.hvparams[constants.HV_KVM_USE_CHROOT]
