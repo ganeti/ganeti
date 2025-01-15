@@ -502,6 +502,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     re.compile(r"^-blockdev\s([^-]|(?<!^)-)*,auto-read-only=on\|off",
                re.M | re.S)
   _RUNWITH_RE = re.compile(r"^-run-with\s.*chroot=.*user=", re.M)
+  _ACPI_RE = re.compile(r"^-no-acpi\s", re.M)
 
   # Slot 0 for Host bridge, Slot 1 for ISA bridge, Slot 2 for VGA controller
   # and the rest up to slot 11 will be used by QEMU implicitly.
@@ -1274,33 +1275,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
                                   "%s.log" % instance.name)
     kvm_cmd.extend(["-D", qemu_logfile])
-    if not instance.hvparams[constants.HV_ACPI]:
-      kvm_cmd.extend(["-no-acpi"])
+
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
         constants.INSTANCE_REBOOT_EXIT:
       kvm_cmd.extend(["-no-reboot"])
 
+    machine_params = []
     mversion = hvp[constants.HV_KVM_MACHINE_VERSION]
     if not mversion:
       mversion = self._GetDefaultMachineVersion(kvm)
-    if self._MACHINE_RE.search(kvmhelp):
-      # TODO (2.8): kernel_irqchip and kvm_shadow_mem machine properties, as
-      # extra hypervisor parameters. We should also investigate whether and how
-      # shadow_mem should be considered for the resource model.
-      if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
-        specprop = ",accel=kvm"
+    machine_params.append(mversion)
+
+    if not instance.hvparams[constants.HV_ACPI]:
+      if self._ACPI_RE.search(kvmhelp):
+        # this parameter has been replaced starting with Qemu 9.0
+        kvm_cmd.extend(["-no-acpi"])
       else:
-        specprop = ""
-      machinespec = "%s%s" % (mversion, specprop)
-      kvm_cmd.extend(["-machine", machinespec])
-    else:
-      kvm_cmd.extend(["-machine", mversion])
-      if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
-          self._ENABLE_KVM_RE.search(kvmhelp)):
-        kvm_cmd.extend(["-enable-kvm"])
-      elif (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED and
-            self._DISABLE_KVM_RE.search(kvmhelp)):
-        kvm_cmd.extend(["-disable-kvm"])
+        machine_params.append("acpi=off")
+
+    if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
+      machine_params.append("accel=kvm")
+
+    kvm_cmd.extend(["-machine", ",".join(machine_params)])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:

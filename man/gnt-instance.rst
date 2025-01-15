@@ -700,9 +700,9 @@ security\_domain
 kvm\_flag
     Valid for the KVM hypervisor.
 
-    If *enabled* the -enable-kvm flag is passed to kvm. If *disabled*
-    -disable-kvm is passed. If unset no flag is passed, and the
-    default running mode for your kvm binary will be used.
+    If *enabled* accel=kvm is appended to the -machine parameter
+    *Disabling* (or not setting this flag at all) currently does
+    nothing.
 
 mem\_path
     Valid for the KVM hypervisor.
