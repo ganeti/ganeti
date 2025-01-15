@@ -501,6 +501,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _AUTO_RO_RE = \
     re.compile(r"^-blockdev\s([^-]|(?<!^)-)*,auto-read-only=on\|off",
                re.M | re.S)
+  _RUNWITH_RE = re.compile(r"^-run-with\s.*chroot=.*user=", re.M)
 
   # Slot 0 for Host bridge, Slot 1 for ISA bridge, Slot 2 for VGA controller
   # and the rest up to slot 11 will be used by QEMU implicitly.
@@ -1531,9 +1532,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-rtc", "base=localtime"])
 
-    if hvp[constants.HV_KVM_USE_CHROOT]:
-      kvm_cmd.extend(["-chroot", self._InstanceChrootDir(instance.name)])
-
     # Add qemu-KVM -cpu param
     if hvp[constants.HV_CPU_TYPE]:
       kvm_cmd.extend(["-cpu", hvp[constants.HV_CPU_TYPE]])
@@ -1737,6 +1735,24 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return features, tap_extra_str, nic_extra_str
 
+  def _GenerateRunwith(self, username=None, chroot_dir=None, kvmhelp=None):
+    args = []
+    if self._RUNWITH_RE.search(kvmhelp):
+      if username:
+        args.append("user=%s" % username)
+      if chroot_dir:
+        args.append("chroot=%s" % chroot_dir)
+      return(["-run-with", ",".join(args)])
+    else:
+      if username:
+        args.extend(["-runas", username])
+      if chroot_dir:
+        args.extend(["-chroot", chroot_dir])
+      return(args)
+
+    # nothing to do
+    return([])
+
   # too many local variables
   # pylint: disable=R0914
   @_with_qmp
@@ -1781,12 +1797,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # the first element of kvm_cmd is always the path to the kvm binary
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
-
-    # We know it's safe to run as a different user upon migration, so we'll use
-    # the latest conf, from conf_hvp.
-    security_model = conf_hvp[constants.HV_SECURITY_MODEL]
-    if security_model == constants.HT_SM_USER:
-      kvm_cmd.extend(["-runas", conf_hvp[constants.HV_SECURITY_DOMAIN]])
 
     # the VNC keymap
     keymap = conf_hvp[constants.HV_KEYMAP]
@@ -1899,6 +1909,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         and up_hvp[constants.HV_CPU_MASK] != constants.CPU_PINNING_ALL:
       cpu_pinning = True
 
+    # chroot and user are combind into -runwith since qemu-9.0
+    chroot_dir = None
+    security_model = conf_hvp[constants.HV_SECURITY_MODEL]
+    if conf_hvp[constants.HV_KVM_USE_CHROOT]:
+      chroot_dir = self._InstanceChrootDir(instance.name)
+      # only chroot is set, no run user
+      if security_model == constants.HT_SM_NONE:
+        kvm_cmd.extend(
+          self._GenerateRunwith(chroot_dir=chroot_dir,
+                           kvmhelp=kvmhelp)
+        )
+
+    if security_model == constants.HT_SM_USER:
+      username = conf_hvp[constants.HV_SECURITY_DOMAIN]
+      kvm_cmd.extend(
+        self._GenerateRunwith(chroot_dir=chroot_dir,
+                         username=username,
+                         kvmhelp=kvmhelp)
+      )
+
     if security_model == constants.HT_SM_POOL:
       ss = ssconf.SimpleStore()
       uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
@@ -1906,7 +1936,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       uid = uidpool.RequestUnusedUid(all_uids)
       try:
         username = pwd.getpwuid(uid.GetUid()).pw_name
-        kvm_cmd.extend(["-runas", username])
+        kvm_cmd.extend(
+          self._GenerateRunwith(chroot_dir=chroot_dir,
+                           username=username,
+                           kvmhelp=kvmhelp)
+        )
         self._RunKVMCmd(name, kvm_cmd, tapfds)
       except:
         uidpool.ReleaseUid(uid)
