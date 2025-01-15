@@ -48,6 +48,8 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import serializer
 
+import ganeti.hypervisor.hv_kvm.kvm_utils as kvm_utils
+
 
 class QmpCommandNotSupported(errors.HypervisorError):
   """QMP command not supported by the monitor.
@@ -549,7 +551,7 @@ class QmpConnection(QemuMonitorSocket):
 
     dev_arguments = {
       "drive": blockdevice["node-name"],
-      "write-cache": cache_writeback
+      "write-cache": kvm_utils.TranslateBoolToOnOff(cache_writeback)
     }
     # Note that hvinfo that _GenerateDeviceHVInfo() creates
     # should include *only* the driver, id, bus, and
