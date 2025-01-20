@@ -567,6 +567,19 @@ class QmpConnection(QemuMonitorSocket):
     time.sleep(1)
     self.execute_qmp("blockdev-del", {"node-name": devid})
 
+  def _GetNestedPCIDevicesOnQ35(self, devices):
+    """Return the PCI devices (sub-) tree on nested PCI structures
+
+    """
+    # look for PCI bridges nested two layers deep
+    for _ in range(2):
+      pci_bridge = next((device["pci_bridge"]["devices"] for device in devices
+                         if "pci_bridge" in device), None)
+      if pci_bridge is None:
+        return None
+      devices = pci_bridge
+    return devices
+
   def _GetPCIDevices(self):
     """Get the devices of the first PCI bus of a running instance.
 
@@ -574,6 +587,13 @@ class QmpConnection(QemuMonitorSocket):
     pci = self.execute_qmp("query-pci")
     bus = pci[0]
     devices = bus["devices"]
+
+    # if machine type is Q35 instead of PC, the legacy PCI
+    # devices will be located on a PCIe-to-PCI bridge
+    nested_devices = self._GetNestedPCIDevicesOnQ35(devices)
+    if nested_devices:
+      return nested_devices
+
     return devices
 
 
