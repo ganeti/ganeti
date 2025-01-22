@@ -503,6 +503,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                re.M | re.S)
   _RUNWITH_RE = re.compile(r"^-run-with\s.*chroot=.*user=", re.M)
   _ACPI_RE = re.compile(r"^-no-acpi\s", re.M)
+  _SOUND_RE = re.compile(r"^-soundhw\s", re.M)
 
   # Slot 0 for Host bridge, Slot 1 for ISA bridge, Slot 2 for VGA controller
   # and the rest up to slot 11 will be used by QEMU implicitly.
@@ -1253,11 +1254,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     bus_slots = self._GetBusSlots(hvp)
 
-    # As requested by music lovers
-    if hvp[constants.HV_SOUNDHW]:
-      soundhw = hvp[constants.HV_SOUNDHW]
-      kvm_cmd.extend(["-soundhw", soundhw])
-
     if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES \
             or hvp[constants.HV_KVM_CDROM_DISK_TYPE]\
             in constants.HT_SCSI_DEVICE_TYPES:
@@ -1524,6 +1520,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(["-display", "none"])
       else:
         kvm_cmd.extend(["-nographic"])
+
+    # As requested by music lovers
+    if hvp[constants.HV_SOUNDHW]:
+      soundhw = hvp[constants.HV_SOUNDHW]
+      if self._SOUND_RE.search(kvmhelp):
+        kvm_cmd.extend(["-soundhw", soundhw])
+      else:
+        # Qemu versions >= 7.1 do not support -soundhw anymore
+        # also, we need to pick a host backend/driver. we'll use
+        # spice if that is configured, otherwise there will be
+        # no sound output
+        if spice_bind:
+          driver = "spice"
+        else:
+          driver = "none"
+        kvm_cmd.extend(["-audio", "driver={},model={},id=soundhw"
+                       .format(driver, soundhw)])
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-rtc", "base=localtime"])
