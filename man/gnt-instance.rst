@@ -846,9 +846,9 @@ cpu\_sockets
 soundhw
     Valid for Xen PVM, Xen HVM and KVM hypervisors.
 
-    Comma separated list of emulated sounds cards, or "all" to enable
-    all the available ones. See the **qemu**\(1) manpage for valid options and
-    additional details.
+    The soundcard to emulate inside your instance. Please consult
+    Qemu (``-audio model=help``) for a list of valid soundcard
+    models. ``hda`` or ``ac97`` are probably the most useful ones.
 
 cpuid
     Valid for the XEN hypervisor.
