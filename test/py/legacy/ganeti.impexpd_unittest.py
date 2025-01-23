@@ -118,16 +118,23 @@ class TestCommandBuilder(unittest.TestCase):
         ]
 
         for host in testcases:
-          socket_patcher = unittest.mock.patch("socket.gethostbyaddr", return_value=(host["expected_hostname"], [], []))
+          socket_patcher = unittest.mock.patch(
+            "socket.gethostbyaddr",
+            return_value=(host["expected_hostname"], [], []),
+          )
           socket_patcher.start()
           for port in [0, 1, 1234, 7856, 45452]:
             for cmd_prefix in [None, "PrefixCommandGoesHere|",
                                "dd if=/dev/hda bs=1048576 |"]:
               for cmd_suffix in [None, "< /some/file/name",
                                  "| dd of=/dev/null"]:
-                opts = CmdBuilderConfig(host=host["target"], port=port, compress=compress,
-                                        cmd_prefix=cmd_prefix,
-                                        cmd_suffix=cmd_suffix)
+                opts = CmdBuilderConfig(
+                  host=host["target"],
+                  port=port,
+                  compress=compress,
+                  cmd_prefix=cmd_prefix,
+                  cmd_suffix=cmd_suffix,
+                )
 
                 builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
 
@@ -152,7 +159,9 @@ class TestCommandBuilder(unittest.TestCase):
                   self.assertTrue(("OPENSSL-LISTEN:%s" % port) in ssl_addr)
                 elif mode == constants.IEM_EXPORT:
                   ssl_addr = socat_cmd[-1].split(",")
-                  self.assertTrue(("OPENSSL:%s:%s" % (host["target"], port)) in ssl_addr)
+                  self.assertTrue(
+                    ("OPENSSL:%s:%s" % (host["target"], port)) in ssl_addr
+                  )
                   if impexpd.CommandBuilder._GetSocatVersion() >= (1, 7, 3):
                     self.assertTrue("openssl-commonname=%s" %
                                  host["expected_hostname"] in ssl_addr)
