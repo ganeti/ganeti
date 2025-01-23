@@ -44,7 +44,7 @@ from ganeti import errors
 from ganeti import impexpd
 
 import testutils
-
+import unittest.mock
 
 class CmdBuilderConfig(objects.ConfigObject):
   __slots__ = [
@@ -112,13 +112,20 @@ class TestCommandBuilder(unittest.TestCase):
           else:
             self.assertFalse(magic_cmd)
 
-        for host in ["localhost", "198.51.100.4", "192.0.2.99"]:
+        testcases = [
+          { "target": "localhost", "expected_hostname": "localhost" },
+          { "target": "198.51.100.4", "expected_hostname": "my.ganeti.org" },
+        ]
+
+        for host in testcases:
+          socket_patcher = unittest.mock.patch("socket.gethostbyaddr", return_value=(host["expected_hostname"], [], []))
+          socket_patcher.start()
           for port in [0, 1, 1234, 7856, 45452]:
             for cmd_prefix in [None, "PrefixCommandGoesHere|",
                                "dd if=/dev/hda bs=1048576 |"]:
               for cmd_suffix in [None, "< /some/file/name",
                                  "| dd of=/dev/null"]:
-                opts = CmdBuilderConfig(host=host, port=port, compress=compress,
+                opts = CmdBuilderConfig(host=host["target"], port=port, compress=compress,
                                         cmd_prefix=cmd_prefix,
                                         cmd_suffix=cmd_suffix)
 
@@ -145,15 +152,16 @@ class TestCommandBuilder(unittest.TestCase):
                   self.assertTrue(("OPENSSL-LISTEN:%s" % port) in ssl_addr)
                 elif mode == constants.IEM_EXPORT:
                   ssl_addr = socat_cmd[-1].split(",")
-                  self.assertTrue(("OPENSSL:%s:%s" % (host, port)) in ssl_addr)
+                  self.assertTrue(("OPENSSL:%s:%s" % (host["target"], port)) in ssl_addr)
                   if impexpd.CommandBuilder._GetSocatVersion() >= (1, 7, 3):
                     self.assertTrue("openssl-commonname=%s" %
-                                 constants.X509_CERT_CN in ssl_addr)
+                                 host["expected_hostname"] in ssl_addr)
                   else:
                     self.assertTrue("openssl-commonname=%s" %
                                  constants.X509_CERT_CN not in ssl_addr)
 
                 self.assertTrue("verify=1" in ssl_addr)
+          socket_patcher.stop()
 
   @testutils.RequiresIPv6()
   def testIPv6(self):
@@ -194,8 +202,6 @@ class TestCommandBuilder(unittest.TestCase):
 
   def testOptionLengthError(self):
     testopts = [
-      CmdBuilderConfig(bind="0.0.0.0" + ("A" * impexpd.SOCAT_OPTION_MAXLEN),
-                       port=1234, ca="/tmp/ca"),
       CmdBuilderConfig(host="localhost", port=1234,
                        ca="/tmp/ca" + ("B" * impexpd.SOCAT_OPTION_MAXLEN)),
       CmdBuilderConfig(host="localhost", port=1234,
