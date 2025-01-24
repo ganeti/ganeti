@@ -674,10 +674,10 @@ class DRBD8Dev(base.BlockDev):
     stats = self.GetProcStatus()
     is_degraded = not stats.is_connected or not stats.is_disk_uptodate
 
-    if stats.is_disk_uptodate:
-      ldisk_status = constants.LDS_OKAY
-    elif stats.is_diskless:
+    if stats.is_diskless or stats.is_standalone:
       ldisk_status = constants.LDS_FAULTY
+    elif stats.is_disk_uptodate:
+      ldisk_status = constants.LDS_OKAY
     elif stats.is_in_resync:
       ldisk_status = constants.LDS_SYNC
     else:
