@@ -826,7 +826,6 @@ def TestInstanceModifyDisks(instance):
   disk_conf = qa_config.GetDiskOptions()[-1]
   size = disk_conf.get("size")
   name = instance.name
-  build_cmd = lambda arg: ["gnt-instance", "modify", "--disk", arg, name]
   if qa_config.AreSpindlesSupported():
     spindles = disk_conf.get("spindles")
     spindles_supported = True
@@ -834,12 +833,26 @@ def TestInstanceModifyDisks(instance):
     # Any number is good for spindles in this case
     spindles = 1
     spindles_supported = False
-  AssertCommand(build_cmd("add:size=%s,spindles=%s" % (size, spindles)),
+  AssertCommand(["gnt-instance", "modify",
+                 "--disk",
+                 "add:size=%s,spindles=%s" % (size, spindles),
+                 "--no-hotplug",
+                 name],
                 fail=not spindles_supported)
-  AssertCommand(build_cmd("add:size=%s" % size),
+
+  AssertCommand(["gnt-instance", "modify",
+                 "--disk",
+                 "add:size=%s,spindles=%s" % (size, spindles),
+                 "--no-hotplug",
+                 name],
                 fail=spindles_supported)
+
   # Exactly one of the above commands has succeded, so we need one remove
-  AssertCommand(build_cmd("remove"))
+  AssertCommand(["gnt-instance", "modify",
+                 "--disk",
+                 "remove",
+                 "--no-hotplug",
+                 name])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
@@ -889,19 +902,23 @@ def TestInstanceDeviceNames(instance):
     # succeed in adding a device named 'test_device'
     AssertCommand(["gnt-instance", "modify",
                    "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   "--no-hotplug",
                    name])
     # succeed in removing the 'test_device'
     AssertCommand(["gnt-instance", "modify",
                    "--%s=test_device:remove" % dev_type,
+                   "--no-hotplug",
                    name])
     # fail to add two devices with the same name
     AssertCommand(["gnt-instance", "modify",
                    "--%s=-1:add,name=test_device%s" % (dev_type, options),
                    "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   "--no-hotplug",
                    name], fail=True)
     # fail to add a device with invalid name
     AssertCommand(["gnt-instance", "modify",
                    "--%s=-1:add,name=2%s" % (dev_type, options),
+                   "--no-hotplug",
                    name], fail=True)
   # Rename disks
   disks = qa_config.GetDiskOptions()
