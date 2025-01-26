@@ -269,6 +269,7 @@ PYTHON_TEST_DIRS = \
 	test/py/unit/hypervisor \
 	test/py/unit/hypervisor/hv_kvm \
 	test/py/unit/test_data \
+	test/py/unit/test_data/has_pci_device \
 	test/py/integration
 
 ALL_APIDOC_HS_DIRS = \
@@ -1917,7 +1918,9 @@ TEST_FILES = \
 	test/py/legacy/gnt-cli.test \
 	test/py/legacy/import-export_unittest-helper \
 	test/py/unit/test_data/serialized_disks.json \
-	test/py/unit/test_data/serialized_nics.json
+	test/py/unit/test_data/serialized_nics.json \
+	test/py/unit/test_data/has_pci_device/pci0.json \
+	test/py/unit/test_data/has_pci_device/pcie-root-port.json
 
 python_tests_integration = \
 	test/py/integration/test_dummy.py
