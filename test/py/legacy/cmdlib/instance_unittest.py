@@ -2344,17 +2344,16 @@ class TestLUInstanceSetParams(CmdlibTestCase):
   def testNoHotplugSupport(self):
     op = self.CopyOpCode(self.op,
                          nics=[(constants.DDM_ADD, -1, {})],
-                         hotplug=True)
+                         )
     self.rpc.call_hotplug_supported.return_value = \
       self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master)
-    self.ExecOpCodeExpectOpPrereqError(op, "Hotplug is not possible")
-    self.assertTrue(self.rpc.call_hotplug_supported.called)
+    self.assertFalse(self.rpc.call_hotplug_supported.called)
 
   def testHotplugIfPossible(self):
-    op = self.CopyOpCode(self.op,
-                         nics=[(constants.DDM_ADD, -1, {})],
-                         hotplug_if_possible=True)
+    op = self.CopyOpCode(self.running_op,
+                         nics=[(constants.DDM_ADD, -1, {})]
+                         )
     self.rpc.call_hotplug_supported.return_value = \
       self.RpcResultsBuilder() \
         .CreateFailedNodeResult(self.master)
@@ -2363,7 +2362,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.assertFalse(self.rpc.call_hotplug_device.called)
 
   def testHotAddNic(self):
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          nics=[(constants.DDM_ADD, -1, {})],
                          hotplug=True)
     self.rpc.call_hotplug_supported.return_value = \
@@ -2459,7 +2458,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
 
   def testHotModifyNic(self):
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          nics=[(constants.DDM_MODIFY, 0, {})],
                          hotplug=True)
     self.rpc.call_hotplug_supported.return_value = \
@@ -2490,9 +2489,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(op, msg)
 
   def testHotRemoveNic(self):
-    inst = self.cfg.AddNewInstance(nics=[self.cfg.CreateNic(),
+    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                   nics=[self.cfg.CreateNic(),
                                          self.cfg.CreateNic()])
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          instance_name=inst.name,
                          nics=[(constants.DDM_REMOVE, 0, {})],
                          hotplug=True)
@@ -2641,7 +2641,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
         .CreateSuccessfulNodeResult(self.master, ("/dev/mocked_path",
                                     "/var/run/ganeti/instance-disks/mocked_d",
                                     None))
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          disks=[[constants.DDM_ADD, -1,
                                  {
                                    constants.IDISK_SIZE: 1024,
@@ -2780,7 +2780,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                     ("/dev/mocked_path",
                                      "/var/run/ganeti/instance-disks/mocked_d",
                                      None))
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          disks=[[constants.DDM_ATTACH, -1,
                                  {
                                    constants.IDISK_NAME: self.mocked_disk_name
@@ -2795,9 +2795,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.assertTrue(self.rpc.call_hotplug_device.called)
 
   def testHotRemoveDisk(self):
-    inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(),
+    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                   disks=[self.cfg.CreateDisk(),
                                           self.cfg.CreateDisk()])
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          instance_name=inst.name,
                          disks=[[constants.DDM_REMOVE, -1,
                                  {}]],
@@ -2812,9 +2813,10 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.assertTrue(self.rpc.call_blockdev_remove.called)
 
   def testHotDetachDisk(self):
-    inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(),
+    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                   disks=[self.cfg.CreateDisk(),
                                           self.cfg.CreateDisk()])
-    op = self.CopyOpCode(self.op,
+    op = self.CopyOpCode(self.running_op,
                          instance_name=inst.name,
                          disks=[[constants.DDM_DETACH, -1,
                                  {}]],
@@ -3072,8 +3074,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                           self.cfg.CreateDisk()])
     op = self.CopyOpCode(self.op,
                          instance_name=inst.name,
-                         disks=[[constants.DDM_REMOVE, -1,
-                                 {}]]) # without hotplug
+                         disks=[[constants.DDM_REMOVE, -1, {}]],
+                         hotplug=False) # without hotplug
     self.rpc.call_instance_info.side_effect = [
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master,

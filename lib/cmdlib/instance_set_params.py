@@ -904,14 +904,10 @@ class LUInstanceSetParams(LogicalUnit):
     return instance_info
 
   def _CheckHotplug(self):
-    if self.op.hotplug or self.op.hotplug_if_possible:
+    if self.op.hotplug:
       result = self.rpc.call_hotplug_supported(self.instance.primary_node,
                                                self.instance)
       if result.fail_msg:
-        if self.op.hotplug:
-          result.Raise("Hotplug is not possible: %s" % result.fail_msg,
-                       prereq=True, ecode=errors.ECODE_STATE)
-        else:
           self.LogWarning(result.fail_msg)
           self.op.hotplug = False
           self.LogInfo("Modification will take place without hotplugging.")
@@ -1168,7 +1164,10 @@ class LUInstanceSetParams(LogicalUnit):
     # dictionary with instance information after the modification
     ispec = {}
 
-    self._CheckHotplug()
+    if self.instance.admin_state == constants.ADMINST_UP:
+      self._CheckHotplug()
+    else:
+      self.op.hotplug = False
 
     self._PrepareNicCommunication()
 
