@@ -1539,14 +1539,13 @@ If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
 If ``--no-hotplug`` is given any disk and NIC modifications will not be
-hot-plugged. The change will take place after
-the reboot.
+hot-plugged. The change will take place after the reboot.
 
 Without the ``--no-hotplug`` parameter, Ganeti attempts to perform the operation
-hot if possible. Hotplug is currently supported only for disk and nic
-modifications in the KVM hypervisor. If hotplug fails (for any reason) a
-warning is printed but execution is continued. For existing NIC modification
-interactive verification is needed unless ``--force`` option is passed.
+hot if possible. Hotplug is currently supported only for disk and NIC
+modifications in the KVM hypervisor. If hotplug fails (for any reason) a warning
+is printed but execution is continued. For existing NIC modification interactive
+verification is needed unless ``--force`` option is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
