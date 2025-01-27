@@ -1164,7 +1164,10 @@ class LUInstanceSetParams(LogicalUnit):
     # dictionary with instance information after the modification
     ispec = {}
 
-    self._CheckHotplug()
+    if self.instance.admin_state == constants.ADMINST_UP:
+      self._CheckHotplug()
+    else:
+      self.op.hotplug = False
 
     self._PrepareNicCommunication()
 
