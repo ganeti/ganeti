@@ -53,7 +53,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
   GetUpdatedParams, CheckInstanceState, ExpandNodeUuidAndName, \
   IsValidDiskAccessModeCombination, AnnotateDiskParams, \
-  CheckIAllocatorOrNode, IsInstanceRunning
+  CheckIAllocatorOrNode
 from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckDiskExtProvider, CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, \
   CheckSpindlesExclusiveStorage, ComputeDiskSizePerVG, ComputeDisksInfo, \
@@ -904,7 +904,7 @@ class LUInstanceSetParams(LogicalUnit):
     return instance_info
 
   def _CheckHotplug(self):
-    if self.op.hotplug and IsInstanceRunning(self, self.instance):
+    if self.op.hotplug:
       result = self.rpc.call_hotplug_supported(self.instance.primary_node,
                                                self.instance)
       if result.fail_msg:
@@ -913,8 +913,6 @@ class LUInstanceSetParams(LogicalUnit):
           self.LogInfo("Modification will take place without hotplugging.")
       else:
         self.op.hotplug = True
-    else:
-      self.op.hotplug = False
 
   def _PrepareNicCommunication(self):
     # add or remove NIC for instance communication
