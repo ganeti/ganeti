@@ -27,6 +27,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import threading
 import socket
 import tempfile
@@ -255,3 +256,21 @@ class TestQmpConnection:
     fake_qmp.execute_qmp("test-fire-event")
     test_event = fake_qmp.wait_for_qmp_event('TEST_EVENT', 0.3)
     assert test_event.event_type == "TEST_EVENT"
+
+  @staticmethod
+  def test_has_pci_device():
+    check_files = [
+      "./test/py/unit/test_data/has_pci_device/pci0.json",
+      "./test/py/unit/test_data/has_pci_device/pcie-root-port.json"
+    ]
+
+    disk_uuid = "disk-ec2b4a45-d6b1-4b39"
+    nic_uuid = "nic-5a27cb9a-c815-4baf"
+    no_uuid = "non-existing-uuid"
+
+    for check_file in check_files:
+      with open(check_file) as file:
+        data = json.load(file)
+        assert QmpConnection.has_pci_device(disk_uuid, data)
+        assert QmpConnection.has_pci_device(nic_uuid, data)
+        assert not QmpConnection.has_pci_device(no_uuid, data)
