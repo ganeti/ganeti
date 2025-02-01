@@ -106,23 +106,24 @@ class TestUidPool(testutils.GanetiTestCase):
 
     # Check with a single, known unused user-id
     #
-    # We use "-1" here, which is not a valid user-id, so it's
-    # guaranteed that it's unused.
-    uid = uidpool.RequestUnusedUid(set([-1]))
-    self.assertEqualValues(uid.GetUid(), -1)
+    # We use 2^30+42 here, which is a valid UID, but unlikely to be used on
+    # most systems (even as a subuid).
+    free_uid = 2**30 + 42
+    uid = uidpool.RequestUnusedUid(set([free_uid]))
+    self.assertEqualValues(uid.GetUid(), free_uid)
 
     # Check uid-pool exhaustion
     #
-    # uid "-1" is locked now, so RequestUnusedUid is expected to fail
+    # free_uid is locked now, so RequestUnusedUid is expected to fail
     self.assertRaises(errors.LockError,
                       uidpool.RequestUnusedUid,
-                      set([-1]))
+                      set([free_uid]))
 
     # Check unlocking
     uid.Unlock()
     # After unlocking, "-1" should be available again
-    uid = uidpool.RequestUnusedUid(set([-1]))
-    self.assertEqualValues(uid.GetUid(), -1)
+    uid = uidpool.RequestUnusedUid(set([free_uid]))
+    self.assertEqualValues(uid.GetUid(), free_uid)
 
 
 if __name__ == "__main__":

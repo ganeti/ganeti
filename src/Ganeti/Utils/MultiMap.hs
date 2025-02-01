@@ -100,7 +100,7 @@ multiMapL k f = fmap MultiMap
 
 -- | Return the set corresponding to a given key.
 lookup :: (Ord k, Ord v) => k -> MultiMap k v -> S.Set v
-lookup = view . multiMapL
+lookup k = view (multiMapL k)
 
 -- | Tests if the given key has a non-empty set of values.
 member :: (Ord k, Ord v) => k -> MultiMap k v -> Bool

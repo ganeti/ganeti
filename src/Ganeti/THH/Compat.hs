@@ -40,9 +40,11 @@ module Ganeti.THH.Compat
   , extractDataDConstructors
   , myNotStrict
   , nonUnaryTupE
+  , mkDoE
   ) where
 
 import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
 
 -- | Convert Names to DerivClauses
 --
@@ -61,7 +63,11 @@ derivesFromNames names = map ConT names
 --
 -- Handle TH 2.11 and 2.12 changes in a transparent manner using the pre-2.11
 -- API.
+#if MIN_VERSION_template_haskell(2,17,0)
+gntDataD :: Cxt -> Name -> [TyVarBndr ()] -> [Con] -> [Name] -> Dec
+#else
 gntDataD :: Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Dec
+#endif
 gntDataD x y z a b =
 #if MIN_VERSION_template_haskell(2,12,0)
     DataD x y z Nothing a $ derivesFromNames b
@@ -113,4 +119,13 @@ nonUnaryTupE :: [Exp] -> Exp
 nonUnaryTupE es = TupE $ map Just es
 #else
 nonUnaryTupE es = TupE $ es
+#endif
+
+-- | DoE is now qualified with an optional ModName
+mkDoE :: [Stmt] -> Exp
+mkDoE s =
+#if MIN_VERSION_template_haskell(2,17,0)
+    DoE Nothing s
+#else
+    DoE s
 #endif

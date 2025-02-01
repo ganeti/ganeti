@@ -135,12 +135,12 @@ withPool_ :: (MonadError e m, Error e)
 withPool_ part f = execStateT $ withPool part ((liftM ((,) ()) .) . f)
 
 readPool :: PoolPart -> Network -> Maybe BA.BitArray
-readPool = view . poolArrayLens
+readPool part = view (poolArrayLens part)
 
 readPoolE :: (MonadError e m, Error e)
           => PoolPart -> Network -> m BA.BitArray
 readPoolE part net =
-  liftM apReservations $ orNewPool net ((view . poolLens) part net)
+  liftM apReservations $ orNewPool net (view (poolLens part) net)
 
 readAllE :: (MonadError e m, Error e)
          => Network -> m BA.BitArray

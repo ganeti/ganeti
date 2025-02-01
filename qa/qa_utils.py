@@ -450,7 +450,7 @@ def GetObjectInfo(infocmd):
   master = qa_config.GetMasterNode()
   cmdline = utils.ShellQuoteArgs(infocmd)
   info_out = GetCommandOutput(master.primary, cmdline)
-  return yaml.load(info_out)
+  return yaml.load(info_out, Loader=yaml.SafeLoader)
 
 
 def UploadFile(node, src):
