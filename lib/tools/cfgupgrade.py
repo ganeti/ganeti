@@ -762,11 +762,31 @@ class CfgUpgrade(object):
       if variant in hvparams:
         hvparams[variant]["xen_cmd"] = "xl"
 
+  @OrFail("Revert KVM parameter")
+  def DowngradeKVMSettings(self):
+    """Downgrades KVM Settings
+
+    """
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    hvparams = cluster.get("hvparams", None)
+    if hvparams is None:
+      return
+
+    if DOWNGRADE_MAJOR == 3 and DOWNGRADE_MINOR < 1:
+      if "debug_threads" in hvparams[constants.HT_KVM]:
+        del hvparams[constants.HT_KVM]["debug_threads"]
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
+    self.DowngradeKVMSettings()
     return not self.errors
 
   def _ComposePaths(self):
