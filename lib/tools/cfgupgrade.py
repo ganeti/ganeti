@@ -365,6 +365,15 @@ class CfgUpgrade(object):
         cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] = \
           constants.HT_DISCARD_IGNORE
 
+      # if machine_version is unset, it will be set to 'pc' with 3.1.0
+      # this way we avoid the soon-to-be QEMU default of 'q35' which is
+      # currently broken in Ganeti
+      if cluster["hvparams"][constants.HT_KVM]\
+              [constants.HV_KVM_MACHINE_VERSION] == "":
+        cluster["hvparams"][constants.HT_KVM]\
+          [constants.HV_KVM_MACHINE_VERSION] = \
+          constants.HT_KVM_MACHINE_VERSION_PC
+
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
     cl_ipolicy = self.config_data["cluster"].get("ipolicy")
