@@ -441,6 +441,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_3_0(self):
     self._TestUpgradeFromFile("cluster_config_3.0.json", False)
 
+  def testUpgradeFullConfigFrom_3_1(self):
+    self._TestUpgradeFromFile("cluster_config_3.1.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -463,6 +466,14 @@ class TestCfgupgrade(unittest.TestCase):
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
     newconf = self._LoadConfig()
+    # upgrade from 3.0 -> 3.1 sets machine_version to "pc" if it is unset
+    # but there is no exact downgrade path here (a value of "pc" does not
+    # break anything on 3.0, but reverting "pc" to "unset" would also not
+    # be correct here). Hence, we need this workaround to make the downgrade
+    # test pass
+    oldconf["cluster"]["hvparams"][constants.HT_KVM]\
+      [constants.HV_KVM_MACHINE_VERSION] = newconf["cluster"]["hvparams"]\
+      [constants.HT_KVM][constants.HV_KVM_MACHINE_VERSION]
     self.maxDiff = None
     self.assertEqual(oldconf, newconf)
 
