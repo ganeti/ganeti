@@ -441,6 +441,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_3_0(self):
     self._TestUpgradeFromFile("cluster_config_3.0.json", False)
 
+  def testUpgradeFullConfigFrom_3_1(self):
+    self._TestUpgradeFromFile("cluster_config_3.1.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
