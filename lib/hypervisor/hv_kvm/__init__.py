@@ -610,7 +610,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     while arg_list:
       arg = arg_list.pop(0)
       if arg == "-name":
-        instance = arg_list.pop(0)
+        # Qemu supports additional parameters which are appended
+        # comma-separated to the -name parameter. While Ganeti
+        # does not use this _now_, we need to be aware of future
+        # Ganeti versions which might (see #1820 for the whole story)
+        instance = arg_list.pop(0).split(",")[0]
       elif arg == "-m":
         memory = int(arg_list.pop(0))
       elif arg == "-smp":
