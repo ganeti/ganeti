@@ -249,9 +249,9 @@ class TestQmpConnection:
     fake_qmp.connect()
 
     # test None if timeout exceeds
-    none_event = fake_qmp.wait_for_qmp_event('NONE_EXISTING_EVENT', 0.1)
+    none_event = fake_qmp.wait_for_qmp_event(['NONE_EXISTING_EVENT'], 0.1)
     assert none_event is None
 
     fake_qmp.execute_qmp("test-fire-event")
-    test_event = fake_qmp.wait_for_qmp_event('TEST_EVENT', 0.3)
+    test_event = fake_qmp.wait_for_qmp_event(['TEST_EVENT'], 0.3)
     assert test_event.event_type == "TEST_EVENT"
