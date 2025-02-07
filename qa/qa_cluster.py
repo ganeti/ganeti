@@ -147,7 +147,6 @@ def PrepareHvParameterSets():
   if default_hv == constants.HT_KVM:
     toggle_bool_params = [
       "acpi",
-      "debug_threads",
       "use_chroot",
       "use_guest_agent",
       "use_localtime",
