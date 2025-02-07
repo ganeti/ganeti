@@ -39,7 +39,7 @@ import io
 import logging
 import time
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 from collections import namedtuple
 from bitarray import bitarray
 
@@ -275,10 +275,10 @@ class QemuMonitorSocket(UnixFileSocketConnection):
 
       return response[self._RETURN_KEY]
 
-  def wait_for_qmp_event(self, event_type: str,
+  def wait_for_qmp_event(self, event_types: List[str],
                          timeout: Union[int, float]) -> Optional[QmpEvent]:
-    """Waits for the specified event and returns it.
-       If the timeout is reached, None returns.
+    """Waits for one of the specified events and returns it.
+       If the timeout is reached, returns None.
 
     """
 
@@ -288,7 +288,7 @@ class QemuMonitorSocket(UnixFileSocketConnection):
         response = self.recv_qmp()
         if response[self._EVENT_KEY]:
           event = QmpEvent.build_from_data(response.data)
-          if event.event_type == event_type:
+          if event.event_type in event_types:
             self.reset_timeout()
             return event
           else:
@@ -572,9 +572,13 @@ class QmpConnection(QemuMonitorSocket):
     self.execute_qmp("device_del", {"id": devid})
 
     # wait for the DEVICE_DELETED event with five seconds timeout
-    event = self.wait_for_qmp_event("DEVICE_DELETED", 5)
+    event = self.wait_for_qmp_event(["DEVICE_DELETED",
+                                     "DEVICE_UNPLUG_GUEST_ERROR"], 5)
     if event is None:
       raise errors.HypervisorError("DEVICE_DELETED event has not arrived")
+    elif event.event_type == "DEVICE_UNPLUG_GUEST_ERROR":
+      raise errors.HypervisorError("DEVICE_UNPLUG_GUEST_ERROR event has "
+                                   "occurred")
 
     self.execute_qmp("blockdev-del", {"node-name": devid})
 
