@@ -1225,7 +1225,7 @@ NOSHUTDOWN_OPT = cli_option("--noshutdown", dest="shutdown",
 
 TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                         help="Maximum time (in minutes) to wait")
+                         help="Maximum time (in seconds) to wait")
 
 COMPRESS_OPT = cli_option("--compress", dest="compress",
                           type="string", default=constants.IEC_NONE,
@@ -1239,7 +1239,7 @@ TRANSPORT_COMPRESSION_OPT = \
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                                   dest="shutdown_timeout", type="int",
                                   default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                                  help="Maximum time (in minutes) to wait for"
+                                  help="Maximum time (in seconds) to wait for"
                                   " instance shutdown")
 
 INTERVAL_OPT = cli_option("--interval", dest="interval", type="int",
