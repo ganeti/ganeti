@@ -2,6 +2,166 @@ News
 ====
 
 
+Version 3.1.0 rc1
+-----------------
+
+*(Released Tue, 11 Feb 2025)*
+
+Upgrade notes
+~~~~~~~~~~~~~
+
+Upgrading is supported from 3.0.x versions.
+
+If you are using the KVM hypervisor, you should consider setting the parameter
+`machine_version` to the latest `pc`-version supported by your version of kvm.
+You can query that by running `kvm -M ?`. Do not set this to `pc`, but rather
+to a specific version like `pc-i440fx-9.2`. Otherwise you might risk instance
+crashes if you live-migrate between different kvm versions (e.g. during a
+rolling cluster upgrade). The `q35` versions are not yet supported by Ganeti
+and will fail your instances to boot once kvm changes from the current default
+of `pc`.
+
+Ganeti now uses `-blockdev` instead of `-drive` parameters for Qemu/KVM. This
+has been tested with all built-in storage options. If you are using the
+`extstorage` backend, please make sure to test this in a non-production
+environment before upgrading.
+
+Important changes
+~~~~~~~~~~~~~~~~~
+
+Adapt to current Python versions
+++++++++++++++++++++++++++++++++
+
+Various changes have been incorporated to build on Python versions up to 3.13,
+the more relevant ones are as follows:
+
+Instead of `python-simplejson` Ganeti now uses the built-in JSON module (#1723).
+
+The deprecated `imp` module has been replaced with `importlib` (#1771).
+
+Ganeti now uses pytest along with the existing Python testing framework (#1769).
+
+Adapt to current GHC versions
++++++++++++++++++++++++++++++
+
+Various changes have been incorporated to build on GHC versions up to 9.10, the
+more relevant ones are as follows:
+
+Ganeti now supports three different regex implementations: regex-pcre,
+regex-pcre-builtin, regex-tdfa. The implementation to be used can be specified
+as parameters to the `configure` script. From Debian 13, the recommended option
+is regex-tdfa, which does not support PCRE type regexes (#1794).
+
+`Makefile.ghc` has been dropped and `cabal` is now used to build the Haskell
+parts (#1785).
+
+DRBD disks
+++++++++++
+
+Ganeti will now classify DRBD disks in `StandAlone` mode as an error during a
+`gnt-cluster verify` run (#1814). Until now, this was classified as a warning
+only.
+
+General hypervisor changes
+++++++++++++++++++++++++++
+
+`gnt-instance modify` now uses hotplugging by default. The parameter
+`--hotplug-if-possible` has been dropped and instead `--no-hotplug` has been
+added. The same applies to respective RAPI calls (#1730).
+
+Support for `--no-name-check` and `--no-ip-check` arguments to `gnt-instance`
+operations has been dropped. If you explicitly rely on these checks, please
+enable them by using `--name-check` and `--ip-check` instead (#1589).
+
+Hypervisor implementations are now able to add code for the assessment of
+cluster-wide hypervisor parameter defaults. This has been implemented for KVM
+with some examples (`cpu_type`, `machine_version` etc.) and executes as part of
+a regular `gnt-cluster verify` run. A new argument `--no-hv-param-assessment`
+has been added to disable the assessment (#1822).
+
+KVM hypervisor
+++++++++++++++
+
+Ganeti has dropped all usage of the human monitor protocol/socket (HMP)
+and entirely moved to QMP for all operations. The HMP socket is still created
+but its usage is deprecated and it might be removed in future versions of
+Ganeti (#1662, #1667).
+
+It is now impossible to set conflicting values for `disk_aio` and `disk_cache`
+hypervisor parameters (#1646).
+
+The `disk_aio` parameter now supports `io_uring` on QEMU 5.0 and newer (#1667).
+
+Ganeti now uses QEMUs `-blockdev` argument instead of `-drive` for all
+disk/storage devices (and also the corresponding QMP methods - #1667).
+
+`vhost_net` now defaults to `true` on new clusters for improved virtio-net
+performance (#1652).
+
+Calls to `gnt-instance info` used to execute the QMP method `query-cpus`.
+Since that is known to (possibly) interrupt guest execution, Ganeti now
+uses `query-cpus-fast` (#1756).
+
+The `kvm_extra` hypervisor parameter now correctly supports spaces (#1713).
+
+Growing a disk will now inform the hypervisor of the new disk size. This makes
+rebooting the instance or the use of custom hook scripts unnecessary (#1731).
+
+Xen hypervsior
+++++++++++++++
+
+Support for the `xm` toolstack has been dropped (#1634).
+
+Instance migration across clusters
+++++++++++++++++++++++++++++++++++
+
+The `move-instance` script features a new parameter `--keep-source-instance`
+to retain the original instance after a successful migration (#1617).
+
+Additionally it will recreate instance tags on the destination cluster (#1619).
+
+The import/export daemon (`impexpd`) has fixed support for certificate
+verification with more recent versions of `socat` (#1699).
+
+DRBD-based instances will now be created on the destination cluster without
+waiting for the DRBD device to be synced. This greatly speeds up instance
+moves and seems reliable enough, as the data is still available on the source
+cluster (#1703).
+
+Ganeti networks
++++++++++++++++
+
+`gnt-network` now supports a `rename` operation (#1591).
+
+RAPI
+++++
+
+The new parameter `--ssl-chain` adds support for certificate chain
+files to the RAPI daemon (#1625).
+
+Request parsing errors now produce a HTTP 400 return code (#1610).
+
+All instance operations now support the field `custom_osparams` (#1673).
+
+Ganeti watcher
+++++++++++++++
+
+The Ganeti watcher now supports a new argument `--no-strict`. If used, it will
+allow the watcher to skip nodes during the group-verify-disk jobs which are
+busy with other jobs. This will increase the chance that shutdown instances
+will be detected and (re)started by the watcher even if nodes in the cluster are
+busy with long-running jobs. An updated example cron file is provided which mixes
+`-no-strict` and strict watcher runs (#1704).
+
+Documentation
++++++++++++++
+
+Large parts of the documentation have been restructured/cleaned up to get rid
+of obsolete/redundant/outdated information (#1709).
+
+We now use pydoctor instead of epydoc to generate Python apidocs (#1676).
+
+
 Version 3.0.0
 -------------
 
