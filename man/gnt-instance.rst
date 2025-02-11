@@ -898,16 +898,20 @@ machine\_version
 
     Use in case an instance must be booted with an exact type of
     machine version (due to e.g. outdated drivers). In case it's not set
-    the default version supported by your version of kvm is used. Starting
-    with Ganeti 3.1, new clusters will now default to 'pc'. This way Ganeti
-    users will not face any unexpected problems should Qemu/KVM change its
-    default model in the future. Please note that 'q35' is currently not
-    supported. You can query your Qemu/KVM installation for supported machine
-    versions:
+    the default version supported by your version of kvm is used. Ganeti
+    currently only supports the ``pc`` types properly.
+    However, you should not set it to ``pc`` but rather to a specific version,
+    e.g. ``pc-i440fx-9.2`` if you plan to use live migration. You can obtain
+    the default machine version by running:
 
     .. code-block:: bash
 
-      qemu-system-x86_64 -M ?
+      kvm -M ?
+
+    Look for the line containing (default). Setting it just to ``pc`` will
+    cause problems during rolling cluster upgrades, because your instance
+    will live-migrate into a different kvm version which has a different
+    understanding of what exactly "pc" is.
 
 
 migration\_caps
