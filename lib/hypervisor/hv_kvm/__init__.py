@@ -2791,6 +2791,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       warnings.append("machine_version is not explicitly configured so "
                       "Ganeti will autodetect the default value from "
                       "'kvm -M ?', this might produce unexpected results.")
+    if machine_version == "pc":
+      warnings.append("machine_version is set to the 'pc' type which "
+                      "could cause problems during live migration")
+
+    if machine_version.startswith("q35"):
+      warnings.append("machine_version is set to the 'q35' type which "
+                      "is currently not properly supported.")
+
+    if machine_version in ["none", "microvm", "isapc", "x-remote"]:
+      warnings.append("machine_version is set to %s which is unsupported "
+                      "in Ganeti." % machine_version)
 
     return warnings
 
