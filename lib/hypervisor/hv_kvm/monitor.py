@@ -608,11 +608,31 @@ class QmpConnection(QemuMonitorSocket):
     """Check if a specific device ID exists on the PCI bus.
 
     """
-    for d in self._GetPCIDevices():
-      if d["qdev_id"] == devid:
-        return True
+    pci = self.execute_qmp("query-pci")
+    bus = pci[0]
+    devices = bus["devices"]
 
+    return QmpConnection.has_pci_device(devid, devices)
+
+
+  @staticmethod
+  def has_pci_device(qdev_id, dev_list: List[dict]):
+    """Checks recursively whether a device with the given qdev_id exists in
+    dev_list.
+
+    """
+
+    for dev in dev_list:
+      for value in dev.values():
+        if isinstance(value, dict) and "devices" in value:
+          found = QmpConnection.has_pci_device(qdev_id, value["devices"])
+          if found:
+            return True
+      else:
+        if dev["qdev_id"] == qdev_id:
+          return True
     return False
+
 
   def _GetBlockDevices(self):
     """Get the block devices of a running instance.
