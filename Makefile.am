@@ -2132,13 +2132,13 @@ endif
 
 srclink_files = \
 	man/footer.rst \
-	test/py/check-cert-expired_unittest.bash \
-	test/py/daemon-util_unittest.bash \
-	test/py/systemd_unittest.bash \
-	test/py/ganeti-cleaner_unittest.bash \
-	test/py/import-export_unittest.bash \
-	test/py/cli-test.bash \
-	test/py/bash_completion.bash \
+	test/py/legacy/check-cert-expired_unittest.bash \
+	test/py/legacy/daemon-util_unittest.bash \
+	test/py/legacy/systemd_unittest.bash \
+	test/py/legacy/ganeti-cleaner_unittest.bash \
+	test/py/legacy/import-export_unittest.bash \
+	test/py/legacy/cli-test.bash \
+	test/py/legacy/bash_completion.bash \
 	test/hs/htest.hs \
 	test/hs/offline-test.sh \
 	test/hs/cli-tests-defs.sh \
