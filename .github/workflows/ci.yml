@@ -24,6 +24,9 @@ jobs:
         exclude:
           - os: debian-testing
             regex: pcre
+        include:
+          - os: debian-testing
+            regex: pcre2
     container:
       image: ganeti/ci:${{ matrix.os }}-py3
       options: "--init"
@@ -40,6 +43,10 @@ jobs:
       - name: configure
         if: ${{ matrix.regex == 'tdfa' }}
         run: ./configure --enable-haskell-tests --with-haskell-pcre=tdfa
+
+      - name: configure
+        if: ${{ matrix.regex == 'pcre2' }}
+        run: ./configure --enable-haskell-tests --with-haskell-pcre=pcre2
 
       - name: Build
         run: make -j 2
