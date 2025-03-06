@@ -174,6 +174,9 @@ HS_DIRS = \
 	regex/pcre \
 	regex/pcre/Ganeti \
 	regex/pcre/Ganeti/Query \
+	regex/pcre2 \
+	regex/pcre2/Ganeti \
+	regex/pcre2/Ganeti/Query \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
@@ -1213,6 +1216,7 @@ endif
 HS_REGEX_SRCS = \
 	regex/tdfa/Ganeti/Query/RegEx.hs \
 	regex/pcre/Ganeti/Query/RegEx.hs
+	regex/pcre2/Ganeti/Query/RegEx.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
@@ -3037,8 +3041,9 @@ dist/setup-config: ganeti.cabal $(HS_BUILT_SRCS)
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
 	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"` \
-	  -f`test $(ENABLE_REGEX_PCRE_BUILTIN) == True && echo "regex-pcre-builtin" || echo "-regex-pcre-builtin"` \
-	  -f`test $(ENABLE_REGEX_TDFA) == True && echo "regex-tdfa" || echo "-regex-tdfa"`
+	  -f`test $(HS_PCRE_BACKEND) == pcre-builtin && echo "regex-pcre-builtin" || echo "-regex-pcre-builtin"` \
+	  -f`test $(HS_PCRE_BACKEND) == tdfa && echo "regex-tdfa" || echo "-regex-tdfa"` \
+	  -f`test $(HS_PCRE_BACKEND) == pcre2 && echo "regex-pcre2" || echo "-regex-pcre2"`
 
 
 # Target that builds all binaries (including those that are not

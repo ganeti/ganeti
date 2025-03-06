@@ -39,7 +39,7 @@ jobs:
 
       - name: configure
         if: ${{ matrix.regex == 'tdfa' }}
-        run: ./configure --enable-haskell-tests --enable-regex-tdfa
+        run: ./configure --enable-haskell-tests --with-haskell-pcre=tdfa
 
       - name: Build
         run: make -j 2
