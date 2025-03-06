@@ -2076,10 +2076,10 @@ check_SCRIPTS += \
 	$(HS_BUILT_TEST_HELPERS)
 endif
 
-test/hs/hpc-htools:	src/htools
+test/hs/hpc-htools:	exe/htools
 	$(LN_S) ../../$< $@
 
-test/hs/hpc-mon-collector:	src/mon-collector
+test/hs/hpc-mon-collector:	exe/mon-collector
 	$(LN_S) ../../$< $@
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
