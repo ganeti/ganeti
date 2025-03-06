@@ -257,7 +257,7 @@ def TElemOf(target_list):
   def fn(val):
     return val in target_list
 
-  return WithDesc("OneOf %s" % (utils.CommaJoin(target_list), ))(fn)
+  return WithDesc("OneOf %s" % (utils.CommaJoin(sorted(target_list)), ))(fn)
 
 
 # Container types
