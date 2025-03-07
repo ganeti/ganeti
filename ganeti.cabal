@@ -45,6 +45,10 @@ Flag regex-pcre-builtin
   Description: use regex-pcre-builtin instead of regex-pcre
   Default:     False
 
+Flag regex-pcre2
+  Description: use regex-pcre2 instead of regex-pcre
+  Default:     False
+
 Library
   Exposed-Modules:
     AutoConf
@@ -300,6 +304,10 @@ Library
     Hs-Source-Dirs: regex/tdfa
     Build-Depends:
       regex-tdfa                      >= 1.2        && < 1.4
+  Elif flag(regex-pcre2)
+    Hs-Source-Dirs: regex/pcre2
+    Build-Depends:
+      regex-pcre2                     >= 1.0.0.0    && < 1.1
   Else
     Hs-Source-Dirs: regex/pcre
     If flag(regex-pcre-builtin)
