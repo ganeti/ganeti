@@ -41,7 +41,7 @@ err() {
 }
 
 impexpd_helper() {
-  $PYTHON "${TOP_SRCDIR:-.}/test/py/import-export_unittest-helper" "$@"
+  $PYTHON "${TOP_SRCDIR:-.}/test/py/legacy/import-export_unittest-helper" "$@"
 }
 
 $CCE 2>/dev/null && err 'Accepted empty argument list'

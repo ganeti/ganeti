@@ -903,7 +903,7 @@ if ENABLE_METADATA
 HS_COMPILE_PROGS += exe/ganeti-metad
 endif
 
-CABAL_SETUP = runhaskell Setup
+CABAL_SETUP = runhaskell $(top_srcdir)/Setup
 
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
@@ -1659,8 +1659,7 @@ EXTRA_DIST += \
 	$(HS_PROG_SRCS) \
 	src/lint-hints.hs \
 	test/hs/cli-tests-defs.sh \
-	test/hs/offline-test.sh \
-	.ghci
+	test/hs/offline-test.sh
 
 man_MANS = \
 	man/ganeti-cleaner.8 \
@@ -2077,10 +2076,10 @@ check_SCRIPTS += \
 	$(HS_BUILT_TEST_HELPERS)
 endif
 
-test/hs/hpc-htools:	src/htools
+test/hs/hpc-htools:	exe/htools
 	$(LN_S) ../../$< $@
 
-test/hs/hpc-mon-collector:	src/mon-collector
+test/hs/hpc-mon-collector:	exe/mon-collector
 	$(LN_S) ../../$< $@
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
@@ -2133,13 +2132,14 @@ endif
 
 srclink_files = \
 	man/footer.rst \
-	test/py/check-cert-expired_unittest.bash \
-	test/py/daemon-util_unittest.bash \
-	test/py/systemd_unittest.bash \
-	test/py/ganeti-cleaner_unittest.bash \
-	test/py/import-export_unittest.bash \
-	test/py/cli-test.bash \
-	test/py/bash_completion.bash \
+	test/py/legacy/check-cert-expired_unittest.bash \
+	test/py/legacy/daemon-util_unittest.bash \
+	test/py/legacy/systemd_unittest.bash \
+	test/py/legacy/ganeti-cleaner_unittest.bash \
+	test/py/legacy/import-export_unittest.bash \
+	test/py/legacy/cli-test.bash \
+	test/py/legacy/bash_completion.bash \
+	test/hs/htest.hs \
 	test/hs/offline-test.sh \
 	test/hs/cli-tests-defs.sh \
 	$(all_python_code) \
@@ -3032,6 +3032,7 @@ man: $(man_MANS) $(manhtml)
 
 dist/setup-config: ganeti.cabal $(HS_BUILT_SRCS)
 	$(CABAL_SETUP) configure --user \
+	  --cabal-file=$(top_srcdir)/ganeti.cabal \
 	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \

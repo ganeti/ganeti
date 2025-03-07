@@ -28,7 +28,7 @@ mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
 
 mkdir -p $tmpdir/exe $tmpdir/test/hs
-for hfile in htools ganeti-confd mon-collector hs2py; do
+for hfile in htest htools ganeti-confd mon-collector hs2py; do
   exe=exe/$hfile
   if [ -e $exe ]; then
     ln -s $PWD/$exe $tmpdir/exe/

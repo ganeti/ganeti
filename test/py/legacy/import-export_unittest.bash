@@ -153,7 +153,7 @@ cat $(get_testfile proc_drbd8.txt) $(get_testfile cert1.pem) > $testdata
 } > $largetestdata
 
 impexpd_helper() {
-  $PYTHON $(get_testpath)/py/import-export_unittest-helper "$@"
+  $PYTHON $(get_testpath)/py/legacy/import-export_unittest-helper "$@"
 }
 
 start_test() {
