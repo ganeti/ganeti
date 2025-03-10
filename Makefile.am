@@ -1215,7 +1215,7 @@ endif
 
 HS_REGEX_SRCS = \
 	regex/tdfa/Ganeti/Query/RegEx.hs \
-	regex/pcre/Ganeti/Query/RegEx.hs
+	regex/pcre/Ganeti/Query/RegEx.hs \
 	regex/pcre2/Ganeti/Query/RegEx.hs
 
 HS_TEST_SRCS = \
