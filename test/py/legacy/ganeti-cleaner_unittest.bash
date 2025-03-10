@@ -36,9 +36,7 @@ GNTC=daemons/ganeti-cleaner
 CCE=$PWD/tools/check-cert-expired
 
 # Expand relative PYTHONPATH passed as passed by the test environment.
-if [ "x$PYTHONPATH" = "x.:./test/py" ]
-then export PYTHONPATH=$PWD:$PWD/test/py
-fi
+PYTHONPATH="${PYTHONPATH/.:./$PWD:$PWD}"
 
 err() {
   echo "$@"
