@@ -924,9 +924,8 @@ HS_DEFAULT_PROGS = \
 
 if HTEST
 HS_DEFAULT_PROGS += exe/htest
-else
-EXTRA_DIST += test/hs/htest.hs
 endif
+EXTRA_DIST += test/hs/htest.hs
 
 HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
 
