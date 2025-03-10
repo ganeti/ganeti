@@ -97,7 +97,7 @@ def UpdateAllowUnreleased(allow_unreleased, version_match, release):
 def main():
   # Ensure "C" locale is used
   curlocale = locale.getlocale()
-  if curlocale != (None, None):
+  if curlocale[0] not in (None, 'C'):
     Error("Invalid locale %s" % str(curlocale))
 
   # Get the release version, but replace "~" with " " as the version

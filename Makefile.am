@@ -924,9 +924,8 @@ HS_DEFAULT_PROGS = \
 
 if HTEST
 HS_DEFAULT_PROGS += exe/htest
-else
-EXTRA_DIST += test/hs/htest.hs
 endif
+EXTRA_DIST += test/hs/htest.hs
 
 HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
 
@@ -1215,7 +1214,7 @@ endif
 
 HS_REGEX_SRCS = \
 	regex/tdfa/Ganeti/Query/RegEx.hs \
-	regex/pcre/Ganeti/Query/RegEx.hs
+	regex/pcre/Ganeti/Query/RegEx.hs \
 	regex/pcre2/Ganeti/Query/RegEx.hs
 
 HS_TEST_SRCS = \
