@@ -345,7 +345,7 @@ stop() {
     systemctl stop "${name}.service"
   elif type -p start-stop-daemon >/dev/null; then
     start-stop-daemon --stop --quiet --oknodo --retry 30 \
-      --pidfile $pidfile --name "$name"
+      --pidfile $pidfile --remove-pidfile --name "$name"
   else
     _ignore_error killproc -p $pidfile $name
   fi
