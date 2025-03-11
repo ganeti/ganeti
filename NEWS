@@ -2,6 +2,26 @@ News
 ====
 
 
+Version 3.1.0 rc2
+-----------------
+
+*(Released Wed, 12 Mar 2025)*
+
+Changes since 3.1.0 rc1
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- various tests have been fixed (Python and Haskell) (#1833)
+- various bugs related to `make dist / distcheck` have been fixed (which is
+  the reason there never was an official -rc1 tarball) (#1833, #1834)
+- builds are now reproducible (#1831)
+- QA suite now default to RSA instead of DSA SSH keys (#1829)
+- `--enable-regex-pcre-builtin` and `--enable-regex-tdfa` have been dropped from
+  `./configure` and replaced by -`-with-haskell-pcre=auto|$library` (#1832)
+- support for the Haskell pcre2 library has been added (#1832)
+- `start-stop-daemon` is now invoked with `--remove-pidfile` to avoid stale PID
+  files which confused tests (#1836)
+
+
 Version 3.1.0 rc1
 -----------------
 
