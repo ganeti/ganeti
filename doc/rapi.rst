@@ -2422,8 +2422,8 @@ It supports the ``dry-run`` argument.
 
 Requests resource information. Available fields can be found in man
 pages and using ``/2/query/[resource]/fields``. The resource is one of
-:pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the :doc:`query2
-design document <design-query2>` for more details.
+:pyeval:`utils.CommaJoin(sorted(constants.QR_VIA_RAPI))`. See the
+:doc:`query2 design document <design-query2>` for more details.
 
 .. rapi_resource_details:: /2/query/[resource]
 
@@ -2456,7 +2456,7 @@ operators.
 ++++++++++++++++++++++++++++++
 
 Request list of available fields for a resource. The resource is one of
-:pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the
+:pyeval:`utils.CommaJoin(sorted(constants.QR_VIA_RAPI))`. See the
 :doc:`query2 design document <design-query2>` for more details.
 
 .. rapi_resource_details:: /2/query/[resource]/fields
