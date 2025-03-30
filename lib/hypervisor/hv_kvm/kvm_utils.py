@@ -59,7 +59,8 @@ def ParseStorageUriToBlockdevParam(uri):
   @param uri: storage-describing URI
   @return: dict
   """
-  if (match := re.match(_BLOCKDEV_URI_REGEX_GLUSTER, uri)) is not None:
+  match = re.match(_BLOCKDEV_URI_REGEX_GLUSTER, uri)
+  if match is not None:
     return {
         "driver": "gluster",
         "server": [
@@ -72,7 +73,8 @@ def ParseStorageUriToBlockdevParam(uri):
         "volume": match.group("volume"),
         "path": match.group("path")
       }
-  elif (match := re.match(_BLOCKDEV_URI_REGEX_RBD, uri)) is not None:
+  match = re.match(_BLOCKDEV_URI_REGEX_RBD, uri)
+  if match is not None:
     return {
         "driver": "rbd",
         "pool": match.group("pool"),
