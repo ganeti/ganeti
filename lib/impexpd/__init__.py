@@ -46,6 +46,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
+from ganeti import pathutils
 
 
 #: Used to recognize point at which socat(1) starts to listen on its socket.
@@ -225,28 +226,35 @@ class CommandBuilder(object):
       # For socat versions >= 1.7.3, we need to also specify
       # openssl-commonname, otherwise server certificate verification will
       # fail.
-      x509_cert_cn = host
-      # we were previously hardcoding constants.X509_CERT_CN here, but
-      # that's always ganeti.example.com while the other end generates
-      # an actual cert that matches the hostname. unfortunately here
-      # we are typically given an IP address, so let's try to find a
-      # real hostname for the certificate check
-      if host and netutils.IPAddress.IsValid(host):
-        # this looks like an IP address, override based on the reverse
-        # DNS
-        try:
-          x509_cert_cn, _, _ = socket.gethostbyaddr(host)
-          logging.warning("overriden IP address %s to reverse hostname %s",
-                          host,
-                          x509_cert_cn)
-        except OSError as e:
-          logging.error(
-            "failed to resolve IP address %s, reverting to default %s: %s",
-            host,
-            constants.X509_CERT_CN,
-            e,
-          )
-          x509_cert_cn = constants.X509_CERT_CN
+      # for gnt-backup Ganeti noded internal CA/Certs/Keys will be used
+      if (self._opts.cert == pathutils.NODED_CERT_FILE and
+          self._opts.key == pathutils.NODED_CERT_FILE):
+        x509_cert_cn = constants.X509_CERT_CN
+      # for cluster moves other certs are generated
+      else:
+        x509_cert_cn = host
+        # we were previously hardcoding constants.X509_CERT_CN here, but
+        # that's always ganeti.example.com while the other end generates
+        # an actual cert that matches the hostname. unfortunately here
+        # we are typically given an IP address, so let's try to find a
+        # real hostname for the certificate check
+        if host and netutils.IPAddress.IsValid(host):
+          # this looks like an IP address, override based on the reverse
+          # DNS
+          try:
+            x509_cert_cn, _, _ = socket.gethostbyaddr(host)
+            logging.warning("overriden IP address %s to reverse hostname %s",
+                            host,
+                            x509_cert_cn)
+          except OSError as e:
+            logging.error(
+              "failed to resolve IP address %s, reverting to default %s: %s",
+              host,
+              constants.X509_CERT_CN,
+              e,
+            )
+            x509_cert_cn = constants.X509_CERT_CN
+
       if self._GetSocatVersion() >= (1, 7, 3):
         addr2 += ["openssl-commonname=%s" % x509_cert_cn]
 
