@@ -48,8 +48,11 @@ jobs:
         if: ${{ matrix.regex == 'pcre2' }}
         run: ./configure --enable-haskell-tests --with-haskell-pcre=pcre2
 
+      - name: pimp cabal parallelism
+        run: sed -e "s/\t\$(CABAL_SETUP) build/\t\$(CABAL_SETUP) build -j$(nproc)/" -i Makefile.am
+
       - name: Build
-        run: make -j 2
+        run: make -j $(nproc)
 
       - name: Check Local
         run: LC_ALL=C make check-local
