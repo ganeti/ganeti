@@ -85,7 +85,7 @@ from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 validate_vnc_parameters, \
                                                 validate_disk_parameters
 
-import ganeti.hypervisor.hv_kvm.kvm_utils as kvm_utils
+from ganeti.hypervisor.hv_kvm import kvm_utils
 
 _KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
