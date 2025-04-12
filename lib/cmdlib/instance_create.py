@@ -325,8 +325,7 @@ class LUInstanceCreate(LogicalUnit):
         raise errors.OpPrereqError("Missing source instance name",
                                    errors.ECODE_INVAL)
 
-      self.source_instance_name = \
-        netutils.GetHostname(name=src_instance_name).name
+      self.source_instance_name = src_instance_name
 
     else:
       raise errors.OpPrereqError("Invalid instance creation mode %r" %
