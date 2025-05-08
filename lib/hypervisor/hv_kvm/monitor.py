@@ -48,7 +48,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import serializer
 
-import ganeti.hypervisor.hv_kvm.kvm_utils as kvm_utils
+from ganeti.hypervisor.hv_kvm import kvm_utils
 
 
 class QmpCommandNotSupported(errors.HypervisorError):
