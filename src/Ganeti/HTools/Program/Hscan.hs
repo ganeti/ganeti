@@ -144,6 +144,9 @@ writeDataInner nlen name opts cdata fixdata = do
   hFlush stdout
   when (isJust shownodes) .
        putStr $ Cluster.printNodes nl (fromJust shownodes)
+  putStrLn ">>>>> writeDataInner >>>>>"
+  print cdata
+  putStrLn "<<<<< writeDataInner <<<<<"
   writeFile (oname <.> "data") (serializeCluster cdata)
   return True
 
