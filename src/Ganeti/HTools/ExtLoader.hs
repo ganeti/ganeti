@@ -130,6 +130,9 @@ loadExternalData opts = do
       ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
                             >>= mergeData eff_u exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
+  putStrLn ">>>>> loadExternalData >>>>>"
+  print cdata
+  putStrLn "<<<<< loadExternalData <<<<<"
   (cdata', ok) <- runWriterT $ if optMonD opts
                                  then MonD.queryAllMonDDCs cdata opts
                                  else return cdata
@@ -141,6 +144,9 @@ loadExternalData opts = do
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
 
+  putStrLn ">>>>> loadExternalData modified >>>>>"
+  print cdata' {cdNodes = nl}
+  putStrLn "<<<<< loadExternalData modified <<<<<"
   return cdata' {cdNodes = nl}
 
 -- | Function to save the cluster data to a file.
