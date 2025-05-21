@@ -386,13 +386,15 @@ setStaticKvmNodeMem nl static_node_mem =
      then Container.map updateNM nl
      else nl
 
--- | Update node memory stat based on instance list.
+-- | Update node memory stat and Fail-N+1 state based on instance list.
 updateMemStat :: Node.Node -> Instance.List -> Node.Node
 updateMemStat node il =
   let node2 = node { Node.iMem = nodeImem node il }
       node3 = node2 { Node.xMem = Node.missingMem node2 }
-  in node3 { Node.pMem = fromIntegral (Node.unallocatedMem node3)
-                         / Node.tMem node3 }
+  in  node3 {
+        Node.failN1 = Node.unallocatedMem node3 <= Node.rMem node3,
+        Node.pMem = fromIntegral (Node.unallocatedMem node3) / Node.tMem node3
+      }
 
 -- | Check the cluster for memory/disk allocation consistency and update stats.
 updateMissing :: Node.List -- ^ All nodes in the cluster

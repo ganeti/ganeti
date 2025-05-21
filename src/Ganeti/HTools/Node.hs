@@ -480,10 +480,10 @@ buildPeers t il =
               (sList t)
       pmap = P.accumArray (+) mdata
       new_rmem = computeMaxRes pmap
-      new_failN1 = fMem t < new_rmem
       new_prem = fromIntegral new_rmem / tMem t
   in t { peers = pmap
-       , failN1 = new_failN1
+       {- failN1 is initialized in Loader.updateMemStat,
+          after iMem is initialized and nMem updated -}
        , rMem = new_rmem
        , pRem = new_prem
 
