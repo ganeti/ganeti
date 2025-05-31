@@ -603,6 +603,15 @@ class MoveDestExecutor(object):
       raise Error("Received NIC information does not match expected format; "
                   "Do the versions of this tool and the source cluster match?")
 
+    # remove mode, link and vlan if a network is supplied
+    skip_keys = [constants.INIC_MODE, constants.INIC_LINK, constants.INIC_VLAN]
+    for idx, nic in enumerate(nics):
+      if nic[constants.INIC_NETWORK] is not None:
+        nics[idx] = objects.FillDict(nic, nic, skip_keys)
+        # use symbolic network name, not uuid
+        netinfo = instance["nics"][idx][8]
+        nics[idx][constants.INIC_NETWORK] = netinfo["name"]
+
     if len(override_nics) > len(nics):
       raise Error("Can not create new NICs")
 
