@@ -2792,11 +2792,15 @@ htScsiControllerVirtio = "virtio-scsi-pci"
 htScsiControllerMegasas :: String
 htScsiControllerMegasas = "megasas"
 
+htScsiControllerTekram :: String
+htScsiControllerTekram = "dc390"
+
 htKvmValidScsiControllerTypes :: FrozenSet String
 htKvmValidScsiControllerTypes =
   ConstantUtils.mkSet [htScsiControllerLsi,
                        htScsiControllerVirtio,
-                       htScsiControllerMegasas]
+                       htScsiControllerMegasas,
+                       htScsiControllerTekram]
 
 htCacheDefault :: String
 htCacheDefault = "default"
