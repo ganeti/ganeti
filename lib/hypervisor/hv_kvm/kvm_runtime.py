@@ -223,4 +223,12 @@ def _upgrade_serialized_runtime(loaded_runtime: List) -> List:
         constants.HT_VALID_DISCARD_TYPES:
       hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
 
+    # remove chroot from the runtime
+    try:
+      idx = kvm_cmd.index("-chroot")
+    except ValueError:
+      pass
+    else:
+      kvm_cmd[idx:idx+2] = []
+
   return [kvm_cmd, serialized_nics, hvparams, serialized_disks]
