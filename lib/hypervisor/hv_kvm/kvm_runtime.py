@@ -224,11 +224,17 @@ def _upgrade_serialized_runtime(loaded_runtime: List) -> List:
       hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
 
     # remove chroot from the runtime
+    # commit e607423 addresses that the -chroot parameter is now combined into
+    # -run-with. This happens in a way that -chroot is no longer written into
+    # the KVM runtime.  When live migrating, the old runtime (containing
+    # -chroot) is read and therefore has to be filtered out. Otherwise kvm_cmd
+    # will contain old -chroot and new -run-with. This makes live
+    # migration to >=Qemu-9.0 possible.
     try:
       idx = kvm_cmd.index("-chroot")
     except ValueError:
       pass
     else:
-      kvm_cmd[idx:idx+2] = []
+      del kvm_cmd[idx:idx+2]
 
   return [kvm_cmd, serialized_nics, hvparams, serialized_disks]
