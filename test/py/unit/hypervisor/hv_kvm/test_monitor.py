@@ -255,3 +255,10 @@ class TestQmpConnection:
     fake_qmp.execute_qmp("test-fire-event")
     test_event = fake_qmp.wait_for_qmp_event(['TEST_EVENT'], 0.3)
     assert test_event.event_type == "TEST_EVENT"
+
+  def test_is_connected(self, fake_qmp: QmpConnection):
+    assert not fake_qmp.is_connected()
+    fake_qmp.connect()
+    assert fake_qmp.is_connected()
+    fake_qmp.close()
+    assert not fake_qmp.is_connected()

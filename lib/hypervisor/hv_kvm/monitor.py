@@ -209,6 +209,7 @@ class UnixFileSocketConnection:
       self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
       self.sock.settimeout(self.timeout)
       self.sock.connect(self.socket_path)
+      self._connected = True
 
       logging.debug("Create Socket Connection to %s.", {self.socket_path})
 
