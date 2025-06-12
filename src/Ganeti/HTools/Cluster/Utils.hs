@@ -81,12 +81,13 @@ iMoveToJob nl il idx move =
                       Bad msg -> error $ "Empty node name for idx " ++
                                  show n ++ ": " ++ msg ++ "??"
                       Ok ne -> Just ne
-      opF' = OpCodes.OpInstanceMigrate
+      opF' node =
+            OpCodes.OpInstanceMigrate
               { OpCodes.opInstanceName        = iname
               , OpCodes.opInstanceUuid        = Nothing
               , OpCodes.opMigrationMode       = Nothing -- default
               , OpCodes.opOldLiveMode         = Nothing -- default as well
-              , OpCodes.opTargetNode          = Nothing -- this is drbd
+              , OpCodes.opTargetNode          = node    -- this is drbd
               , OpCodes.opTargetNodeUuid      = Nothing
               , OpCodes.opAllowRuntimeChanges = False
               , OpCodes.opIgnoreIpolicy       = False
@@ -95,21 +96,22 @@ iMoveToJob nl il idx move =
               , OpCodes.opAllowFailover       = True
               , OpCodes.opIgnoreHvversions    = True
               }
-      opFA n = opF { OpCodes.opTargetNode = lookNode n } -- not drbd
-      opFforced =
+      opFforced node =
         OpCodes.OpInstanceFailover
           { OpCodes.opInstanceName        = iname
           , OpCodes.opInstanceUuid        = Nothing
           , OpCodes.opShutdownTimeout     =
               fromJust $ mkNonNegative C.defaultShutdownTimeout
           , OpCodes.opIgnoreConsistency = False
-          , OpCodes.opTargetNode = Nothing
+          , OpCodes.opTargetNode = node
           , OpCodes.opTargetNodeUuid = Nothing
           , OpCodes.opIgnoreIpolicy = False
           , OpCodes.opIallocator = Nothing
           , OpCodes.opMigrationCleanup = False
           }
-      opF = if Instance.forthcoming inst then opFforced else opF'
+      opFForNode = if Instance.forthcoming inst then opFforced else opF'
+      opF = opFForNode Nothing
+      opFA n = opFForNode (lookNode n) -- not drbd
       opR n = OpCodes.OpInstanceReplaceDisks
                 { OpCodes.opInstanceName     = iname
                 , OpCodes.opInstanceUuid     = Nothing
