@@ -74,7 +74,6 @@ module Ganeti.UDSServer
 import Control.Concurrent.Lifted (fork, yield)
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Control.Exception (catch)
 import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
@@ -85,7 +84,7 @@ import qualified Network.Socket as S
 import System.Directory (removeFile)
 import System.IO ( hClose, hFlush, hPutStr, hWaitForInput, Handle, IOMode(..)
                  , hSetBuffering, BufferMode(..))
-import System.IO.Error (isEOFError)
+import System.IO.Error (catchIOError, isEOFError)
 import System.Posix.Types (Fd)
 import System.Posix.IO (createPipe, fdToHandle, handleToFd)
 import System.Timeout
@@ -339,7 +338,7 @@ recvMsg s = do
 -- | Extended wrapper over recvMsg.
 recvMsgExt :: Client -> IO RecvResult
 recvMsgExt s =
-  Control.Exception.catch (liftM RecvOk (recvMsg s)) $ \e ->
+  catchIOError (liftM RecvOk (recvMsg s)) $ \e ->
     return $ if isEOFError e
                then RecvConnClosed
                else RecvError (show e)

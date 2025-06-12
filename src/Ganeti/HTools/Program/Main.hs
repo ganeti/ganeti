@@ -37,7 +37,7 @@ module Ganeti.HTools.Program.Main
   , main
   ) where
 
-import Control.Exception
+import Control.Exception (catchJust)
 import Control.Monad (guard)
 import Data.Char (toLower)
 import System.Environment

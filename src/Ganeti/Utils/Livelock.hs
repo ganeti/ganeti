@@ -39,7 +39,7 @@ module Ganeti.Utils.Livelock
   , isDead
   ) where
 
-import qualified Control.Exception as E
+import Control.Exception (bracket)
 import Control.Monad
 import Control.Monad.Except
 import System.Directory (doesFileExist, getDirectoryContents)
@@ -90,7 +90,7 @@ isDead :: Livelock -> IO Bool
 isDead fpath = fmap (isOk :: Result () -> Bool) . runResultT . liftIO $ do
   filepresent <- doesFileExist fpath
   when filepresent
-    . E.bracket
+    . bracket
           (openFd fpath Posix.ReadOnly Nothing Posix.defaultFileFlags)
           closeFd
                 $ \fd -> do

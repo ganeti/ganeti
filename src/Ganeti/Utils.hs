@@ -93,7 +93,7 @@ module Ganeti.Utils
   ) where
 
 import Control.Concurrent
-import Control.Exception (try, bracket)
+import Control.Exception (bracket)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
 import qualified Data.Attoparsec.ByteString as A
@@ -112,6 +112,7 @@ import System.Directory (renameFile, createDirectoryIfMissing)
 import System.FilePath.Posix (takeDirectory)
 import System.INotify
 import System.Posix.Types
+import System.IO.Error (tryIOError)
 
 import Debug.Trace
 import Network.Socket
@@ -346,9 +347,9 @@ logWarningIfBad _ _ (Ok v) = return v
 -- | Try an IO interaction, log errors and unfold as a 'Result'.
 tryAndLogIOError :: IO a -> String -> (a -> Result b) -> IO (Result b)
 tryAndLogIOError io msg okfn =
- try io >>= either
+ tryIOError io >>= either
    (\ e -> do
-       let combinedmsg = msg ++ ": " ++ show (e :: IOError)
+       let combinedmsg = msg ++ ": " ++ show e
        logError combinedmsg
        return . Bad $ combinedmsg)
    (return . okfn)
@@ -357,7 +358,7 @@ tryAndLogIOError io msg okfn =
 -- throws an IOError.
 withDefaultOnIOError :: a -> IO a -> IO a
 withDefaultOnIOError a io =
-  try io >>= either (\ (_ :: IOError) -> return a) return
+  tryIOError io >>= either (\_ -> return a) return
 
 -- | Print a warning, but do not exit.
 warn :: String -> IO ()
@@ -626,7 +627,7 @@ getFStat p = liftM buildFileStatus (getFileStatus p)
 -- | Safe version of 'getFStat', that ignores IOErrors.
 getFStatSafe :: FilePath -> IO FStat
 getFStatSafe fpath = liftM (either (const nullFStat) id)
-                       ((try $ getFStat fpath) :: IO (Either IOError FStat))
+                       (tryIOError $ getFStat fpath)
 
 -- | Check if the file needs reloading
 needsReload :: FStat -> FilePath -> IO (Maybe FStat)
@@ -710,21 +711,20 @@ ensurePermissions fpath perms = do
   ents <- exitIfBad "Can't determine user/group ids" runtimeEnts
 
   -- Get the existing file properties
-  eitherFileStatus <- try $ getFileStatus fpath
-                      :: IO (Either IOError FileStatus)
+  eitherFileStatus <- tryIOError $ getFileStatus fpath
 
   -- And see if any modifications are needed
   (flip $ either (return . Bad . show)) eitherFileStatus $ \fstat -> do
     ownertry <- case fpOwner perms of
       Nothing -> return $ Right ()
-      Just owner -> try $ do
+      Just owner -> tryIOError $ do
         let ownerid = reUserToUid ents M.! owner
         unless (ownerid == fileOwner fstat) $ do
           logDebug $ "Changing owner of " ++ fpath ++ " to " ++ show owner
           setOwnerAndGroup fpath ownerid (-1)
     grouptry <- case fpGroup perms of
       Nothing -> return $ Right ()
-      Just grp -> try $ do
+      Just grp -> tryIOError $ do
         let groupid = reGroupToGid ents M.! grp
         unless (groupid == fileGroup fstat) $ do
           logDebug $ "Changing group of " ++ fpath ++ " to " ++ show grp
@@ -732,11 +732,11 @@ ensurePermissions fpath perms = do
     let fp = fpPermissions perms
     permtry <- if fileMode fstat == fp
       then return $ Right ()
-      else try $ do
+      else tryIOError $ do
         logInfo $ "Changing permissions of " ++ fpath ++ " to "
                     ++ showOct fp ""
         setFileMode fpath fp
-    let errors = E.lefts ([ownertry, grouptry, permtry] :: [Either IOError ()])
+    let errors = E.lefts [ownertry, grouptry, permtry]
     if null errors
       then return $ Ok ()
       else return . Bad $ show errors
@@ -744,16 +744,16 @@ ensurePermissions fpath perms = do
 -- | Safely rename a file, creating the target directory, if needed.
 safeRenameFile :: FilePermissions -> FilePath -> FilePath -> IO (Result ())
 safeRenameFile perms from to = do
-  directtry <- try $ renameFile from to
-  case (directtry :: Either IOError ()) of
+  directtry <- tryIOError $ renameFile from to
+  case directtry of
     Right () -> return $ Ok ()
     Left _ -> do
-      result <- try $ do
+      result <- tryIOError $ do
         let dir = takeDirectory to
         createDirectoryIfMissing True dir
         _ <- ensurePermissions dir perms
         renameFile from to
-      return $ either (Bad . show) Ok (result :: Either IOError ())
+      return $ either (Bad . show) Ok result
 
 -- | Removes duplicates, preserving order.
 ordNub :: (Ord a) => [a] -> [a]

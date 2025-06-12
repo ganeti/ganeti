@@ -39,7 +39,6 @@ module Ganeti.HTools.Backend.Rapi
   , parseData
   ) where
 
-import Control.Exception
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Network.Curl
@@ -50,6 +49,7 @@ import Text.JSON (JSObject, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
 import System.FilePath
+import System.IO.Error (catchIOError)
 
 import Ganeti.BasicTypes
 import Ganeti.Types (Hypervisor(..))
@@ -99,8 +99,7 @@ getUrl url = do
 -- | Helper to convert I/O errors in 'Bad' values.
 ioErrToResult :: IO a -> IO (Result a)
 ioErrToResult ioaction =
-  Control.Exception.catch (liftM Ok ioaction)
-    (\e -> return . Bad . show $ (e::IOException))
+  catchIOError (liftM Ok ioaction) (return . Bad . show)
 
 -- | Append the default port if not passed in.
 formatHost :: String -> String
