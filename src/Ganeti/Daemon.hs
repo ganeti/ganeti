@@ -63,7 +63,6 @@ module Ganeti.Daemon
 import Control.Concurrent (ThreadId, myThreadId, throwTo)
 import Control.Exception (catchJust, finally)
 import Control.Monad
-import Control.Monad.Fail (MonadFail)
 import Data.Maybe (fromMaybe, listToMaybe)
 import Text.Printf
 import Data.Word

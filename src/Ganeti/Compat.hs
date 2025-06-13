@@ -47,7 +47,6 @@ module Ganeti.Compat
   ) where
 
 import qualified Data.ByteString.UTF8 as UTF8
-import System.FilePath (FilePath)
 import System.Posix.ByteString.FilePath (RawFilePath)
 import qualified System.Posix as Posix
 import qualified System.INotify
