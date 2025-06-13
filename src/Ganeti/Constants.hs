@@ -50,7 +50,7 @@ import qualified Data.ByteString.Char8 as BC
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
-import Data.Monoid
+import Data.Monoid ((<>))
 
 import qualified AutoConf
 import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
