@@ -43,7 +43,7 @@ import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.Exit
 import System.IO
 import System.FilePath
-import System.Time
+import System.Time (ClockTime, getClockTime)
 
 import Text.Printf (printf)
 

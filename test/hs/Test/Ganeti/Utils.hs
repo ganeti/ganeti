@@ -42,7 +42,7 @@ import Test.HUnit
 import Data.Char (isSpace)
 import qualified Data.Either as Either
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.List.NonEmpty (NonEmpty((:|)))
+import Data.List.NonEmpty (NonEmpty((:|)), nonEmpty)
 import Data.List
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
@@ -255,9 +255,9 @@ prop_rStripSpace :: NonEmptyList Char -> Property
 prop_rStripSpace (NonEmpty str) =
   forAll (resize 50 $ listOf1 (arbitrary `suchThat` isSpace)) $ \whitespace ->
   conjoin [ counterexample "arb. string last char is not space" $
-              case rStripSpace str of
-                [] -> True
-                xs -> not . isSpace $ last xs
+              case nonEmpty $ rStripSpace str of
+                Nothing -> True
+                Just xs -> not . isSpace $ NonEmpty.last xs
           , counterexample "whitespace suffix is stripped" $
               rStripSpace str ==? rStripSpace (str ++ whitespace)
           , counterexample "whitespace reduced to null" $
@@ -323,9 +323,12 @@ prop_trim (NonEmpty str) =
   forAll (choose (0, length whitespace)) $ \n ->
   let (preWS, postWS) = splitAt n whitespace in
   conjoin [ counterexample "arb. string first and last char are not space" $
-              case trim str of
-                [] -> True
-                xs -> (not . isSpace . head) xs && (not . isSpace . last) xs
+              case nonEmpty $ trim str of
+                Nothing -> True
+                Just xs ->
+                    (not . isSpace . NonEmpty.head) xs
+                    &&
+                    (not . isSpace . NonEmpty.last) xs
           , counterexample "whitespace is striped" $
               trim str ==? trim (preWS ++ str ++ postWS)
           , counterexample "whitespace reduced to null" $

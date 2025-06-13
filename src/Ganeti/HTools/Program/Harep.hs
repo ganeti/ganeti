@@ -46,7 +46,7 @@ import Data.Function
 import Data.List
 import Data.Maybe
 import Data.Ord
-import System.Time
+import System.Time (ClockTime(TOD), getClockTime)
 import qualified Data.Map as Map
 import qualified Text.JSON as J
 

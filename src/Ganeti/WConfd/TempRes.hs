@@ -84,7 +84,7 @@ import qualified Data.Foldable as F
 import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Monoid
+import Data.Monoid (Monoid(mempty, mappend), (<>))
 import qualified Data.Semigroup as Sem
 import qualified Data.Set as S
 import System.Random

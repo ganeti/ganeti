@@ -47,7 +47,6 @@ module Ganeti.Compat
   ) where
 
 import qualified Data.ByteString.UTF8 as UTF8
-import System.FilePath (FilePath)
 import System.Posix.ByteString.FilePath (RawFilePath)
 import qualified System.Posix as Posix
 import qualified System.INotify
@@ -103,7 +102,11 @@ getPid' :: ProcessHandle -> IO (Maybe Pid)
 #if MIN_VERSION_process(1,6,3)
 getPid' = getPid
 #else
+#if MIN_VERSION_process(1,6,0)
+getPid' (ProcessHandle mh _ _) = do
+#else
 getPid' (ProcessHandle mh _) = do
+#endif
   p_ <- readMVar mh
   case p_ of
     OpenHandle pid -> return $ Just pid

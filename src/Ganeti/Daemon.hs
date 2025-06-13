@@ -63,7 +63,6 @@ module Ganeti.Daemon
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
-import Control.Monad.Fail (MonadFail)
 import Data.Maybe (fromMaybe, listToMaybe)
 import Text.Printf
 import Data.Word

@@ -46,7 +46,7 @@ import Data.Either ()
 import Data.Maybe (fromMaybe, isJust, fromJust)
 import Data.List
 import Control.Monad
-import System.Time
+import System.Time (ClockTime, getClockTime)
 import Text.JSON (JSObject, JSValue(JSArray),
                   makeObj, encodeStrict, decodeStrict, fromJSObject, showJSON)
 

@@ -90,7 +90,7 @@ import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
 import Data.Maybe (fromMaybe, mapMaybe)
-import Data.Semigroup ((<>))
+import Data.Monoid ((<>))
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
