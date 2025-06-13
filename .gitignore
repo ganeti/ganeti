@@ -51,6 +51,7 @@
 /devel/wheezy-amd64.tar.gz
 /devel/wheezy-amd64.conf
 /dist/
+/dist-newstyle/
 /empty-cabal-config
 /epydoc.conf
 /exe/
