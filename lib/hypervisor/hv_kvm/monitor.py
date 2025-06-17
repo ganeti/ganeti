@@ -175,7 +175,8 @@ def _ensure_connection(fn):
     """Ensure proper connect/close and exception propagation"""
     mon = args[0]
     already_connected = mon.is_connected()
-    mon.connect()
+    if not already_connected:
+      mon.connect()
     try:
       ret = fn(*args, **kwargs)
     finally:
@@ -417,7 +418,7 @@ class QmpConnection(QemuMonitorSocket):
       if greeting[self._EVENT_KEY]:
         continue
       if not greeting[self._FIRST_MESSAGE_KEY]:
-        self._connected = False
+        self.close()
         raise errors.HypervisorError("kvm: QMP communication error (wrong"
                                      " server greeting)")
       else:
