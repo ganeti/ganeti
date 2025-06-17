@@ -232,9 +232,8 @@ def _upgrade_serialized_runtime(loaded_runtime: List) -> List:
     # migration to >=Qemu-9.0 possible.
     try:
       idx = kvm_cmd.index("-chroot")
+      del kvm_cmd[idx:idx+2]
     except ValueError:
       pass
-    else:
-      del kvm_cmd[idx:idx+2]
 
   return [kvm_cmd, serialized_nics, hvparams, serialized_disks]
