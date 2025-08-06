@@ -2,6 +2,27 @@ News
 ====
 
 
+Version 3.1.0
+-------------
+
+*(Released Fri, 22 Aug 2025)*
+
+Changes since 3.1.0 rc2
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- various Haskell cleanups/improvements (#1857, #1858, #1859, #1860)
+- HTools: improve handling of N+1 violations in hbal (#1850)
+- KVM: fix QMP connection handling (#1855, #1862)
+- KVM: fix handling of -chroot parameter after cluster upgrades (#1853)
+- KVM: fix zombie socat processes crated by kvm-console-wrapper (#1848)
+- move-instance: fixes related to NIC configuration and hostname resolution errors  (#1843, #1844)
+- fix socat handling for use with gnt-backup (#1840)
+- Python 3.6 compatibility (#1838)
+- doc/rapi.rst: remove randomness, fix/allow reproducible builds (#1837)
+- daemon-util: remove pidfile(s) on stop (#1836)
+- fix rare "broken pipe" error in QMP communication during instance shutdown (#1866)
+
+
 Version 3.1.0 rc2
 -----------------
 
@@ -14,7 +35,7 @@ Changes since 3.1.0 rc1
 - various bugs related to `make dist / distcheck` have been fixed (which is
   the reason there never was an official -rc1 tarball) (#1833, #1834)
 - builds are now reproducible (#1831)
-- QA suite now default to RSA instead of DSA SSH keys (#1829)
+- QA suite now defaults to RSA instead of DSA SSH keys (#1829)
 - `--enable-regex-pcre-builtin` and `--enable-regex-tdfa` have been dropped from
   `./configure` and replaced by -`-with-haskell-pcre=auto|$library` (#1832)
 - support for the Haskell pcre2 library has been added (#1832)
