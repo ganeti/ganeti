@@ -980,6 +980,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # the value above.
       mem_bytes = qmp.execute_qmp("query-balloon")[qmp.ACTUAL_KEY]
       memory = mem_bytes // 1048576
+      qmp.close()
     except errors.HypervisorError:
       pass
 
