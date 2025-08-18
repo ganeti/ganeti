@@ -973,7 +973,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     times = 0
 
     try:
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name))
+      socket_path = self._InstanceQmpMonitor(instance_name)
+      qmp = QmpConnection(socket_path)
       qmp.connect()
       vcpus = len(qmp.execute_qmp("query-cpus-fast"))
       # Will fail if ballooning is not enabled, but we can then just resort to
@@ -983,6 +984,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       qmp.close()
     except errors.HypervisorError:
       pass
+    # during instance shutdown it may happen, that qemu has already exited
+    # in the middle of talking to it via QMP
+    except BrokenPipeError:
+      logging.debug("Error: Broken pipe. The QMP socket %s has shut down." %
+                    socket_path)
+    except ConnectionError:
+      logging.debug("Error: Unable to connect to the QMP socket %s." %
+                    socket_path)
 
     return (instance_name, pid, memory, vcpus, istat, times)
 
