@@ -19,13 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [bookworm, focal, jammy, noble, debian-testing]
+        os: [bookworm, focal, jammy, noble, trixie]
         regex: [pcre, tdfa]
         exclude:
-          - os: debian-testing
+          - os: trixie
             regex: pcre
         include:
-          - os: debian-testing
+          - os: trixie
             regex: pcre2
     container:
       image: ganeti/ci:${{ matrix.os }}-py3
