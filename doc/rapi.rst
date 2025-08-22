@@ -1645,7 +1645,7 @@ Manages exports.
 ``PUT``
 ~~~~~~~
 
-Create an exports of an instance.
+Create an export of an instance.
 
 Returns a job ID.
 
