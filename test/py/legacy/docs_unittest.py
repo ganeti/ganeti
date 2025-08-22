@@ -53,7 +53,6 @@ VALID_URI_RE = re.compile(r"^[-/a-z0-9]*$")
 
 RAPI_OPCODE_EXCLUDE = compat.UniqueFrozenset([
   # Not yet implemented
-  opcodes.OpBackupRemove,
   opcodes.OpClusterConfigQuery,
   opcodes.OpClusterRepairDiskSizes,
   opcodes.OpClusterVerify,
