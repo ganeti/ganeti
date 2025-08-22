@@ -1635,7 +1635,7 @@ Job result:
 ``/2/instances/[instance_name]/export``
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-Exports an instance.
+Manages exports.
 
 .. rapi_resource_details:: /2/instances/[instance_name]/export
 
@@ -1644,6 +1644,8 @@ Exports an instance.
 
 ``PUT``
 ~~~~~~~
+
+Create an exports of an instance.
 
 Returns a job ID.
 
@@ -1656,6 +1658,27 @@ Body parameters:
 Job result:
 
 .. opcode_result:: OP_BACKUP_EXPORT
+
+
+.. _rapi-res-instances-instance_name-export+delete:
+
+``DELETE``
+~~~~~~~~~~
+
+Delete an export.
+
+Returns:
+
+``None``
+
+Body parameters:
+
+.. opcode_params:: OP_BACKUP_REMOVE
+   :exclude: instance_name
+
+Job result:
+
+.. opcode_result:: OP_BACKUP_REMOVE
 
 
 .. _rapi-res-instances-instance_name-migrate:
