@@ -1667,9 +1667,7 @@ Job result:
 
 Delete an export.
 
-Returns:
-
-``None``
+Returns: Id of created job
 
 Body parameters:
 
