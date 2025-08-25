@@ -1493,6 +1493,7 @@ class R_2_instances_name_export(baserlib.OpcodeResource):
   PUT_RENAME = {
     "destination": "target_node",
     }
+  DELETE_OPCODE = opcodes.OpBackupRemove
 
   def GetPutOpInput(self):
     """Exports an instance.
@@ -1502,6 +1503,13 @@ class R_2_instances_name_export(baserlib.OpcodeResource):
       "instance_name": self.items[0],
       })
 
+  def GetDeleteOpInput(self):
+    """Deletes an export.
+
+    """
+    return (self.request_body, {
+      "instance_name": self.items[0],
+      })
 
 class R_2_instances_name_migrate(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/migrate resource.
