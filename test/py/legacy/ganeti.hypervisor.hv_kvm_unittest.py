@@ -712,11 +712,13 @@ class TestGenerateDeviceHVInfo(testutils.GanetiTestCase):
     dev_type = constants.HOTPLUG_TARGET_NIC
     kvm_devid = "nic-9e7c85f6-b6e5-4243"
     hv_dev_type = constants.HT_NIC_PARAVIRTUAL
-    bus_slots = hypervisor._GetBusSlots()
+    bus_manager = hypervisor._get_bus_manager()
+    allocation = bus_manager.get_next_allocation(dev_type, hv_dev_type)
     hvinfo = hv_kvm._GenerateDeviceHVInfo(dev_type,
                                           kvm_devid,
                                           hv_dev_type,
-                                          bus_slots)
+                                          allocation)
+    bus_manager.commit(allocation)
     # NOTE: The PCI slot is zero-based, i.e. 13th slot has addr hex(12)
     expected_hvinfo = {
       "driver": "virtio-net-pci",
@@ -734,11 +736,13 @@ class TestGenerateDeviceHVInfo(testutils.GanetiTestCase):
     dev_type = constants.HOTPLUG_TARGET_DISK
     kvm_devid = "disk-932df160-7a22-4067"
     hv_dev_type = constants.HT_DISK_SCSI_BLOCK
-    bus_slots = hypervisor._GetBusSlots()
+    bus_manager = hypervisor._get_bus_manager()
+    allocation = bus_manager.get_next_allocation(dev_type, hv_dev_type)
     hvinfo = hv_kvm._GenerateDeviceHVInfo(dev_type,
                                           kvm_devid,
                                           hv_dev_type,
-                                          bus_slots)
+                                          allocation)
+    bus_manager.commit(allocation)
     expected_hvinfo = {
       "driver": "scsi-block",
       "id": kvm_devid,

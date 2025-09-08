@@ -667,7 +667,8 @@ hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/netdev.py \
 	lib/hypervisor/hv_kvm/validation.py \
 	lib/hypervisor/hv_kvm/kvm_utils.py \
-	lib/hypervisor/hv_kvm/kvm_runtime.py
+	lib/hypervisor/hv_kvm/kvm_runtime.py \
+	lib/hypervisor/hv_kvm/bus_manager.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -2025,7 +2026,8 @@ python_tests_legacy = \
 	test/py/legacy/tempfile_fork_unittest.py
 
 python_tests_unit = \
-	test/py/unit/hypervisor/hv_kvm/test_monitor.py
+	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
+	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py
 
 python_tests = $(python_tests_integration) $(python_tests_legacy) $(python_tests_unit)
 
