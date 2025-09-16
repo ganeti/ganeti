@@ -749,6 +749,7 @@ pytools_PYTHON = \
 utils_PYTHON = \
 	lib/utils/__init__.py \
 	lib/utils/algo.py \
+	lib/utils/bitarray_compat.py \
 	lib/utils/filelock.py \
 	lib/utils/hash.py \
 	lib/utils/io.py \

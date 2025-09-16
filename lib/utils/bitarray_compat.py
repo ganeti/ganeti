@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#
 #
 
-# Copyright (C) 2014 Google Inc.
+# Copyright (C) 2025 the Ganeti project
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,34 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-"""Script for unittesting the bitarray utility functions"""
+"""
+CompatBitarray: Subclass from bitarray.bitarray returns always a list for
+a.search(...)
+"""
 
-import unittest
-import testutils
-from ganeti.utils.bitarray_compat import bitarray
-
-from ganeti import errors
-from ganeti.utils import bitarrays
-
-
-_FREE = bitarray("11100010")
-_FULL = bitarray("11111111")
+from typing import TypeAlias
+from bitarray import bitarray as _BaseBitarray
 
 
-class GetFreeSlotTest(unittest.TestCase):
-  """Test function that finds a free slot in a bitarray"""
+class CompatBitarray(_BaseBitarray):
+  # constructor forwarding for immutable C-Extension-Types
+  def __new__(
+    cls: "type[CompatBitarray]",
+    *args,
+    **kwargs
+  ) -> "CompatBitarray":
+    return _BaseBitarray.__new__(cls, *args, **kwargs)
 
-  def testFreeSlot(self):
-    self.assertEqual(bitarrays.GetFreeSlot(_FREE), 3)
-
-  def testReservedSlot(self):
-    self.assertRaises(errors.GenericError,
-                      bitarrays.GetFreeSlot,
-                      _FREE, slot=1)
-
-  def testNoFreeSlot(self):
-    self.assertRaises(errors.GenericError,
-                      bitarrays.GetFreeSlot,
-                      _FULL)
-
-  def testGetAndReserveSlot(self):
-    self.assertEqual(bitarrays.GetFreeSlot(_FREE, slot=5, reserve=True), 5)
-    self.assertEqual(_FREE, bitarray("11100110"))
+  def search(self, *args, **kwargs) -> list[int]:
+    """
+    https://github.com/ilanschnell/bitarray/blob/master/doc/bitarray3.rst
+    """
+    res = super().search(*args, **kwargs)
+    return res if isinstance(res, list) else list(res)
 
 
-if __name__ == "__main__":
-  testutils.GanetiTestProgram()
+# Alias
+# pylint: disable=C0103
+bitarray: TypeAlias = CompatBitarray
+
+__all__ = ["CompatBitarray", "bitarray"]
