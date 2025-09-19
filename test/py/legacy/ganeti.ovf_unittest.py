@@ -549,7 +549,7 @@ class TestOVFImporter(BetterUnitTest):
     self.importer = ovf.OVFImporter(self.ganeti_ovf, OPTS_EXPORT)
     disks_list = self.importer.ovf_reader.GetDisksNames()
     results = [self.importer._GetDiskQemuInfo("%s/%s" %
-      (self.importer.input_dir, path), "file format: (\S+)")
+      (self.importer.input_dir, path), r"file format: (\S+)")
       for (path, _) in disks_list]
     self.assertEqual(results, ["vmdk"])
 
