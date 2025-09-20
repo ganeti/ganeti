@@ -115,7 +115,7 @@ class TestHooksDocs(unittest.TestCase):
     assert len(lu2opcode) == len(mcpu.Processor.DISPATCH_TABLE), \
       "Found duplicate entries"
 
-    hooks_paths = frozenset(re.findall("^:directory:\s*(.+)\s*$", hooksdoc,
+    hooks_paths = frozenset(re.findall(r"^:directory:\s*(.+)\s*$", hooksdoc,
                                        re.M))
     self.assertTrue(self.HOOK_PATH_OK.issubset(hooks_paths),
                     msg="Whitelisted path not found in documentation")

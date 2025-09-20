@@ -2697,7 +2697,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(op, msg)
 
   def testAttachDiskWrongNodes(self):
-    msg = "Disk nodes are \['mock_node_1134'\]"
+    msg = r"Disk nodes are \['mock_node_1134'\]"
 
     self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
                            primary_node="mock_node_1134")
@@ -3240,8 +3240,8 @@ class TestLUInstanceChangeGroup(CmdlibTestCase):
     op = self.CopyOpCode(self.op,
                          target_groups=[self.group.name])
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Can't use group\(s\) .* as targets, they are used by the"
-          " instance .*")
+      op, r"Can't use group\(s\) .* as targets, they are used by the"
+          r" instance .*")
 
   def testNoTargetGroups(self):
     inst = self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,

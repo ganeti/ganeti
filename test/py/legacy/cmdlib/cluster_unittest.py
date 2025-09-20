@@ -216,7 +216,7 @@ class TestLUClusterDestroy(CmdlibTestCase):
     self.cfg.AddNewNode()
     self.cfg.AddNewNode()
 
-    self.ExecOpCodeExpectOpPrereqError(op, "still 2 node\(s\)")
+    self.ExecOpCodeExpectOpPrereqError(op, r"still 2 node\(s\)")
 
   def testExistingInstances(self):
     op = opcodes.OpClusterDestroy()
@@ -224,7 +224,7 @@ class TestLUClusterDestroy(CmdlibTestCase):
     self.cfg.AddNewInstance()
     self.cfg.AddNewInstance()
 
-    self.ExecOpCodeExpectOpPrereqError(op, "still 2 instance\(s\)")
+    self.ExecOpCodeExpectOpPrereqError(op, r"still 2 instance\(s\)")
 
   def testEmptyCluster(self):
     op = opcodes.OpClusterDestroy()
@@ -1134,7 +1134,9 @@ class TestLUClusterVerifyConfig(CmdlibTestCase):
     result = self.ExecOpCode(op)
 
     self.mcpu.assertLogContainsRegex(
-      "following nodes \(and their instances\) belong to a non existing group")
+      r"following nodes \(and their instances\) belong to a non "
+      r"existing group"
+    )
     self.assertFalse(result)
 
   def testDanglingInstance(self):
@@ -1795,7 +1797,9 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
   def testOfflineSecondary(self, lu):
     self.node1_img.offline = True
     lu._VerifyInstance(self.drbd_inst, self.node_imgs, self.diskstatus)
-    self.mcpu.assertLogContainsRegex("instance has offline secondary node\(s\)")
+    self.mcpu.assertLogContainsRegex(
+      r"instance has offline secondary node\(s\)"
+    )
 
 
 class TestLUClusterVerifyGroupVerifyOrphanVolumes(
