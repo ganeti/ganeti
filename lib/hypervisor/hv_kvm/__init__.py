@@ -1871,7 +1871,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           dev_ops.append(nic_val)
 
           # add bootindex property to the first nic if network boot is enabled
-          if boot_network and incoming is None:
+          if boot_network:
             dev_ops.append("bootindex=1")
             boot_network = False
 
