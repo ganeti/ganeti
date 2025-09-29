@@ -1827,8 +1827,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     taps = []
     devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
 
-    boot_network = (up_hvp.get(constants.HV_BOOT_ORDER, '') ==
-                    constants.HT_BO_NETWORK)
+    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      boot_network = False
+    else:
+      boot_network = (up_hvp.get(constants.HV_BOOT_ORDER, '') ==
+                      constants.HT_BO_NETWORK)
 
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
