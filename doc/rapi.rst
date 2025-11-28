@@ -1411,6 +1411,10 @@ Instance shutdown URI.
 
 Shutdowns an instance.
 
+The URI takes an optional ``timeout`` parameter to change the
+default shutdown timeout. The default value is
+:pyeval:`constants.DEFAULT_SHUTDOWN_TIMEOUT`.
+
 It supports the ``dry-run`` argument.
 
 .. opcode_params:: OP_INSTANCE_SHUTDOWN
