@@ -1374,8 +1374,8 @@ Reboots URI for an instance.
 
 Reboots the instance.
 
-The URI takes optional ``type=soft|hard|full`` and
-``ignore_secondaries=0|1`` parameters.
+The URI takes optional ``type=soft|hard|full``,
+``ignore_secondaries=0|1``and ``shutdown_timeout`` parameters.
 
 ``type`` defines the reboot type. ``soft`` is just a normal reboot,
 without terminating the hypervisor. ``hard`` means full shutdown
@@ -1386,6 +1386,10 @@ ground up as if you would have done a ``gnt-instance shutdown`` and
 
 ``ignore_secondaries`` is a bool argument indicating if we start the
 instance even if secondary disks are failing.
+
+``shutdown_timeout`` is an integer argument that specifies how
+long to wait before shutting down the instance. The default value is
+:pyeval:`constants.DEFAULT_SHUTDOWN_TIMEOUT`.
 
 It supports the ``dry-run`` argument.
 
