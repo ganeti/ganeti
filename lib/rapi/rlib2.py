@@ -1268,6 +1268,9 @@ class R_2_instances_name_reboot(baserlib.OpcodeResource):
       "instance_name": self.items[0],
       "reboot_type":
         self.queryargs.get("type", [constants.INSTANCE_REBOOT_HARD])[0],
+      "shutdown_timeout": self._checkIntVariable(
+        "shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT
+      ),
       "ignore_secondaries": bool(self._checkIntVariable("ignore_secondaries")),
       "dry_run": self.dryRun(),
       })
