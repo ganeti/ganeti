@@ -1310,6 +1310,9 @@ class R_2_instances_name_shutdown(baserlib.OpcodeResource):
     """
     return (self.request_body, {
       "instance_name": self.items[0],
+      "timeout": self._checkIntVariable(
+        "timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT
+      ),
       "no_remember": bool(self._checkIntVariable("no_remember")),
       "dry_run": self.dryRun(),
       })
