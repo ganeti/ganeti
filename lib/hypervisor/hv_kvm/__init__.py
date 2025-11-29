@@ -1859,7 +1859,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           vhostfd = ""
 
         if kvm_supports_netdev:
-          dev_ops = []
+          dev_opts = []
 
           # Non paravirtual NICs hvinfo is empty
           if "id" in nic.hvinfo:
@@ -1872,14 +1872,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           nic_val += (",netdev=%s,mac=%s%s" % (netdev, nic.mac, nic_extra))
           tap_val = ("type=tap,id=%s,%s%s%s" %
                      (netdev, tapfd, vhostfd, tap_extra))
-          dev_ops.append(nic_val)
+          dev_opts.append(nic_val)
 
           # add bootindex property to the first nic if network boot is enabled
           if boot_network:
-            dev_ops.append("bootindex=1")
+            dev_opts.append("bootindex=1")
             boot_network = False
 
-          kvm_cmd.extend(["-netdev", tap_val, "-device", ','.join(dev_ops)])
+          kvm_cmd.extend(["-netdev", tap_val, "-device", ','.join(dev_opts)])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
                                                          nic.mac, nic_model)
