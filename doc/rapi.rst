@@ -2518,6 +2518,39 @@ Example::
     ["debian-etch"]
 
 
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about the os-interfaces
+as a list.
+
+Example::
+
+    [
+      {
+        "name": "instance-guestfish",
+        "valid": true,
+        "variants": [
+          "debian-bookworm",
+          "debian-bullseye",
+          "debian-buster"
+        ],
+        "parameters": [
+          {
+            "name": "root_pw_hash",
+            "description": "Hash of the root password"
+          },
+          {
+            "name": "root_ssh_auth_key",
+            "description": "SSH public key for root login"
+          }
+        ],
+        "api_versions": [20],
+        "blacklisted": false,
+        "hidden": false,
+        "trusted": true
+      }
+    ]
+
+
 .. _rapi-res-tags:
 
 ``/2/tags``
