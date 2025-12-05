@@ -147,6 +147,17 @@ J_FIELDS = J_FIELDS_BULK + [
   "opresult",
   ]
 
+OSI_FIELDS_BULK = [
+    "name",
+    "valid",
+    "variants",
+    "parameters",       # pname, pdesc
+    "api_versions",
+    "blacklisted",      # blk
+    "hidden",           # hid
+    "trusted"
+]
+
 _NR_DRAINED = "drained"
 _NR_MASTER_CANDIDATE = "master-candidate"
 _NR_MASTER = "master"
@@ -312,7 +323,13 @@ class R_2_os(baserlib.OpcodeResource):
 
     """
     cl = self.GetClient()
-    op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
+
+    output_fields = ["name", "variants"]
+
+    if self.useBulk():
+      output_fields = OSI_FIELDS_BULK
+
+    op = opcodes.OpOsDiagnose(output_fields=output_fields, names=[])
     cancel_fn = (lambda: _CheckIfConnectionDropped(self._req.request_sock))
     job_id = self.SubmitJob([op], cl=cl)
     # we use custom feedback function, instead of print we log the status
@@ -323,11 +340,29 @@ class R_2_os(baserlib.OpcodeResource):
     if not isinstance(diagnose_data, list):
       raise http.HttpBadGateway(message="Can't get OS list")
 
-    os_names = []
-    for (name, variants) in diagnose_data:
-      os_names.extend(cli.CalculateOSNames(name, variants))
+    if self.useBulk():
+      os_list = []
+      for diagnose_item in diagnose_data:
+        os_item = baserlib.MapFields(OSI_FIELDS_BULK, diagnose_item)
 
-    return os_names
+        # transform parameters from list to dict
+        parameters = []
+        for param in os_item["parameters"]:
+          parameter = baserlib.MapFields(["name", "description"],
+                                          param)
+          parameters.append(parameter)
+
+        os_item["parameters"] = parameters
+
+        os_list.append(os_item)
+
+      return os_list
+    else:
+      os_names = []
+      for (name, variants) in diagnose_data:
+        os_names.extend(cli.CalculateOSNames(name, variants))
+
+      return os_names
 
 
 class R_2_redist_config(baserlib.OpcodeResource):
