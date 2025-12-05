@@ -65,7 +65,6 @@ PUT should be prefered over POST.
 # C0103: Invalid name, since the R_* names are not conforming
 
 import errno
-
 import OpenSSL
 import socket
 
