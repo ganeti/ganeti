@@ -27,35 +27,40 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 """
-CompatBitarray: Subclass from bitarray.bitarray returns always a list for
-a.search(...)
-"""
+With bitarray-3 the signature of search() has changed:
 
-from typing import TypeAlias
+  old: search(sub_bitarray, limit) -> list
+
+  new: search(sub_bitarray, start=0, stop=<end>, /, right=False)
+         -> iterator
+"""
+from typing import Union, List
 from bitarray import bitarray as _BaseBitarray
-
+from ganeti import errors
 
 class CompatBitarray(_BaseBitarray):
-  # constructor forwarding for immutable C-Extension-Types
-  def __new__(
-    cls: "type[CompatBitarray]",
-    *args,
-    **kwargs
-  ) -> "CompatBitarray":
+  # constructor forwarding for immutable C-Extension types
+  def __new__(cls: "type[CompatBitarray]", *args, **kwargs) -> "CompatBitarray":
     return _BaseBitarray.__new__(cls, *args, **kwargs)
 
-  def search(self, *args, **kwargs) -> list[int]:
-    """
-    https://github.com/ilanschnell/bitarray/blob/master/doc/bitarray3.rst
-    """
-    res = super().search(*args, **kwargs)
-    return res if isinstance(res, list) else list(res)
+  def search(self, sub_bitarray: Union[_BaseBitarray, int], *args) -> List[int]:
+    # compatibility: accept at most one optional int (old 'limit')
+    if len(args) > 1:
+      raise errors.GenericError("The bitarray.search() compatibility only "
+                                "supports one optional argument")
 
+    limit = None
+    if args and isinstance(args[0], int):
+      limit = args[0]
 
-# Alias
+    res = list(super().search(sub_bitarray))
+    if limit is None:
+      return res
+    return res[:limit]
+
+# Simple alias (Python 3.6 friendly)
 # pylint: disable=C0103
-bitarray: TypeAlias = CompatBitarray
+bitarray = CompatBitarray
 
 __all__ = ["CompatBitarray", "bitarray"]
