@@ -35,23 +35,24 @@ With bitarray-3 the signature of search() has changed:
   new: search(sub_bitarray, start=0, stop=<end>, /, right=False)
          -> iterator
 """
-from __future__ import annotations
 from typing import Union, List
 from bitarray import bitarray as _BaseBitarray
 from ganeti import errors
 
 class CompatBitarray(_BaseBitarray):
   # constructor forwarding for immutable C-Extension types
-  def __new__(cls, *args, **kwargs):
+  def __new__(cls: "type[CompatBitarray]", *args, **kwargs) -> "CompatBitarray":
     return _BaseBitarray.__new__(cls, *args, **kwargs)
 
-  def search(self, sub_bitarray: Union[bitarray, int], *args) -> List[int]:
+  def search(self, sub_bitarray: Union[_BaseBitarray, int], *args) -> List[int]:
     # compatibility: accept at most one optional int (old 'limit')
     if len(args) > 1:
       raise errors.GenericError("The bitarray.search() compatibility only "
                                 "supports one optional argument")
 
-    limit = args[0] if args and isinstance(args[0], int) else None
+    limit = None
+    if args and isinstance(args[0], int):
+      limit = args[0]
 
     res = list(super().search(sub_bitarray))
     if limit is None:
