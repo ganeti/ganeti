@@ -516,7 +516,7 @@ class QmpConnection(QemuMonitorSocket):
     arguments.update(self._filter_hvinfo(nic.hvinfo))
     if enable_mq:
       arguments.update({
-        "mq": "on",
+        "mq": True,
         "vectors": (2 * virtio_net_queues + 2),
         })
     self.execute_qmp("device_add", arguments)
