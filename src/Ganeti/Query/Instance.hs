@@ -280,6 +280,9 @@ instanceFields =
        (\x -> MaybeForJSON (getNetworkName cfg <$> nicNetwork x))
        . instNics),
      QffNormal)
+    , (FieldDefinition "nics" "NIC_objects" QFTOther
+      "List containing each network interface as an object",
+      FieldConfig getInstAllNicObjects, QffNormal)
   ] ++
 
   -- Per-nic parameter fields
@@ -375,6 +378,44 @@ getDefaultNicParams :: ConfigData -> FilledNicParams
 getDefaultNicParams cfg =
   (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg)
     $ UTF8.fromString C.ppDefault
+
+-- | Get all NICs for an instance as list of dicts (enriched with mode, link, 
+-- bridge, vlan, and network information). This matches the behavior of
+-- the Python _GetInstAllNicObjects function.
+getInstAllNicObjects :: ConfigData -> Instance -> ResultEntry
+getInstAllNicObjects cfg inst =
+  rsNormal . map (nicToObject cfg) $ instNics inst
+  where
+    nicToObject :: ConfigData -> PartialNic -> J.JSValue
+    nicToObject cfgData nic =
+      let filledParams = fillNicParamsFromConfig cfgData (nicNicparams nic)
+          mode = nicpMode filledParams
+          link = nicpLink filledParams
+          bridge = if nicpMode filledParams == NMBridged
+                     then Just $ nicpLink filledParams
+                     else Nothing
+          vlan = if nicpMode filledParams == NMOvs
+                   then Just $ nicpVlan filledParams
+                   else Nothing
+          network = case nicNetwork nic of
+            Just netId -> 
+              case getNetworkName cfgData netId of
+                networkNameObj -> 
+                  J.JSObject $ J.toJSObject [("uuid", J.showJSON netId),
+                                            ("name", 
+                                            J.showJSON $ networkNameObj)]
+            Nothing -> J.JSObject $ J.toJSObject []
+      in J.JSObject $ J.toJSObject
+           [ ("name", J.showJSON $ MaybeForJSON $ nicName nic)
+           , ("uuid", J.showJSON $ uuidOf nic)
+           , ("ip", J.showJSON $ MaybeForJSON $ nicIp nic)
+           , ("mac", J.showJSON $ nicMac nic)
+           , ("mode", J.showJSON mode)
+           , ("link", J.showJSON link)
+           , ("bridge", maybe J.JSNull J.showJSON bridge)
+           , ("vlan", maybe J.JSNull J.showJSON vlan)
+           , ("network", network)
+           ]
 
 -- | Retrieves the real disk size requirements for all the disks of the
 -- instance. This includes the metadata etc. and is different from the values

@@ -1254,6 +1254,15 @@ Example::
         "disk.sizes": [
           20480
         ],
+        "nics": [
+          {
+            "name": null,
+            "uuid": "7e01f91e-5d14-4ff7-8edb-14db7dfb68af",
+            "ip": "10.0.0.75",
+            "mac": "01:23:45:67:89:01",
+            // ...
+          }
+        ],
         "pnode": "node1.example.com",
         "nic.macs": ["01:23:45:67:89:01"],
         "snodes": ["node2.example.com"],

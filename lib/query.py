@@ -1719,6 +1719,62 @@ def _GetInstNicNetworkName(ctx, _, nic): # pylint: disable=W0613
   else:
     return ctx.networks[nic.network].name
 
+def _GetInstAllNicObjects(ctx, inst):
+  """Get all NICs for an instance as list of dicts.
+
+  Returns a list with one dict per nic
+  keys are:
+    name, uuid, ip, mac, mode,
+    link, bridge, vlan, network (uuid & name)
+  Missing values are None."""
+
+  assert len(ctx.inst_nicparams) == len(inst.nics)
+
+  result = []
+
+  for nic, nicp in zip(inst.nics, ctx.inst_nicparams):
+    # basic nic fields
+    name = nic.name
+    uuid = nic.uuid
+    mac = nic.mac
+    ip = nic.ip
+
+    mode, link, bridge, vlan = None, None, None, None
+    if nicp is not None:
+      mode = nicp.get(constants.NIC_MODE, None)
+      link = nicp.get(constants.NIC_LINK, None)
+      # bridge only meaningful when bridged
+      if mode == constants.NIC_MODE_BRIDGED:
+        bridge = nicp.get(constants.NIC_LINK, None)
+      # vlan only meaningful for ovs
+      if mode == constants.NIC_MODE_OVS:
+        vlan = nicp.get(constants.NIC_VLAN, None)
+
+    # network info
+    network = {}
+    if nic.network is not None:
+      net = ctx.networks.get(nic.network)
+      network = {
+        "name": net.name,
+        "uuid": net.uuid
+      }
+
+    result.append({
+      "name": name,
+      "uuid": uuid,
+      "ip": ip,
+      "mac": mac,
+      "mode": mode,
+      "link": link,
+      "bridge": bridge,
+      "vlan": vlan,
+      "network": network
+    })
+
+  assert len(result) == len(inst.nics)
+
+  return result
+
 
 def _GetInstNicNetwork(ctx, _, nic): # pylint: disable=W0613
   """Get a NIC's Network.
@@ -1922,7 +1978,10 @@ def _GetInstanceNetworkFields():
      lambda ctx, inst: [nic.network for nic in inst.nics]),
     (_MakeField("nic.networks.names", "NIC_networks_names", QFT_OTHER,
                 "List containing each interface's network"),
-     IQ_NETWORKS, 0, _GetInstAllNicNetworkNames)
+     IQ_NETWORKS, 0, _GetInstAllNicNetworkNames),
+    (_MakeField("nics", "NIC_objects", QFT_OTHER,
+                "List containing each network interface as an object"),
+     IQ_CONFIG, 0, _GetInstAllNicObjects)
     ]
 
   # NICs by number
