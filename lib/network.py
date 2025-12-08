@@ -34,7 +34,7 @@
 
 import ipaddress
 
-from bitarray import bitarray
+from ganeti.utils.bitarray_compat import bitarray
 
 from ganeti import errors
 

@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#
 #
 
-# Copyright (C) 2014 Google Inc.
+# Copyright (C) 2025 the Ganeti project
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,41 +27,40 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+With bitarray-3 the signature of search() has changed:
 
-"""Script for unittesting the bitarray utility functions"""
+  old: search(sub_bitarray, limit) -> list
 
-import unittest
-import testutils
-from ganeti.utils.bitarray_compat import bitarray
-
+  new: search(sub_bitarray, start=0, stop=<end>, /, right=False)
+         -> iterator
+"""
+from typing import Union, List
+from bitarray import bitarray as _BaseBitarray
 from ganeti import errors
-from ganeti.utils import bitarrays
 
+class CompatBitarray(_BaseBitarray):
+  # constructor forwarding for immutable C-Extension types
+  def __new__(cls: "type[CompatBitarray]", *args, **kwargs) -> "CompatBitarray":
+    return _BaseBitarray.__new__(cls, *args, **kwargs)
 
-_FREE = bitarray("11100010")
-_FULL = bitarray("11111111")
+  def search(self, sub_bitarray: Union[_BaseBitarray, int], *args) -> List[int]:
+    # compatibility: accept at most one optional int (old 'limit')
+    if len(args) > 1:
+      raise errors.GenericError("The bitarray.search() compatibility only "
+                                "supports one optional argument")
 
+    limit = None
+    if args and isinstance(args[0], int):
+      limit = args[0]
 
-class GetFreeSlotTest(unittest.TestCase):
-  """Test function that finds a free slot in a bitarray"""
+    res = list(super().search(sub_bitarray))
+    if limit is None:
+      return res
+    return res[:limit]
 
-  def testFreeSlot(self):
-    self.assertEqual(bitarrays.GetFreeSlot(_FREE), 3)
+# Simple alias (Python 3.6 friendly)
+# pylint: disable=C0103
+bitarray = CompatBitarray
 
-  def testReservedSlot(self):
-    self.assertRaises(errors.GenericError,
-                      bitarrays.GetFreeSlot,
-                      _FREE, slot=1)
-
-  def testNoFreeSlot(self):
-    self.assertRaises(errors.GenericError,
-                      bitarrays.GetFreeSlot,
-                      _FULL)
-
-  def testGetAndReserveSlot(self):
-    self.assertEqual(bitarrays.GetFreeSlot(_FREE, slot=5, reserve=True), 5)
-    self.assertEqual(_FREE, bitarray("11100110"))
-
-
-if __name__ == "__main__":
-  testutils.GanetiTestProgram()
+__all__ = ["CompatBitarray", "bitarray"]

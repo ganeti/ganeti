@@ -3,12 +3,10 @@ name: Build & Test
 on:
   push:
     branches:
-      - master
+      - stable-3.1
   pull_request:
     branches:
-      - master
-  schedule:
-    - cron: '42 3 * * *'
+      - stable-3.1
 
 permissions: read-all
 
@@ -19,13 +17,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [bookworm, focal, jammy, noble, trixie]
+        os: [bookworm, focal, jammy, noble, trixie, debian-testing]
         regex: [pcre, tdfa]
         exclude:
           - os: trixie
             regex: pcre
+          - os: debian-testing
+            regex: pcre
         include:
           - os: trixie
+            regex: pcre2
+          - os: debian-testing
             regex: pcre2
     container:
       image: ganeti/ci:${{ matrix.os }}-py3

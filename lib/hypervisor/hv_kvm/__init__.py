@@ -43,7 +43,7 @@ import pwd
 import shlex
 import shutil
 import urllib.request, urllib.error, urllib.parse
-from bitarray import bitarray
+from ganeti.utils.bitarray_compat import bitarray
 try:
   import psutil   # pylint: disable=F0401
   if psutil.version_info < (2, 0, 0):

@@ -41,7 +41,7 @@ import time
 
 from typing import Dict, Optional, Union, List
 from collections import namedtuple
-from bitarray import bitarray
+from ganeti.utils.bitarray_compat import bitarray
 
 from ganeti import errors
 from ganeti import utils
