@@ -55,9 +55,12 @@ class TestConsole(unittest.TestCase):
                                 primary_node="node837-uuid")
     node = objects.Node(name="node837", uuid="node837-uuid", ndparams={})
     group = objects.NodeGroup(name="group164", ndparams={})
-    cons = hv_chroot.ChrootManager.GetInstanceConsole(instance, node, group,
-                                                      {}, {},
-                                                      root_dir=self.tmpdir)
+    consoles = hv_chroot.ChrootManager.GetInstanceConsoles(instance, node,
+                                                    group, {}, {},
+                                                    root_dir=self.tmpdir)
+    self.assertEqual(len(consoles), 1)
+    cons = consoles[0]
+
     self.assertEqual(cons.Validate(), None)
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, node.name)

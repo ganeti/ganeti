@@ -75,7 +75,7 @@ import Ganeti.Utils (formatOrdinal)
 -- The 'InstanceConsoleInfo' describes how to connect to an instance.
 -- Any combination of these may or may not be present, depending on node and
 -- instance availability.
-type LiveInfo = (Maybe (InstanceInfo, Bool), Maybe InstanceConsoleInfo)
+type LiveInfo = (Maybe (InstanceInfo, Bool), [InstanceConsoleInfo])
 
 -- | Runtime containing the 'LiveInfo'. See the genericQuery function in
 -- the Query.hs file for an explanation of the terms used.
@@ -322,10 +322,9 @@ instanceFields =
      FieldConfigRuntime statusExtract, QffNormal)
   , (FieldDefinition "oper_state" "Running" QFTBool
      "Actual state of instance",
-     FieldRuntime operStatusExtract, QffNormal),
-
-    (FieldDefinition "console" "Console" QFTOther
-     "Instance console information",
+     FieldRuntime operStatusExtract, QffNormal)
+  , (FieldDefinition "console" "Console" QFTOther
+     "List of possible consoles for the instance",
      FieldRuntime consoleExtract, QffNormal)
   ] ++
 
@@ -375,6 +374,10 @@ getDefaultNicParams :: ConfigData -> FilledNicParams
 getDefaultNicParams cfg =
   (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg)
     $ UTF8.fromString C.ppDefault
+
+-- | Convert ConsoleInfo list to result
+consoleListToResult :: [InstanceConsoleInfo] -> ResultEntry
+consoleListToResult xs = rsNormal (map J.showJSON xs)
 
 -- | Retrieves the real disk size requirements for all the disks of the
 -- instance. This includes the metadata etc. and is different from the values
@@ -780,13 +783,13 @@ operStatusExtract :: Runtime -> Instance -> ResultEntry
 operStatusExtract res _ =
   rsMaybeNoData $ J.showJSON <$>
     case res of
-      Left _       -> Nothing
+      Left _           -> Nothing
       Right (x, _) -> Just $ isJust x
 
 -- | Extracts the console connection information
 consoleExtract :: Runtime -> Instance -> ResultEntry
 consoleExtract (Left err) _ = ResultEntry (rpcErrorToStatus err) Nothing
-consoleExtract (Right (_, val)) _ = rsMaybeNoData val
+consoleExtract (Right (_, val)) _ = consoleListToResult val
 
 -- * Helper functions extracting information as necessary for the generic query
 -- interfaces
@@ -844,12 +847,17 @@ getInstanceInfo uuidList inst =
 -- | Retrieves the console information if present anywhere in the given results
 getConsoleInfo :: [(String, ERpcError RpcResultInstanceConsoleInfo)]
                -> Instance
-               -> Maybe InstanceConsoleInfo
+               -> [InstanceConsoleInfo]
 getConsoleInfo uuidList inst =
-  let allValidResults = concatMap rpcResInstConsInfoInstancesInfo .
-                        rights . map snd $ uuidList
-  in snd <$> (instName inst >>= flip pickPairUnique allValidResults)
-
+  let allPairs = concatMap rpcResInstConsInfoInstancesInfo .
+                 rights . map snd $ uuidList
+  in case instName inst of
+       Nothing -> []
+       Just name ->
+         concat [infos
+                | (iname, infos) <- allPairs
+                , iname == name
+                ]
 -- | Extracts all the live information that can be extracted.
 extractLiveInfo :: [(Node, ERpcError RpcResultAllInstancesInfo)]
                 -> [(Node, ERpcError RpcResultInstanceConsoleInfo)]

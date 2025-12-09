@@ -46,8 +46,10 @@ class TestConsole(unittest.TestCase):
     instance = objects.Instance(name="fake.example.com")
     node = objects.Node(name="fakenode.example.com", ndparams={})
     group = objects.NodeGroup(name="default", ndparams={})
-    cons = hv_fake.FakeHypervisor.GetInstanceConsole(instance, node, group,
+    consoles = hv_fake.FakeHypervisor.GetInstanceConsoles(instance, node, group,
                                                      {}, {})
+    self.assertEqual(len(consoles), 1)
+    cons = consoles[0]
     self.assertEqual(cons.Validate(), None)
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)
 

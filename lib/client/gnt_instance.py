@@ -888,8 +888,17 @@ def ConnectToInstanceConsole(opts, args):
       raise errors.OpExecError("Instance %s is not running, can't get console" %
                                instance_name)
 
-  return _DoConsole(objects.InstanceConsole.FromDict(console_data),
-                    opts.show_command, cluster_name)
+  console_type = opts.console_type
+  preferred = [console for console in console_data if
+               console["kind"] == console_type]
+
+  if len(preferred) == 1:
+    console = preferred[0]
+    return _DoConsole(objects.InstanceConsole.FromDict(console),
+                      opts.show_command, cluster_name)
+  else:
+    raise errors.OpPrereqError(f"No console {console_type} is available "
+                               f"for instance {instance_name}")
 
 
 def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
@@ -1577,8 +1586,8 @@ commands = {
     "Create a bunch of instances based on specs in the file."),
   "console": (
     ConnectToInstanceConsole, ARGS_ONE_INSTANCE,
-    [SHOWCMD_OPT, PRIORITY_OPT],
-    "[--show-cmd] <instance-name>",
+    [SHOWCMD_OPT, CONSOLE_TYPE_OPT, PRIORITY_OPT],
+    "[--show-cmd] [--type <console-type>] <instance-name>",
     "Opens a console on the specified instance"),
   "failover": (
     FailoverInstance, ARGS_ONE_INSTANCE,

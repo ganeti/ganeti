@@ -1149,9 +1149,11 @@ def TestRapiInstanceModify(instance):
 def TestRapiInstanceConsole(instance):
   """Test getting instance console information via RAPI"""
   result = _rapi_client.GetInstanceConsole(instance.name)
-  console = objects.InstanceConsole.FromDict(result)
-  AssertEqual(console.Validate(), None)
-  AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance.name))
+
+  for console_item in result:
+    console = objects.InstanceConsole.FromDict(console_item)
+    AssertEqual(console.Validate(), None)
+    AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance.name))
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)

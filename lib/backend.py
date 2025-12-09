@@ -2668,8 +2668,10 @@ def GetInstanceConsoleInfo(instance_param_dict,
     group = objects.NodeGroup.FromDict(group)
 
     h = get_hv_fn(instance.hypervisor)
-    output[inst_name] = h.GetInstanceConsole(instance, pnode, group,
-                                             hvparams, beparams).ToDict()
+    consoles = h.GetInstanceConsoles(instance, pnode, group,
+                                             hvparams, beparams)
+
+    output[inst_name] = [con.ToDict() for con in consoles]
 
   return output
 

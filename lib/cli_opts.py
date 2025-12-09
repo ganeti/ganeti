@@ -231,6 +231,7 @@ __all__ = [
   "SEQUENTIAL_OPT",
   "SHOW_MACHINE_OPT",
   "SHOWCMD_OPT",
+  "CONSOLE_TYPE_OPT",
   "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
   "SPECS_CPU_COUNT_OPT",
@@ -944,6 +945,12 @@ COMMIT_OPT = cli_option("--commit", dest="commit",
 SHOWCMD_OPT = cli_option("--show-cmd", dest="show_command",
                          action="store_true", default=False,
                          help="Show command instead of executing it")
+
+CONSOLE_TYPE_OPT = cli_option("--type", dest="console_type",
+                              metavar="|".join(constants.CONS_ALL),
+                              choices=list(constants.CONS_ALL),
+                              default=constants.CONS_SSH,
+                              help="Preferred console type to use")
 
 CLEANUP_OPT = cli_option("--cleanup", dest="cleanup",
                          default=False, action="store_true",

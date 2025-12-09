@@ -49,7 +49,7 @@ dict is the same, see the docstring for L{BaseHypervisor.PARAMETERS}.
 import os
 import re
 import logging
-
+from typing import List
 
 from ganeti import constants
 from ganeti import errors
@@ -420,9 +420,9 @@ class BaseHypervisor(object):
     raise NotImplementedError
 
   @classmethod
-  def GetInstanceConsole(cls, instance, primary_node, node_group,
-                         hvparams, beparams):
-    """Return information for connecting to the console of an instance.
+  def GetInstanceConsoles(cls, instance, primary_node, node_group,
+                         hvparams, beparams) -> List[objects.InstanceConsole]:
+    """Return information for connecting all available consoles of an instance.
 
     """
     raise NotImplementedError

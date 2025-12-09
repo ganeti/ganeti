@@ -65,7 +65,10 @@ class TestConsole(unittest.TestCase):
       node = objects.Node(name="node24828", uuid="node24828-uuid",
                           ndparams={})
       group = objects.NodeGroup(name="group52341", ndparams={})
-      cons = cls.GetInstanceConsole(instance, node, group, hvparams, {})
+      consoles = cls.GetInstanceConsoles(instance, node, group, hvparams, {})
+      self.assertEqual(len(consoles), 1)
+      cons = consoles[0]
+
       self.assertEqual(cons.Validate(), None)
       self.assertEqual(cons.kind, constants.CONS_SSH)
       self.assertEqual(cons.host, node.name)

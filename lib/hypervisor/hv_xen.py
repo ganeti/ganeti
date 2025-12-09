@@ -39,6 +39,7 @@ import string # pylint: disable=W0402
 import shutil
 import time
 from io import StringIO
+from typing import List
 
 from ganeti import constants
 from ganeti import errors
@@ -1127,19 +1128,19 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return _GetNodeInfo(result.stdout, instance_list)
 
   @classmethod
-  def GetInstanceConsole(cls, instance, primary_node, node_group,
-                         hvparams, beparams):
+  def GetInstanceConsoles(cls, instance, primary_node, node_group,
+                         hvparams, beparams) -> List[objects.InstanceConsole]:
     """Return a command for connecting to the console of an instance.
 
     """
     ndparams = node_group.FillND(primary_node)
-    return objects.InstanceConsole(instance=instance.name,
+    return [objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
                                    host=primary_node.name,
                                    port=ndparams.get(constants.ND_SSH_PORT),
                                    user=constants.SSH_CONSOLE_USER,
                                    command=[pathutils.XEN_CONSOLE_WRAPPER,
-                                            XEN_COMMAND, instance.name])
+                                            XEN_COMMAND, instance.name])]
 
   def Verify(self, hvparams=None):
     """Verify the hypervisor.

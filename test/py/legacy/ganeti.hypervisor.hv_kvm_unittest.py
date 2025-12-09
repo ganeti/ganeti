@@ -486,9 +486,10 @@ class TestQmpMessage(testutils.GanetiTestCase):
 
 class TestConsole(unittest.TestCase):
   def MakeConsole(self, instance, node, group, hvparams):
-    cons = hv_kvm.KVMHypervisor.GetInstanceConsole(instance, node, group,
+    consoles = hv_kvm.KVMHypervisor.GetInstanceConsoles(instance, node, group,
                                                    hvparams, {})
-    self.assertEqual(cons.Validate(), None)
+    cons = consoles[0]
+
     return cons
 
   def testSerial(self):
@@ -555,9 +556,41 @@ class TestConsole(unittest.TestCase):
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self.MakeConsole(instance, node, group, hvparams)
-    self.assertEqual(cons.kind, constants.CONS_MESSAGE)
+    consoles = hv_kvm.KVMHypervisor.GetInstanceConsoles(instance, node, group,
+                                                       hvparams, {})
+    self.assertEqual(consoles, [])
 
+  def testSSHandVNC(self):
+    instance = objects.Instance(name="kvm.example.com",
+                                primary_node="node24325",
+                                network_port=constants.VNC_BASE_PORT + 10)
+    node = objects.Node(name="node24325", uuid="node24325-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group9184", ndparams={})
+    hvparams = {
+      constants.HV_SERIAL_CONSOLE: True,
+      constants.HV_VNC_BIND_ADDRESS: "192.0.2.1",
+      constants.HV_KVM_SPICE_BIND: None,
+    }
+    consoles = hv_kvm.KVMHypervisor.GetInstanceConsoles(instance, node, group,
+                                                        hvparams, {})
+
+    self.assertEqual(len(consoles), 2)
+
+    cons_ssh = [cons for cons in consoles if cons.kind == constants.CONS_SSH][0]
+    cons_vnc = [cons for cons in consoles if cons.kind == constants.CONS_VNC][0]
+
+    # SSH
+    self.assertEqual(cons_ssh.kind, constants.CONS_SSH)
+    self.assertEqual(cons_ssh.host, node.name)
+    self.assertEqual(cons_ssh.command[0], pathutils.KVM_CONSOLE_WRAPPER)
+    self.assertEqual(cons_ssh.command[1], constants.SOCAT_PATH)
+
+    # VNC
+    self.assertEqual(cons_vnc.kind, constants.CONS_VNC)
+    self.assertEqual(cons_vnc.host, "192.0.2.1")
+    self.assertEqual(cons_vnc.port, constants.VNC_BASE_PORT + 10)
+    self.assertEqual(cons_vnc.display, 10)
 
 class TestVersionChecking(testutils.GanetiTestCase):
   @staticmethod

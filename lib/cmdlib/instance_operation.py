@@ -568,7 +568,7 @@ class LUInstanceReboot(LogicalUnit):
     self.cfg.MarkInstanceUp(self.instance.uuid)
 
 
-def GetInstanceConsole(cluster, instance, primary_node, node_group):
+def GetInstanceConsoles(cluster, instance, primary_node, node_group):
   """Returns console information for an instance.
 
   @type cluster: L{objects.Cluster}
@@ -583,13 +583,15 @@ def GetInstanceConsole(cluster, instance, primary_node, node_group):
   # instance and then saving the defaults in the instance itself.
   hvparams = cluster.FillHV(instance)
   beparams = cluster.FillBE(instance)
-  console = hyper.GetInstanceConsole(instance, primary_node, node_group,
+  consoles = hyper.GetInstanceConsoles(instance, primary_node, node_group,
                                      hvparams, beparams)
+  output = []
+  for console in consoles:
+    assert console.instance == instance.name
+    console.Validate()
+    output.append(console.ToDict())
 
-  assert console.instance == instance.name
-  console.Validate()
-
-  return console.ToDict()
+  return output
 
 
 class LUInstanceConsole(NoHooksLU):
@@ -645,5 +647,5 @@ class LUInstanceConsole(NoHooksLU):
 
     node = self.cfg.GetNodeInfo(self.instance.primary_node)
     group = self.cfg.GetNodeGroup(node.group)
-    return GetInstanceConsole(self.cfg.GetClusterInfo(),
+    return GetInstanceConsoles(self.cfg.GetClusterInfo(),
                               self.instance, node, group)

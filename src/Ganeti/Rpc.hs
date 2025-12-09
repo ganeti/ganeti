@@ -485,11 +485,11 @@ $(buildObject "InstanceConsoleInfo" "instConsInfo"
   , optionalField $
     simpleField "command"     [t| [String] |]
   , optionalField $
-    simpleField "display"     [t| String |]
+    simpleField "display"     [t| Int |]
   ])
 
 $(buildObject "RpcResultInstanceConsoleInfo" "rpcResInstConsInfo"
-  [ simpleField "instancesInfo" [t| [(String, InstanceConsoleInfo)] |] ])
+  [ simpleField "instancesInfo" [t| [(String, [InstanceConsoleInfo])] |] ])
 
 instance RpcCall RpcCallInstanceConsoleInfo where
   rpcCallName _          = "instance_console_info"
@@ -503,8 +503,8 @@ instance Rpc RpcCallInstanceConsoleInfo RpcResultInstanceConsoleInfo where
     case res of
       J.JSObject res' ->
         let res'' = map (second J.readJSON) (J.fromJSObject res')
-                        :: [(String, J.Result InstanceConsoleInfo)] in
-        case sanitizeDictResults res'' of
+                        :: [(String, J.Result [InstanceConsoleInfo])]
+        in case sanitizeDictResults res'' of
           Left err -> Left err
           Right instInfos -> Right $ RpcResultInstanceConsoleInfo instInfos
       _ -> Left $ JsonDecodeError

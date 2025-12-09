@@ -1990,7 +1990,7 @@ def _GetInstDiskUsage(ctx, inst):
   return usage
 
 
-def _GetInstanceConsole(ctx, inst):
+def _GetInstanceConsoles(ctx, inst):
   """Get console information for instance.
 
   @type ctx: L{InstanceQueryData}
@@ -2230,8 +2230,8 @@ def _BuildInstanceFields():
     (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), IQ_CONFIG, 0,
      lambda ctx, inst: list(inst.GetTags())),
     (_MakeField("console", "Console", QFT_OTHER,
-                "Instance console information"), IQ_CONSOLE, 0,
-     _GetInstanceConsole),
+                "List of possible consoles for the instance"), IQ_CONSOLE, 0,
+     _GetInstanceConsoles),
     (_MakeField("forthcoming", "Forthcoming", QFT_BOOL,
                 "Whether the Instance is forthcoming"), IQ_CONFIG, 0,
      lambda _, inst: bool(inst.forthcoming)),

@@ -43,6 +43,8 @@ import pwd
 import shlex
 import shutil
 import urllib.request, urllib.error, urllib.parse
+from typing import List
+
 from bitarray import bitarray
 
 from ganeti.hypervisor.hv_kvm.bus_manager import BusAllocatorManager, \
@@ -2663,11 +2665,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
-  def GetInstanceConsole(cls, instance, primary_node, node_group,
-                         hvparams, beparams):
+  def GetInstanceConsoles(cls, instance, primary_node, node_group,
+                         hvparams, beparams) -> List[objects.InstanceConsole]:
     """Return a command for connecting to the console of an instance.
 
     """
+    consoles = []
+
     if hvparams[constants.HV_SERIAL_CONSOLE]:
       cmd = [pathutils.KVM_CONSOLE_WRAPPER,
              constants.SOCAT_PATH, utils.ShellQuote(instance.name),
@@ -2675,33 +2679,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
              "STDIO,%s" % cls._SocatUnixConsoleParams(),
              "UNIX-CONNECT:%s" % cls._InstanceSerial(instance.name)]
       ndparams = node_group.FillND(primary_node)
-      return objects.InstanceConsole(instance=instance.name,
+      consoles.append(objects.InstanceConsole(instance=instance.name,
                                      kind=constants.CONS_SSH,
                                      host=primary_node.name,
                                      port=ndparams.get(constants.ND_SSH_PORT),
                                      user=constants.SSH_CONSOLE_USER,
-                                     command=cmd)
+                                     command=cmd))
 
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address and instance.network_port > constants.VNC_BASE_PORT:
       display = instance.network_port - constants.VNC_BASE_PORT
-      return objects.InstanceConsole(instance=instance.name,
+      consoles.append(objects.InstanceConsole(instance=instance.name,
                                      kind=constants.CONS_VNC,
                                      host=vnc_bind_address,
                                      port=instance.network_port,
-                                     display=display)
+                                     display=display))
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     if spice_bind:
-      return objects.InstanceConsole(instance=instance.name,
+      consoles.append(objects.InstanceConsole(instance=instance.name,
                                      kind=constants.CONS_SPICE,
                                      host=spice_bind,
-                                     port=instance.network_port)
+                                     port=instance.network_port))
 
-    return objects.InstanceConsole(instance=instance.name,
-                                   kind=constants.CONS_MESSAGE,
-                                   message=("No serial shell for instance %s" %
-                                            instance.name))
+    return consoles
 
   def Verify(self, hvparams=None):
     """Verify the hypervisor.

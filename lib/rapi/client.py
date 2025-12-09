@@ -1473,8 +1473,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param instance: Instance name
     @type reason: string
     @param reason: the reason for executing this operation
-    @rtype: dict
-    @return: dictionary containing information about instance's console
+    @rtype: list
+    @return: list of dictionaries containing information about available
+        instance consoles
 
     """
     query = []

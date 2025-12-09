@@ -713,12 +713,12 @@ class TestInstanceConsoleInfo(unittest.TestCase):
 
   def setUp(self):
     self._test_hv_a = self._TestHypervisor()
-    self._test_hv_a.GetInstanceConsole = mock.Mock(
-      return_value = objects.InstanceConsole(instance="inst", kind="aHy")
+    self._test_hv_a.GetInstanceConsoles = mock.Mock(
+      return_value = [objects.InstanceConsole(instance="inst", kind="aHy")]
     )
     self._test_hv_b = self._TestHypervisor()
-    self._test_hv_b.GetInstanceConsole = mock.Mock(
-      return_value = objects.InstanceConsole(instance="inst", kind="bHy")
+    self._test_hv_b.GetInstanceConsoles = mock.Mock(
+      return_value = [objects.InstanceConsole(instance="inst", kind="bHy")]
     )
 
   class _TestHypervisor(hypervisor.hv_base.BaseHypervisor):
@@ -747,8 +747,8 @@ class TestInstanceConsoleInfo(unittest.TestCase):
 
     res = backend.GetInstanceConsoleInfo(call, get_hv_fn=self._GetHypervisor)
 
-    self.assertTrue(res["i1"]["kind"] == "aHy")
-    self.assertTrue(res["i2"]["kind"] == "bHy")
+    self.assertEqual("aHy", res["i1"][0]["kind"])
+    self.assertEqual("bHy", res["i2"][0]["kind"])
 
 
 class TestGetHvInfo(unittest.TestCase):
