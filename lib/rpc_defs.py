@@ -348,7 +348,9 @@ _IMPEXP_CALLS = [
     ("instance", ED_INST_DICT, None),
     ("snap_disks", ED_FINALIZE_EXPORT_DISKS, None),
     ], None, None, "Request the completion of an export operation"),
-  ("export_list", MULTI, None, constants.RPC_TMO_FAST, [], None, None,
+  ("export_list", MULTI, None, constants.RPC_TMO_FAST, [
+    ("calc_du", None, "Whether to calculate disk usage for exports"),
+    ], None, None,
    "Gets the stored exports list"),
   ("export_remove", SINGLE, None, constants.RPC_TMO_FAST, [
     ("export", None, None),
@@ -523,6 +525,8 @@ _NODE_CALLS = [
     ], None, None, "Request verification of given parameters"),
   ("node_volumes", MULTI, None, constants.RPC_TMO_FAST, [], None, None,
    "Gets all volumes on node(s)"),
+  ("node_export_capacity_info", MULTI, None, constants.RPC_TMO_FAST, [], None,
+   None, "Gets a node export capacity information"),
   ("node_demote_from_mc", SINGLE, None, constants.RPC_TMO_FAST, [], None, None,
    "Demote a node from the master candidate role"),
   ("node_powercycle", SINGLE, ACCEPT_OFFLINE_NODE, constants.RPC_TMO_NORMAL, [

@@ -529,7 +529,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (pathutils.EXPORT_DIR).
 
     """
-    return backend.ListExports()
+    calc_du = params[0] if params else False
+    return backend.ListExports(calc_du=calc_du)
+
+  @staticmethod
+  def perspective_node_export_capacity_info(params):
+    """Gets a node export capacity information."""
+
+    return backend.GetNodeExportCapacityInfo()
 
   @staticmethod
   def perspective_export_remove(params):

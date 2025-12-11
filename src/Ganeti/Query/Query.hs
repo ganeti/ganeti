@@ -332,7 +332,7 @@ queryInner cfg live (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
                configNetworks getNetwork cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRExport) fields qfilter) wanted =
-  genericQuery Export.fieldsMap (CollectorSimple Export.collectLiveData)
+  genericQuery Export.fieldsMap (CollectorFieldAware Export.collectLiveData)
                nodeName configNodes getNode cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeLuxi QRFilter) fields qfilter) wanted =

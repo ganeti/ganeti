@@ -95,7 +95,11 @@ module Ganeti.Rpc
   , RpcResultTestDelay(..)
 
   , RpcCallExportList(..)
+  , ExportInfo(..)
   , RpcResultExportList(..)
+
+  , RpcCallNodeExportCapacityInfo(..)
+  , RpcResultNodeExportCapacityInfo(..)
 
   , RpcCallJobqueueUpdate(..)
   , RpcCallJobqueueRename(..)
@@ -647,21 +651,54 @@ instance Rpc RpcCallTestDelay RpcResultTestDelay where
 
 -- | Call definition for export list.
 
-$(buildObject "RpcCallExportList" "rpcCallExportList" [])
+$(buildObject "RpcCallExportList" "rpcCallExportList"
+  [ simpleField "calc_du" [t| Bool |]
+  ])
+
+-- | Export entry returned by the node for each export.
+$(buildObject "ExportInfo" "exportInfo"
+  [ simpleField "name" [t| String |]
+  , simpleField "export_path" [t| String |]
+  , optionalField $ simpleField "export_du" [t| Int |]
+  ])
 
 -- | Result definition for export list.
-$(buildObject "RpcResultExportList" "rpcResExportList"
-  [ simpleField "exports" [t| [String] |]
-  ])
+newtype RpcResultExportList = RpcResultExportList
+  { rpcResExportListExports :: [ExportInfo] }
+  deriving (Show, Eq)
+
+instance J.JSON RpcResultExportList where
+  showJSON (RpcResultExportList xs) = J.showJSON xs
+  readJSON = fmap RpcResultExportList . J.readJSON
 
 instance RpcCall RpcCallExportList where
   rpcCallName _          = "export_list"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData            = J.encode
 
 instance Rpc RpcCallExportList RpcResultExportList where
-  rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
+  rpcResultFill _ res = fromJSValueToRes res id
+
+-- ** NodeExportCapacityInfo
+
+-- | Call definition for node export capacity info.
+$(buildObject "RpcCallNodeExportCapacityInfo" "rpcCallNodeExportCapacityInfo"
+  [])
+
+-- | Result definition for node export capacity info.
+$(buildObject "RpcResultNodeExportCapacityInfo" "rpcResNodeExportCapacityInfo"
+  [ simpleField "export_dtotal" [t| Int |]
+  , simpleField "export_dfree" [t| Int |]
+  ])
+
+instance RpcCall RpcCallNodeExportCapacityInfo where
+  rpcCallName _          = "node_export_capacity_info"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _          = J.encode ()
+
+instance Rpc RpcCallNodeExportCapacityInfo RpcResultNodeExportCapacityInfo where
+  rpcResultFill _ res = fromJSValueToRes res id
 
 -- ** Job Queue Replication
 

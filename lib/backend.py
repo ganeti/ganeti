@@ -4623,17 +4623,45 @@ def ExportInfo(dest):
   return config.Dumps()
 
 
-def ListExports():
+def ListExports(calc_du: bool = False):
   """Return a list of exports currently available on this machine.
 
-  @rtype: list
-  @return: list of the exports
+  @rtype: list[dict]
+  @return: list of dictionaries containing
+  export name, export_path and export_du in mebibytes
 
   """
+  output = []
+
   if os.path.isdir(pathutils.EXPORT_DIR):
-    return sorted(utils.ListVisibleFiles(pathutils.EXPORT_DIR))
+    exports = sorted(utils.ListVisibleFiles(pathutils.EXPORT_DIR))
+    for export in exports:
+      path = os.path.join(pathutils.EXPORT_DIR, export)
+      export_info = {
+        "name": export,
+        "export_path": path
+      }
+      # calc size only if requested
+      if calc_du:
+        export_info["export_du"] = utils.CalculateDirectorySize(path)
+      output.append(export_info)
+
+    return output
   else:
     _Fail("No exports directory")
+
+
+def GetNodeExportCapacityInfo():
+  """Get export capacity information from the node.
+
+  @rtype: dict
+  @return: dict with export_dtotal and export_dfree
+  """
+
+  return {
+    "export_dtotal": utils.CalculateDirectorySize(pathutils.EXPORT_DIR),
+    "export_dfree": utils.GetFilesystemStats(pathutils.EXPORT_DIR)[1]
+  }
 
 
 def RemoveExport(export):

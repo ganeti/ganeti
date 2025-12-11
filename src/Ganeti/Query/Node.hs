@@ -54,8 +54,16 @@ import Ganeti.Query.Types
 import Ganeti.Storage.Utils
 import Ganeti.Utils (niceSort)
 
--- | Runtime is the resulting type for NodeInfo call.
-type Runtime = Either RpcError RpcResultNodeInfo
+-- | The LiveInfo consists of two entries whose presence is independent.
+-- The 'RpcResultNodeInfo' is the standard node info from node_info RPC.
+-- The 'RpcResultNodeExportCapacityInfo' describes export storage capacity.
+-- Any combination of these may or may not be present, depending on which
+-- fields were requested.
+type LiveInfo = (RpcResultNodeInfo, Maybe RpcResultNodeExportCapacityInfo)
+
+-- | Runtime containing the 'LiveInfo'. See the genericQuery function in
+-- the Query.hs file for an explanation of the terms used.
+type Runtime = Either RpcError LiveInfo
 
 -- | List of node live fields.
 nodeLiveFieldsDefs :: [(FieldName, FieldTitle, FieldType, String, FieldDoc)]
@@ -85,6 +93,10 @@ nodeLiveFieldsDefs =
      "Amount of memory used by node (dom0 for Xen)")
   , ("mtotal", "MTotal", QFTUnit, "memory_total",
      "Total amount of memory of physical machine")
+  , ("export_dtotal", "ExportDTotal", QFTUnit, "export_dtotal",
+     "Total disk space for exports")
+  , ("export_dfree", "ExportDFree", QFTUnit, "export_dfree",
+     "Available disk space for exports")
   ]
 
 -- | Helper function to extract an attribute from a maybe StorageType
@@ -115,35 +127,41 @@ getStorageInfoForType sinfos stype = listToMaybe $ filter
 
 -- | Map each name to a function that extracts that value from
 -- the RPC result.
-nodeLiveFieldExtract :: FieldName -> RpcResultNodeInfo -> J.JSValue
-nodeLiveFieldExtract "bootid" res =
+nodeLiveFieldExtract :: FieldName -> LiveInfo -> J.JSValue
+nodeLiveFieldExtract "bootid" (res, _) =
   J.showJSON $ rpcResNodeInfoBootId res
-nodeLiveFieldExtract "cnodes" res =
+nodeLiveFieldExtract "cnodes" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuNodes
-nodeLiveFieldExtract "cnos" res =
+nodeLiveFieldExtract "cnos" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuDom0
-nodeLiveFieldExtract "csockets" res =
+nodeLiveFieldExtract "csockets" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuSockets
-nodeLiveFieldExtract "ctotal" res =
+nodeLiveFieldExtract "ctotal" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoCpuTotal
-nodeLiveFieldExtract "dfree" res =
+nodeLiveFieldExtract "dfree" (res, _) =
   getAttrFromStorageInfo storageInfoStorageFree (getStorageInfoForDefault
       (rpcResNodeInfoStorageInfo res))
-nodeLiveFieldExtract "dtotal" res =
+nodeLiveFieldExtract "dtotal" (res, _) =
   getAttrFromStorageInfo storageInfoStorageSize (getStorageInfoForDefault
       (rpcResNodeInfoStorageInfo res))
-nodeLiveFieldExtract "spfree" res =
+nodeLiveFieldExtract "spfree" (res, _) =
   getAttrFromStorageInfo storageInfoStorageFree (getStorageInfoForType
       (rpcResNodeInfoStorageInfo res) StorageLvmPv)
-nodeLiveFieldExtract "sptotal" res =
+nodeLiveFieldExtract "sptotal" (res, _) =
   getAttrFromStorageInfo storageInfoStorageSize (getStorageInfoForType
       (rpcResNodeInfoStorageInfo res) StorageLvmPv)
-nodeLiveFieldExtract "mfree" res =
+nodeLiveFieldExtract "mfree" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryFree
-nodeLiveFieldExtract "mnode" res =
+nodeLiveFieldExtract "mnode" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryDom0
-nodeLiveFieldExtract "mtotal" res =
+nodeLiveFieldExtract "mtotal" (res, _) =
   jsonHead (rpcResNodeInfoHvInfo res) hvInfoMemoryTotal
+nodeLiveFieldExtract "export_dtotal" (_, Just ec) =
+  J.showJSON $ rpcResNodeExportCapacityInfoExportDtotal ec
+nodeLiveFieldExtract "export_dtotal" (_, Nothing) = J.JSNull
+nodeLiveFieldExtract "export_dfree" (_, Just ec) =
+  J.showJSON $ rpcResNodeExportCapacityInfoExportDfree ec
+nodeLiveFieldExtract "export_dfree" (_, Nothing) = J.JSNull
 nodeLiveFieldExtract _ _ = J.JSNull
 
 -- | Helper for extracting field from RPC result.
@@ -266,10 +284,6 @@ getNumInstances get_fn cfg = length . get_fn . getNodeInstances cfg . uuidOf
 fieldsMap :: FieldMap Node Runtime
 fieldsMap = fieldListToFieldMap nodeFields
 
--- | Create an RPC result for a broken node
-rpcResultNodeBroken :: Node -> (Node, Runtime)
-rpcResultNodeBroken node = (node, Left (RpcResultError "Broken configuration"))
-
 -- | Storage-related query fields
 storageFields :: [String]
 storageFields = ["dtotal", "dfree", "spfree", "sptotal"]
@@ -278,6 +292,10 @@ storageFields = ["dtotal", "dfree", "spfree", "sptotal"]
 hypervisorFields :: [String]
 hypervisorFields = ["mnode", "mfree", "mtotal",
                     "cnodes", "csockets", "cnos", "ctotal"]
+
+-- | Export capacity related query fields
+exportCapacityFields :: [String]
+exportCapacityFields = ["export_dtotal", "export_dfree"]
 
 -- | Check if it is required to include domain-specific entities (for example
 -- storage units for storage info, hypervisor specs for hypervisor info)
@@ -288,6 +306,25 @@ queryDomainRequired :: -- domain-specific fields to look for (storage, hv)
                    -> [String]
                    -> Bool
 queryDomainRequired domain_fields fields = any (`elem` fields) domain_fields
+
+-- | Extracts all the live information that can be extracted.
+extractLiveInfo :: [(Node, ERpcError RpcResultNodeInfo)]
+                -> [(Node, ERpcError RpcResultNodeExportCapacityInfo)]
+                -> Node
+                -> Runtime
+extractLiveInfo nodeInfoList exportCapacityList node =
+  let uuidConvert = map (\(x, y) -> (uuidOf x, y))
+      uuidInfoList = uuidConvert nodeInfoList
+      uuidExportList = uuidConvert exportCapacityList
+      nUuid = uuidOf node
+  in case lookup nUuid uuidInfoList of
+       Just (Right nodeInfo) ->
+         let exportInfo = case lookup nUuid uuidExportList of
+                            Just (Right ec) -> Just ec
+                            _               -> Nothing
+         in Right (nodeInfo, exportInfo)
+       Just (Left err) -> Left err
+       Nothing -> Left $ RpcResultError "Node response not present"
 
 -- | Collect live data from RPC query if enabled.
 collectLiveData :: Bool
@@ -304,7 +341,11 @@ collectLiveData True cfg fields nodes = do
       storage_units n = if queryDomainRequired storageFields fields
                         then getStorageUnitsOfNode cfg n
                         else []
-  rpcres <- executeRpcCalls
+  nodeInfoRes <- executeRpcCalls
       [(n, RpcCallNodeInfo (storage_units n) hvs) | n <- good_nodes]
-  return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
-      nodes rpcres
+  exportCapacityRes <-
+    if queryDomainRequired exportCapacityFields fields
+      then executeRpcCall good_nodes RpcCallNodeExportCapacityInfo
+      else return [] -- The information is not necessary
+  return . zip nodes $
+    map (extractLiveInfo nodeInfoRes exportCapacityRes) nodes
