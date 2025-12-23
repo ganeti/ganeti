@@ -298,10 +298,18 @@ class ResourceBase(object):
 
   """
   # Default permission requirements
-  GET_ACCESS = []
-  PUT_ACCESS = [rapi.RAPI_ACCESS_WRITE]
-  POST_ACCESS = [rapi.RAPI_ACCESS_WRITE]
-  DELETE_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  # A default permission is set. This must be set in the subclass.
+  # If no permission is required, this must be explicitly set to None.
+  GET_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+  PUT_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+  POST_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+  DELETE_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+
+  # Default authentication requirements
+  GET_AUTH_REQUIRED = True
+  PUT_AUTH_REQUIRED = True
+  POST_AUTH_REQUIRED = True
+  DELETE_AUTH_REQUIRED = True
 
   def __init__(self, items, queryargs, req, _client_cls=None):
     """Generic resource constructor.
@@ -447,6 +455,16 @@ def GetResourceOpcodes(cls):
   return frozenset(opcode for opcode in (getattr(cls, method_attrs.opcode, None)
                        for method_attrs in OPCODE_ATTRS) if opcode)
 
+
+def GetHandlerAuthRequired(handler, method):
+  """Returns whether authentication is required for a method on a handler.
+
+  @type handler: L{ResourceBase}
+  @type method: string
+  @rtype: bool
+
+  """
+  return getattr(handler, "%s_AUTH_REQUIRED" % method, True)
 
 def GetHandlerAccess(handler, method):
   """Returns the access rights for a method on a handler.

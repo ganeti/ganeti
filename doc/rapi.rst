@@ -43,53 +43,47 @@ Options control a user's access permissions. The section
 :ref:`rapi-access-permissions` lists the permissions required for each
 resource. If the ``--require-authentication`` command line option is
 given to the ``ganeti-rapi`` daemon, all requests require
-authentication. Available options:
+authentication.
 
-.. pyassert::
+Permissions can be specified in three formats:
 
-  rapi.RAPI_ACCESS_ALL == set([
-    rapi.RAPI_ACCESS_WRITE,
-    rapi.RAPI_ACCESS_READ,
-    ])
+Role-based access
+  Use ``@rolename`` to assign a predefined role. Available roles:
 
-.. pyassert::
+  ``@admin``
+    Full access to all RAPI resources (all permissions).
+  ``@readonly``
+    Read-only access to query information (e.g. ``jobs.list``,
+    ``instances.query``, ``nodes.list``, ``cluster.info``, etc.).
 
-  rlib2.R_2_nodes_name_storage.GET_ACCESS == [rapi.RAPI_ACCESS_WRITE]
+Explicit permissions
+  Specify individual permissions separated by commas, e.g.
+  ``jobs.list,instances.create,nodes.query``. See
+  :ref:`rapi-access-permissions` for the full list of available
+  permissions.
 
-.. pyassert::
-
-  rlib2.R_2_jobs_id_wait.GET_ACCESS == [rapi.RAPI_ACCESS_WRITE]
-
-:pyeval:`rapi.RAPI_ACCESS_WRITE`
-  Enables the user to execute operations modifying the cluster. Implies
-  :pyeval:`rapi.RAPI_ACCESS_READ` access. Resources blocking other
-  operations for read-only access, such as
-  :ref:`/2/nodes/[node_name]/storage <rapi-res-nodes-node_name-storage+get>`
-  or blocking server-side processes, such as
-  :ref:`/2/jobs/[job_id]/wait <rapi-res-jobs-job_id-wait+get>`, use
-  :pyeval:`rapi.RAPI_ACCESS_WRITE` to control access to their
-  :pyeval:`http.HTTP_GET` method.
-:pyeval:`rapi.RAPI_ACCESS_READ`
-  Allow access to operations querying for information.
+Role with modifications
+  Start with a role and add/remove specific permissions using ``+`` and
+  ``-`` prefixes, e.g. ``@admin,-instances.remove`` (admin without
+  instance deletion) or ``@readonly,+jobs.cancel`` (readonly plus job
+  cancellation).
 
 Example::
 
-  # Give Jack and Fred read-only access
-  jack abc123
-  fred {cleartext}foo555
+  # Admin with full access (role-based)
+  admin_user {HA1}7046452df2cbb530877058712cf17bd4 @admin
 
-  # Give write access to an imaginary instance creation script
-  autocreator xyz789 write
+  # Read-only access for monitoring (role-based)
+  monitoring {cleartext}foo555 @readonly
 
-  # Hashed password for Jessica
-  jessica {HA1}7046452df2cbb530877058712cf17bd4 write
+  # Explicit permissions for a specific use case
+  vm_creator {HA1}7046452df2cbb530877058712cf17bd4 instances.create,instances.list
 
-  # Monitoring can query for values
-  monitoring {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read
+  # Admin without permission to remove instances
+  restricted_admin {HA1}ec018ffe72b8e75bb4d508ed5b6d079c @admin,-instances.remove
 
-  # A user who can read and write (the former is implied by granting
-  # write access)
-  superuser {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read,write
+  # Read-only with additional permission to cancel jobs
+  monitoring_plus {HA1}7046452df2cbb530877058712cf17bd4 @readonly,+jobs.cancel
 
 When using the RAPI, username and password can be sent to the server
 by using the standard HTTP basic access authentication. This means that

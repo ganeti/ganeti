@@ -498,10 +498,12 @@ def _DescribeHandlerAccess(handler, method):
   """
   access = rapi.baserlib.GetHandlerAccess(handler, method)
 
-  if access:
-    return utils.CommaJoin(sorted(access))
-  else:
+  if access is None:
     return "*(none)*"
+  elif isinstance(access, str):
+    return access
+  else:
+    return "*(unknown)*"
 
 
 class _RapiHandlersForDocsHelper(object):

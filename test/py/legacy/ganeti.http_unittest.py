@@ -332,6 +332,97 @@ class TestReadPasswordFile(unittest.TestCase):
     self.assertEqual(users["user2"].options, ["write", "read"])
 
 
+class TestPasswordFileUserPermissions(unittest.TestCase):
+  """Test cases for PasswordFileUser.has_permission() with different formats.
+
+  Format: username password <@role|permissions|@role,+add,-remove>
+  """
+
+  def testExplicitPermissions(self):
+    """Test explicit permission list: user password perm1,perm2,perm3"""
+    users = http.auth.ParsePasswordFile(
+      "user1 secret jobs.list,jobs.cancel,instances.list"
+    )
+    user = users["user1"]
+
+    # User has these permissions
+    self.assertTrue(user.has_permission("jobs.list"))
+    self.assertTrue(user.has_permission("jobs.cancel"))
+    self.assertTrue(user.has_permission("instances.list"))
+
+    # User does not have these permissions
+    self.assertFalse(user.has_permission("instances.create"))
+    self.assertFalse(user.has_permission("nodes.list"))
+    self.assertFalse(user.has_permission("cluster.info"))
+
+  def testRoleBasedPermissions(self):
+    """Test role-based permissions: user password @admin"""
+
+    users = http.auth.ParsePasswordFile("admin_user secret @admin")
+    user = users["admin_user"]
+
+    # Check specific permissions
+    self.assertTrue(user.has_permission("jobs.list"))
+    self.assertTrue(user.has_permission("instances.create"))
+    self.assertTrue(user.has_permission("nodes.migrate"))
+    self.assertTrue(user.has_permission("cluster.info"))
+
+  def testRoleWithModifications(self):
+    """Test role with additions and removals:
+          user password @admin,+custom,-removed
+    """
+
+    users = http.auth.ParsePasswordFile(
+      "modified_user secret @admin,+custom.permission,-jobs.cancel"
+    )
+    user = users["modified_user"]
+
+    # Should have admin permissions except jobs.cancel
+    self.assertTrue(user.has_permission("jobs.list"))
+    self.assertTrue(user.has_permission("instances.create"))
+
+    # Should have the added custom permission
+    self.assertTrue(user.has_permission("custom.permission"))
+
+    # Should NOT have the removed permission
+    self.assertFalse(user.has_permission("jobs.cancel"))
+
+  def testUnknownRole(self):
+    """Test that unknown roles are ignored"""
+    users = http.auth.ParsePasswordFile(
+      "user1 secret @nonexistent_role,jobs.list"
+    )
+    user = users["user1"]
+
+    # Unknown role is ignored, but explicit permission is kept
+    self.assertTrue(user.has_permission("jobs.list"))
+    self.assertFalse(user.has_permission("instances.create"))
+
+  def testEmptyOptions(self):
+    """Test user with no permissions"""
+    users = http.auth.ParsePasswordFile("user1 secret")
+    user = users["user1"]
+
+    # User has no permissions
+    self.assertFalse(user.has_permission("jobs.list"))
+    self.assertFalse(user.has_permission("instances.create"))
+    self.assertEqual(len(user.permissions), 0)
+
+  def testMixedPermissionsAndRole(self):
+    """Test mixed format: role + explicit permissions"""
+    users = http.auth.ParsePasswordFile(
+      "user1 secret @admin,extra.permission"
+    )
+    user = users["user1"]
+
+    # Should have admin permissions
+    self.assertTrue(user.has_permission("jobs.list"))
+    self.assertTrue(user.has_permission("instances.create"))
+
+    # Should also have the extra explicit permission
+    self.assertTrue(user.has_permission("extra.permission"))
+
+
 class TestClientRequest(unittest.TestCase):
   def testRepr(self):
     cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",

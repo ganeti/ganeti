@@ -370,7 +370,7 @@ class InputTestClient(object):
       """
       assert username == wanted
       return http.auth.PasswordFileUser(username, password,
-                                        [rapi.RAPI_ACCESS_WRITE])
+                                        ["@admin"])
 
     self._lcr = _LuxiCallRecorder()
 

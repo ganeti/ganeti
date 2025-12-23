@@ -1483,25 +1483,27 @@ class TestInstancesMultiAlloc(unittest.TestCase):
 
 
 class TestPermissions(unittest.TestCase):
-  def testEquality(self):
-    self.assertEqual(rlib2.R_2_query.GET_ACCESS, rlib2.R_2_query.PUT_ACCESS)
-    self.assertEqual(rlib2.R_2_query.GET_ACCESS,
-                     rlib2.R_2_instances_name_console.GET_ACCESS)
-
   def testMethodAccess(self):
     for handler in connector.CONNECTOR.values():
       for method in baserlib._SUPPORTED_METHODS:
+        # Only check methods that are actually implemented by the handler
+        if not hasattr(handler, method):
+          continue
+
         access = baserlib.GetHandlerAccess(handler, method)
-        self.assertFalse(access is None)
-        self.assertFalse(set(access) - rapi.RAPI_ACCESS_ALL,
-                         msg=("Handler '%s' uses unknown access options for"
-                              " method %s" % (handler, method)))
-        self.assertTrue(rapi.RAPI_ACCESS_READ not in access or
-                        rapi.RAPI_ACCESS_WRITE in access,
-                        msg=("Handler '%s' gives query, but not write access"
-                             " for method %s (the latter includes query and"
-                             " should therefore be given as well)" %
-                             (handler, method)))
+        # None access is allowed for endpoint without permissions
+        if access is None:
+          continue
+
+        # Check that permission is defined
+        self.assertNotEqual(access, rapi.RAPI_ACCESS_NOT_DEFINED,
+                         msg=("Handler '%s' does not define access"
+                              " for method %s" % (handler, method)))
+
+        # Check that access is known and defined in rapi module
+        self.assertIn(access, rapi.RAPI_ACCESS_ALL,
+              msg=("Handler '%s' uses unknown access option for"
+                   " method %s" % (handler, method)))
 
 
 class ForbiddenOpcode(opcodes.OpCode):

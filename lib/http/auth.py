@@ -42,6 +42,7 @@ from hashlib import md5
 from ganeti import compat
 from ganeti import http
 from ganeti import utils
+from ganeti import rapi
 
 # Digest types from RFC2617
 HTTP_BASIC_AUTH = "Basic"
@@ -286,6 +287,27 @@ class HttpServerRequestAuthentication(object):
 
     return False
 
+def _resolve_permissions(options, roles):
+  permissions = set()
+  for option in options:
+    if option.startswith("@"):
+      role_name = option[1:]
+      if role_name in roles:
+        permissions.update(roles[role_name])
+    elif option.startswith("+"):
+      permissions.add(option[1:])
+    elif option.startswith("-"):
+      permissions.discard(option[1:])
+    elif option in ["read", "write"]:
+      # deprecated permissions, ignore
+      logging.warning("Old permission '%s' found, ignoring." \
+      " Please use roles (@readonly or @admin) instead.", option)
+      continue
+    else:
+      permissions.add(option)
+
+  return frozenset(permissions)
+
 
 class PasswordFileUser(object):
   """Data structure for users from password file.
@@ -296,6 +318,12 @@ class PasswordFileUser(object):
     self.password = password
     self.options = options
 
+    self.permissions = _resolve_permissions(options, rapi.RAPI_ROLES)
+
+  def has_permission(self, permission: str):
+    """Returns true if a user has the specified permission.
+    """
+    return permission in self.permissions
 
 def ParsePasswordFile(contents):
   """Parses the contents of a password file.
@@ -320,8 +348,8 @@ def ParsePasswordFile(contents):
     parts = line.split(None, 2)
     if len(parts) < 2:
       # Invalid line
-      # TODO: Return line number from FilterEmptyLinesAndComments
-      logging.warning("Ignoring non-comment line with less than two fields")
+      logging.warning("Ignoring non-comment line with less than two fields."
+                      " Line: '%s'", line)
       continue
 
     name = parts[0]

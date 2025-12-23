@@ -183,7 +183,7 @@ def _CreateRapiUser(rapi_user):
 
   fh = tempfile.NamedTemporaryFile(mode="w")
   try:
-    fh.write("%s %s write\n" % (rapi_user, rapi_secret))
+    fh.write("%s %s @admin\n" % (rapi_user, rapi_secret))
     fh.flush()
 
     tmpru = qa_utils.UploadFile(master.primary, fh.name)
