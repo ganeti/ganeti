@@ -300,8 +300,8 @@ def _resolve_permissions(options, roles):
       permissions.discard(option[1:])
     elif option in ["read", "write"]:
       # deprecated permissions, ignore
-      logging.warning("Old permission '%s' found, ignoring." \
-      " Please use roles (@readonly or @admin) instead.", option)
+      logging.warning("Old permission '%s' found, ignoring. Please use roles"
+                      " (@readonly or @admin) instead.", option)
       continue
     else:
       permissions.add(option)
@@ -321,8 +321,7 @@ class PasswordFileUser(object):
     self.permissions = _resolve_permissions(options, rapi.RAPI_ROLES)
 
   def has_permission(self, permission: str):
-    """Returns true if a user has the specified permission.
-    """
+    """Returns True if the user has the specified permission."""
     return permission in self.permissions
 
 def ParsePasswordFile(contents):
