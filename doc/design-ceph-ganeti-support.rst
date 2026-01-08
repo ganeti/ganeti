@@ -82,7 +82,7 @@ output applies to KVM based instances only::
 
 The user id for ceph authentication is an optional setting. If it is not
 provided, then no special option is passed to ceph. If it is provided,
-then all ceph commands are run with the ``--user`` option and the
+then all ceph commands are run with the ``--id`` option and the
 configured username.
 
 Ceph configuration on Ganeti nodes
