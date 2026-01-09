@@ -287,6 +287,14 @@ class HttpServerRequestAuthentication(object):
 
     return False
 
+
+_DEPRECATED_PERM_MAPPING = {
+  "read": "readonly",
+  "write": "admin",
+  "all": "admin",
+}
+
+
 def _resolve_permissions(options, roles):
   permissions = set()
   for option in options:
@@ -298,11 +306,16 @@ def _resolve_permissions(options, roles):
       permissions.add(option[1:])
     elif option.startswith("-"):
       permissions.discard(option[1:])
-    elif option in ["read", "write"]:
-      # deprecated permissions, ignore
-      logging.warning("Old permission '%s' found, ignoring. Please use roles"
-                      " (@readonly or @admin) instead.", option)
-      continue
+    elif option in _DEPRECATED_PERM_MAPPING:
+      # map deprecated permission to role
+      role_name = _DEPRECATED_PERM_MAPPING[option]
+      logging.warning("Deprecated permission '%s' found and"
+                      " automatically mapped to '@%s'."
+                      " Please update to use roles (@readonly or @admin)"
+                      " instead.", option, role_name)
+
+      if role_name in roles:
+        permissions.update(roles[role_name])
     else:
       permissions.add(option)
 
