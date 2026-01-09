@@ -762,11 +762,42 @@ class CfgUpgrade(object):
       if variant in hvparams:
         hvparams[variant]["xen_cmd"] = "xl"
 
+  @OrFail("Removing the rbd/user-id parameter")
+  def DowngradeRbdUserId(self):
+    """Remove rbd/user-id parameters if set
+
+    """
+    def _removeRbdUserId(data):
+      diskparams = data.get("diskparams", None)
+      if diskparams is None:
+        return
+
+      rbdparams = diskparams.get("rbd", None)
+      if rbdparams is None:
+        return
+
+      if "user-id" in rbdparams:
+        rbdparams.pop("user-id")
+
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    _removeRbdUserId(cluster)
+
+    nodegroups = self.config_data.get("nodegroups", None)
+    if nodegroups is None:
+      raise Error("Can't find the cluster entry in the configuration")
+    _removeRbdUserId(nodegroups)
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
+    self.DowngradeRbdUserId()
     return not self.errors
 
   def _ComposePaths(self):

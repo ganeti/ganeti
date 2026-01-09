@@ -37,7 +37,12 @@ _BLOCKDEV_URI_REGEX_GLUSTER = (
   r"^gluster:\/\/(?P<host>[a-z0-9-.]+):"
   r"(?P<port>\d+)/(?P<volume>[^/]+)/(?P<path>.+)$"
 )
-_BLOCKDEV_URI_REGEX_RBD = r"^rbd:(?P<pool>\w+)/(?P<image>[a-z0-9-\.]+)$"
+
+# rbd:{pool-name}/{image-name}[@snapshot-name][:opt1=val1][:opt2=val2...]
+_BLOCKDEV_URI_REGEX_RBD = (
+  r"^rbd:(?P<pool>\w+)/(?P<image>[a-z0-9-\.]+)"
+  r"(?P<id_opt>:id=[a-z0-9-\._]+)?$"
+)
 
 def TranslateBoolToOnOff(value):
   """Converts a given boolean to 'on'|'off' for use in QEMUs cmdline
@@ -75,11 +80,17 @@ def ParseStorageUriToBlockdevParam(uri):
       }
   match = re.match(_BLOCKDEV_URI_REGEX_RBD, uri)
   if match is not None:
-    return {
+    param = {
         "driver": "rbd",
         "pool": match.group("pool"),
         "image": match.group("image")
       }
+
+    id_opt = match.group("id_opt")
+    if id_opt is not None:
+      param["user"] = id_opt.partition("=")[2]
+
+    return param
   raise errors.HypervisorError("Unsupported storage URI scheme: %s" % (uri))
 
 
