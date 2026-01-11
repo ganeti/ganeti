@@ -1389,6 +1389,9 @@ instance even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
 
+.. opcode_params:: OP_INSTANCE_REBOOT
+   :exclude: instance_name, dry_run
+
 Job result:
 
 .. opcode_result:: OP_INSTANCE_REBOOT
