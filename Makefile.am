@@ -407,6 +407,10 @@ DIRCHECK_EXCLUDE = \
 	tools/shebang \
 	autom4te.cache \
 	.devcontainer \
+	.idea \
+	.idea/* \
+	.vscode \
+	.vscode/* \
 	.github \
 	.github/workflows
 
