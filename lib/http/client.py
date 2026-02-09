@@ -40,6 +40,7 @@ import pycurl
 
 from ganeti import http
 from ganeti import compat
+from ganeti import constants
 from ganeti import netutils
 from ganeti import locking
 
@@ -386,8 +387,15 @@ def ProcessRequests(requests, lock_monitor_cb=None, _curl=pycurl.Curl,
   else:
     monitor = _NoOpRequestMonitor
 
+  multi = _curl_multi()
+  try:
+    multi.setopt(pycurl.M_MAX_TOTAL_CONNECTIONS,
+                 constants.RPC_MAX_CONCURRENT_CONNECTIONS)
+  except (pycurl.error, AttributeError):
+    pass
+
   # Process all requests and act based on the returned values
-  for (curl, msg) in _curl_process(_curl_multi(), list(curl_to_client)):
+  for (curl, msg) in _curl_process(multi, list(curl_to_client)):
     monitor.acquire(shared=0)
     try:
       curl_to_client.pop(curl).Done(msg)

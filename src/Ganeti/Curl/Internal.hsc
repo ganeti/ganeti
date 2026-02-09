@@ -46,6 +46,7 @@ module Ganeti.Curl.Internal
   , errorBufferSize
   , CurlMCode(..)
   , toMCode
+  , curlmoptMaxTotalConnections
   ) where
 
 import Foreign
@@ -130,3 +131,9 @@ toMCode (#const CURLM_INTERNAL_ERROR)     = CurlmInternalError
 toMCode (#const CURLM_BAD_SOCKET)         = CurlmBadSocket
 toMCode (#const CURLM_UNKNOWN_OPTION)     = CurlmUnknownOption
 toMCode v = CurlmUnknown v
+
+-- | The CURLMOPT_MAX_TOTAL_CONNECTIONS option value, used with
+-- curl_multi_setopt to limit the number of simultaneous connections
+-- that the multi handle will make. Requires libcurl >= 7.30.0.
+curlmoptMaxTotalConnections :: CInt
+curlmoptMaxTotalConnections = (#const CURLMOPT_MAX_TOTAL_CONNECTIONS)
