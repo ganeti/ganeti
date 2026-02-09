@@ -1407,6 +1407,14 @@ rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
 rpcConnectTimeout :: Int
 rpcConnectTimeout = 5
 
+-- | Maximum number of simultaneous outbound RPC connections from the
+-- master. Limits concurrent TLS handshakes when fanning out to many
+-- nodes, preventing connect timeouts due to CPU and network contention.
+-- Libcurl queues excess connections internally and starts them as
+-- running ones complete.
+rpcMaxConcurrentConnections :: Int
+rpcMaxConcurrentConnections = 30
+
 -- OS
 
 osScriptCreate :: String

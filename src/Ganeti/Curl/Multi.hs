@@ -53,6 +53,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Network.Curl
 
+import qualified Ganeti.Constants as C
 import Ganeti.Curl.Internal
 import Ganeti.Logging
 
@@ -90,6 +91,10 @@ foreign import ccall
 foreign import ccall
   "curl_multi_info_read" curl_multi_info_read :: CurlMH -> Ptr CInt
                                               -> IO (Ptr CurlMsg)
+
+foreign import ccall
+  "curl_multi_setopt" curl_multi_setopt_long :: CurlMH -> CInt -> CLong
+                                             -> IO CInt
 
 -- * Wrappers over FFI functions
 
@@ -194,6 +199,17 @@ makeEasyHandle (f, e, (opts, url)) = do
             ]
   return h
 
+-- | Limit the total number of simultaneous connections that a multi
+-- handle will open. This prevents TLS handshake contention when
+-- fanning out RPC calls to many nodes. Libcurl will internally queue
+-- excess handles and start them as running connections complete.
+curlMultiSetMaxConnections :: CurlMH -> Int -> IO ()
+curlMultiSetMaxConnections mh maxConns = do
+  rc <- curl_multi_setopt_long mh curlmoptMaxTotalConnections
+                               (fromIntegral maxConns)
+  when (toMCode rc /= CurlmOK) .
+    logWarning $ "Failed to set CURLMOPT_MAX_TOTAL_CONNECTIONS: " ++ show rc
+
 -- * Main multi-call work function
 
 -- | Perform a multi-call against a list of nodes.
@@ -211,6 +227,7 @@ execMultiCall ous = do
                                        return $ Map.insert hnd ccode m
                                     )) Map.empty ehandles
   mh <- curl_multi_init
+  curlMultiSetMaxConnections mh C.rpcMaxConcurrentConnections
   mapM_ (curlMultiAddHandle mh) ehandles
   performMulti mh hmap (fromIntegral $ length ehandles)
   -- dummy code to keep the handles alive until here
