@@ -792,12 +792,33 @@ class CfgUpgrade(object):
       raise Error("Can't find the cluster entry in the configuration")
     _removeRbdUserId(nodegroups)
 
+  @OrFail("Removing the kvm_qmp_timeout parameter")
+  def DowngradeQmpTimeout(self):
+    """Remove kvm_qmp_timeout hypervisor parameter if set
+
+    """
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    hvparams = cluster.get("hvparams", {})
+    kvm_hvparams = hvparams.get(constants.HT_KVM, {})
+    if constants.HV_KVM_QMP_TIMEOUT in kvm_hvparams:
+      del kvm_hvparams[constants.HV_KVM_QMP_TIMEOUT]
+
+    instances = self.config_data.get("instances", {})
+    for iobj in instances.values():
+      if "hvparams" in iobj and \
+          constants.HV_KVM_QMP_TIMEOUT in iobj["hvparams"]:
+        del iobj["hvparams"][constants.HV_KVM_QMP_TIMEOUT]
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
     self.DowngradeRbdUserId()
+    self.DowngradeQmpTimeout()
     return not self.errors
 
   def _ComposePaths(self):

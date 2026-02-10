@@ -365,8 +365,10 @@ class QmpConnection(QemuMonitorSocket):
     "driver", "id", "bus", "addr", "channel", "scsi-id", "lun"
     ]
 
-  def __init__(self, socket_path: str):
-    super().__init__(socket_path, self._QMP_TIMEOUT)
+  def __init__(self, socket_path: str, timeout: int = None):
+    if timeout is None:
+      timeout = self._QMP_TIMEOUT
+    super().__init__(socket_path, timeout)
     self.version = None
     self.package = None
     self.supported_commands = None

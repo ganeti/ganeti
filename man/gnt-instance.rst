@@ -359,6 +359,15 @@ kvm\_pci\_reservations
     onwards. So by default one can add 20 PCI devices (32 - 12). To support more
     than that, this hypervisor parameter should be set accordingly (e.g. to 8).
 
+kvm\_qmp\_timeout
+    Valid for the KVM hypervisor.
+
+    The timeout in seconds for QMP (QEMU Machine Protocol) socket operations.
+    This controls how long Ganeti will wait for responses from the QEMU monitor
+    when performing operations such as querying instance information, hotplugging
+    devices, or managing migrations. The default value is 5 seconds. Increase
+    this value if QMP operations are timing out on heavily loaded hosts.
+
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
 
