@@ -1,7 +1,10 @@
 {
     "name": "Ganeti Dev Container",
-    "image": "docker.io/ganeti/ci:bookworm-py3",
-
+    "image": "docker.io/ganeti/ci:trixie-py3",
+    "init": true,
+    "runArgs": [
+      "--ulimit", "nofile=1024:4096"
+    ],
     "customizations":{
         "vscode": {
             "extensions": [
