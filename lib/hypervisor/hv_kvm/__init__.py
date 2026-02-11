@@ -2263,10 +2263,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
       features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
       (tap, tapfds, vhostfds) = OpenTap(features=features)
-      self._ConfigureNIC(instance, seq, device, tap)
-      self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features,
-                         is_chrooted)
-      utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
+      try:
+        self._ConfigureNIC(instance, seq, device, tap)
+        self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features,
+                           is_chrooted)
+        utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
+      finally:
+        # Close tap file descriptors after passing them to QEMU via SCM_RIGHTS.
+        # In the threaded HTTP server model, these FDs are opened in a worker
+        # thread and must be explicitly closed. Otherwise they remain open in
+        # the main daemon process, holding references to the KVM VM and
+        # preventing proper cleanup of kernel threads (like kvm-pit) after
+        # QEMU exits.
+        for fd in tapfds:
+          utils_wrapper.CloseFdNoError(fd)
+        for fd in vhostfds:
+          utils_wrapper.CloseFdNoError(fd)
 
     self._VerifyHotplugCommand(instance, kvm_devid, True)
     # commit the allocation if hotplug was successful
