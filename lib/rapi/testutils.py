@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2012 Google Inc.
+# Copyright (C) 2012, 2026 the Ganeti project
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -252,17 +252,72 @@ class _RapiMock(object):
     @return: Tuple containing status code, response headers and response body
 
     """
-    req_msg = http.HttpMessage()
-    req_msg.start_line = \
-      http.HttpClientToServerStartLine(method, path, http.HTTP_1_0)
-    req_msg.headers = headers
-    req_msg.body = request_body
-    req_reader = type('TestReader', (object, ), {'sock': None})()
+    from email.utils import formatdate
 
-    (_, _, _, resp_msg) = \
-      http.server.HttpResponder(self.handler)(lambda: (req_msg, req_reader))
+    # Convert request_body to bytes if it's a string
+    if isinstance(request_body, str):
+      request_body = request_body.encode('utf-8')
 
-    return (resp_msg.start_line.code, resp_msg.headers, resp_msg.body)
+    # Create request context using new _HttpServerRequest
+    req = http.server._HttpServerRequest(
+      method=method,
+      path=path,
+      headers=headers,
+      body=request_body,
+      sock=None
+    )
+
+    try:
+      # Call handler methods
+      self.handler.PreHandleRequest(req)
+      response_body = self.handler.HandleRequest(req)
+
+      # Convert response to bytes if string
+      if isinstance(response_body, str):
+        response_body = response_body.encode('utf-8')
+
+      # Build complete response headers (including standard HTTP headers)
+      # This mimics what the HTTP server does
+      resp_headers = dict(req.resp_headers)
+      resp_headers[http.HTTP_CONNECTION] = "close"
+      resp_headers[http.HTTP_DATE] = formatdate(timeval=None,
+                                                 localtime=False,
+                                                 usegmt=True)
+      resp_headers[http.HTTP_SERVER] = http.HTTP_GANETI_VERSION
+
+      return (http.HTTP_OK, resp_headers, response_body)
+
+    except http.HttpException as err:
+      # Format error response
+      # Get default HTTP status message if exception doesn't provide one
+      from http.server import BaseHTTPRequestHandler
+      default_message = ""
+      default_explain = ""
+      if err.code in BaseHTTPRequestHandler.responses:
+        default_message, default_explain = \
+          BaseHTTPRequestHandler.responses[err.code]
+
+      values = {
+        "code": err.code,
+        "message": err.message if err.message else default_message,
+        "explain": default_explain
+      }
+      content_type, body = self.handler.FormatErrorMessage(values)
+
+      # Convert to bytes if needed
+      if isinstance(body, str):
+        body = body.encode('utf-8')
+
+      # Build error response headers (including standard HTTP headers)
+      error_headers = dict(err.headers or {})
+      error_headers[http.HTTP_CONTENT_TYPE] = content_type
+      error_headers[http.HTTP_CONNECTION] = "close"
+      error_headers[http.HTTP_DATE] = formatdate(timeval=None,
+                                                  localtime=False,
+                                                  usegmt=True)
+      error_headers[http.HTTP_SERVER] = http.HTTP_GANETI_VERSION
+
+      return (err.code, error_headers, body)
 
 
 class _TestLuxiTransport(object):

@@ -146,14 +146,10 @@ def _DefaultAlternative(value, default):
   return default
 
 
-class MlockallRequestExecutor(http.server.HttpServerRequestExecutor):
-  """Subclass ensuring request handlers are locked in RAM.
-
-  """
-  def __init__(self, *args, **kwargs):
-    utils.Mlockall()
-
-    http.server.HttpServerRequestExecutor.__init__(self, *args, **kwargs)
+# MlockallRequestExecutor removed - no longer needed with threading model.
+# In the old fork-based model, each forked process needed mlockall().
+# In the new threading model, all threads share memory, so calling
+# utils.Mlockall() once at daemon startup (in PrepNoded) is sufficient.
 
 
 class NodeRequestHandler(http.server.HttpServerHandler):
@@ -1307,8 +1303,13 @@ def CheckNoded(options, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
-def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
-  """Callback function to verify a peer against the candidate cert map.
+def SSLVerifyPeer(cert_digest):
+  """Verify a peer's client certificate against the candidate cert map.
+
+  Certificate chain verification (whether the client certificate was signed
+  by the server certificate acting as CA) is handled by the SSL context via
+  C{ssl.SSLContext.load_verify_locations}. This callback only checks the
+  leaf (client) certificate against the master candidate certificate map.
 
   Note that we have a chicken-and-egg problem during cluster init and upgrade.
   This method checks whether the incoming connection comes from a master
@@ -1330,69 +1331,45 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   RPC communication is switched to using client certificates and the trick of
   using server certificates does not work anymore.
 
-  @type conn: C{OpenSSL.SSL.Connection}
-  @param conn: the OpenSSL connection object
-  @type cert: C{OpenSSL.X509}
-  @param cert: the peer's SSL certificate
-  @type errdepth: integer
-  @param errdepth: number of the step in the certificate chain starting at 0
-                   for the actual client certificate.
+  @type cert_digest: string
+  @param cert_digest: SHA1 digest of the client certificate in
+      colon-separated hex format (e.g. "AB:CD:EF:...")
+  @rtype: bool
+  @return: Whether the certificate is accepted
 
   """
-  # some parameters are unused, but this is the API
-  # pylint: disable=W0613
-
-  # If we receive a certificate from the certificate chain that is higher
-  # than the lowest element of the chain, we have to check it against the
-  # server certificate.
-  cert_digest = cert.digest("sha1").decode("ascii")
-  if errdepth > 0:
-    server_digest = utils.GetCertificateDigest(
-        cert_filename=pathutils.NODED_CERT_FILE)
-    match = cert_digest == server_digest
-    if not match:
-      logging.debug("Received certificate from the certificate chain, which"
-                    " does not match the server certficate. Digest of the"
-                    " received certificate: %s. Digest of the server"
-                    " certificate: %s.", cert_digest, server_digest)
-    return match
-  elif errdepth == 0:
-    sstore = ssconf.SimpleStore()
-    try:
-      candidate_certs = sstore.GetMasterCandidatesCertMap()
-    except errors.ConfigurationError:
-      logging.info("No candidate certificates found. Switching to "
-                   "bootstrap/update mode.")
-      candidate_certs = None
-    if not candidate_certs:
-      candidate_certs = {
-        constants.CRYPTO_BOOTSTRAP: utils.GetCertificateDigest(
-          cert_filename=pathutils.NODED_CERT_FILE)}
-    match = cert_digest in candidate_certs.values()
-    if not match:
-      logging.debug("Received certificate which is not a certificate of a"
-                    " master candidate. Certificate digest: %s. List of master"
-                    " candidate certificate digests: %s.", cert_digest,
-                    str(candidate_certs))
-    return match
-  else:
-    logging.error("Invalid errdepth value: %s.", errdepth)
-    return False
+  sstore = ssconf.SimpleStore()
+  try:
+    candidate_certs = sstore.GetMasterCandidatesCertMap()
+  except errors.ConfigurationError:
+    logging.info("No candidate certificates found. Switching to"
+                 " bootstrap/update mode.")
+    candidate_certs = None
+  if not candidate_certs:
+    candidate_certs = {
+      constants.CRYPTO_BOOTSTRAP: utils.GetCertificateDigest(
+        cert_filename=pathutils.NODED_CERT_FILE)}
+  match = cert_digest in candidate_certs.values()
+  if not match:
+    logging.debug("Received certificate which is not a certificate of a"
+                  " master candidate. Certificate digest: %s. List of master"
+                  " candidate certificate digests: %s.", cert_digest,
+                  str(candidate_certs))
+  return match
 
 
 def PrepNoded(options, _):
   """Preparation node daemon function, executed with the PID file held.
 
   """
+  # Lock memory if requested
+  # Note: In the threading model, mlockall() at startup locks memory for
+  # all threads, unlike the old fork model which needed per-process locking
   if options.mlock:
-    request_executor_class = MlockallRequestExecutor
     try:
       utils.Mlockall()
     except errors.NoCtypesError:
       logging.warning("Cannot set memory lock, ctypes module not found")
-      request_executor_class = http.server.HttpServerRequestExecutor
-  else:
-    request_executor_class = http.server.HttpServerRequestExecutor
 
   # Read SSL certificate
   if options.ssl:
@@ -1412,10 +1389,9 @@ def PrepNoded(options, _):
 
   mainloop = daemon.Mainloop()
   server = http.server.HttpServer(
-      mainloop, options.bind_address, options.port, options.max_clients,
-      handler, ssl_params=ssl_params, ssl_verify_peer=True,
-      request_executor_class=request_executor_class,
-      ssl_verify_callback=SSLVerifyPeer)
+      options.bind_address, options.port, handler,
+      ssl_params=ssl_params, ssl_verify_peer=True,
+      ssl_verify_callback=SSLVerifyPeer, max_clients=options.max_clients)
   server.Start()
 
   return (mainloop, server)
