@@ -269,8 +269,10 @@ DIRS = \
 
 PYTHON_TEST_DIRS = \
 	test/py/unit \
+	test/py/unit/http \
 	test/py/unit/hypervisor \
 	test/py/unit/hypervisor/hv_kvm \
+	test/py/unit/server \
 	test/py/unit/test_data \
 	test/py/integration
 
@@ -1961,7 +1963,6 @@ python_tests_legacy = \
 	test/py/legacy/ganeti.errors_unittest.py \
 	test/py/legacy/ganeti.hooks_unittest.py \
 	test/py/legacy/ganeti.ht_unittest.py \
-	test/py/legacy/ganeti.http_unittest.py \
 	test/py/legacy/ganeti.hypervisor.hv_chroot_unittest.py \
 	test/py/legacy/ganeti.hypervisor.hv_fake_unittest.py \
 	test/py/legacy/ganeti.hypervisor.hv_kvm_unittest.py \
@@ -2032,7 +2033,10 @@ python_tests_legacy = \
 
 python_tests_unit = \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
-	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py
+	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
+	test/py/unit/http/test_server.py \
+	test/py/unit/http/test_ssl.py \
+	test/py/unit/server/test_rapi.py
 
 python_tests = $(python_tests_integration) $(python_tests_legacy) $(python_tests_unit)
 
@@ -2979,7 +2983,7 @@ endif
 
 coverage: $(COVERAGE_TESTS)
 
-test/py/docs_unittest.py: $(gnt_scripts)
+test/py/legacy/docs_unittest.py: $(gnt_scripts)
 
 .PHONY: py-coverage
 py-coverage: $(GENERATED_FILES) $(python_tests)

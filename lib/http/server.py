@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2010, 2012 Google Inc.
+# Copyright (C) 2026 the Ganeti project
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,29 +29,24 @@
 
 """HTTP server module.
 
+This module provides a simple, thread-based HTTP/HTTPS server implementation
+using Python's standard library.
+
 """
 
+import hashlib
 import html
 import logging
 import os
-import socket
+import ssl
+import threading
 import time
-import signal
-import asyncore
-
-from http.server import BaseHTTPRequestHandler
+from concurrent.futures import ThreadPoolExecutor
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from ganeti import http
-from ganeti import utils
 from ganeti import netutils
-from ganeti import compat
-from ganeti import errors
 
-
-WEEKDAYNAME = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-MONTHNAME = [None,
-             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 # Default error message
 DEFAULT_ERROR_CONTENT_TYPE = "text/html"
@@ -69,18 +64,15 @@ DEFAULT_ERROR_MESSAGE = """\
 </html>
 """
 
-
-def _DateTimeHeader(gmnow=None):
-  """Return the current date and time formatted for a message header.
-
-  The time MUST be in the GMT timezone.
-
-  """
-  if gmnow is None:
-    gmnow = time.gmtime()
-  (year, month, day, hh, mm, ss, wd, _, _) = gmnow
-  return ("%s, %02d %3s %4d %02d:%02d:%02d GMT" %
-          (WEEKDAYNAME[wd], day, MONTHNAME[month], year, hh, mm, ss))
+# Headers whose values should be redacted in debug logs.
+SENSITIVE_HEADERS = frozenset([
+  "authorization",
+  "cookie",
+  "set-cookie",
+  "proxy-authorization",
+  "x-auth-token",
+  "api-key",
+])
 
 
 class _HttpServerRequest(object):
@@ -88,250 +80,452 @@ class _HttpServerRequest(object):
 
   """
   def __init__(self, method, path, headers, body, sock):
-    # Request attributes
     self.request_method = method
     self.request_path = path
     self.request_headers = headers
     self.request_body = body
     self.request_sock = sock
-
-    # Response attributes
     self.resp_headers = {}
-
-    # Private data for request handler (useful in combination with
-    # authentication)
     self.private = None
 
-  def __repr__(self):
-    status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
-              self.request_method, self.request_path,
-              "headers=%r" % str(self.request_headers),
-              "body=%r" % (self.request_body, )]
 
-    return "<%s at %#x>" % (" ".join(status), id(self))
+def _FormatCertificateDigest(der_cert):
+  """Compute SHA1 digest of a DER-encoded certificate.
 
+  Returns the digest in the same colon-separated hex format as
+  PyOpenSSL's C{X509.digest()}, for compatibility with existing
+  certificate digest storage (ssconf, etc.).
 
-class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
-  """Writes an HTTP response to client.
-
-  """
-  def __init__(self, sock, request_msg, response_msg, write_timeout):
-    """Writes the response to the client.
-
-    @type sock: socket
-    @param sock: Target socket
-    @type request_msg: http.HttpMessage
-    @param request_msg: Request message, required to determine whether
-        response may have a message body
-    @type response_msg: http.HttpMessage
-    @param response_msg: Response message
-    @type write_timeout: float
-    @param write_timeout: Write timeout for socket
-
-    """
-    self._request_msg = request_msg
-    self._response_msg = response_msg
-    http.HttpMessageWriter.__init__(self, sock, response_msg, write_timeout)
-
-  def HasMessageBody(self):
-    """Logic to detect whether response should contain a message body.
-
-    """
-    if self._request_msg.start_line:
-      request_method = self._request_msg.start_line.method
-    else:
-      request_method = None
-
-    response_code = self._response_msg.start_line.code
-
-    # RFC2616, section 4.3: "A message-body MUST NOT be included in a request
-    # if the specification of the request method (section 5.1.1) does not allow
-    # sending an entity-body in requests"
-    #
-    # RFC2616, section 9.4: "The HEAD method is identical to GET except that
-    # the server MUST NOT return a message-body in the response."
-    #
-    # RFC2616, section 10.2.5: "The 204 response MUST NOT include a
-    # message-body [...]"
-    #
-    # RFC2616, section 10.3.5: "The 304 response MUST NOT contain a
-    # message-body, [...]"
-
-    return (http.HttpMessageWriter.HasMessageBody(self) and
-            request_method != http.HTTP_HEAD and
-            response_code >= http.HTTP_OK and
-            response_code not in (http.HTTP_NO_CONTENT,
-                                  http.HTTP_NOT_MODIFIED))
-
-
-class _HttpClientToServerMessageReader(http.HttpMessageReader):
-  """Reads an HTTP request sent by client.
+  @type der_cert: bytes
+  @param der_cert: DER-encoded certificate
+  @rtype: string
+  @return: SHA1 digest in "XX:XX:XX:..." format
 
   """
-  # Length limits
-  START_LINE_LENGTH_MAX = 8192
-  HEADER_LENGTH_MAX = 4096
+  raw = hashlib.sha1(der_cert).digest()
+  return ":".join(f"{b:02X}" for b in raw)
 
-  def ParseStartLine(self, start_line):
-    """Parses the start line sent by client.
 
-    Example: "GET /index.html HTTP/1.1"
+class _ChildProcessReaper(object):
+  """Background thread that reaps zombie child processes.
 
-    @type start_line: string
-    @param start_line: Start line
+  The threaded server doesn't integrate with the mainloop's signal
+  handling, so we need a separate mechanism to reap child processes.
+
+  This class runs a background daemon thread that periodically calls
+  os.waitpid() to reap any zombie children. This is critical when the
+  node daemon spawns processes (like KVM instances) that may exit while
+  the daemon continues running.
+
+  """
+  # Singleton instance
+  _instance = None
+  _lock = threading.Lock()
+
+  def __init__(self, check_interval=1.0):
+    """Initialize the child reaper.
+
+    @type check_interval: float
+    @param check_interval: Seconds between reaping checks
 
     """
-    # Empty lines are skipped when reading
-    assert start_line
+    self._check_interval = check_interval
+    self._running = False
+    self._thread = None
 
-    logging.debug("HTTP request: %s", start_line)
+  @classmethod
+  def GetInstance(cls):
+    """Get or create the singleton reaper instance.
 
-    words = start_line.split()
+    @rtype: _ChildProcessReaper
+    @return: The singleton reaper instance
 
-    if len(words) == 3:
-      [method, path, version] = words
-      if version[:5] != "HTTP/":
-        raise http.HttpBadRequest("Bad request version (%r)" % version)
+    """
+    if cls._instance is None:
+      with cls._lock:
+        if cls._instance is None:
+          cls._instance = cls()
+    return cls._instance
 
+  def Start(self):
+    """Start the reaper thread if not already running."""
+    if self._running:
+      return
+
+    self._running = True
+    self._thread = threading.Thread(
+      target=self._reaper_loop,
+      name="ChildReaper",
+      daemon=True
+    )
+    self._thread.start()
+    logging.debug("Child process reaper started")
+
+  def Stop(self):
+    """Stop the reaper thread."""
+    self._running = False
+    if self._thread and self._thread.is_alive():
+      self._thread.join(timeout=2.0)
+
+  def _reaper_loop(self):
+    """Main loop that reaps zombie children."""
+    while self._running:
       try:
-        base_version_number = version.split("/", 1)[1]
-        version_number = base_version_number.split(".")
+        while True:
+          try:
+            pid, status = os.waitpid(-1, os.WNOHANG)
+            if pid == 0:
+              break
+            logging.debug("Reaped child process %d with status %d",
+                          pid, status)
+          except ChildProcessError:
+            break
+          except OSError as e:
+            logging.warning("Error reaping child process: %s", e)
+            break
+      except Exception as e:
+        logging.exception("Unexpected error in child reaper: %s", e)
 
-        # RFC 2145 section 3.1 says there can be only one "." and
-        #   - major and minor numbers MUST be treated as
-        #      separate integers;
-        #   - HTTP/2.4 is a lower version than HTTP/2.13, which in
-        #      turn is lower than HTTP/12.3;
-        #   - Leading zeros MUST be ignored by recipients.
-        if len(version_number) != 2:
-          raise http.HttpBadRequest("Bad request version (%r)" % version)
-
-        version_number = (int(version_number[0]), int(version_number[1]))
-      except (ValueError, IndexError):
-        raise http.HttpBadRequest("Bad request version (%r)" % version)
-
-      if version_number >= (2, 0):
-        raise http.HttpVersionNotSupported("Invalid HTTP Version (%s)" %
-                                           base_version_number)
-
-    elif len(words) == 2:
-      version = http.HTTP_0_9
-      [method, path] = words
-      if method != http.HTTP_GET:
-        raise http.HttpBadRequest("Bad HTTP/0.9 request type (%r)" % method)
-
-    else:
-      raise http.HttpBadRequest("Bad request syntax (%r)" % start_line)
-
-    return http.HttpClientToServerStartLine(method, path, version)
+      time.sleep(self._check_interval)
 
 
-def _HandleServerRequestInner(handler, req_msg, reader):
-  """Calls the handler function for the current request.
+class HttpServer(HTTPServer):
+  """Threaded HTTP/HTTPS server for Ganeti.
+
+  Each request is handled by a worker thread from a bounded thread pool.
+  Threads are reused across requests for efficiency.
 
   """
-  handler_context = _HttpServerRequest(req_msg.start_line.method,
-                                       req_msg.start_line.path,
-                                       req_msg.headers,
-                                       req_msg.body,
-                                       reader.sock)
+  allow_reuse_address = True
 
-  logging.debug("Handling request %r", handler_context)
+  def __init__(self, local_address, port, ganeti_handler,
+               ssl_params=None, ssl_verify_peer=False,
+               ssl_verify_callback=None, max_clients=20):
+    """Initialize the HTTP server.
 
-  try:
-    try:
-      # Authentication, etc.
-      handler.PreHandleRequest(handler_context)
-
-      # Call actual request handler
-      result = handler.HandleRequest(handler_context)
-    except (http.HttpException, errors.RapiTestResult,
-            KeyboardInterrupt, SystemExit):
-      raise
-    except Exception as err:
-      logging.exception("Caught exception")
-      raise http.HttpInternalServerError(message=str(err))
-    except:
-      logging.exception("Unknown exception")
-      raise http.HttpInternalServerError(message="Unknown error")
-
-    if not isinstance(result, (str, bytes)):
-      raise http.HttpError("Handler function didn't return string type")
-
-    return (http.HTTP_OK, handler_context.resp_headers, result)
-  finally:
-    # No reason to keep this any longer, even for exceptions
-    handler_context.private = None
-
-
-class HttpResponder(object):
-  # The default request version.  This only affects responses up until
-  # the point where the request line is parsed, so it mainly decides what
-  # the client gets back when sending a malformed request line.
-  # Most web servers default to HTTP 0.9, i.e. don't send a status line.
-  default_request_version = http.HTTP_0_9
-
-  responses = BaseHTTPRequestHandler.responses
-
-  def __init__(self, handler):
-    """Initializes this class.
+    @type local_address: string
+    @param local_address: Local IP address to bind to
+    @type port: int
+    @param port: TCP port to listen on
+    @type ganeti_handler: HttpServerHandler
+    @param ganeti_handler: Ganeti-specific request handler
+    @type ssl_params: HttpSslParams
+    @param ssl_params: SSL parameters for HTTPS
+    @type ssl_verify_peer: bool
+    @param ssl_verify_peer: Whether to require and verify client certificates
+    @type ssl_verify_callback: callable
+    @param ssl_verify_callback: Callback for client certificate verification.
+        Called with a single argument: the SHA1 digest of the client
+        certificate as a colon-separated hex string (e.g. "AB:CD:EF:...").
+        Must return True to accept the certificate, False to reject.
+    @type max_clients: int
+    @param max_clients: Maximum number of concurrent worker threads
 
     """
-    self._handler = handler
+    self.ganeti_handler = ganeti_handler
+    self.ssl_verify_peer = ssl_verify_peer
+    self.ssl_verify_callback = ssl_verify_callback
 
-  def __call__(self, fn):
-    """Handles a request.
+    self._thread_pool = ThreadPoolExecutor(
+      max_workers=max_clients,
+      thread_name_prefix="HTTPWorker"
+    )
+    logging.debug("Created thread pool with %d HTTP workers", max_clients)
 
-    @type fn: callable
-    @param fn: Callback for retrieving HTTP request, must return a tuple
-      containing request message (L{http.HttpMessage}) and C{None} or the
-      message reader (L{_HttpClientToServerMessageReader})
+    self.address_family = netutils.IPAddress.GetAddressFamily(local_address)
+
+    HTTPServer.__init__(self, (local_address, port), GanetiRequestHandler)
+
+    self._ssl_context = None
+    if ssl_params:
+      self._ssl_context = self._create_ssl_context(ssl_params, ssl_verify_peer)
+
+    self._server_thread = None
+
+  def Start(self):
+    """Start the HTTP server in a background daemon thread.
+
+    Also starts the child process reaper.
 
     """
-    response_msg = http.HttpMessage()
-    response_msg.start_line = \
-      http.HttpServerToClientStartLine(version=self.default_request_version,
-                                       code=None, reason=None)
+    host, port = self.server_address
+    logging.info("Starting HTTP server on %s:%d", host, port)
 
-    force_close = True
+    _ChildProcessReaper.GetInstance().Start()
 
+    self._server_thread = threading.Thread(
+      target=self.serve_forever,
+      name="HTTPServer",
+      daemon=True
+    )
+    self._server_thread.start()
+
+  def Stop(self):
+    """Stop the HTTP server.
+
+    Gracefully shuts down the server and waits for the thread to finish.
+
+    """
+    logging.info("Stopping HTTP server")
+
+    self.shutdown()
+    self.server_close()
+
+    if self._server_thread and self._server_thread.is_alive():
+      self._server_thread.join(timeout=5.0)
+
+    _ChildProcessReaper.GetInstance().Stop()
+
+  def process_request(self, request, client_address):
+    """Submit request to thread pool instead of creating a new thread.
+
+    This overrides the default HTTPServer.process_request to use a bounded
+    thread pool instead of creating unlimited threads.
+
+    @type request: socket.socket
+    @param request: Client socket
+    @type client_address: tuple
+    @param client_address: Client address (host, port)
+
+    """
+    self._thread_pool.submit(
+      self._process_request_thread,
+      request,
+      client_address
+    )
+
+  def _process_request_thread(self, request, client_address):
+    """Process the request in a worker thread.
+
+    If SSL is enabled, the TLS handshake is performed here rather than
+    in the accept loop.  This allows multiple connections to handshake
+    concurrently across worker threads instead of being serialized
+    through the single accept thread.
+
+    @type request: socket.socket
+    @param request: Client socket (plain TCP)
+    @type client_address: tuple
+    @param client_address: Client address (host, port)
+
+    """
     try:
-      (request_msg, req_msg_reader) = fn()
+      if self._ssl_context:
+        try:
+          request = self._ssl_context.wrap_socket(request,
+                                                  server_side=True)
+        except (OSError, ssl.SSLError) as err:
+          logging.debug("TLS handshake failed from %s:%s: %s",
+                        client_address[0], client_address[1], err)
+          try:
+            request.close()
+          except OSError:
+            pass
+          return
 
-      response_msg.start_line.version = request_msg.start_line.version
+      self.finish_request(request, client_address)
+    except Exception:
+      self.handle_error(request, client_address)
+    finally:
+      self.shutdown_request(request)
 
-      # RFC2616, 14.23: All Internet-based HTTP/1.1 servers MUST respond
-      # with a 400 (Bad Request) status code to any HTTP/1.1 request
-      # message which lacks a Host header field.
-      if (request_msg.start_line.version == http.HTTP_1_1 and
-          not (request_msg.headers and
-               http.HTTP_HOST in request_msg.headers)):
-        raise http.HttpBadRequest(message="Missing Host header")
+  def shutdown(self):
+    """Shutdown the server and wait for thread pool to finish.
 
-      (response_msg.start_line.code, response_msg.headers,
-       response_msg.body) = \
-        _HandleServerRequestInner(self._handler, request_msg, req_msg_reader)
-    except http.HttpException as err:
-      self._SetError(self.responses, self._handler, response_msg, err)
-      request_msg = http.HttpMessage()
-      req_msg_reader = None
-    else:
-      # Only wait for client to close if we didn't have any exception.
-      force_close = False
+    """
+    HTTPServer.shutdown(self)
 
-    return (request_msg, req_msg_reader, force_close,
-            self._Finalize(self.responses, response_msg))
+    logging.debug("Shutting down HTTP thread pool")
+    self._thread_pool.shutdown(wait=True)
+    logging.debug("HTTP thread pool shut down complete")
 
   @staticmethod
-  def _SetError(responses, handler, response_msg, err):
-    """Sets the response code and body from a HttpException.
+  def _create_ssl_context(ssl_params, ssl_verify_peer):
+    """Create an SSL context for the server.
 
-    @type err: HttpException
-    @param err: Exception instance
+    Uses Python's stdlib ssl module. When ssl_verify_peer is enabled,
+    the server certificate is loaded as a trusted CA for client
+    certificate chain verification. The leaf client certificate is
+    verified post-handshake by the request handler using the
+    ssl_verify_callback.
+
+    @type ssl_params: HttpSslParams
+    @param ssl_params: SSL parameters (certificate and key paths)
+    @type ssl_verify_peer: bool
+    @param ssl_verify_peer: Whether to require client certificates
+    @rtype: ssl.SSLContext
+    @return: Configured SSL context
 
     """
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+
+    if ssl_params.ssl_chain_path:
+      ctx.load_cert_chain(certfile=ssl_params.ssl_chain_path,
+                          keyfile=ssl_params.ssl_key_path)
+    else:
+      ctx.load_cert_chain(certfile=ssl_params.ssl_cert_path,
+                          keyfile=ssl_params.ssl_key_path)
+
+    if ssl_verify_peer:
+      ctx.verify_mode = ssl.CERT_REQUIRED
+      ctx.load_verify_locations(cafile=ssl_params.ssl_cert_path)
+
+    logging.debug("Certificate digest: %s", ssl_params.GetCertificateDigest())
+    logging.debug("Certificate filename: %s",
+                  ssl_params.GetCertificateFilename())
+
+    return ctx
+
+
+class GanetiRequestHandler(BaseHTTPRequestHandler):
+  """HTTP request handler for Ganeti.
+
+  Handles individual HTTP requests and delegates to the Ganeti handler.
+
+  """
+  timeout = 10
+
+  # 10 Megabytes max request body size
+  MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024
+
+  protocol_version = "HTTP/1.1"
+
+  def _verify_client_certificate(self):
+    """Verify the client certificate after SSL handshake.
+
+    Chain verification (whether the client certificate was signed by
+    a trusted CA) is handled by the SSL context via
+    L{ssl.SSLContext.load_verify_locations}. This method performs
+    additional application-level verification of the leaf certificate
+    using the configured callback.
+
+    @raise http.HttpForbidden: If certificate verification fails
+
+    """
+    if not self.server.ssl_verify_peer:
+      return
+
+    if not isinstance(self.connection, ssl.SSLSocket):
+      return
+
+    der_cert = self.connection.getpeercert(binary_form=True)
+    if der_cert is None:
+      raise http.HttpForbidden(
+        message="No client certificate provided")
+
+    cert_digest = _FormatCertificateDigest(der_cert)
+    if not self.server.ssl_verify_callback(cert_digest):
+      raise http.HttpForbidden(
+        message="Client certificate verification failed")
+
+  def handle_request_inner(self):
+    """Process the HTTP request.
+
+    This method handles the core request processing, including:
+    - Verifying the client certificate (post-handshake)
+    - Reading and validating the request body
+    - Creating the request context
+    - Calling authentication and handler functions
+    - Sending the response
+
+    """
+    self.close_connection = True
     try:
-      (shortmsg, longmsg) = responses[err.code]
+      self._verify_client_certificate()
+
+      logging.debug("Request: %s %s", self.command, self.path)
+
+      if logging.getLogger().isEnabledFor(logging.DEBUG):
+        sanitized = {}
+        for key, value in self.headers.items():
+          if key.lower() in SENSITIVE_HEADERS:
+            sanitized[key] = "REDACTED"
+          else:
+            sanitized[key] = value
+        logging.debug("Headers: %s", sanitized)
+
+      content_length = int(self.headers.get("Content-Length", 0))
+
+      logging.debug("Content-Length: %d", content_length)
+
+      if content_length > self.MAX_REQUEST_BODY_SIZE:
+        self.send_error(413, "Request body too large")
+        return
+
+      if content_length > 0:
+        body = self.rfile.read(content_length)
+        logging.debug("Read %d bytes of body", len(body))
+      else:
+        body = b""
+
+      # Create request context (compatible with existing handlers)
+      # Note: self.headers is an HTTPMessage object with case-insensitive
+      # header access via get(). Don't convert to dict to preserve this.
+      handler_context = _HttpServerRequest(
+        method=self.command,
+        path=self.path,
+        headers=self.headers,
+        body=body,
+        sock=self.connection
+      )
+
+      # Log request without keeping reference to handler_context object.
+      # Logging with %r would store handler_context in LogRecord.args,
+      # preventing garbage collection of request body data.
+      logging.debug("Handling request: %s %s (%d bytes)",
+                    self.command, self.path, len(body))
+
+      try:
+        self.server.ganeti_handler.PreHandleRequest(handler_context)
+        result = self.server.ganeti_handler.HandleRequest(handler_context)
+
+        if not isinstance(result, (str, bytes)):
+          raise http.HttpInternalServerError(
+            "Handler function didn't return string type"
+          )
+
+        if isinstance(result, str):
+          result_bytes = result.encode("utf-8")
+        else:
+          result_bytes = result
+
+        self.send_response(http.HTTP_OK)
+
+        for header, value in handler_context.resp_headers.items():
+          self.send_header(header, value)
+        self.send_header(http.HTTP_CONTENT_LENGTH, str(len(result_bytes)))
+        self.send_header(http.HTTP_CONNECTION, "close")
+        self.end_headers()
+
+        self.wfile.write(result_bytes)
+
+      except http.HttpException as err:
+        self._send_error_response(err)
+
+      except Exception as err:
+        logging.exception("Caught exception")
+        self._send_error_response(
+          http.HttpInternalServerError(message=str(err))
+        )
+
+    except http.HttpException as err:
+      self._send_error_response(err)
+
+    except Exception as err:
+      # Catch errors during body reading or context creation
+      logging.exception("Error processing request")
+      self.send_error(500, str(err))
+
+  def _send_error_response(self, err):
+    """Send an HTTP error response.
+
+    @type err: HttpException
+    @param err: The exception containing error details
+
+    """
+    # Get response message
+    try:
+      (shortmsg, longmsg) = self.responses[err.code]
     except KeyError:
       shortmsg = longmsg = "Unknown"
 
@@ -344,290 +538,81 @@ class HttpResponder(object):
       "code": err.code,
       "message": html.escape(message),
       "explain": longmsg,
-      }
+    }
 
-    (content_type, body) = handler.FormatErrorMessage(values)
+    (content_type, body) = \
+      self.server.ganeti_handler.FormatErrorMessage(values)
 
-    headers = {
-      http.HTTP_CONTENT_TYPE: content_type,
-      }
+    if isinstance(body, str):
+      body_bytes = body.encode("utf-8")
+    else:
+      body_bytes = body
+
+    self.send_response(err.code)
+    self.send_header(http.HTTP_CONTENT_TYPE, content_type)
 
     if err.headers:
-      headers.update(err.headers)
+      for header, value in err.headers.items():
+        self.send_header(header, value)
 
-    response_msg.start_line.code = err.code
-    response_msg.headers = headers
-    response_msg.body = body
+    self.send_header(http.HTTP_CONTENT_LENGTH, str(len(body_bytes)))
+    self.send_header(http.HTTP_CONNECTION, "close")
+    self.end_headers()
 
-  @staticmethod
-  def _Finalize(responses, msg):
-    assert msg.start_line.reason is None
+    self.wfile.write(body_bytes)
 
-    if not msg.headers:
-      msg.headers = {}
+  # HTTP method handlers
+  def do_GET(self):
+    """Handle GET request."""
+    self.handle_request_inner()
 
-    msg.headers.update({
-      # TODO: Keep-alive is not supported
-      http.HTTP_CONNECTION: "close",
-      http.HTTP_DATE: _DateTimeHeader(),
-      http.HTTP_SERVER: http.HTTP_GANETI_VERSION,
-      })
+  def do_POST(self):
+    """Handle POST request."""
+    self.handle_request_inner()
 
-    # Get response reason based on code
-    try:
-      code_desc = responses[msg.start_line.code]
-    except KeyError:
-      reason = ""
-    else:
-      (reason, _) = code_desc
+  def do_PUT(self):
+    """Handle PUT request."""
+    self.handle_request_inner()
 
-    msg.start_line.reason = reason
+  def do_DELETE(self):
+    """Handle DELETE request."""
+    self.handle_request_inner()
 
-    return msg
+  def log_message(self, format, *args):
+    """Override default logging to use Ganeti's logger.
 
-
-class HttpServerRequestExecutor(object):
-  """Implements server side of HTTP.
-
-  This class implements the server side of HTTP. It's based on code of
-  Python's BaseHTTPServer, from both version 2.4 and 3k. It does not
-  support non-ASCII character encodings. Keep-alive connections are
-  not supported.
-
-  """
-  # Timeouts in seconds for socket layer
-  WRITE_TIMEOUT = 10
-  READ_TIMEOUT = 10
-  CLOSE_TIMEOUT = 1
-
-  def __init__(self, server, handler, sock, client_addr):
-    """Initializes this class.
+    @type format: str
+    @param format: Format string
+    @param args: Format arguments
 
     """
-    responder = HttpResponder(handler)
+    logging.info("%s - %s", self.address_string(), format % args)
 
-    # Disable Python's timeout
-    sock.settimeout(None)
+  def finish(self):
+    """Finish the request, properly closing SSL connections.
 
-    # Operate in non-blocking mode
-    sock.setblocking(0)
+    This overrides BaseHTTPRequestHandler.finish() to ensure SSL
+    connections are properly shut down with close_notify before
+    closing the underlying socket.
 
-    request_msg_reader = None
-    force_close = True
-
-    logging.debug("Connection from %s:%s", client_addr[0], client_addr[1])
-    try:
-      # Block for closing connection
+    """
+    if isinstance(self.connection, ssl.SSLSocket):
       try:
-        # Do the secret SSL handshake
-        if server.using_ssl:
-          sock.set_accept_state()
-          try:
-            http.Handshake(sock, self.WRITE_TIMEOUT)
-          except http.HttpSessionHandshakeUnexpectedEOF:
-            logging.debug("Unexpected EOF from %s:%s",
-                          client_addr[0], client_addr[1])
-            # Ignore rest
-            return
-
-        (request_msg, request_msg_reader, force_close, response_msg) = \
-          responder(compat.partial(self._ReadRequest, sock, self.READ_TIMEOUT))
-        if response_msg:
-          # HttpMessage.start_line can be of different types
-          # Instance of 'HttpClientToServerStartLine' has no 'code' member
-          # pylint: disable=E1103,E1101
-          logging.info("%s:%s %s %s", client_addr[0], client_addr[1],
-                       request_msg.start_line, response_msg.start_line.code)
-          self._SendResponse(sock, request_msg, response_msg,
-                             self.WRITE_TIMEOUT)
-      finally:
-        http.ShutdownConnection(sock, self.CLOSE_TIMEOUT, self.WRITE_TIMEOUT,
-                                request_msg_reader, force_close)
-
-      sock.close()
-    finally:
-      logging.debug("Disconnected %s:%s", client_addr[0], client_addr[1])
-
-  @staticmethod
-  def _ReadRequest(sock, timeout):
-    """Reads a request sent by client.
-
-    """
-    msg = http.HttpMessage()
-
-    try:
-      reader = _HttpClientToServerMessageReader(sock, msg, timeout)
-    except http.HttpSocketTimeout:
-      raise http.HttpError("Timeout while reading request")
-    except socket.error as err:
-      raise http.HttpError("Error reading request: %s" % err)
-
-    return (msg, reader)
-
-  @staticmethod
-  def _SendResponse(sock, req_msg, msg, timeout):
-    """Sends the response to the client.
-
-    """
-    try:
-      _HttpServerToClientMessageWriter(sock, req_msg, msg, timeout)
-    except http.HttpSocketTimeout:
-      raise http.HttpError("Timeout while sending response")
-    except socket.error as err:
-      raise http.HttpError("Error sending response: %s" % err)
-
-
-class HttpServer(http.HttpBase, asyncore.dispatcher):
-  """Generic HTTP server class
-
-  """
-
-  def __init__(self, mainloop, local_address, port, max_clients, handler,
-               ssl_params=None, ssl_verify_peer=False,
-               request_executor_class=None, ssl_verify_callback=None):
-    """Initializes the HTTP server
-
-    @type mainloop: ganeti.daemon.Mainloop
-    @param mainloop: Mainloop used to poll for I/O events
-    @type local_address: string
-    @param local_address: Local IP address to bind to
-    @type port: int
-    @param port: TCP port to listen on
-    @type max_clients: int
-    @param max_clients: maximum number of client connections
-        open simultaneously.
-    @type handler: HttpServerHandler
-    @param handler: Request handler object
-    @type ssl_params: HttpSslParams
-    @param ssl_params: SSL key and certificate
-    @type ssl_verify_peer: bool
-    @param ssl_verify_peer: Whether to require client certificate
-        and compare it with our certificate
-    @type request_executor_class: class
-    @param request_executor_class: a class derived from the
-        HttpServerRequestExecutor class
-
-    """
-    http.HttpBase.__init__(self)
-    asyncore.dispatcher.__init__(self)
-
-    if request_executor_class is None:
-      self.request_executor = HttpServerRequestExecutor
-    else:
-      self.request_executor = request_executor_class
-
-    self.mainloop = mainloop
-    self.local_address = local_address
-    self.port = port
-    self.handler = handler
-    family = netutils.IPAddress.GetAddressFamily(local_address)
-    self.socket = self._CreateSocket(ssl_params, ssl_verify_peer, family,
-                                     ssl_verify_callback)
-
-    # Allow port to be reused
-    self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    self._children = []
-    self.set_socket(self.socket)
-    self.accepting = True
-    self.max_clients = max_clients
-    mainloop.RegisterSignal(self)
-
-  def Start(self):
-    self.socket.bind((self.local_address, self.port))
-    self.socket.listen(1024)
-
-  def Stop(self):
-    self.socket.close()
-
-  def handle_accept(self):
-    self._IncomingConnection()
-
-  def OnSignal(self, signum):
-    if signum == signal.SIGCHLD:
-      self._CollectChildren(True)
-
-  def _CollectChildren(self, quick):
-    """Checks whether any child processes are done
-
-    @type quick: bool
-    @param quick: Whether to only use non-blocking functions
-
-    """
-    if not quick:
-      # Don't wait for other processes if it should be a quick check
-      while len(self._children) > self.max_clients:
-        try:
-          # Waiting without a timeout brings us into a potential DoS situation.
-          # As soon as too many children run, we'll not respond to new
-          # requests. The real solution would be to add a timeout for children
-          # and killing them after some time.
-          pid, _ = os.waitpid(0, 0)
-        except os.error:
-          pid = None
-        if pid and pid in self._children:
-          self._children.remove(pid)
-
-    for child in self._children:
-      try:
-        pid, _ = os.waitpid(child, os.WNOHANG)
-      except os.error:
-        pid = None
-      if pid and pid in self._children:
-        self._children.remove(pid)
-
-  def _IncomingConnection(self):
-    """Called for each incoming connection
-
-    """
-    # pylint: disable=W0212
-    t_start = time.time()
-    (connection, client_addr) = self.socket.accept()
-
-    self._CollectChildren(False)
-
-    try:
-      pid = os.fork()
-    except OSError:
-      logging.exception("Failed to fork on request from %s:%s",
-                        client_addr[0], client_addr[1])
-      # Immediately close the connection. No SSL handshake has been done.
-      try:
-        connection.close()
-      except socket.error:
+        if not self.wfile.closed:
+          self.wfile.flush()
+      except OSError:
         pass
-      return
 
-    if pid == 0:
-      # Child process
       try:
-        # The client shouldn't keep the listening socket open. If the parent
-        # process is restarted, it would fail when there's already something
-        # listening (in this case its own child from a previous run) on the
-        # same port.
-        try:
-          self.socket.close()
-        except socket.error:
-          pass
-        self.socket = None
+        self.connection.settimeout(0.1)
+        self.connection.unwrap()
+      except (OSError, ssl.SSLError) as e:
+        logging.debug("SSL unwrap during finish: %s", e)
 
-        # In case the handler code uses temporary files
-        utils.ResetTempfileModule()
-
-        t_setup = time.time()
-        self.request_executor(self, self.handler, connection, client_addr)
-        t_end = time.time()
-        logging.debug("Request from %s:%s executed in: %.4f [setup: %.4f] "
-                      "[workers: %d]", client_addr[0], client_addr[1],
-                      t_end - t_start, t_setup - t_start, len(self._children))
-
-      except Exception: # pylint: disable=W0703
-        logging.exception("Error while handling request from %s:%s",
-                          client_addr[0], client_addr[1])
-        os._exit(1)
-      os._exit(0)
-    else:
-      self._children.append(pid)
+    try:
+      BaseHTTPRequestHandler.finish(self)
+    except OSError:
+      pass
 
 
 class HttpServerHandler(object):
@@ -642,12 +627,19 @@ class HttpServerHandler(object):
 
     Can be overridden by a subclass.
 
+    @type req: _HttpServerRequest
+    @param req: Request object
+
     """
 
   def HandleRequest(self, req):
     """Handles a request.
 
     Must be overridden by subclass.
+
+    @type req: _HttpServerRequest
+    @param req: Request object
+    @return: Response body as string or bytes
 
     """
     raise NotImplementedError()
