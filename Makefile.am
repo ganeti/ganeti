@@ -405,14 +405,7 @@ DIRCHECK_EXCLUDE = \
 	doc/html/_* \
 	doc/man-html/_* \
 	tools/shebang \
-	autom4te.cache \
-	.devcontainer \
-	.idea \
-	.idea/* \
-	.vscode \
-	.vscode/* \
-	.github \
-	.github/workflows
+	autom4te.cache 
 
 # some helper vars
 COVERAGE_DIR = doc/coverage
@@ -2618,7 +2611,7 @@ ganeti:
 .PHONY: check-dirs
 check-dirs: $(GENERATED_FILES)
 	@set -e; \
-	find . -type d \( -name . -o -name .git -prune -o -print \) | { \
+	find . -type d -not -path '*/.*' -a -not -path '.' -a -not -path '*/__pycache__' -print | { \
 	  error=; \
 	  while read dir; do \
 	    case "$$dir" in \
