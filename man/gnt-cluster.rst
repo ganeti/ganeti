@@ -502,6 +502,53 @@ user-id
     The user id is used by ceph to determine the keyring to use for
     authentication. By default the admin keyring is used.
 
+delayed-delete-suffix
+    When set to a non-empty string, Ganeti will rename RBD volumes on
+    removal by appending this suffix instead of deleting them
+    immediately. This allows RBD snapshots to expire before the
+    underlying image is purged. A separate cleanup process (e.g. a cron
+    job) should periodically remove the renamed images once their
+    snapshots have been cleaned up. The recommended suffix is
+    ``-deleted``. By default this is empty (disabled), and volumes are
+    deleted immediately on removal.
+
+    Example: to enable delayed deletion cluster-wide::
+
+        gnt-cluster modify -D rbd:delayed-delete-suffix=-deleted
+
+    The following cron entries illustrate a typical snapshot-based backup
+    workflow using this feature. The first job creates daily snapshots of
+    all Ganeti RBD volumes. The second removes snapshots older than two
+    days. The third purges renamed (delayed-delete) images once all their
+    snapshots have expired::
+
+        # Create daily snapshots (runs on master node only)
+        1 0 * * * root [ "$(gnt-cluster getmaster)" = "$(hostname -f)" ] && \
+          flock -xn /tmp/.ganeti-snap-create.lock \
+          rbd ls -p rbd | grep -E '^[0-9a-f-]{36}\.rbd\.disk[0-9]+$' | \
+          xargs -I{} rbd snap create rbd/{}@autosnap-$(date +\%Y-\%m-\%d)
+
+        # Remove expired snapshots, keeping 2 days + today
+        1 1 * * * root [ "$(gnt-cluster getmaster)" = "$(hostname -f)" ] && \
+          flock -xn /tmp/.ganeti-snap-clean.lock bash -c ' \
+          KEEP="$(date +\%Y-\%m-\%d)|$(date -d yesterday +\%Y-\%m-\%d)|$(date -d "2 days ago" +\%Y-\%m-\%d)"; \
+          for img in $(rbd ls -p rbd); do \
+            rbd snap ls rbd/$img 2>/dev/null | awk "/autosnap-/{print \$2}" | \
+            grep -vE "autosnap-($KEEP)" | \
+            xargs -I@ rbd snap rm rbd/$img@@; \
+          done'
+
+        # Purge delayed-delete images with no remaining snapshots
+        1 10 * * * root [ "$(gnt-cluster getmaster)" = "$(hostname -f)" ] && \
+          flock -xn /tmp/.ganeti-snap-purge.lock bash -c ' \
+          for img in $(rbd ls -p rbd | grep -E "^[0-9a-f-]{36}\.rbd\.disk[0-9]+-deleted$"); do \
+            rbd snap ls rbd/$img 2>/dev/null | grep -q autosnap- || rbd rm rbd/$img; \
+          done'
+
+    .. note:: These examples assume the default pool ``rbd`` and suffix
+       ``-deleted``. Adjust the pool name, suffix, and retention policy
+       to match your environment.
+
 
 .. _deadlocks: http://tracker.ceph.com/issues/3076
 
