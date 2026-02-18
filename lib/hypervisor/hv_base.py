@@ -119,7 +119,8 @@ _NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
                    None, None)
 
 # Check if number of queues is in safe range
-_VIRTIO_NET_QUEUES_CHECK = (lambda x: 0 < x < 9, "invalid number of queues",
+_VIRTIO_NET_QUEUES_CHECK = (lambda x: 0 < x <= constants.MAX_VIRTIO_NET_QUEUES,
+                            "invalid number of queues",
                             None, None)
 
 # Check that an integer is non negative
