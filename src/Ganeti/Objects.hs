@@ -637,6 +637,7 @@ $(buildObject "Cluster" "cluster" $
   , optionalField $
     simpleField "volume_group_name"              [t| String                  |]
   , simpleField "reserved_lvs"                   [t| [String]                |]
+  , simpleField "min_vg_size"                    [t| Int                     |]
   , optionalField $
     simpleField "drbd_usermode_helper"           [t| String                  |]
   , simpleField "master_node"                    [t| String                  |]
