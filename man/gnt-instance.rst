@@ -969,7 +969,7 @@ virtio\_net\_queues
     parallelize packets sending or receiving. Tap devices will be
     created with MULTI_QUEUE (IFF_MULTI_QUEUE) support. This only
     works with KVM paravirtual nics (virtio-net) and the maximum
-    number of queues is limited to ``8``. Technically this is an
+    number of queues is limited to ``32``. Technically this is an
     extension of ``vnet_hdr`` which must be enabled for multiqueue
     support.
 

@@ -1833,6 +1833,9 @@ hvVhostNet = "vhost_net"
 hvVirtioNetQueues :: String
 hvVirtioNetQueues = "virtio_net_queues"
 
+maxVirtioNetQueues :: Int
+maxVirtioNetQueues = 32
+
 hvVifScript :: String
 hvVifScript = "vif_script"
 
