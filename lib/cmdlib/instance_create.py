@@ -154,6 +154,10 @@ class LUInstanceCreate(LogicalUnit):
     for nic in self.op.nics:
       vlan = nic.get(constants.INIC_VLAN, None)
       if vlan:
+        if vlan[0].isdigit():
+          # Bare number or number:trunk - add leading dot
+          vlan = "." + vlan
+          nic[constants.INIC_VLAN] = vlan
         if vlan[0] == ".":
           # vlan starting with dot means single untagged vlan,
           # might be followed by trunk (:)
@@ -162,10 +166,6 @@ class LUInstanceCreate(LogicalUnit):
         elif vlan[0] == ":":
           # Trunk - tagged only
           _ValidateTrunkVLAN(vlan)
-        elif vlan.isdigit():
-          # This is the simplest case. No dots, only single digit
-          # -> Create untagged access port, dot needs to be added
-          nic[constants.INIC_VLAN] = "." + vlan
         else:
           raise errors.OpPrereqError("Specified VLAN parameter is invalid"
                                        " : %s" % vlan, errors.ECODE_INVAL)
