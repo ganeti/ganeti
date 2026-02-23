@@ -488,6 +488,12 @@ class CfgUpgrade(object):
           logging.info("disk_discard was explicitly set to 'default' on "
                        "instance '%s': migrated to 'ignore'" % iobj["name"])
 
+      for nic in iobj.get("nics", []):
+        nicparams = nic.get("nicparams", {})
+        vlan = nicparams.get(constants.NIC_VLAN, "")
+        if vlan and vlan[0].isdigit():
+          nicparams[constants.NIC_VLAN] = "." + vlan
+
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have
       # exclusive storage enabled (the check would be more complicated), so we
