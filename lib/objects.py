@@ -1628,6 +1628,7 @@ class Cluster(TaggableObject):
     "mac_prefix",
     "volume_group_name",
     "reserved_lvs",
+    "min_vg_size",
     "drbd_usermode_helper",
     "default_bridge",
     "default_hypervisor",
@@ -1753,6 +1754,9 @@ class Cluster(TaggableObject):
     # reserved_lvs added before 2.2
     if self.reserved_lvs is None:
       self.reserved_lvs = []
+
+    if self.min_vg_size is None:
+      self.min_vg_size = constants.MIN_VG_SIZE
 
     # hidden and blacklisted operating systems added before 2.2.1
     if self.hidden_os is None:

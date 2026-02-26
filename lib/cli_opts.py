@@ -144,6 +144,7 @@ __all__ = [
   "MAX_TRACK_OPT",
   "MC_OPT",
   "MIGRATION_MODE_OPT",
+  "MIN_VG_SIZE_OPT",
   "MODIFY_ETCHOSTS_OPT",
   "NET_OPT",
   "NETWORK6_OPT",
@@ -1356,6 +1357,13 @@ RESERVED_LVS_OPT = cli_option("--reserved-lvs", default=None,
                               help=("A comma-separated list of reserved"
                                     " logical volumes names, that will be"
                                     " ignored by cluster verify"))
+
+MIN_VG_SIZE_OPT = cli_option("--min-vg-size", default=None,
+                             action="store", type="int",
+                             dest="min_vg_size",
+                             help=("Minimum volume group size in MiB"
+                                   " for cluster verify checks"
+                                   " (use 0 to disable)"))
 
 ROMAN_OPT = cli_option("--roman",
                        dest="roman_integers", default=False,

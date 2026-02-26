@@ -656,8 +656,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self._ErrorIf(test, constants.CV_ENODELVM, ninfo.name,
                   "unable to check volume groups")
     if not test:
+      min_vg_size = self.cfg.GetClusterInfo().min_vg_size
       vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
-                                            constants.MIN_VG_SIZE)
+                                            min_vg_size)
       self._ErrorIf(vgstatus, constants.CV_ENODELVM, ninfo.name, vgstatus)
 
     # Check PVs
