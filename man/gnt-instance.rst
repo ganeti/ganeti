@@ -373,6 +373,11 @@ disk\_type
     - mtd (KVM)
     - pflash (KVM)
 
+    When set to ``ide``, devices are automatically assigned to IDE bus
+    slots in order: primary-master (ide.0, unit 0), primary-slave
+    (ide.0, unit 1), secondary-master (ide.1, unit 0), secondary-slave
+    (ide.1, unit 1). A maximum of 4 IDE devices (including CDROMs) is
+    supported.
 
 cdrom\_disk\_type
     Valid for the KVM hypervisor.
@@ -388,6 +393,8 @@ cdrom\_disk\_type
     - mtd
     - pflash
 
+    When set to ``ide``, CDROMs are allocated to IDE bus slots after
+    any IDE hard drives.
 
 vnc\_bind\_address
     Valid for the Xen HVM and KVM hypervisors.
