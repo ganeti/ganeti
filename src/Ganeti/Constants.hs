@@ -2280,6 +2280,9 @@ ldpBarriers = "disabled-barriers"
 ldpDefaultMetavg :: String
 ldpDefaultMetavg = "default-metavg"
 
+ldpDelayedDeleteSuffix :: String
+ldpDelayedDeleteSuffix = "delayed-delete-suffix"
+
 ldpDelayTarget :: String
 ldpDelayTarget = "c-delay-target"
 
@@ -2341,7 +2344,8 @@ diskLdTypes =
    (ldpMaxRate, VTypeInt),
    (ldpMinRate, VTypeInt),
    (ldpPool, VTypeString),
-   (ldpUserId, VTypeString)]
+   (ldpUserId, VTypeString),
+   (ldpDelayedDeleteSuffix, VTypeString)]
 
 diskLdParameters :: FrozenSet String
 diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
@@ -2408,6 +2412,9 @@ rbdPool = "pool"
 rbdUserId :: String
 rbdUserId = "user-id"
 
+rbdDelayedDeleteSuffix :: String
+rbdDelayedDeleteSuffix = "delayed-delete-suffix"
+
 diskDtTypes :: Map String VType
 diskDtTypes =
   Map.fromList [(drbdResyncRate, VTypeInt),
@@ -2429,6 +2436,7 @@ diskDtTypes =
                 (rbdAccess, VTypeString),
                 (rbdPool, VTypeString),
                 (rbdUserId, VTypeString),
+                (rbdDelayedDeleteSuffix, VTypeString),
                 (glusterHost, VTypeString),
                 (glusterVolume, VTypeString),
                 (glusterPort, VTypeInt)
@@ -4276,6 +4284,7 @@ diskLdDefaults =
             [ (ldpPool, PyValueEx defaultRbdPool)
             , (ldpAccess, PyValueEx diskKernelspace)
             , (ldpUserId, PyValueEx defaultRbdUserId)
+            , (ldpDelayedDeleteSuffix, PyValueEx ("" :: String))
             ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
@@ -4317,6 +4326,7 @@ diskDtDefaults =
                    [ (rbdPool, PyValueEx defaultRbdPool)
                    , (rbdAccess, PyValueEx diskKernelspace)
                    , (rbdUserId, PyValueEx defaultRbdUserId)
+                   , (rbdDelayedDeleteSuffix, PyValueEx ("" :: String))
                    ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList

@@ -792,12 +792,37 @@ class CfgUpgrade(object):
       raise Error("Can't find the cluster entry in the configuration")
     _removeRbdUserId(nodegroups)
 
+  @OrFail("Removing the rbd/delayed-delete-suffix parameter")
+  def DowngradeRbdDelayedDeleteSuffix(self):
+    def _removeDelayedDeleteSuffix(data):
+      diskparams = data.get("diskparams", None)
+      if diskparams is None:
+        return
+
+      rbdparams = diskparams.get("rbd", None)
+      if rbdparams is None:
+        return
+
+      rbdparams.pop("delayed-delete-suffix", None)
+
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    _removeDelayedDeleteSuffix(cluster)
+
+    nodegroups = self.config_data.get("nodegroups", None)
+    if nodegroups is None:
+      raise Error("Can't find the cluster entry in the configuration")
+    _removeDelayedDeleteSuffix(nodegroups)
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
     self.DowngradeRbdUserId()
+    self.DowngradeRbdDelayedDeleteSuffix()
     return not self.errors
 
   def _ComposePaths(self):
