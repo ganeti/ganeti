@@ -353,8 +353,9 @@ def PrepRapi(options, _):
   users.Load(pathutils.RAPI_USERS_FILE)
 
   server = http.server.HttpServer(
-      mainloop, options.bind_address, options.port, options.max_clients,
-      handler, ssl_params=options.ssl_params, ssl_verify_peer=False)
+      options.bind_address, options.port, handler,
+      ssl_params=options.ssl_params, ssl_verify_peer=False,
+      max_clients=options.max_clients)
   server.Start()
 
   return (mainloop, server)
