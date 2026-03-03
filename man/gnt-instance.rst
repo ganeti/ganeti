@@ -349,6 +349,7 @@ scsi\_controller\_type
     - lsi [default]
     - megasas
     - virtio-scsi-pci
+    - dc390
 
 kvm\_pci\_reservations
     Valid for the KVM hypervisor.

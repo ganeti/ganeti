@@ -79,7 +79,7 @@ What type of SCSI controller to use?
 
 QEMU uses the `lsi` controller by default. To make this configurable we
 add a new hvparam, `scsi_controller_type`. The available types will be
-`lsi`, `megasas`, and `virtio-scsi-pci`.
+`lsi`, `megasas`, `virtio-scsi-pci`, and `dc390`.
 
 
 Where to place the devices upon instance startup?
@@ -201,7 +201,7 @@ will be upgraded to have the corresponding `hvinfo` (see above).
 
 The new `scsi_controller_type` hvparam is added to denote what type of
 SCSI controller should be added to PCI bus if we have a SCSI disk.
-Allowed values will be `lsi`, `virtio-scsi-pci`, and `megasas`.
+Allowed values will be `lsi`, `virtio-scsi-pci`, `megasas`, and `dc390`.
 We decide to use `lsi` by default since this is the one that QEMU
 adds automatically if not specified explicitly by an option.
 
