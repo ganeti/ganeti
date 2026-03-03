@@ -167,6 +167,33 @@ _HOTPLUGGABLE_DEVICE_TYPES = {
 _PCI_BUS = "pci.0"
 _SCSI_BUS = "scsi.0"
 
+_MAX_IDE_DEVICES = 4
+
+
+def _GetIDEBusUnit(slot):
+  """Return the IDE bus and unit for a given slot index.
+
+  IDE controllers have two buses with two units each:
+    slot 0 -> ide.0, unit 0 (primary-master)
+    slot 1 -> ide.0, unit 1 (primary-slave)
+    slot 2 -> ide.1, unit 0 (secondary-master)
+    slot 3 -> ide.1, unit 1 (secondary-slave)
+
+  @type slot: int
+  @param slot: IDE slot index (0-3)
+  @rtype: tuple of (str, int)
+  @return: (bus, unit)
+  @raise errors.HypervisorError: if slot >= 4
+
+  """
+  if slot >= _MAX_IDE_DEVICES:
+    raise errors.HypervisorError(
+      "Too many IDE devices: slot %d exceeds maximum of %d"
+      % (slot, _MAX_IDE_DEVICES))
+  bus = "ide.%d" % (slot // 2)
+  unit = slot % 2
+  return (bus, unit)
+
 _MIGRATION_CAPS_DELIM = ":"
 
 # in future make dirty_sync_count configurable
@@ -1039,7 +1066,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     }
 
   def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
-                                      kvmhelp, devlist):
+                                      kvmhelp, devlist,
+                                      ide_start_slot=0):
     """Generate KVM options regarding instance's block devices.
 
     @type up_hvp: dict
@@ -1075,6 +1103,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("QEMU does not support disk driver '%s'"
                                    % driver)
 
+    ide_slot = ide_start_slot
     for cfdev, link_name, uri in kvm_disks:
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
@@ -1093,9 +1122,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       dev_val = ""
 
       if disk_type == constants.HT_DISK_IDE:
-        dev_val += "ide-hd,drive={},write-cache={}".format(
+        ide_bus, ide_unit = _GetIDEBusUnit(ide_slot)
+        dev_val += "ide-hd,bus={},unit={},drive={},write-cache={}".format(
+          ide_bus, ide_unit,
           kvm_devid, kvm_utils.TranslateBoolToOnOff(writeback)
         )
+        ide_slot += 1
       else:
         # hvinfo will exist for paravirtual devices either due to
         # _UpgradeSerializedRuntime() for old instances or due to
@@ -1162,7 +1194,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                     "-device",   ",".join(dev_opts)])
 
   def _CdromOption(self, kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
-                   cdrom_id):
+                   cdrom_id, ide_slot=None):
     """Extends L{kvm_cmd} with the '-blockdev/-device' options for a cdrom, and
     optionally the '-boot' option.
 
@@ -1180,6 +1212,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     @type cdrom_id: str
     @param cdrom_id:
+
+    @type ide_slot: int or None
+    @param ide_slot: IDE slot index for bus/unit assignment (IDE CDROMs only)
 
     """
     # Check that the ISO image is accessible
@@ -1208,6 +1243,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dev_opts = []
     if cdrom_disk_type == constants.HT_DISK_IDE:
       dev_opts.append("ide-cd")
+      if ide_slot is not None:
+        ide_bus, ide_unit = _GetIDEBusUnit(ide_slot)
+        dev_opts.append("bus=%s" % ide_bus)
+        dev_opts.append("unit=%d" % ide_unit)
     elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
       dev_opts.append(self._VIRTIO_BLK_PCI)
     elif cdrom_disk_type == constants.HT_DISK_SCSI_CD:
@@ -1321,14 +1360,35 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not cdrom_disk_type:
       cdrom_disk_type = disk_type
 
+    # Track IDE slot allocation: hard drives get first slots, CDROMs follow.
+    ide_disk_count = len(block_devices) \
+      if disk_type == constants.HT_DISK_IDE else 0
+    ide_slot = ide_disk_count
+
     cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
     if cdrom_image1:
+      cdrom1_ide_slot = None
+      if cdrom_disk_type == constants.HT_DISK_IDE:
+        cdrom1_ide_slot = ide_slot
+        ide_slot += 1
       self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
-                        "cdrom1")
+                        "cdrom1", ide_slot=cdrom1_ide_slot)
 
     cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
     if cdrom_image2:
-      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, "cdrom2")
+      cdrom2_ide_slot = None
+      if cdrom_disk_type == constants.HT_DISK_IDE:
+        cdrom2_ide_slot = ide_slot
+        ide_slot += 1
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False,
+                        "cdrom2", ide_slot=cdrom2_ide_slot)
+
+    # Validate total IDE device count
+    if ide_slot > _MAX_IDE_DEVICES:
+      raise errors.HypervisorError(
+        "Too many IDE devices: %d IDE disks + %d IDE CDROMs exceeds"
+        " maximum of %d" % (ide_disk_count, ide_slot - ide_disk_count,
+                            _MAX_IDE_DEVICES))
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:
