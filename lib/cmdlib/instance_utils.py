@@ -1291,6 +1291,8 @@ def ComputeNics(op, cluster, default_ip, cfg, ec_id):
     if link:
       nicparams[constants.NIC_LINK] = link
     if vlan:
+      if vlan[0].isdigit():
+        vlan = "." + vlan
       nicparams[constants.NIC_VLAN] = vlan
 
     check_params = cluster.SimpleFillNIC(nicparams)
