@@ -574,9 +574,10 @@ class HttpSslParams(object):
         in PEM format
 
     """
+    self.ssl_key_path = ssl_key_path
     self.ssl_key_pem = utils.ReadFile(ssl_key_path)
-    self.ssl_cert_pem = utils.ReadFile(ssl_cert_path)
     self.ssl_cert_path = ssl_cert_path
+    self.ssl_cert_pem = utils.ReadFile(ssl_cert_path)
     self.ssl_chain_path = ssl_chain_path
 
   def GetCertificateDigest(self):
