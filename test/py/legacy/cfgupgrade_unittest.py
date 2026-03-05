@@ -76,6 +76,7 @@ def GetMinimalConfig():
       },
       "ssh_key_type": "dsa",
       "ssh_key_bits": 1024,
+      "min_vg_size": constants.MIN_VG_SIZE,
     },
     "instances": {},
     "disks": {},

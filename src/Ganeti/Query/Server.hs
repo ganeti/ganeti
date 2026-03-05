@@ -248,6 +248,7 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("default_iallocator_params",
               showJSON $ clusterDefaultIallocatorParams cluster)
             , ("reserved_lvs", showJSON $ clusterReservedLvs cluster)
+            , ("min_vg_size", showJSON $ clusterMinVgSize cluster)
             , ("primary_ip_version",
                showJSON . ipFamilyToVersion $ clusterPrimaryIpFamily cluster)
             , ("prealloc_wipe_disks",

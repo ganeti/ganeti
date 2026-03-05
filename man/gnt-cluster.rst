@@ -720,6 +720,7 @@ MODIFY
 | [{-I|\--default-iallocator} *default instance allocator*]
 | [\--default-iallocator-params *ial-param*=*value*,*ial-param*=*value*]
 | [\--reserved-lvs=*NAMES*]
+| [\--min-vg-size *size*]
 | [\--node-parameters *ndparams*]
 | [{-m|\--mac-prefix} *mac-prefix*]
 | [\--master-netdev *interface-name*]
@@ -792,6 +793,12 @@ verification, but not the actual use of the names given.
 
 To remove all reserved logical volumes, pass in an empty argument
 to the option, as in ``--reserved-lvs=`` or ``--reserved-lvs ''``.
+
+The ``--min-vg-size`` option specifies the minimum size (in MiB) that
+a volume group must have to pass cluster verification. The default is
+20480 MiB (20 GiB). Set to 0 to disable the size check, which is
+useful for clusters where some nodes use non-LVM storage backends and
+have no or small volume groups.
 
 The ``-I (--default-iallocator)`` is described in the **init**
 command. To clear the default iallocator, just pass an empty string
