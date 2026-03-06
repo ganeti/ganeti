@@ -460,7 +460,8 @@ class TestLUClusterSetParams(CmdlibTestCase):
   def testValidDiskparams(self):
     diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool",
                                      constants.RBD_ACCESS: "kernelspace",
-                                     constants.RBD_USER_ID: "mock_user"}}
+                                     constants.RBD_USER_ID: "mock_user",
+                                     constants.RBD_NAMESPACE: "mock_ns"}}
     op = opcodes.OpClusterSetParams(diskparams=diskparams)
     self.ExecOpCode(op)
     self.assertEqual(diskparams[constants.DT_RBD],

@@ -41,7 +41,7 @@ _BLOCKDEV_URI_REGEX_GLUSTER = (
 # rbd:{pool-name}/{image-name}[@snapshot-name][:opt1=val1][:opt2=val2...]
 _BLOCKDEV_URI_REGEX_RBD = (
   r"^rbd:(?P<pool>\w+)/(?P<image>[a-z0-9-\.]+)"
-  r"(?P<id_opt>:id=[a-z0-9-\._]+)?$"
+  r"(?P<opts>:[a-z0-9-\._\=:]+)?$"
 )
 
 def TranslateBoolToOnOff(value):
@@ -80,17 +80,19 @@ def ParseStorageUriToBlockdevParam(uri):
       }
   match = re.match(_BLOCKDEV_URI_REGEX_RBD, uri)
   if match is not None:
-    param = {
+    params = {
         "driver": "rbd",
         "pool": match.group("pool"),
         "image": match.group("image")
       }
 
-    id_opt = match.group("id_opt")
-    if id_opt is not None:
-      param["user"] = id_opt.partition("=")[2]
+    opts = match.group("opts")
+    if opts is not None:
+      for opt in opts.split(':')[1:]:
+        key, _, val = opt.partition('=')
+        params["user" if key == "id" else key] = val
 
-    return param
+    return params
   raise errors.HypervisorError("Unsupported storage URI scheme: %s" % (uri))
 
 

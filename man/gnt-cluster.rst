@@ -502,6 +502,14 @@ user-id
     The user id is used by ceph to determine the keyring to use for
     authentication. By default the admin keyring is used.
 
+namespace
+    The rbd namespace this cluster should use. By default no namespace
+    is used.
+
+    Useful for separating RBD consumers and their permissions in
+    combination with user-id above. For example multiple Ganeti clusters
+    sharing a single Ceph cluster).
+
 
 .. _deadlocks: http://tracker.ceph.com/issues/3076
 

@@ -974,10 +974,12 @@ class RADOSBlockDevice(base.BlockDev):
 
   @classmethod
   def MakeRbdCmd(cls, params, cmd):
-    """Add user id option to rbd command if configured.
+    """Add user id/namespace option to rbd command if configured.
     """
     if params.get(constants.RBD_USER_ID, ""):
       cmd.extend(["--id", str(params[constants.RBD_USER_ID])])
+    if params.get(constants.RBD_NAMESPACE, ""):
+      cmd.extend(["--namespace", str(params[constants.RBD_NAMESPACE])])
 
     return [constants.RBD_CMD] + cmd
 
@@ -1304,6 +1306,8 @@ class RADOSBlockDevice(base.BlockDev):
       uri = "rbd:" + self.rbd_pool + "/" + self.rbd_name
       if self.params.get(constants.RBD_USER_ID, ""):
         uri += ":id=%s" % self.params[constants.RBD_USER_ID]
+      if self.params.get(constants.RBD_NAMESPACE, ""):
+        uri += ":namespace=%s" % self.params[constants.RBD_NAMESPACE]
       return uri
     else:
       base.ThrowError("Hypervisor %s doesn't support RBD userspace access" %
