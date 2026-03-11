@@ -169,9 +169,12 @@ function setup_ovs {
     [ -n "$ACPORT" ] && ovs-vsctl set port $INTERFACE tag=${ACPORT#.}
     # Set up trunk port
     # From gnt-instance man page vlan should be :VLAN_ID[:VLAN_ID2..]
-    TRUNKS=${VLAN#.*:}  # remove any access info
-    TRUNKS=${TRUNKS#:}  # remove leading ':', if still present
-    [ -n "$TRUNKS" ] && ovs-vsctl set port $INTERFACE trunks=${TRUNKS//:/,}
+    # Only parse trunks when ':' is present in the VLAN specification
+    if [[ "$VLAN" == *:* ]]; then
+      TRUNKS=${VLAN#*:}
+      TRUNKS=${TRUNKS//.}  # strip '.' prefixes from VLAN IDs
+      [ -n "$TRUNKS" ] && ovs-vsctl set port $INTERFACE trunks=${TRUNKS//:/,}
+    fi
 
   fi
 }
