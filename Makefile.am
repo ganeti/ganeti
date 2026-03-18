@@ -569,7 +569,6 @@ noinst_PYTHON = \
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
-	lib/asyncnotifier.py \
 	lib/backend.py \
 	lib/bootstrap.py \
 	lib/cli.py \
@@ -1941,7 +1940,6 @@ python_tests_legacy = \
 	test/py/legacy/cmdlib/test_unittest.py \
 	test/py/legacy/cfgupgrade_unittest.py \
 	test/py/legacy/docs_unittest.py \
-	test/py/legacy/ganeti.asyncnotifier_unittest.py \
 	test/py/legacy/ganeti.backend_unittest-runasroot.py \
 	test/py/legacy/ganeti.backend_unittest.py \
 	test/py/legacy/ganeti.bootstrap_unittest.py \
@@ -2027,6 +2025,7 @@ python_tests_legacy = \
 	test/py/legacy/tempfile_fork_unittest.py
 
 python_tests_unit = \
+	test/py/unit/test_daemon.py \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
 	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
 	test/py/unit/http/test_server.py \

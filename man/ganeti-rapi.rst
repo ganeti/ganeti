@@ -59,6 +59,9 @@ The users and their rights are defined in the
 ``@LOCALSTATEDIR@/lib/ganeti/rapi/users`` file. The format of this file
 is described in the Ganeti documentation (``rapi.html``).
 
+To reload user configuration, send a SIGHUP signal to the RAPI process
+(graceful) or restart it (disruptive).
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

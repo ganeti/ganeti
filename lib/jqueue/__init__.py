@@ -41,13 +41,6 @@ import itertools
 import operator
 import os
 
-try:
-  # pylint: disable=E0611
-  from pyinotify import pyinotify
-except ImportError:
-  import pyinotify
-
-from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import serializer
 from ganeti import locking

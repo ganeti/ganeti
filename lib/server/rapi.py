@@ -40,16 +40,8 @@ from __future__ import print_function
 import logging
 import optparse
 import sys
-import os
-import os.path
 import errno
 
-try:
-  from pyinotify import pyinotify # pylint: disable=E0611
-except ImportError:
-  import pyinotify
-
-from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import http
 from ganeti import daemon
@@ -263,54 +255,6 @@ class RapiUsers(object):
     return True
 
 
-class FileEventHandler(asyncnotifier.FileEventHandlerBase):
-  def __init__(self, wm, path, cb):
-    """Initializes this class.
-
-    @param wm: Inotify watch manager
-    @type path: string
-    @param path: File path
-    @type cb: callable
-    @param cb: Function called on file change
-
-    """
-    asyncnotifier.FileEventHandlerBase.__init__(self, wm)
-
-    self._cb = cb
-    self._filename = os.path.basename(path)
-
-    # Different Pyinotify versions have the flag constants at different places,
-    # hence not accessing them directly
-    mask = (pyinotify.EventsCodes.ALL_FLAGS["IN_CLOSE_WRITE"] |
-            pyinotify.EventsCodes.ALL_FLAGS["IN_DELETE"] |
-            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_FROM"] |
-            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_TO"])
-
-    self._handle = self.AddWatch(os.path.dirname(path), mask)
-
-  def process_default(self, event):
-    """Called upon inotify event.
-
-    """
-    if event.name == self._filename:
-      logging.debug("Received inotify event %s", event)
-      self._cb()
-
-
-def SetupFileWatcher(filename, cb):
-  """Configures an inotify watcher for a file.
-
-  @type filename: string
-  @param filename: File to watch
-  @type cb: callable
-  @param cb: Function called on file change
-
-  """
-  wm = pyinotify.WatchManager()
-  handler = FileEventHandler(wm, filename, cb)
-  asyncnotifier.AsyncNotifier(wm, default_proc_fun=handler)
-
-
 def CheckRapi(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -346,11 +290,11 @@ def PrepRapi(options, _):
 
   handler = RemoteApiHandler(users.Get, options.reqauth)
 
-  # Setup file watcher (it'll be driven by asyncore)
-  SetupFileWatcher(pathutils.RAPI_USERS_FILE,
-                   compat.partial(users.Load, pathutils.RAPI_USERS_FILE))
-
   users.Load(pathutils.RAPI_USERS_FILE)
+
+  # Reload users file on SIGHUP
+  mainloop.RegisterSighupCallback(
+      compat.partial(users.Load, pathutils.RAPI_USERS_FILE))
 
   server = http.server.HttpServer(
       options.bind_address, options.port, handler,

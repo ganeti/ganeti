@@ -244,7 +244,6 @@ case ${DIST_RELEASE}${VARIANT} in
         graphviz qemu-utils \
         python-docutils \
         python-pyparsing \
-        python-pyinotify \
         python-pycurl \
         python-ipaddr \
         python-yaml \
@@ -343,25 +342,12 @@ case ${DIST_RELEASE}${VARIANT} in
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev openssh-client vim git git-email exuberant-ctags
 
-    # We need version 0.9.4 of pyinotify because the packaged version, 0.9.3, is
-    # incompatibile with the packaged version of python-epydoc 3.0.1.
-    # Reason: a logger class in pyinotify calculates its superclasses at
-    # runtime, which clashes with python-epydoc's static analysis phase.
-    #
-    # Problem introduced in:
-    #   https://github.com/seb-m/pyinotify/commit/2c7e8f8959d2f8528e0d90847df360
-    # and "fixed" in:
-    #   https://github.com/seb-m/pyinotify/commit/98c5f41a6e2e90827a63ff1b878596
-
     in_chroot -- \
       easy_install \
         logilab-astng==0.24.1 \
         logilab-common==0.58.3 \
         pylint==0.26.0 \
         pep8==1.3.3
-
-    in_chroot -- \
-      easy_install pyinotify==0.9.4
 
      in_chroot -- \
        cabal update
@@ -391,7 +377,7 @@ case ${DIST_RELEASE}${VARIANT} in
       libghc-cabal-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-pycurl python-pyinotify python-paramiko \
+      python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags
@@ -426,7 +412,6 @@ case ${DIST_RELEASE}${VARIANT} in
         graphviz qemu-utils \
         python-docutils \
         python-pyparsing \
-        python-pyinotify \
         python-pycurl \
         python-ipaddr \
         python-yaml \
@@ -521,7 +506,7 @@ EOF
       cabal-install \
       libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-pyinotify python-pycurl python-paramiko \
+      python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       python-dev pylint openssh-client vim git git-email exuberant-ctags \
       build-essential
@@ -573,7 +558,7 @@ EOF
       cabal-install \
       libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
-      python-pyinotify python-pycurl python-paramiko \
+      python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags \
