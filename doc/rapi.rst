@@ -22,8 +22,8 @@ Users and passwords
 -------------------
 
 ``ganeti-rapi`` reads users and passwords from a file (usually
-``/var/lib/ganeti/rapi/users``) on startup. Changes to the file will be
-read automatically.
+``/var/lib/ganeti/rapi/users``) on startup. Send a SIGHUP signal to the
+``ganeti-rapi`` process to trigger a reload of the users file.
 
 Lines starting with the hash sign (``#``) are treated as comments. Each
 line consists of two or three fields separated by whitespace. The first

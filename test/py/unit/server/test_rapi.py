@@ -33,12 +33,17 @@ Converted from legacy unittest-based tests.
 
 """
 
+import logging
+import signal
+
 import pytest
 import tempfile
 from io import StringIO
 from unittest.mock import Mock
 
+from ganeti import compat
 from ganeti import constants
+from ganeti import daemon
 from ganeti import http
 from ganeti import serializer
 from ganeti import objects
@@ -363,3 +368,73 @@ class TestRemoteApiHandlerIntegration:
       handler.PreHandleRequest(req)
 
 
+class TestRapiUsersSighupReload:
+  """Test SIGHUP-triggered RAPI users file reload."""
+
+  def test_sighup_triggers_users_reload(self, tmp_path):
+    """Test that SIGHUP reloads the users file via the registered callback."""
+    users_file = tmp_path / "rapi_users"
+    users_file.write_text("admin oldpass\n")
+
+    users = rapi.RapiUsers()
+    users.Load(str(users_file))
+    assert users.Get("admin").password == "oldpass"
+
+    # Simulate what PrepRapi does: register reload callback
+    reload_callbacks = []
+    reload_callbacks.append(
+        compat.partial(users.Load, str(users_file)))
+
+    # Update the file
+    users_file.write_text("admin newpass\n")
+
+    # Simulate SIGHUP
+    daemon._HandleSigHup([], reload_callbacks, signal.SIGHUP, None)
+
+    assert users.Get("admin").password == "newpass"
+
+  def test_sighup_reload_with_missing_file(self, tmp_path, caplog):
+    """Test that SIGHUP reload handles a missing users file gracefully."""
+    users_file = tmp_path / "rapi_users"
+    users_file.write_text("admin pass\n")
+
+    users = rapi.RapiUsers()
+    users.Load(str(users_file))
+    assert users.Get("admin") is not None
+
+    reload_callbacks = []
+    reload_callbacks.append(
+        compat.partial(users.Load, str(users_file)))
+
+    # Remove the file
+    users_file.unlink()
+
+    # SIGHUP should not crash
+    with caplog.at_level(logging.WARNING):
+      daemon._HandleSigHup([], reload_callbacks, signal.SIGHUP, None)
+
+    # Users should be cleared
+    assert users.Get("admin") is None
+
+  def test_sighup_reload_with_new_users(self, tmp_path):
+    """Test that SIGHUP reload picks up newly added users."""
+    users_file = tmp_path / "rapi_users"
+    users_file.write_text("admin pass\n")
+
+    users = rapi.RapiUsers()
+    users.Load(str(users_file))
+    assert users.Get("newuser") is None
+
+    reload_callbacks = []
+    reload_callbacks.append(
+        compat.partial(users.Load, str(users_file)))
+
+    # Add a new user
+    users_file.write_text("admin pass\nnewuser newpass write\n")
+
+    daemon._HandleSigHup([], reload_callbacks, signal.SIGHUP, None)
+
+    newuser = users.Get("newuser")
+    assert newuser is not None
+    assert newuser.password == "newpass"
+    assert "write" in newuser.options

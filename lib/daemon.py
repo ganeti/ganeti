@@ -261,6 +261,7 @@ class Mainloop(object):
     """
     self._signal_wait = []
     self.awaker = AsyncAwaker()
+    self.sighup_callbacks = []
 
     # Resolve uid/gids used
     runtime.GetEnts()
@@ -348,6 +349,18 @@ class Mainloop(object):
     """
     self._signal_wait.append(owner)
 
+  def RegisterSighupCallback(self, fn):
+    """Registers a callback to be invoked on SIGHUP.
+
+    The callback is called after log files are reopened. Exceptions in the
+    callback are logged but do not prevent other callbacks from running.
+
+    @type fn: callable
+    @param fn: Callback function (no arguments)
+
+    """
+    self.sighup_callbacks.append(fn)
+
 
 def _VerifyDaemonUser(daemon_name):
   """Verifies the process uid matches the configured uid.
@@ -401,10 +414,11 @@ def _BeautifyError(err):
     return "%s" % str(err)
 
 
-def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable=W0613
+def _HandleSigHup(reopen_fn, reload_fn, signum, frame): # pylint: disable=W0613
   """Handler for SIGHUP.
 
   @param reopen_fn: List of callback functions for reopening log files
+  @param reload_fn: List of callback functions for reloading configuration
 
   """
   logging.info("Reopening log files after receiving SIGHUP")
@@ -412,6 +426,13 @@ def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable=W0613
   for fn in reopen_fn:
     if fn:
       fn()
+
+  for fn in reload_fn:
+    if fn:
+      try:
+        fn()
+      except Exception: # pylint: disable=W0703
+        logging.exception("Error in SIGHUP reload callback")
 
 
 def GenericMain(daemon_name, optionparser,
@@ -586,9 +607,11 @@ def GenericMain(daemon_name, optionparser,
                        syslog=options.syslog,
                        console_logging=console_logging)
 
-  # Reopen log file(s) on SIGHUP
+  # Reopen log file(s) on SIGHUP; reload callbacks are added after prepare_fn
   signal.signal(signal.SIGHUP,
-                compat.partial(_HandleSigHup, [log_reopen_fn, stdio_reopen_fn]))
+                compat.partial(_HandleSigHup,
+                               [log_reopen_fn, stdio_reopen_fn],
+                               []))
 
   try:
     utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
@@ -611,6 +634,18 @@ def GenericMain(daemon_name, optionparser,
       # we're done with the preparation phase, we close the pipe to
       # let the parent know it's safe to exit
       os.close(wpipe)
+
+    # Update SIGHUP handler with reload callbacks registered by prepare_fn.
+    # By convention, prepare_fn returns (mainloop, ...) when it uses a Mainloop.
+    sighup_reload_callbacks = (
+        prep_results[0].sighup_callbacks
+        if isinstance(prep_results, tuple) and prep_results and
+        isinstance(prep_results[0], Mainloop)
+        else [])
+    signal.signal(signal.SIGHUP,
+                  compat.partial(_HandleSigHup,
+                                 [log_reopen_fn, stdio_reopen_fn],
+                                 sighup_reload_callbacks))
 
     exec_fn(options, args, prep_results)
   finally:

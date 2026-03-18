@@ -39,12 +39,6 @@ import errno
 import itertools
 import random
 
-try:
-  # pylint: disable=E0611
-  from pyinotify import pyinotify
-except ImportError:
-  import pyinotify
-
 from ganeti import constants
 from ganeti import utils
 from ganeti import errors
