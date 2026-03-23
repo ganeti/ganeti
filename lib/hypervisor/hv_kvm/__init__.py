@@ -492,7 +492,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _AUTO_RO_RE = \
     re.compile(r"^-blockdev\s([^-]|(?<!^)-)*,auto-read-only=on\|off",
                re.M | re.S)
-  _RUNWITH_RE = re.compile(r"^-run-with\s.*chroot=.*user=", re.M)
+  _RUNWITH_RE = \
+    re.compile(r"^-run-with\s([^-]|(?<!^)-)*chroot=([^-]|(?<!^)-)*user=",
+               re.M | re.S)
   _ACPI_RE = re.compile(r"^-no-acpi\s", re.M)
   _SOUND_RE = re.compile(r"^-soundhw\s", re.M)
 
