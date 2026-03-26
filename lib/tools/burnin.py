@@ -38,7 +38,7 @@ import sys
 import optparse
 import time
 import socket
-import urllib.request, urllib.parse, urllib.error
+import urllib.request
 import random
 import string # pylint: disable=W0402
 from functools import reduce
@@ -138,26 +138,6 @@ def Err(msg, exit_code=1):
 
 def RandomString(size=8, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for x in range(size))
-
-
-class SimpleOpener(urllib.request.FancyURLopener):
-  """A simple url opener"""
-  # pylint: disable=W0221
-
-  def prompt_user_passwd(self, host, realm, clear_cache=0):
-    """No-interaction version of prompt_user_passwd."""
-    # we follow parent class' API
-    # pylint: disable=W0613
-    return None, None
-
-  def http_error_default(self, url, fp, errcode, errmsg, headers):
-    """Custom error handling"""
-    # make sure sockets are not left in CLOSE_WAIT, this is similar
-    # but with a different exception to the BasicURLOpener class
-    _ = fp.read() # throw away data
-    fp.close()
-    raise InstanceDown("HTTP error returned: code %s, msg %s" %
-                       (errcode, errmsg))
 
 
 OPTIONS = [
@@ -495,7 +475,7 @@ class Burner(JobHandler):
     """Constructor."""
     super(Burner, self).__init__()
 
-    self.url_opener = SimpleOpener()
+    self.url_opener = urllib.request
     self.nodes = []
     self.instances = []
     self.to_rem = []
