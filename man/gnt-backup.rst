@@ -144,7 +144,7 @@ ip
 
 mode
     specifies the connection mode for this NIC: ``routed``,
-    ``bridged`` or ``openvswitch``
+    ``bridged``, ``ext`` or ``openvswitch``
 
 link
     in bridged and openvswitch mode specifies the interface to attach

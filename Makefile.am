@@ -113,6 +113,15 @@ iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 ifupdir = $(sysconfdir)/ganeti
+NET_MODES = bridged ovs routed
+
+NET_SCRIPT_LIST = \
+	tools/net-bridged-down \
+	tools/net-bridged-up \
+	tools/net-ovs-down \
+	tools/net-ovs-up \
+	tools/net-routed-down \
+	tools/net-routed-up
 
 if USE_BACKUP_DIR
 backup_dir = $(BACKUP_DIR)
@@ -123,6 +132,9 @@ endif
 SYMLINK_TARGET_DIRS = \
 	$(sysconfdir)/ganeti \
 	$(libdir)/ganeti/iallocators \
+	$(libdir)/ganeti/network/bridged \
+	$(libdir)/ganeti/network/ovs \
+	$(libdir)/ganeti/network/routed \
 	$(libdir)/ganeti/tools \
 	$(prefix)/share/ganeti \
 	$(BINDIR) \
@@ -456,8 +468,8 @@ CLEANFILES = \
 	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
-	tools/kvm-ifup \
-	tools/kvm-ifup-os \
+	tools/kvm-nic-setup \
+	$(NET_SCRIPT_LIST) \
 	tools/xen-ifup-os \
 	tools/vif-ganeti \
 	tools/vif-ganeti-metad \
@@ -542,7 +554,6 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-wconfd.service
 
 nodist_ifup_SCRIPTS = \
-	tools/kvm-ifup-os \
 	tools/xen-ifup-os
 
 nodist_pkgpython_PYTHON = \
@@ -864,6 +875,7 @@ docinput = \
 	doc/dev-codestyle.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
+	doc/network.rst \
 	doc/iallocator.rst \
 	doc/index.rst \
 	doc/install.rst \
@@ -1586,13 +1598,14 @@ pkglib_python_basenames = \
 
 myexeclib_SCRIPTS = \
 	daemons/daemon-util \
-	tools/kvm-ifup \
-	tools/kvm-ifup-os \
+	tools/kvm-nic-setup \
 	tools/xen-ifup-os \
 	tools/vif-ganeti \
 	tools/vif-ganeti-metad \
 	tools/net-common \
 	$(HS_MYEXECLIB_PROGS)
+
+nodist_noinst_SCRIPTS = $(NET_SCRIPT_LIST)
 
 # compute the basenames of the myexeclib_scripts
 myexeclib_scripts_basenames = $(notdir $(myexeclib_SCRIPTS))
@@ -1627,8 +1640,8 @@ EXTRA_DIST += \
 	devel/build_chroot \
 	devel/upload \
 	devel/webserver \
-	tools/kvm-ifup.in \
-	tools/ifup-os.in \
+	tools/kvm-nic-setup.in \
+	$(NET_SCRIPT_LIST:=.in) \
 	tools/vif-ganeti.in \
 	tools/vif-ganeti-metad.in \
 	tools/net-common.in \
@@ -2201,12 +2214,12 @@ test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 
 test/py/bash_completion.bash: doc/examples/bash_completion-debug
 
-tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
+tools/kvm-nic-setup: tools/kvm-nic-setup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-tools/kvm-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) -e "s/ifup-os:/kvm-ifup-os:/" < $< > $@
+$(NET_SCRIPT_LIST): tools/%: tools/%.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
 tools/xen-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
@@ -2918,6 +2931,15 @@ install-exec-local:
 	for prog in $(myexeclib_scripts_basenames); do \
 	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
 	done
+	for mode in $(NET_MODES); do \
+	  @mkdir_p@ "$(DESTDIR)$(pkglibdir)/network/$$mode"; \
+	  $(INSTALL_SCRIPT) tools/net-$$mode-down "$(DESTDIR)$(pkglibdir)/network/$$mode/down"; \
+	  $(INSTALL_SCRIPT) tools/net-$$mode-up "$(DESTDIR)$(pkglibdir)/network/$$mode/up"; \
+	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/network/$$mode/down $(DESTDIR)$(libdir)/ganeti/network/$$mode/down; \
+	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/network/$$mode/up $(DESTDIR)$(libdir)/ganeti/network/$$mode/up; \
+	  @mkdir_p@ "$(DESTDIR)$(sysconfdir)/ganeti/network/$$mode"; \
+	done
+	@mkdir_p@ "$(DESTDIR)$(sysconfdir)/ganeti/network/ext"
 if INSTALL_SYMLINKS
 	$(LN_S) -f $(versionedsharedir) $(DESTDIR)$(sysconfdir)/ganeti/share
 	$(LN_S) -f $(versiondir) $(DESTDIR)$(sysconfdir)/ganeti/lib

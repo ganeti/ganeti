@@ -31,6 +31,7 @@ The following resources provide guidance on how to use Ganeti:
 - :doc:`manpages`: Descriptions of the various tools that are part of Ganeti.
 - :doc:`security`: A description of the security model underlying a Ganeti cluster.
 - :doc:`hooks`: Information on hooking scripts, which extend Ganeti functionalities by automatically activating when certain events occur.
+- :doc:`network`: Reference for instance NIC configuration — NIC modes (bridged / routed / openvswitch / ext), the up/down script dispatcher, VLAN formats, and the environment passed to network scripts.
 - :doc:`rapi`: Description of the Ganeti remote API, which allows programmatic access to most of the functionalities of Ganeti.
 - :doc:`ovfconverter`: Description of a tool that provides compatibility with the standard OVF virtual machine interchange format.
 
@@ -154,6 +155,7 @@ Draft designs
    dev-codestyle.rst
    glossary.rst
    hooks.rst
+   network.rst
    iallocator.rst
    install.rst
    locking.rst
