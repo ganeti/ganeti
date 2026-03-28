@@ -157,7 +157,7 @@ ip
     cannot be assigned to any other instance until it gets released.
 
 mode
-    specifies the connection mode for this NIC: routed, bridged or
+    specifies the connection mode for this NIC: routed, bridged, ext or
     openvswitch.
 
 link

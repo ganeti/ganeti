@@ -127,7 +127,14 @@
 /test/hs/htest
 
 # tools
-/tools/kvm-ifup
+/tools/kvm-nic-setup
+/tools/net-common
+/tools/net-bridged-up
+/tools/net-bridged-down
+/tools/net-ovs-up
+/tools/net-ovs-down
+/tools/net-routed-up
+/tools/net-routed-down
 /tools/kvm-ifup-os
 /tools/xen-ifup-os
 /tools/burnin
@@ -136,7 +143,6 @@
 /tools/vcluster-setup
 /tools/vif-ganeti
 /tools/vif-ganeti-metad
-/tools/net-common
 /tools/node-cleanup
 /tools/node-daemon-setup
 /tools/prepare-node-join

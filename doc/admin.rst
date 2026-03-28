@@ -852,12 +852,16 @@ B).
 Network Management
 ------------------
 
+See :doc:`network` for the full reference on NIC modes, the ``up``/``down``
+dispatcher scripts, user overrides under ``@SYSCONFDIR@/ganeti/network/``,
+and the environment passed to network scripts.
+
 Ganeti used to describe NICs of an Instance with an IP, a MAC, a connectivity
 link and mode. This had three major shortcomings:
 
   * there was no easy way to assign a unique IP to an instance
   * network info (subnet, gateway, domain, etc.) was not available on target
-    node (kvm-ifup, hooks, etc)
+    node (network scripts, hooks, etc; see :doc:`network`)
   * one should explicitly pass L2 info (mode, and link) to every NIC
 
 Plus there was no easy way to get the current networking overview (which
@@ -883,8 +887,8 @@ pass `ip=pool,network=test` and will:
 2. Inherit the connectivity mode and link of the network's netparams
 3. NIC will obtain the MAC prefix of the network
 4. All network related info will be available as environment variables in
-   kvm-ifup scripts and hooks, so that they can dynamically manage all
-   networking-related setup on the host.
+   custom network scripts (see :doc:`network`) and hooks, so that they can
+   dynamically manage all networking-related setup on the host.
 
 Hands on with gnt-network
 +++++++++++++++++++++++++
@@ -948,7 +952,8 @@ external services are needed:
 4. A dynamic DNS server
 
 These components must be configured dynamically and on a per NIC basis.
-The way to do this is by using custom kvm-ifup scripts and hooks.
+The way to do this is by using custom network scripts (see :doc:`network`)
+and hooks.
 
 Node operations
 ---------------

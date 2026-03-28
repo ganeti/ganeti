@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2026 The Ganeti Project
+# Copyright (C) 2026 the Ganeti project
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,45 +27,32 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-if [ -x "@XEN_CONFIG_DIR@/scripts/vif-custom" ]; then
-  exec @XEN_CONFIG_DIR@/scripts/vif-custom "$@"
-fi
-
 source @PKGLIBDIR@/net-common
 
-# Parse the vif interface name (e.g. "vif1.0") that Xen passes as $vif
-# when it invokes the vif-script to extract domid and devid.
-dev_=${vif#vif}
-domid=${dev_%.*}
-devid=${dev_#*.}
-domname=$(xl domname "${domid}")
+ip link set $INTERFACE up
 
-source "${RUN_DIR}/xen-hypervisor/nic/${domname}/${devid}"
+if [ -z "$IP" ]; then
+    echo "Routed NIC but no IP address specified"
+    exit 1
+fi
 
-# Fall back to values derived from the vif name in case the NIC state
-# file does not define them.
-INTERFACE=${INTERFACE:-${vif}}
-INSTANCE=${INSTANCE:-${domname}}
+# Route traffic targeted at the IP to the interface
+if [ -n "$LINK" ]; then
+    while ip rule del dev $INTERFACE; do :; done
+    ip rule add dev $INTERFACE table $LINK
+    ip route replace $IP table $LINK proto static dev $INTERFACE
 
-# Xen only calls the vif-script on interface creation; there is no
-# corresponding teardown callback.
-ACTION=up
-
-check
-
-# This is only a wrapper script which will call the relevant action
-# script for the given network mode.
-#
-# Built-in modes check for a user override in ${CONF_DIR}/network/${MODE}/
-# first, then fall back to the versioned built-in in ${PKGLIBDIR}/network/${MODE}/.
-#
-# ext mode is not supported under Xen.
-if [ -x "${CONF_DIR}/network/${MODE}/up" ]; then
-  exec ${CONF_DIR}/network/${MODE}/up
-elif [ -x "${PKGLIBDIR}/network/${MODE}/up" ]; then
-  exec ${PKGLIBDIR}/network/${MODE}/up
 else
-  echo "Error: no up script for network type ${MODE} found" >&2
-  exit 1
+    ip route replace $IP proto static dev $INTERFACE
+fi
+
+# Allow routing and arp proxying, or ndp proxying (IPv6)
+if [ -d "/proc/sys/net/ipv4/conf/$INTERFACE" ]; then
+    echo 1 > /proc/sys/net/ipv4/conf/$INTERFACE/proxy_arp
+    echo 1 > /proc/sys/net/ipv4/conf/$INTERFACE/forwarding
+fi
+
+if [ -d "/proc/sys/net/ipv6/conf/$INTERFACE" ]; then
+    echo 1 > /proc/sys/net/ipv6/conf/$INTERFACE/proxy_ndp
+    echo 1 > /proc/sys/net/ipv6/conf/$INTERFACE/forwarding
 fi

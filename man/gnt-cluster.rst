@@ -384,7 +384,7 @@ comma-separated list of key=value pairs with the following supported
 keys:
 
 mode
-    The default NIC mode, one of ``routed``, ``bridged`` or
+    The default NIC mode, one of ``routed``, ``bridged``, ``ext`` or
     ``openvswitch``.
 
 link

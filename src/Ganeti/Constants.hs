@@ -2504,6 +2504,14 @@ oobStatuses = ConstantUtils.mkSet $ map Types.oobStatusToRaw [minBound..]
 ppDefault :: String
 ppDefault = "default"
 
+-- * nicAction* constants are used as script names
+
+nicActionUp :: String
+nicActionUp = "up"
+
+nicActionDown :: String
+nicActionDown = "down"
+
 -- * nic* constants are used inside the ganeti config
 
 nicLink :: String
@@ -2535,6 +2543,9 @@ nicModeOvs = Types.nICModeToRaw NMOvs
 
 nicIpPool :: String
 nicIpPool = Types.nICModeToRaw NMPool
+
+nicModeExt :: String
+nicModeExt = Types.nICModeToRaw NMExt
 
 nicValidModes :: FrozenSet String
 nicValidModes = ConstantUtils.mkSet $ map Types.nICModeToRaw [minBound..]

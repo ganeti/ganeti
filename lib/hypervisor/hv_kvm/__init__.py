@@ -793,8 +793,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         raise
 
+  def _DeConfigureAllNICs(self, instance):
+    """Run the network de-configuration script for all NICs"""
+
+    kvm_runtime = self._LoadKVMRuntime(instance)
+    kvm_nics = kvm_runtime[1]
+    for nic_seq, nic in enumerate(kvm_nics):
+      try:
+        tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
+      except EnvironmentError as err:
+        logging.warning("Failed to find host interface for %s NIC #%d: %s",
+                        instance.name, nic_seq, str(err))
+        continue
+      hv_base.DeConfigureNIC([pathutils.KVM_NIC_SETUP, tap], instance,
+                              nic_seq, nic, tap)
+
   @staticmethod
-  def _ConfigureNIC(instance, seq, nic, tap):
+  def _ConfigureNIC(instance, seq, nic, tap, extra_env=None):
     """Run the network configuration script for a specified NIC
 
     See L{hv_base.ConfigureNIC}.
@@ -807,9 +822,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type nic: nic object
     @param tap: the host's tap interface this NIC corresponds to
     @type tap: str
+    @type extra_env: dict or None
+    @param extra_env: optional extra environment variables to pass to the script
 
     """
-    hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
+    hv_base.ConfigureNIC([pathutils.KVM_NIC_SETUP, tap], instance, seq,
+                         nic, tap, extra_env=extra_env)
 
   @classmethod
   def _SetProcessAffinity(cls, process_id, cpus):
@@ -1923,13 +1941,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
                       self._InstanceKvmdMonitor(instance.name)])
 
-    # Configure the network now for starting instances and bridged/OVS
-    # interfaces, during FinalizeMigration for incoming instances' routed
-    # interfaces.
+    # Configure NICs
+    # If we are on the receiving end of a live migration:
+    #   - routed NICs are configured after migration finishes (post-migration
+    #     only) to avoid announcing routes before the instance has moved.
+    #   - ext NICs get a best-effort pre-migration script call here so that
+    #     custom scripts can set up resources early. The script receives
+    #     MIGRATION_PHASE=pre.
+    #     Absence of the script or a script failure is non-fatal; the
+    #     post-migration call in FinalizeMigrationDst() will still run.
     for nic_seq, nic in enumerate(kvm_nics):
-      if (incoming and
-          nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED):
-        continue
+      if incoming:
+        if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED:
+          continue
+        if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_EXT:
+          try:
+            self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq],
+                               extra_env={"MIGRATION_PHASE": "pre"})
+          except errors.HypervisorError as err:
+            logging.warning("Pre-migration ext NIC script for %s NIC #%d"
+                            " failed (non-fatal): %s",
+                            instance.name, nic_seq, err)
+          continue
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
@@ -2407,6 +2440,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     assert(timeout is None or force is not None)
 
+    kvm_runtime = self._LoadKVMRuntime(instance)
+
     if name is not None and not force:
       raise errors.HypervisorError("Cannot shutdown cleanly by name only")
     if name is None:
@@ -2422,6 +2457,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self.qmp.Powerdown()
 
     self._ClearUserShutdown(instance.name)
+    self._DeConfigureAllNICs(instance)
+
 
   def StopInstance(self, instance, force=False, retry=False, name=None,
                    timeout=None):
@@ -2493,8 +2530,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                             incoming=incoming_address)
     self._SetInstanceMigrationCapabilities(instance)
 
-  def _ConfigureRoutedNICs(self, instance, info):
-    """Configures all NICs in routed mode
+  def _ConfigureRoutedExtNICs(self, instance, info):
+    """Configures all NICs in routed or ext mode
 
     @type instance: L{objects.Instance}
     @param instance: the instance to be configured
@@ -2505,7 +2542,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_nics = kvm_runtime[1]
 
     for nic_seq, nic in enumerate(kvm_nics):
-      if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_ROUTED:
+      if nic.nicparams[constants.NIC_MODE] not in \
+        [constants.NIC_MODE_ROUTED, constants.NIC_MODE_EXT]:
         # Bridged/OVS interfaces have already been configured
         continue
       try:
@@ -2515,7 +2553,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         instance.name, nic_seq, str(err))
         continue
       try:
-        self._ConfigureNIC(instance, nic_seq, nic, tap)
+        self._ConfigureNIC(instance, nic_seq, nic, tap,
+                           extra_env={"MIGRATION_PHASE": "post"})
       except errors.HypervisorError as err:
         logging.warning(str(err))
 
@@ -2529,7 +2568,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
-      self._ConfigureRoutedNICs(instance, info)
+      self._ConfigureRoutedExtNICs(instance, info)
       self._WriteKVMRuntime(instance.name, info)
       self._ClearInstanceMigrationCapabilities(instance)
     else:
@@ -2580,6 +2619,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
+      self._DeConfigureAllNICs(instance)
       pidfile, pid, _ = self._InstancePidAlive(instance.name)
       utils.KillProcess(pid)
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
@@ -2592,6 +2632,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self.qmp.ContinueGuestEmulation()
         self._ClearInstanceMigrationCapabilities(instance)
       else:
+        self._DeConfigureAllNICs(instance)
         self.CleanupInstance(instance.name)
 
   @_with_qmp

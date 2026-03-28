@@ -343,8 +343,13 @@ this into up to three separate interfaces:
 You can use plain network interfaces or make use of the linux bonding driver
 to achieve redundant connectivity for each of the above.
 
-In additional to "bridged mode" Ganeti also supports "routed mode" or
-"openvswitch mode" for your instance network.
+In addition to "bridged mode" Ganeti also supports "routed mode",
+"openvswitch mode" or "external network mode" for your instance network.
+Use the latter if you want to implement a custom network configuration
+without possible implications of the other variants.
+
+For a full description of each mode, the parameters it accepts, and how
+to customise the corresponding up/down scripts, see :doc:`network`.
 
 In order to use "routed mode" under Xen, you'll need to change the
 relevant parameters in the Xen config file. Under KVM instead, no config
@@ -409,6 +414,9 @@ hypervisor parameter to point to that script by::
 
 Having this hypervisor parameter you are able to create your own scripts
 and create instances with different networking configurations.
+
+See :ref:`env-vars` in :doc:`network` for the environment these scripts
+receive.
 
 Installing Ganeti
 +++++++++++++++++
@@ -558,7 +566,8 @@ to decide how this cluster is supposed to operate.
    --master-netmask 24
 
   You should also configure the default network, the following configures your
-  instances to use 'bridged mode' with ``gnt-bridge`` as default bridge::
+  instances to use 'bridged mode' with ``gnt-bridge`` as default bridge
+  (see :doc:`network` for mode/link semantics)::
 
    --nic-parameters mode=bridged,link=gnt-bridge
 

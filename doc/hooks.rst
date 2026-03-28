@@ -671,6 +671,12 @@ INSTANCE_NICn_MAC
 INSTANCE_NICn_MODE
   The mode of the *n* -th NIC of the instance.
 
+.. note::
+   These variables are exposed to **hooks**. Instance NIC **up/down
+   scripts** receive a different (richer) set of variables
+   (``INTERFACE``, ``MODE``, ``IP``, ``LINK``, ``VLAN``, ``NETWORK_*``,
+   ``MIGRATION_PHASE``, …); see :ref:`env-vars` in :doc:`network`.
+
 INSTANCE_OS_TYPE
   The name of the instance OS.
 

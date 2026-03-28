@@ -210,8 +210,65 @@ def GenerateTapName():
   return "gnt.com.%d" % idx
 
 
-def ConfigureNIC(cmd, instance, seq, nic, tap):
+def ConfigureNIC(cmd, instance, seq, nic, tap, extra_env=None):
   """Run the network configuration script for a specified NIC
+
+  @type cmd: string
+  @param cmd: command to run
+  @type instance: instance object
+  @param instance: instance we're acting on
+  @type seq: int
+  @param seq: nic sequence number
+  @type nic: nic object
+  @param nic: nic we're acting on
+  @type tap: str
+  @param tap: the host's tap interface this NIC corresponds to
+  @type extra_env: dict or None
+  @param extra_env: optional extra environment variables to pass to the script
+
+  """
+  env = {
+    "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
+    "INSTANCE": instance.name,
+    "MAC": nic.mac,
+    "MODE": nic.nicparams[constants.NIC_MODE],
+    "INTERFACE": tap,
+    "INTERFACE_INDEX": str(seq),
+    "INTERFACE_UUID": nic.uuid,
+    "TAGS": " ".join(instance.GetTags()),
+    "ACTION": constants.NIC_ACTION_UP,
+  }
+
+  if nic.ip:
+    env["IP"] = nic.ip
+
+  if nic.name:
+    env["INTERFACE_NAME"] = nic.name
+
+  if nic.nicparams[constants.NIC_LINK]:
+    env["LINK"] = nic.nicparams[constants.NIC_LINK]
+
+  if constants.NIC_VLAN in nic.nicparams:
+    env["VLAN"] = nic.nicparams[constants.NIC_VLAN]
+
+  if nic.network:
+    n = objects.Network.FromDict(nic.netinfo)
+    env.update(n.HooksDict())
+
+  if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+    env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]
+
+  if extra_env:
+    env.update(extra_env)
+
+  result = utils.RunCmd(cmd, env=env)
+  if result.failed:
+    raise errors.HypervisorError("Failed to configure interface %s: %s;"
+                                 " network configuration script output: %s" %
+                                 (tap, result.fail_reason, result.output))
+
+def DeConfigureNIC(cmd, instance, seq, nic, tap):
+  """Run the network de-configuration script for a specified NIC
 
   @type cmd: string
   @param cmd: command to run
@@ -234,6 +291,7 @@ def ConfigureNIC(cmd, instance, seq, nic, tap):
     "INTERFACE_INDEX": str(seq),
     "INTERFACE_UUID": nic.uuid,
     "TAGS": " ".join(instance.GetTags()),
+    "ACTION": constants.NIC_ACTION_DOWN,
   }
 
   if nic.ip:
@@ -257,10 +315,9 @@ def ConfigureNIC(cmd, instance, seq, nic, tap):
 
   result = utils.RunCmd(cmd, env=env)
   if result.failed:
-    raise errors.HypervisorError("Failed to configure interface %s: %s;"
-                                 " network configuration script output: %s" %
-                                 (tap, result.fail_reason, result.output))
-
+    logging.error("Failed to call NIC de-configuration script for "
+                  "interface %s: %s %s" %
+                   (tap, result.fail_reason, result.output))
 
 class HvInstanceState(object):
   RUNNING = 0
