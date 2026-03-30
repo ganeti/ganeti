@@ -269,6 +269,7 @@ DIRS = \
 
 PYTHON_TEST_DIRS = \
 	test/py/unit \
+	test/py/unit/confd \
 	test/py/unit/http \
 	test/py/unit/hypervisor \
 	test/py/unit/hypervisor/hv_kvm \
@@ -1949,7 +1950,6 @@ python_tests_legacy = \
 	test/py/legacy/ganeti.client.gnt_instance_unittest.py \
 	test/py/legacy/ganeti.client.gnt_job_unittest.py \
 	test/py/legacy/ganeti.compat_unittest.py \
-	test/py/legacy/ganeti.confd.client_unittest.py \
 	test/py/legacy/ganeti.config_unittest.py \
 	test/py/legacy/ganeti.constants_unittest.py \
 	test/py/legacy/ganeti.daemon_unittest.py \
@@ -2025,6 +2025,7 @@ python_tests_legacy = \
 	test/py/legacy/tempfile_fork_unittest.py
 
 python_tests_unit = \
+	test/py/unit/confd/test_client.py \
 	test/py/unit/test_daemon.py \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
 	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
