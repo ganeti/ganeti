@@ -906,6 +906,11 @@ class SharedLock(object):
   def _acquire_restore(self, shared):
     self.acquire(shared=shared)
 
+  # compatible with Python-3.14's threading.Condition
+  @property
+  def locked(self) -> bool:
+    """Return True if exclusive or shared lock is held"""
+    return self.__exc is not None or bool(self.__shr)
 
 # Whenever we want to acquire a full LockSet we pass None as the value
 # to acquire.  Hide this behind this nicely named constant.
