@@ -867,6 +867,12 @@ def RunInstanceTests():
         else:
           test_desc = "Iterating through hypervisor parameter values"
           ReportTestSkip(test_desc, "instance-iterate-hvparams")
+
+        # Archive completed jobs to prevent large job queues across
+        # long QA runs.
+        # The larger they become, the slower TestJobList gets (from
+        # seconds to minutes).
+        qa_utils.AssertCommand(["gnt-job", "autoarchive", "all"])
       finally:
         qa_config.ReleaseManyNodes(inodes)
     else:
