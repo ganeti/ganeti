@@ -336,8 +336,14 @@ def RunOsTests():
     RunTestIf(os_enabled, fn)
 
 
-def RunCommonInstanceTests(instance, inst_nodes):
+def RunCommonInstanceTests(instance, inst_nodes, reduced=False):
   """Runs a few tests that are common to all disk types.
+
+  @type reduced: bool
+  @param reduced: if True, skip parameter-independent tests (instance list,
+      info, rename, tags, cluster-verify, node list, job list, RAPI instance).
+      These tests do not assert on hypervisor parameters and only need to run
+      once per disk type rather than once per hvparam iteration.
 
   """
   RunTestIf("instance-shutdown", qa_instance.TestInstanceShutdown, instance)
@@ -353,9 +359,10 @@ def RunCommonInstanceTests(instance, inst_nodes):
   RunTestIf(["instance-shutdown", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceStartup, instance)
 
-  RunTestIf("instance-list", qa_instance.TestInstanceList)
+  if not reduced:
+    RunTestIf("instance-list", qa_instance.TestInstanceList)
 
-  RunTestIf("instance-info", qa_instance.TestInstanceInfo, instance)
+    RunTestIf("instance-info", qa_instance.TestInstanceInfo, instance)
 
   RunTestIf("instance-modify", qa_instance.TestInstanceModify, instance)
   RunTestIf(["instance-modify", qa_rapi.Enabled],
@@ -373,6 +380,14 @@ def RunCommonInstanceTests(instance, inst_nodes):
     "instance-grow-disk",
     ])
 
+  if reduced:
+    # In reduced mode, skip rename tests (parameter-independent) but keep
+    # reinstall and grow-disk which exercise disk-type-specific code paths.
+    DOWN_TESTS = qa_config.Either([
+      "instance-reinstall",
+      "instance-grow-disk",
+      ])
+
   # shutdown instance for any 'down' tests
   RunTestIf(DOWN_TESTS, qa_instance.TestInstanceShutdown, instance)
 
@@ -381,7 +396,7 @@ def RunCommonInstanceTests(instance, inst_nodes):
   RunTestIf(["instance-reinstall", qa_rapi.Enabled],
             qa_rapi.TestRapiInstanceReinstall, instance)
 
-  if qa_config.TestEnabled("instance-rename"):
+  if not reduced and qa_config.TestEnabled("instance-rename"):
     tgt_instance = qa_config.AcquireInstance()
     try:
       rename_source = instance.name
@@ -407,20 +422,22 @@ def RunCommonInstanceTests(instance, inst_nodes):
 
   RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
 
-  RunTestIf("tags", qa_tags.TestInstanceTags, instance)
+  if not reduced:
+    RunTestIf("tags", qa_tags.TestInstanceTags, instance)
 
   if instance.disk_template == constants.DT_DRBD8:
     RunTestIf("cluster-verify",
               qa_cluster.TestClusterVerifyDisksBrokenDRBD, instance, inst_nodes)
-  RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
+  if not reduced:
+    RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
 
-  RunTestIf(qa_rapi.Enabled, qa_rapi.TestInstance, instance)
+    RunTestIf(qa_rapi.Enabled, qa_rapi.TestInstance, instance)
 
-  # Lists instances, too
-  RunTestIf("node-list", qa_node.TestNodeList)
+    # Lists instances, too
+    RunTestIf("node-list", qa_node.TestNodeList)
 
-  # Some jobs have been run, let's test listing them
-  RunTestIf("job-list", qa_job.TestJobList)
+    # Some jobs have been run, let's test listing them
+    RunTestIf("job-list", qa_job.TestJobList)
 
 
 def RunCommonNodeTests():
@@ -941,7 +958,7 @@ def RunInstanceTestsFull(create_fun, inodes, supported_conversions, templ):
 def RunInstanceTestsReduced(create_fun, inodes):
   instance = RunTest(create_fun, inodes)
   try:
-    RunCommonInstanceTests(instance, inodes)
+    RunCommonInstanceTests(instance, inodes, reduced=True)
     RunTest(qa_instance.TestInstanceRemove, instance)
   finally:
     instance.Release()
