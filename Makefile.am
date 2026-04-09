@@ -1952,7 +1952,6 @@ python_tests_legacy = \
 	test/py/legacy/ganeti.compat_unittest.py \
 	test/py/legacy/ganeti.config_unittest.py \
 	test/py/legacy/ganeti.constants_unittest.py \
-	test/py/legacy/ganeti.daemon_unittest.py \
 	test/py/legacy/ganeti.errors_unittest.py \
 	test/py/legacy/ganeti.hooks_unittest.py \
 	test/py/legacy/ganeti.ht_unittest.py \

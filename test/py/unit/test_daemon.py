@@ -30,11 +30,31 @@
 """Pytest tests for ganeti.daemon module."""
 
 import logging
+import os
 import signal
+import threading
 
 import pytest
 
 from ganeti import daemon
+
+
+def _send_signal_delayed(signum, delay=0.05):
+  """Send a signal to the current process after a short delay.
+
+  Used to deliver signals while Mainloop.Run() is executing, after it
+  has installed its own signal handlers.
+
+  """
+  pid = os.getpid()
+
+  def _send():
+    os.kill(pid, signum)
+
+  t = threading.Timer(delay, _send)
+  t.daemon = True
+  t.start()
+  return t
 
 
 class TestHandleSigHup:
@@ -115,18 +135,118 @@ class TestHandleSigHup:
     daemon._HandleSigHup([], [], signal.SIGHUP, None)
 
 
+class TestMainloop:
+  """Tests for the Mainloop class construction and resource management."""
+
+  @pytest.fixture
+  def mainloop(self):
+    ml = daemon.Mainloop()
+    yield ml
+    ml.close()
+
+  def test_creates_socketpair(self, mainloop):
+    """Test that the socketpair file descriptors are valid."""
+    assert mainloop._awaker_in.fileno() >= 0
+    assert mainloop._awaker_out.fileno() >= 0
+
+  def test_awaker_in_is_nonblocking(self, mainloop):
+    """Test that the read side of the socketpair is non-blocking."""
+    assert mainloop._awaker_in.getblocking() is False
+
+  def test_selector_registered(self, mainloop):
+    """Test that the awaker socket is registered with the selector."""
+    key = mainloop._sel.get_key(mainloop._awaker_in)
+    assert key is not None
+
+  def test_close_releases_resources(self):
+    """Test that close() shuts down selector and sockets."""
+    ml = daemon.Mainloop()
+    in_fd = ml._awaker_in.fileno()
+    out_fd = ml._awaker_out.fileno()
+    ml.close()
+
+    # File descriptors should be closed
+    assert not _fd_is_open(in_fd)
+    assert not _fd_is_open(out_fd)
+
+  def test_wakeup_makes_selector_ready(self, mainloop):
+    """Test that _wakeup() makes the selector return immediately."""
+    mainloop._wakeup()
+    events = mainloop._sel.select(timeout=0)
+    assert len(events) == 1
+
+  def test_wakeup_coalescing(self, mainloop):
+    """Test that multiple _wakeup() calls before drain are coalesced."""
+    mainloop._wakeup()
+    # Force need_signal back to True to simulate a race
+    mainloop._need_signal = True
+    mainloop._wakeup()
+
+    events = mainloop._sel.select(timeout=0)
+    assert len(events) == 1
+
+    # Drain the socketpair
+    mainloop._awaker_in.recv(4096)
+    mainloop._need_signal = True
+
+    # No more data pending
+    events = mainloop._sel.select(timeout=0)
+    assert len(events) == 0
+
+  def test_no_pending_data_initially(self, mainloop):
+    """Test that no data is pending on the socketpair initially."""
+    events = mainloop._sel.select(timeout=0)
+    assert len(events) == 0
+
+
+class TestMainloopRun:
+  """Tests for Mainloop.Run() signal-driven shutdown."""
+
+  @pytest.fixture
+  def mainloop(self):
+    ml = daemon.Mainloop()
+    yield ml
+    ml.close()
+
+  def test_sigterm_triggers_shutdown(self, mainloop):
+    """Test that SIGTERM causes Run() to exit."""
+    _send_signal_delayed(signal.SIGTERM)
+    mainloop.Run()
+
+  def test_sigint_triggers_shutdown(self, mainloop):
+    """Test that SIGINT causes Run() to exit."""
+    _send_signal_delayed(signal.SIGINT)
+    mainloop.Run()
+
+  def test_shutdown_wait_fn_defers_exit(self, mainloop):
+    """Test that shutdown_wait_fn can defer shutdown."""
+    call_count = [0]
+
+    def wait_fn():
+      call_count[0] += 1
+      if call_count[0] < 2:
+        # First call: defer for 0 seconds (will re-check next iteration)
+        return 0
+      # Second call: allow shutdown
+      return None
+
+    _send_signal_delayed(signal.SIGTERM)
+
+    mainloop.Run(shutdown_wait_fn=wait_fn)
+    assert call_count[0] == 2
+
+
 class TestMainloopSighupCallbacks:
   """Tests for Mainloop.RegisterSighupCallback."""
 
   @pytest.fixture
-  def mainloop_with_callbacks(self):
-    """Create a Mainloop with sighup_callbacks initialized."""
-    return daemon.Mainloop()
+  def mainloop(self):
+    ml = daemon.Mainloop()
+    yield ml
+    ml.close()
 
-  def test_register_callback(self, mainloop_with_callbacks):
+  def test_register_callback(self, mainloop):
     """Test registering a single callback."""
-    mainloop = mainloop_with_callbacks
-
     def my_callback():
       pass
 
@@ -134,9 +254,8 @@ class TestMainloopSighupCallbacks:
 
     assert my_callback in mainloop.sighup_callbacks
 
-  def test_register_multiple_callbacks(self, mainloop_with_callbacks):
+  def test_register_multiple_callbacks(self, mainloop):
     """Test registering multiple callbacks."""
-    mainloop = mainloop_with_callbacks
     callbacks = [lambda: None, lambda: None, lambda: None]
 
     for cb in callbacks:
@@ -166,4 +285,15 @@ class TestMainloopSighupCallbacks:
     # Simulate SIGHUP
     daemon._HandleSigHup([], reload_callbacks, signal.SIGHUP, None)
 
+    mainloop.close()
+
     assert called == ["late"]
+
+
+def _fd_is_open(fd):
+  """Check whether a file descriptor is still open."""
+  try:
+    os.fstat(fd)
+    return True
+  except OSError:
+    return False
