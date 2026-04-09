@@ -3,7 +3,7 @@ Replace Usage Of asyncore With Lightweight Alternatives
 =======================================================
 
 :Created: 2026-02-04
-:Status: Draft
+:Status: Implemented
 
 .. contents:: :depth: 4
 
