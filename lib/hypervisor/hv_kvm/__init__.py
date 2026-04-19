@@ -1248,8 +1248,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     pidfile = self._InstancePidFile(instance.name)
     kvm = hvp[constants.HV_KVM_PATH]
     kvm_cmd = [kvm]
-    # used just by the vnc server, if enabled
-    kvm_cmd.extend(["-name", instance.name])
+
+    (_, kvm_major, _, _) = self._ParseKVMVersion(kvmhelp)
+    if kvm_major < 11:
+      kvm_cmd.extend(["-name", f"{instance.name},debug-threads=on"])
+    else:
+      # debug-threads is implicitly enabled starting with QEMU 11
+      kvm_cmd.extend(["-name", f"{instance.name}"])
+
     kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
 
     smp_list = ["%s" % instance.beparams[constants.BE_VCPUS]]
