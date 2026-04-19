@@ -269,6 +269,7 @@ DIRS = \
 
 PYTHON_TEST_DIRS = \
 	test/py/unit \
+	test/py/unit/cmdlib \
 	test/py/unit/confd \
 	test/py/unit/http \
 	test/py/unit/hypervisor \
@@ -2024,6 +2025,7 @@ python_tests_legacy = \
 	test/py/legacy/tempfile_fork_unittest.py
 
 python_tests_unit = \
+	test/py/unit/cmdlib/test_instance_storage_drbd_wait.py \
 	test/py/unit/confd/test_client.py \
 	test/py/unit/test_daemon.py \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
