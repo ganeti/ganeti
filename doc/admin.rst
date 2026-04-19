@@ -1629,6 +1629,52 @@ to these parameters will not affect running instances.
   $ gnt-cluster modify --disk-parameters drbd:dynamic-resync=true,c-plan-ahead=20,c-min-rate=104857600,c-max-rate=1073741824
   $ gnt-cluster modify --disk-parameters drbd:net-custom='--max-buffers=16000 --max-epoch-size=16000'
 
+Overriding DRBD split-brain resolution
+++++++++++++++++++++++++++++++++++++++
+
+Ganeti's DRBD backend ships with automatic split-brain resolution enabled:
+``--after-sb-0pri discard-zero-changes`` and ``--after-sb-1pri consensus``.
+The ``consensus`` policy can silently discard one side of a split-brain in
+the one-primary case, which in some failure scenarios amounts to silent
+data loss (see GitHub issue #846).
+
+Operators who prefer manual intervention can override either policy via
+the existing ``net-custom`` disk parameter. Because Ganeti appends
+``net-custom`` at the end of the generated ``drbdsetup`` command line,
+the last occurrence of each flag wins, so an override simply replaces
+the default::
+
+  $ gnt-cluster modify --disk-parameters drbd:net-custom='--after-sb-1pri disconnect'
+
+The override takes effect the next time the DRBD network layer is
+(re-)established for a given disk - e.g. on instance restart, secondary
+re-add, or migration.
+
+DRBD handshake check on disk assembly
++++++++++++++++++++++++++++++++++++++
+
+When activating disks for a DRBD-backed instance (for example during
+``gnt-instance startup``, ``gnt-instance reboot``, ``gnt-instance
+activate-disks``, or ``gnt-instance grow-disk``), Ganeti waits for the
+DRBD handshake to complete on every reachable secondary before
+promoting the primary. If the handshake does not complete on an online
+secondary, the operation fails instead of silently promoting a primary
+in ``WFConnection`` state - this avoids a potential data-loss scenario
+after an instance ran in DRBD diskless mode on its primary node (e.g.
+after a failure in the storage subsystem).
+
+To override the check - accepting the risk of split-brain / data loss:
+
+* ``gnt-instance startup --force``
+* ``gnt-instance reboot --ignore-secondaries``
+* Mark a persistently unreachable secondary as offline with
+  ``gnt-node modify --offline=yes <node>`` - offline secondaries are
+  always skipped (with a warning), independent of the flags above.
+
+``gnt-instance failover``, ``gnt-instance migrate`` and
+``gnt-instance move`` already treat secondary handshake failures as
+non-fatal, matching their existing semantics.
+
 Userspace vs. Kernelspace
 +++++++++++++++++++++++++
 
