@@ -1707,6 +1707,9 @@ hvKvmScsiControllerType = "scsi_controller_type"
 hvKvmPciReservations :: String
 hvKvmPciReservations = "kvm_pci_reservations"
 
+hvKvmQmpTimeout :: String
+hvKvmQmpTimeout = "kvm_qmp_timeout"
+
 hvKvmSpiceAudioCompr :: String
 hvKvmSpiceAudioCompr = "spice_playback_compression"
 
@@ -1919,6 +1922,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmDiskAio,                      VTypeString)
   , (hvKvmScsiControllerType,           VTypeString)
   , (hvKvmPciReservations,              VTypeInt)
+  , (hvKvmQmpTimeout,                   VTypeInt)
   , (hvKvmSpiceAudioCompr,              VTypeBool)
   , (hvKvmSpiceBind,                    VTypeString)
   , (hvKvmSpiceIpVersion,               VTypeInt)
@@ -4119,6 +4123,7 @@ hvcDefaults =
           , (hvVncPasswordFile,                 PyValueEx "")
           , (hvKvmScsiControllerType,           PyValueEx htScsiControllerLsi)
           , (hvKvmPciReservations,         PyValueEx qemuDefaultPciReservations)
+          , (hvKvmQmpTimeout,              PyValueEx (5 :: Int))
           , (hvKvmSpiceBind,                    PyValueEx "")
           , (hvKvmSpiceIpVersion,           PyValueEx ifaceNoIpVersionSpecified)
           , (hvKvmSpicePasswordFile,            PyValueEx "")
