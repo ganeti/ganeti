@@ -2,6 +2,31 @@ News
 ====
 
 
+Version 3.1.1
+-------------
+
+*(Released Wed, 22 Apr 2026)*
+
+Changes since 3.1.0
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- various Python 3.14 compatibility backports (#1921)
+- support for python-bitarray >= 3 (#1884)
+- KVM: fix usage of "on" vs. "true" for multiqueue configuration (#1921)
+- KVM: fix "--run-with" regex for QEMU >= 10.2 (#1917)
+
+A Note On Python Asyncore
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While this release contains various smaller fixes for Python 3.14 com-
+patibility, it still relies on Python asyncore to be present (officially
+dropped from Python 3.12). As of now, most stable distributions still
+ship an old version of the Python asyncore code for backwards compatibility.
+Asyncore has been successfully removed from Ganeti's codebase with the
+release of Ganeti 3.2 but since these changes are rather large, they will
+not be backported into the 3.1 branch.
+
+
 Version 3.1.0
 -------------
 
