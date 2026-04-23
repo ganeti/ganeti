@@ -157,6 +157,7 @@ module Ganeti.OpParams
   , pMasterNetdev
   , pMasterNetmask
   , pReservedLvs
+  , pMinVgSize
   , pHiddenOs
   , pBlacklistedOs
   , pUseExternalMipScript
@@ -806,6 +807,11 @@ pReservedLvs :: Field
 pReservedLvs =
   withDoc "List of reserved LVs" .
   optionalField $ simpleField "reserved_lvs" [t| [NonEmptyString] |]
+
+pMinVgSize :: Field
+pMinVgSize =
+  withDoc "Minimum volume group size (MiB)" .
+  optionalField $ simpleField "min_vg_size" [t| NonNegative Int |]
 
 pHiddenOs :: Field
 pHiddenOs =

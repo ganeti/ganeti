@@ -251,6 +251,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                    -- master_netmask
           <*> genMaybe (listOf genPrintableAsciiStringNE)
                                            -- reserved_lvs
+          <*> arbitrary                    -- min_vg_size
           <*> genMaybe (listOf ((,) <$> arbitrary
                                     <*> genPrintableAsciiStringNE))
                                            -- hidden_os
