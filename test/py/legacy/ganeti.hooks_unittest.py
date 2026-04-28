@@ -204,9 +204,12 @@ class TestHooksRunner(unittest.TestCase):
       os.chmod(fname, 0o755)
       self.torm.append((fname, False))
       env_snt = {"PHASE": phase}
-      env_exp = "PHASE=%s" % phase
-      self.assertEqual(self.hr.RunHooks(self.hpath, phase, env_snt),
-                           [(self._rname(fname), HKR_SUCCESS, env_exp)])
+      env_exp = "PHASE=%s\\nSHLVL=1\\n_=/usr/bin/env" % phase
+      result = self.hr.RunHooks(self.hpath, phase, env_snt)
+      self.assertEqual(len(result), 1)
+      self.assertEqual(result[0][0], self._rname(fname))
+      self.assertEqual(result[0][1], HKR_SUCCESS)
+      self.assertEqual(env_exp, result[0][2])
 
 
 def FakeHooksRpcSuccess(node_list, hpath, phase, env):
