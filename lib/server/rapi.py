@@ -53,6 +53,7 @@ from ganeti import utils
 from ganeti import pathutils
 from ganeti.rapi import connector
 from ganeti.rapi import baserlib
+from ganeti import rapi
 
 import ganeti.http.auth   # pylint: disable=W0611
 import ganeti.http.server # pylint: disable=W0611
@@ -66,6 +67,7 @@ class RemoteApiRequestContext(object):
     self.handler = None
     self.handler_fn = None
     self.handler_access = None
+    self.handler_auth_required = True
     self.body_data = None
 
 
@@ -128,10 +130,15 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
                                       (method, req.request_path))
 
       ctx.handler_access = baserlib.GetHandlerAccess(ctx.handler, method)
-
       # Require permissions definition (usually in the base class)
-      if ctx.handler_access is None:
+      if ctx.handler_access is rapi.RAPI_ACCESS_NOT_DEFINED:
         raise AssertionError("Permissions definition missing")
+
+      ctx.handler_auth_required = baserlib.GetHandlerAuthRequired(
+        ctx.handler, method)
+      # Require auth required definition
+      if ctx.handler_auth_required is None:
+        raise AssertionError("Authentication requirement definition missing")
 
       # This is only made available in HandleRequest
       ctx.body_data = None
@@ -141,7 +148,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     # Check for expected attributes
     assert req.private.handler
     assert req.private.handler_fn
-    assert req.private.handler_access is not None
+    # handler_access can be None for public endpoints
 
     return req.private
 
@@ -149,7 +156,8 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     """Determine whether authentication is required.
 
     """
-    return self._reqauth or bool(self._GetRequestContext(req).handler_access)
+    ctx = self._GetRequestContext(req)
+    return self._reqauth or ctx.handler_auth_required
 
   def Authenticate(self, req, username, password):
     """Checks whether a user can access a resource.
@@ -164,12 +172,13 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
       # Unknown user or password wrong
       return False
 
-    if (not ctx.handler_access or
-        set(user.options).intersection(ctx.handler_access)):
-      # Allow access
+    # check permissions
+    if ctx.handler_access is None or user.has_permission(ctx.handler_access):
       return True
 
-    # Access forbidden
+    logging.warning("User '%s' lacks permission '%s' for %s %s",
+                    username, ctx.handler_access,
+                    req.request_method, req.request_path)
     raise http.HttpForbidden()
 
   def HandleRequest(self, req):

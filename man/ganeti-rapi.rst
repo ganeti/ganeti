@@ -50,12 +50,15 @@ in the same format as for the node and master daemon.
 ACCESS CONTROLS
 ---------------
 
-Most query operations are allowed without authentication. Only the
-modification operations require authentication, in the form of basic
-authentication. Specify the ``--require-authentication`` command line
-flag to always require authentication.
+Authentication is required for almost all RAPI resources. Only the
+informational endpoints (``/``, ``/2``, ``/version``, ``/2/features``)
+are reachable without credentials. Each remaining resource declares the
+permission it requires; users are granted permissions individually or
+via predefined roles (``@admin``, ``@readonly``, ``@operator``). When the
+``--require-authentication`` command line flag is passed, even the
+informational endpoints require authentication.
 
-The users and their rights are defined in the
+The users and their permissions are defined in the
 ``@LOCALSTATEDIR@/lib/ganeti/rapi/users`` file. The format of this file
 is described in the Ganeti documentation (``rapi.html``).
 

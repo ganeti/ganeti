@@ -181,7 +181,7 @@ class TestRemoteApiHandler(unittest.TestCase):
       else:
         return None
 
-    for access in [rapi.RAPI_ACCESS_WRITE, rapi.RAPI_ACCESS_READ]:
+    for access in [rapi.RAPI_ACCESS_QUERY_ALL]:
       def _LookupUserWithWrite(name):
         if name == username:
           return http.auth.PasswordFileUser(name, password, [
@@ -252,9 +252,12 @@ class TestRemoteApiHandler(unittest.TestCase):
         # No authorization
         (code, _, _) = self._Test(method, path, "", "", reqauth=reqauth)
 
-        if method == http.HTTP_GET or reqauth:
+        if method == http.HTTP_GET:
+          # GET is implemented but requires auth
           self.assertEqual(code, http.HttpUnauthorized.code)
         else:
+          # Other methods are not implemented - 501 is returned
+          # before authentication is checked
           self.assertEqual(code, http.HttpNotImplemented.code)
 
 

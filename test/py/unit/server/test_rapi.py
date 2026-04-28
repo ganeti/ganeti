@@ -260,6 +260,34 @@ class TestRemoteApiHandler:
     data = serializer.LoadJson(body)
     assert data["code"] == 404
 
+  @pytest.mark.parametrize("path", ["/", "/2", "/version", "/2/features"])
+  def test_public_endpoints_serve_without_auth(self, basic_handler, path):
+    """Endpoints with AUTH_REQUIRED = False are reachable unauthenticated."""
+    code, _, _ = self._make_request(basic_handler, "GET", path, "", None)
+    assert code == http.HTTP_OK
+
+  def test_forbidden_when_user_lacks_permission(self, make_auth_headers):
+    """Authenticated user without required permission gets 403 (no leak)."""
+    def _lookup(username):
+      if username == "ro":
+        return auth.PasswordFileUser("ro", "pw", ["@readonly"])
+      return None
+
+    handler = rapi.RemoteApiHandler(_lookup, reqauth=False)
+    auth_value = make_auth_headers("ro", "pw")
+    headers = (f"Authorization: {auth_value}\r\n"
+               "Content-Type: application/json\r\n\r\n")
+
+    # /2/redistribute-config requires cluster.redistribute_config (admin only)
+    code, _, data = self._make_request(
+      handler, "PUT", "/2/redistribute-config", headers, ""
+    )
+
+    assert code == http.HttpForbidden.code
+    # Required permission name must NOT be echoed in the response body
+    assert "cluster.redistribute_config" not in (data.get("message") or "")
+    assert "cluster.redistribute_config" not in (data.get("explain") or "")
+
 
 class TestRapiUsers:
   """Test RapiUsers class."""
