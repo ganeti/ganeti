@@ -198,7 +198,7 @@ class TestHooksRunner(unittest.TestCase):
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       fbase = "success"
       fname = "%s/%s" % (self.ph_dirs[phase], fbase)
-      content = "#!/usr/bin/env sh\nenv --unset PWD\n"
+      content = "#!/usr/bin/env sh\nenv --unset PWD --unset SHLVL --unset _\n"
       with open(fname, "w", encoding="utf-8", newline="\n") as f:
         f.write(content)
       os.chmod(fname, 0o755)
