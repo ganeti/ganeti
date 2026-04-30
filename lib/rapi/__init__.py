@@ -32,10 +32,148 @@
 from ganeti import compat
 
 
-RAPI_ACCESS_WRITE = "write"
-RAPI_ACCESS_READ = "read"
+RAPI_ACCESS_NOT_DEFINED = "not_defined"
 
-RAPI_ACCESS_ALL = compat.UniqueFrozenset([
-  RAPI_ACCESS_WRITE,
-  RAPI_ACCESS_READ,
-  ])
+# Job permissions
+RAPI_ACCESS_JOBS_LIST = "jobs.list"
+RAPI_ACCESS_JOBS_QUERY = "jobs.query"
+RAPI_ACCESS_JOBS_CANCEL = "jobs.cancel"
+RAPI_ACCESS_JOBS_WAIT = "jobs.wait"
+
+# instance permissions
+RAPI_ACCESS_INSTANCES_MULTI_ALLOC = "instances.multi_alloc"
+RAPI_ACCESS_INSTANCES_LIST = "instances.list"
+RAPI_ACCESS_INSTANCES_CREATE = "instances.create"
+RAPI_ACCESS_INSTANCES_GROW_DISK = "instances.grow_disk"
+RAPI_ACCESS_INSTANCES_MODIFY = "instances.modify"
+RAPI_ACCESS_INSTANCES_REMOVE = "instances.remove"
+RAPI_ACCESS_INSTANCES_QUERY = "instances.query"
+RAPI_ACCESS_INSTANCES_INFO = "instances.info"
+RAPI_ACCESS_INSTANCES_REBOOT = "instances.reboot"
+RAPI_ACCESS_INSTANCES_STARTUP = "instances.startup"
+RAPI_ACCESS_INSTANCES_SHUTDOWN = "instances.shutdown"
+RAPI_ACCESS_INSTANCES_MIGRATE = "instances.migrate"
+RAPI_ACCESS_INSTANCES_FAILOVER = "instances.failover"
+RAPI_ACCESS_INSTANCES_RENAME = "instances.rename"
+RAPI_ACCESS_INSTANCES_REINSTALL = "instances.reinstall"
+RAPI_ACCESS_INSTANCES_REPLACE_DISKS = "instances.replace_disks"
+RAPI_ACCESS_INSTANCES_RECREATE_DISKS = "instances.recreate_disks"
+RAPI_ACCESS_INSTANCES_ACTIVATE_DISKS = "instances.activate_disks"
+RAPI_ACCESS_INSTANCES_DEACTIVATE_DISKS = "instances.deactivate_disks"
+RAPI_ACCESS_INSTANCES_EXPORT_PREPARE = "instances.export.prepare"
+RAPI_ACCESS_INSTANCES_EXPORT_CREATE = "instances.export.create"
+RAPI_ACCESS_INSTANCES_EXPORT_REMOVE = "instances.export.remove"
+RAPI_ACCESS_INSTANCES_QUERY_CONSOLE = "instances.query.console"
+
+# os permissions
+RAPI_ACCESS_OS_LIST = "os.list"
+
+# filter permissions
+RAPI_ACCESS_FILTER_LIST = "filter.list"
+RAPI_ACCESS_FILTER_CREATE = "filter.create"
+RAPI_ACCESS_FILTER_QUERY = "filter.query"
+RAPI_ACCESS_FILTER_MODIFY = "filter.modify"
+RAPI_ACCESS_FILTER_REMOVE = "filter.remove"
+
+# node permissions
+RAPI_ACCESS_NODES_LIST = "nodes.list"
+RAPI_ACCESS_NODES_QUERY = "nodes.query"
+RAPI_ACCESS_NODES_POWERCYCLE = "nodes.powercycle"
+RAPI_ACCESS_NODES_ROLE_QUERY = "nodes.role.query"
+RAPI_ACCESS_NODES_ROLE_MODIFY = "nodes.role.modify"
+RAPI_ACCESS_NODES_EVACUATE = "nodes.evacuate"
+RAPI_ACCESS_NODES_MIGRATE = "nodes.migrate"
+RAPI_ACCESS_NODES_MODIFY = "nodes.modify"
+RAPI_ACCESS_NODES_STORAGE_QUERY = "nodes.storage.query"
+RAPI_ACCESS_NODES_STORAGE_MODIFY = "nodes.storage.modify"
+RAPI_ACCESS_NODES_STORAGE_REPAIR = "nodes.storage.repair"
+
+# network permissions
+RAPI_ACCESS_NETWORKS_LIST = "networks.list"
+RAPI_ACCESS_NETWORKS_QUERY = "networks.query"
+RAPI_ACCESS_NETWORKS_CREATE = "networks.create"
+RAPI_ACCESS_NETWORKS_REMOVE = "networks.remove"
+RAPI_ACCESS_NETWORKS_CONNECT = "networks.connect"
+RAPI_ACCESS_NETWORKS_DISCONNECT = "networks.disconnect"
+RAPI_ACCESS_NETWORKS_MODIFY = "networks.modify"
+RAPI_ACCESS_NETWORKS_RENAME = "networks.rename"
+
+# groups permissions
+RAPI_ACCESS_GROUPS_LIST = "groups.list"
+RAPI_ACCESS_GROUPS_CREATE = "groups.create"
+RAPI_ACCESS_GROUPS_QUERY = "groups.query"
+RAPI_ACCESS_GROUPS_DELETE = "groups.delete"
+RAPI_ACCESS_GROUPS_MODIFY = "groups.modify"
+RAPI_ACCESS_GROUPS_RENAME = "groups.rename"
+RAPI_ACCESS_GROUPS_ASSIGN_NODES = "groups.assign_nodes"
+
+# query permissions
+RAPI_ACCESS_QUERY_ALL = "query.all"
+
+# cluster permissions
+RAPI_ACCESS_CLUSTER_INFO = "cluster.info"
+RAPI_ACCESS_CLUSTER_MODIFY = "cluster.modify"
+RAPI_ACCESS_CLUSTER_REDISTRIBUTE_CONFIG = "cluster.redistribute_config"
+
+# tags permissions
+RAPI_ACCESS_TAGS_GET = "tags.get"
+RAPI_ACCESS_TAGS_SET = "tags.set"
+RAPI_ACCESS_TAGS_DELETE = "tags.delete"
+
+# All defined permissions. Derived automatically from the RAPI_ACCESS_*
+# string constants above so adding a permission only requires declaring
+# the constant; no separate bookkeeping is needed (except updating
+# RAPI_ACCESS_READONLY when the new permission is read-only).
+RAPI_ACCESS_ALL = compat.UniqueFrozenset(
+  v for k, v in dict(vars()).items()
+  if k.startswith("RAPI_ACCESS_")
+  and isinstance(v, str)
+  and k != "RAPI_ACCESS_NOT_DEFINED"
+  )
+
+# Read-only permissions for the @readonly role
+RAPI_ACCESS_READONLY = frozenset([
+  RAPI_ACCESS_JOBS_LIST,
+  RAPI_ACCESS_JOBS_QUERY,
+  RAPI_ACCESS_INSTANCES_LIST,
+  RAPI_ACCESS_INSTANCES_QUERY,
+  RAPI_ACCESS_INSTANCES_INFO,
+  RAPI_ACCESS_NODES_LIST,
+  RAPI_ACCESS_NODES_QUERY,
+  RAPI_ACCESS_NODES_ROLE_QUERY,
+  RAPI_ACCESS_NETWORKS_LIST,
+  RAPI_ACCESS_NETWORKS_QUERY,
+  RAPI_ACCESS_GROUPS_LIST,
+  RAPI_ACCESS_GROUPS_QUERY,
+  RAPI_ACCESS_FILTER_LIST,
+  RAPI_ACCESS_FILTER_QUERY,
+  RAPI_ACCESS_CLUSTER_INFO,
+  RAPI_ACCESS_TAGS_GET,
+  RAPI_ACCESS_QUERY_ALL,
+  RAPI_ACCESS_OS_LIST,
+])
+
+# Permissions for the @operator role: read-only access plus instance
+# operations that don't change cluster/instance configuration. Includes
+# lifecycle (start/stop/reboot), live operations (migrate/failover/
+# replace-disks), backup/export, and console access. Cannot create,
+# modify, remove or rename instances; cannot change cluster, node,
+# network or group configuration.
+RAPI_ACCESS_OPERATOR = RAPI_ACCESS_READONLY | frozenset([
+  RAPI_ACCESS_INSTANCES_STARTUP,
+  RAPI_ACCESS_INSTANCES_SHUTDOWN,
+  RAPI_ACCESS_INSTANCES_REBOOT,
+  RAPI_ACCESS_INSTANCES_MIGRATE,
+  RAPI_ACCESS_INSTANCES_FAILOVER,
+  RAPI_ACCESS_INSTANCES_REPLACE_DISKS,
+  RAPI_ACCESS_INSTANCES_EXPORT_PREPARE,
+  RAPI_ACCESS_INSTANCES_EXPORT_CREATE,
+  RAPI_ACCESS_INSTANCES_EXPORT_REMOVE,
+  RAPI_ACCESS_INSTANCES_QUERY_CONSOLE,
+])
+
+RAPI_ROLES = {
+  "admin": RAPI_ACCESS_ALL,
+  "readonly": RAPI_ACCESS_READONLY,
+  "operator": RAPI_ACCESS_OPERATOR,
+  }

@@ -498,10 +498,15 @@ def _DescribeHandlerAccess(handler, method):
   """
   access = rapi.baserlib.GetHandlerAccess(handler, method)
 
-  if access:
-    return utils.CommaJoin(sorted(access))
-  else:
+  if access is None:
     return "*(none)*"
+  if access == rapi.RAPI_ACCESS_NOT_DEFINED:
+    raise AssertionError(f"Handler {handler.__name__} {method} has no"
+                         " *_ACCESS attribute defined")
+  if isinstance(access, str):
+    return access
+  raise AssertionError(f"Handler {handler.__name__} {method}_ACCESS has"
+                       f" unexpected type {type(access).__name__}")
 
 
 class _RapiHandlersForDocsHelper(object):

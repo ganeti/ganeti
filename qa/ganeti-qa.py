@@ -292,6 +292,7 @@ def RunClusterTests():
     ("cluster-instance-communication", qa_cluster.TestInstanceCommunication),
     (qa_rapi.Enabled, qa_rapi.TestVersion),
     (qa_rapi.Enabled, qa_rapi.TestEmptyCluster),
+    (qa_rapi.Enabled, qa_rapi.TestRapiUserPermissions),
     (qa_rapi.Enabled, qa_rapi.TestRapiQuery),
     ]:
     RunTestIf(test, fn)
