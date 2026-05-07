@@ -180,6 +180,9 @@ class DRBD8Dev(base.BlockDev):
 
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
+  # Time to dwell after `drbdsetup resize` waiting for DRBD to coordinate
+  # the new size with the peer and transition into a resync state.
+  _GROW_RESYNC_TIMEOUT = 10
 
   def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     if children and children.count(None) > 0:
@@ -1028,6 +1031,25 @@ class DRBD8Dev(base.BlockDev):
     result = utils.RunCmd(cmd)
     if result.failed:
       base.ThrowError("drbd%d: resize failed: %s", self.minor, result.output)
+
+    # `drbdsetup resize` returns before DRBD has coordinated the new size with
+    # the peer. The connection state stays `Connected` for a brief window
+    # before transitioning to a resync state (SyncSource/SyncTarget/...).
+    # If we return now, the caller's WaitForSync polls `sync_percent`, sees
+    # None, and concludes the disks are in sync - and two subsequent grow
+    # requests (as e.g. issued by the QA suite) then race into the resize and
+    # the second one is rejected by DRBD with ERR_RESIZE_RESYNCING (130).
+    # Wait here until either resync has observably started, or the timeout
+    # elapses (no resync needed).
+    def _WaitForResyncStart():
+      if not self.GetProcStatus().is_in_resync:
+        raise utils.RetryAgain()
+
+    try:
+      utils.Retry(_WaitForResyncStart, (0.1, 1.5, 1.0),
+                  self._GROW_RESYNC_TIMEOUT)
+    except utils.RetryTimeout:
+      pass
 
   @classmethod
   def _InitMeta(cls, minor, dev_path):
