@@ -35,8 +35,13 @@ from typing import Dict, List
 
 import pytest
 
-from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage
-from ganeti import serializer
+from ganeti.hypervisor.hv_kvm.monitor import (
+  QmpConnection,
+  QmpEvent,
+  QmpMessage,
+  QmpTimestamp,
+)
+from ganeti import errors, serializer
 
 QMP_VERSION_MICRO = 50
 QMP_VERSION_MINOR = 13
@@ -262,3 +267,290 @@ class TestQmpConnection:
     assert fake_qmp.is_connected()
     fake_qmp.close()
     assert not fake_qmp.is_connected()
+
+
+# -----------------------------------------------------------------------------
+# _HasPCIDevice walks pci_bridge subtrees so q35 leafs (which live behind
+# a pre-allocated pcie-root-port, not on the top-level pcie.0 bus) are
+# found by hot-add / hot-del verification.
+# -----------------------------------------------------------------------------
+class TestHasPCIDevice:
+  def _qmp_with_pci_devices(self, monkeypatch, devices):
+    qmp = QmpConnection("/tmp/nonexistent-test-socket")
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: devices)
+    return qmp
+
+  def test_finds_top_level_device(self, monkeypatch):
+    # The static-MF group on q35 (and every PCI device on i440fx) is
+    # a top-level entry. The original flat scan covered this case;
+    # the recursive version must still cover it.
+    qmp = self._qmp_with_pci_devices(monkeypatch, [
+      {"qdev_id": "", "slot": 0, "function": 0},
+      {"qdev_id": "spice", "slot": 2, "function": 3},
+    ])
+    assert qmp._HasPCIDevice("spice")
+    assert not qmp._HasPCIDevice("not-here")
+
+  def test_finds_device_nested_behind_pcie_root_port(self, monkeypatch):
+    # q35 shape: pcie-root-port at top-level slot 3 hosts the actual
+    # leaf one bus down via pci_bridge.devices.
+    qmp = self._qmp_with_pci_devices(monkeypatch, [
+      {"qdev_id": "rp3", "slot": 3, "function": 0,
+       "class_info": {"desc": "PCI bridge"},
+       "pci_bridge": {
+         "bus": {"secondary": 1},
+         "devices": [
+           {"qdev_id": "nic-abc-1234", "bus": 1, "slot": 0,
+            "function": 0,
+            "class_info": {"desc": "Ethernet controller"}},
+         ]}},
+    ])
+    assert qmp._HasPCIDevice("nic-abc-1234")
+    # The bridge itself is also a real PCI device with a qdev_id; it
+    # must remain findable (cold-boot pool root-ports are looked up
+    # this way during runtime initialisation).
+    assert qmp._HasPCIDevice("rp3")
+    assert not qmp._HasPCIDevice("nic-xyz")
+
+  def test_handles_empty_bridge(self, monkeypatch):
+    # A pre-allocated empty pcie-root-port (no leaf attached yet) must
+    # not trip the recursion or short-circuit it for other entries.
+    qmp = self._qmp_with_pci_devices(monkeypatch, [
+      {"qdev_id": "rp7", "slot": 7, "function": 0,
+       "pci_bridge": {"bus": {"secondary": 5}, "devices": []}},
+      {"qdev_id": "spice", "slot": 2, "function": 3},
+    ])
+    assert qmp._HasPCIDevice("rp7")
+    assert qmp._HasPCIDevice("spice")
+    assert not qmp._HasPCIDevice("anything-else")
+
+  def test_finds_either_top_level_or_nested(self, monkeypatch):
+    # Realistic q35 mix: balloon at top-level slot 0x02, NIC behind
+    # rp3, disk behind rp4. All three must be findable.
+    qmp = self._qmp_with_pci_devices(monkeypatch, [
+      {"qdev_id": "", "slot": 2, "function": 0},  # balloon (anonymous)
+      {"qdev_id": "rp3", "slot": 3, "function": 0,
+       "pci_bridge": {"bus": {"secondary": 1}, "devices": [
+         {"qdev_id": "nic-aaaa", "bus": 1, "slot": 0, "function": 0},
+       ]}},
+      {"qdev_id": "rp4", "slot": 4, "function": 0,
+       "pci_bridge": {"bus": {"secondary": 2}, "devices": [
+         {"qdev_id": "disk-bbbb", "bus": 2, "slot": 0, "function": 0},
+       ]}},
+    ])
+    assert qmp._HasPCIDevice("nic-aaaa")
+    assert qmp._HasPCIDevice("disk-bbbb")
+    assert qmp._HasPCIDevice("rp3")
+    assert qmp._HasPCIDevice("rp4")
+    assert not qmp._HasPCIDevice("missing")
+
+
+# -----------------------------------------------------------------------------
+# HotDelNic must wait for DEVICE_DELETED before issuing netdev_del.
+# On q35/PCIe the guest's pciehp driver mediates detach asynchronously;
+# netdev_del before the event causes a QEMU error.
+# -----------------------------------------------------------------------------
+class TestHotDelNic:
+  """Unit tests for the event-based hot-unplug path in HotDelNic."""
+
+  def _qmp(self, monkeypatch):
+    """Return a QmpConnection with the transport mocked out."""
+    qmp = QmpConnection("/tmp/nonexistent-test-socket")
+    # Make _ensure_connection think we are already connected so it does
+    # not attempt a real socket open/close around the call.
+    monkeypatch.setattr(qmp, "is_connected", lambda: True)
+    return qmp
+
+  def _make_event(self, event_type):
+    ts = QmpTimestamp(seconds=0, microseconds=0)
+    return QmpEvent(ts, event_type, {})
+
+  def test_success_calls_device_del_then_netdev_del(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    calls = []
+    monkeypatch.setattr(qmp, "execute_qmp",
+                        lambda cmd, args=None: calls.append(cmd))
+    deleted = self._make_event("DEVICE_DELETED")
+    monkeypatch.setattr(qmp, "wait_for_qmp_event",
+                        lambda types, timeout: deleted)
+
+    qmp.HotDelNic("nic-abc123")
+
+    assert calls == ["device_del", "netdev_del"]
+
+  def test_timeout_raises_hypervisor_error_with_pciehp_hint(
+      self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    monkeypatch.setattr(qmp, "execute_qmp", lambda cmd, args=None: None)
+    monkeypatch.setattr(qmp, "wait_for_qmp_event",
+                        lambda types, timeout: None)
+
+    with pytest.raises(errors.HypervisorError, match="pciehp"):
+      qmp.HotDelNic("nic-abc123")
+
+  def test_guest_error_event_raises_hypervisor_error(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    monkeypatch.setattr(qmp, "execute_qmp", lambda cmd, args=None: None)
+    guest_err = self._make_event("DEVICE_UNPLUG_GUEST_ERROR")
+    monkeypatch.setattr(qmp, "wait_for_qmp_event",
+                        lambda types, timeout: guest_err)
+
+    with pytest.raises(errors.HypervisorError,
+                       match="DEVICE_UNPLUG_GUEST_ERROR"):
+      qmp.HotDelNic("nic-abc123")
+
+  def test_netdev_del_not_called_on_guest_error(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    calls = []
+    monkeypatch.setattr(qmp, "execute_qmp",
+                        lambda cmd, args=None: calls.append(cmd))
+    guest_err = self._make_event("DEVICE_UNPLUG_GUEST_ERROR")
+    monkeypatch.setattr(qmp, "wait_for_qmp_event",
+                        lambda types, timeout: guest_err)
+
+    with pytest.raises(errors.HypervisorError):
+      qmp.HotDelNic("nic-abc123")
+
+    assert "netdev_del" not in calls
+
+  def test_netdev_del_not_called_on_timeout(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    calls = []
+    monkeypatch.setattr(qmp, "execute_qmp",
+                        lambda cmd, args=None: calls.append(cmd))
+    monkeypatch.setattr(qmp, "wait_for_qmp_event",
+                        lambda types, timeout: None)
+
+    with pytest.raises(errors.HypervisorError):
+      qmp.HotDelNic("nic-abc123")
+
+    assert "netdev_del" not in calls
+
+
+# -----------------------------------------------------------------------------
+# WaitForDeviceClaim closes the hot-add side of the hotplug contract: after
+# device_add succeeds, the guest's pciehp driver must online the slot (assign
+# BAR addresses, wire IRQ) before any follow-up operation (in particular
+# hot-unplug) is safe on q35. Without this wait, a fast unplug-then-replug
+# races against pciehp and DEVICE_DELETED never fires.
+# -----------------------------------------------------------------------------
+class TestWaitForDeviceClaim:
+
+  def _qmp(self, monkeypatch):
+    qmp = QmpConnection("/tmp/nonexistent-test-socket")
+    monkeypatch.setattr(qmp, "is_connected", lambda: True)
+    return qmp
+
+  def _dev(self, qdev_id, regions=None, irq=0):
+    return {
+      "qdev_id": qdev_id,
+      "irq": irq,
+      "regions": regions if regions is not None else [],
+    }
+
+  @staticmethod
+  def _unmapped_region():
+    return {"bar": 0, "size": 16384, "address": -1, "type": "memory"}
+
+  @staticmethod
+  def _mapped_region():
+    return {"bar": 0, "size": 16384, "address": 0xfe000000, "type": "memory"}
+
+  def test_returns_immediately_when_bars_already_mapped(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    device = self._dev("nic-abc", regions=[self._mapped_region()])
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: [device])
+    sleeps = []
+    monkeypatch.setattr(
+      "ganeti.hypervisor.hv_kvm.monitor.time.sleep", sleeps.append)
+
+    qmp.WaitForDeviceClaim("nic-abc")
+
+    assert sleeps == []
+
+  def test_returns_when_irq_is_assigned_even_with_unmapped_bars(
+      self, monkeypatch):
+    # INTx-only devices may surface irq before any BAR is allocated; the
+    # predicate must accept either signal so it works for both INTx and
+    # MSI-X-capable virtio.
+    qmp = self._qmp(monkeypatch)
+    device = self._dev("nic-abc", regions=[self._unmapped_region()], irq=11)
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: [device])
+
+    qmp.WaitForDeviceClaim("nic-abc")
+
+  def test_polls_until_bars_become_mapped(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    snapshots = [
+      [self._dev("nic-abc", regions=[self._unmapped_region()])],
+      [self._dev("nic-abc", regions=[self._unmapped_region()])],
+      [self._dev("nic-abc", regions=[self._mapped_region()])],
+    ]
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: snapshots.pop(0))
+    monkeypatch.setattr(
+      "ganeti.hypervisor.hv_kvm.monitor.time.sleep", lambda _s: None)
+
+    qmp.WaitForDeviceClaim("nic-abc")
+
+    # all three snapshots should have been consumed
+    assert snapshots == []
+
+  def test_no_op_when_device_is_not_on_pci_bus(self, monkeypatch):
+    # SCSI luns behind an HBA, USB devices, ... do not appear in
+    # query-pci. The wait must not fail for them — QEMU acceptance has
+    # already been verified by _VerifyHotplugCommand.
+    qmp = self._qmp(monkeypatch)
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: [])
+    sleeps = []
+    monkeypatch.setattr(
+      "ganeti.hypervisor.hv_kvm.monitor.time.sleep", sleeps.append)
+
+    qmp.WaitForDeviceClaim("scsi-lun-0")
+
+    assert sleeps == []
+
+  def test_finds_device_behind_pcie_root_port(self, monkeypatch):
+    # q35 leafs live one bus down behind a pre-allocated
+    # pcie-root-port. The walk must recurse into pci_bridge.devices.
+    qmp = self._qmp(monkeypatch)
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: [
+      {"qdev_id": "rp3", "slot": 3, "function": 0,
+       "pci_bridge": {"bus": {"secondary": 1}, "devices": [
+         self._dev("nic-abc", regions=[self._mapped_region()]),
+       ]}},
+    ])
+
+    qmp.WaitForDeviceClaim("nic-abc")
+
+  def test_raises_with_pciehp_hint_after_timeout(self, monkeypatch):
+    qmp = self._qmp(monkeypatch)
+    monkeypatch.setattr(qmp, "_GetPCIDevices", lambda: [
+      self._dev("nic-abc", regions=[self._unmapped_region()]),
+    ])
+    monkeypatch.setattr(
+      "ganeti.hypervisor.hv_kvm.monitor.time.sleep", lambda _s: None)
+
+    with pytest.raises(errors.HypervisorError, match="pciehp"):
+      qmp.WaitForDeviceClaim("nic-abc", timeout=0)
+
+
+class TestFilterHvinfo:
+  """_filter_hvinfo selects keys forwarded to the device_add QMP call."""
+
+  def test_forwards_acpi_index(self):
+    # On q35, the NIC's hvinfo carries acpi-index for stable eno<N>
+    # naming; without it the hot-added NIC falls back to enp<bus>s0.
+    qmp = QmpConnection("/tmp/nonexistent-test-socket")
+    hvinfo = {
+      "driver": "virtio-net-pci",
+      "id": "nic-abc",
+      "bus": "rp3",
+      "addr": "0x0",
+      "acpi-index": 1,
+    }
+    assert qmp._filter_hvinfo(hvinfo) == hvinfo
+
+  def test_drops_unknown_keys(self):
+    qmp = QmpConnection("/tmp/nonexistent-test-socket")
+    hvinfo = {"driver": "virtio-net-pci", "id": "x", "garbage": True}
+    assert qmp._filter_hvinfo(hvinfo) == {"driver": "virtio-net-pci", "id": "x"}

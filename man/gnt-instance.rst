@@ -320,7 +320,7 @@ nic\_type
     to the instance. The possible options are:
 
     - rtl8139 (default for Xen HVM) (HVM & KVM)
-    - ne2k\_isa (HVM & KVM)
+    - ne2k\_isa (HVM & KVM) (rejected on ``q35``)
     - ne2k\_pci (HVM & KVM)
     - i82551 (KVM)
     - i82557b (KVM)
@@ -352,13 +352,15 @@ scsi\_controller\_type
     - dc390
 
 kvm\_pci\_reservations
-    Valid for the KVM hypervisor.
+    Valid for the KVM hypervisor on ``pc`` machines.
 
     The number of PCI slots that QEMU will manage implicitly. By default Ganeti
     will let QEMU use the first 12 slots (i.e. PCI slots 0-11) on its own and
     will start adding disks and NICs from the 13rd slot (i.e. PCI slot 12)
     onwards. So by default one can add 20 PCI devices (32 - 12). To support more
     than that, this hypervisor parameter should be set accordingly (e.g. to 8).
+
+    This parameter has no effect on ``q35`` machines.
 
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
@@ -380,14 +382,23 @@ cdrom\_disk\_type
 
     This parameter determines the way the cdroms disks are presented
     to the instance. The default behavior is to get the same value of
-    the earlier parameter (disk_type). The possible options are:
+    the earlier parameter (disk_type), except on the ``q35`` machine
+    type where the default is forced to ``ide`` (paravirtual cdroms
+    are not supported there). The possible options are:
 
-    - paravirtual
+    - paravirtual (rejected on ``q35``)
     - ide
+    - scsi-cd
     - scsi
     - sd
     - mtd
     - pflash
+
+    On ``q35``, ``cdrom_disk_type=ide`` does **not** mean the legacy
+    ICH9 IDE controller (which q35 in QEMU does not implement). The
+    ``ide-cd`` device frontend attaches transparently to the chipset
+    ``ich9-ahci`` (SATA) controller's ATAPI bus, and SeaBIOS can boot
+    from it. cdrom1 lands on ``ide.0`` and cdrom2 on ``ide.1``.
 
 
 vnc\_bind\_address
@@ -858,6 +869,10 @@ soundhw
     Qemu (``-audio model=help``) for a list of valid soundcard
     models. ``hda`` or ``ac97`` are probably the most useful ones.
 
+    On KVM with a ``pc-q35-*`` ``machine_version``, only ``hda`` and
+    ``ac97`` are supported; any other value is rejected. Switch to a
+    ``pc-i440fx-*`` machine version if you need a different sound model.
+
 cpuid
     Valid for the XEN hypervisor.
 
@@ -899,20 +914,47 @@ machine\_version
 
     Use in case an instance must be booted with an exact type of
     machine version (due to e.g. outdated drivers). In case it's not set
-    the default version supported by your version of kvm is used. Ganeti
-    currently only supports the ``pc`` types properly.
-    However, you should not set it to ``pc`` but rather to a specific version,
-    e.g. ``pc-i440fx-9.2`` if you plan to use live migration. You can obtain
+    the default version supported by your version of kvm is used.
+
+    Ganeti supports both the legacy ``pc`` (i440FX) and the modern
+    ``pc-q35-*`` (Q35 + ICH9, PCIe-based) machine types. ``pc-q35-*``
+    is the recommended choice for new instances: it enables predictable
+    ``eno<N>`` interface naming in systemd guests (see
+    ``acpi-index`` discussion in :doc:`/design-q35`) and it is the
+    upstream-recommended chipset for new x86 guests.
+
+    You should not set this to the unversioned ``pc`` or ``q35`` aliases
+    but rather to a specific version, e.g. ``pc-i440fx-9.2`` or
+    ``pc-q35-9.2``, if you plan to use live migration. You can obtain
     the default machine version by running:
 
     .. code-block:: bash
 
       kvm -M ?
 
-    Look for the line containing (default). Setting it just to ``pc`` will
-    cause problems during rolling cluster upgrades, because your instance
-    will live-migrate into a different kvm version which has a different
-    understanding of what exactly "pc" is.
+    Look for the line containing (default). Setting it just to ``pc``
+    or ``q35`` will cause problems during rolling cluster upgrades,
+    because your instance will live-migrate into a different kvm
+    version which has a different understanding of what exactly "pc" or
+    "q35" is.
+
+    On q35, the following hvparams are rejected outright or emit a
+    cluster-verify warning:
+
+    - ``scsi_controller_type=lsi`` (warning) - prefer ``virtio-scsi-pci``.
+    - ``disk_type=ide`` (rejected) - prefer ``paravirtual`` or ``scsi``.
+    - ``cdrom_disk_type=paravirtual`` (rejected) - virtio-blk-pci
+      CD-ROMs are not bootable from SeaBIOS. Use ``ide`` (lands on the
+      chipset SATA controller) or ``scsi-cd``.
+    - ``floppy_image_path`` (rejected) - floppy drives are not
+      supported on q35.
+    - ``vga`` set to ``cirrus`` or empty (warning) - prefer ``std``,
+      ``qxl`` or ``virtio``.
+
+    Live migration between ``pc`` and ``q35`` instances is not supported
+    by QEMU and is not attempted by Ganeti. Migration between two
+    instances of the same chipset (``pc`` ↔ ``pc`` or ``q35`` ↔ ``q35``)
+    works via the same paths.
 
 
 migration\_caps

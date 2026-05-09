@@ -161,6 +161,7 @@ def PrepareHvParameterSets():
       "usb_mouse": constants.HT_KVM_VALID_MOUSE_TYPES,
       "disk_type": ["ide", "paravirtual"],
       "soundhw": ["ac97", "hda"],
+      "machine_version": ["", "pc", "q35"],
     }
 
   assembled_tests = {}
@@ -172,6 +173,9 @@ def PrepareHvParameterSets():
       "reset_value": hv_params[param],
     }
 
+  machine_version = hv_params.get(constants.HV_KVM_MACHINE_VERSION) or ""
+  is_q35 = "q35" in machine_version
+
   for param, values in toggle_value_params.items():
     list_values = list(values)
     if hv_params[param] in list_values:
@@ -181,6 +185,9 @@ def PrepareHvParameterSets():
       # if the current value of the HVParam is part of the list of
       # allowed values, remove it to avoid unnecessary test cycles
       list_values.remove(hv_params[param])
+    if param == "disk_type" and is_q35:
+      list_values = [v for v in list_values
+                     if v != constants.HT_DISK_IDE]
     if hv_params[param] is None:
       reset_value = ""
     else:

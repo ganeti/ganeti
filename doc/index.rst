@@ -137,6 +137,7 @@ Draft designs
    design-partitioned
    design-performance-tests.rst
    design-plain-redundancy.rst
+   design-q35.rst
    design-query2.rst
    design-query-splitting.rst
    design-qemu-blockdev.rst

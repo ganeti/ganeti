@@ -858,6 +858,7 @@ docinput = \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \
+	doc/design-q35.rst \
 	doc/design-qemu-blockdev.rst \
 	doc/design-reason-trail.rst \
 	doc/design-repaird.rst \
@@ -1878,6 +1879,8 @@ TEST_FILES = \
 	test/data/kvm_5.2.0_help.txt \
 	test/data/kvm_current_help.txt \
 	test/data/kvm_6.0.0_machine.txt \
+	test/data/kvm_10.2_help.txt \
+	test/data/kvm_10.2_machine.txt \
 	test/data/kvm_runtime.json \
 	test/data/lvs_lv.txt \
 	test/data/NEWS_OK.txt \
@@ -2044,6 +2047,7 @@ python_tests_unit = \
 	test/py/unit/test_daemon.py \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
 	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
+	test/py/unit/hypervisor/hv_kvm/test_q35.py \
 	test/py/unit/http/test_auth.py \
 	test/py/unit/http/test_server.py \
 	test/py/unit/http/test_ssl.py \

@@ -46,7 +46,11 @@ import urllib.request, urllib.error, urllib.parse
 from bitarray import bitarray
 
 from ganeti.hypervisor.hv_kvm.bus_manager import BusAllocatorManager, \
-  BusAllocation, PCIAllocator, SCSIAllocator
+  BusAllocation, PCIAllocator, PCIeNicAllocator, PCIeDiskAllocator, \
+  SCSIAllocator, \
+  Q35_STATIC_SLOT as _Q35_STATIC_SLOT, \
+  Q35_NIC_POOL_SLOTS as _Q35_NIC_POOL_SLOTS, \
+  Q35_DISK_POOL_SLOTS as _Q35_DISK_POOL_SLOTS
 
 try:
   import psutil   # pylint: disable=F0401
@@ -84,10 +88,12 @@ from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 check_spice_parameters, \
                                                 check_vnc_parameters, \
                                                 validate_machine_version, \
+                                                validate_q35_capability, \
                                                 validate_security_model, \
                                                 validate_spice_parameters, \
                                                 validate_vnc_parameters, \
-                                                validate_disk_parameters
+                                                validate_disk_parameters, \
+                                                is_q35
 
 from ganeti.hypervisor.hv_kvm import kvm_utils
 
@@ -132,6 +138,39 @@ _DEVICE_DRIVER = {
     lambda ht: "virtio-blk-pci" if ht == constants.HT_DISK_PARAVIRTUAL else ht,
   }
 
+_CHIPSET_Q35 = "q35"
+_CHIPSET_I440FX = "i440fx"
+
+
+# Function numbers within the q35 static-device multifunction group.
+# fn=0 (balloon) must be unconditional: it carries multifunction=on.
+# CD-ROMs do not consume a function here on q35: they attach to the
+# chipset ich9-ahci controller (slot 0x1f.2) via bus=ide.<N>, not pcie.0.
+_Q35_FN_BALLOON       = 0
+_Q35_FN_SCSI_CTRL     = 1
+_Q35_FN_USB_XHCI      = 2
+_Q35_FN_SPICE_VSERIAL = 3
+_Q35_FN_QGA_VSERIAL   = 4
+_Q35_FN_SOUND         = 5
+# fn=6 is intentionally free for future cold-boot fixed devices.
+# fn=7 is intentionally free for future cold-boot fixed devices.
+# Beyond fn=7 a second multifunction slot is needed.
+
+
+def _Q35StaticAddr(function):
+  """Return the C{,bus=pcie.0,addr=<slot>.<fn>} suffix for a cold-boot
+  fixed device in the q35 multifunction group. Adds C{,multifunction=on}
+  on fn=0 so QEMU recognises the slot as multifunction.
+
+  @type function: int
+  @param function: one of the C{_Q35_FN_*} constants
+  @rtype: str
+
+  """
+  suffix = f",bus=pcie.0,addr={hex(_Q35_STATIC_SLOT)}.{function}"
+  if function == 0:
+    suffix += ",multifunction=on"
+  return suffix
 
 # NICs and paravirtual disks
 # show up as devices on the PCI bus (one slot per device).
@@ -503,15 +542,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # Ganeti will add disks and NICs from slot 12 onwards.
   # NOTE: This maps to the default PCI bus created by pc machine type
   # by default (pci.0). The q35 creates a PCIe bus that is not hotpluggable
-  # and should be handled differently (pcie.0).
-  # NOTE: This bitarray here is defined for more fine-grained control.
-  # Currently the number of slots is QEMU_PCI_SLOTS and the reserved
-  # ones are the first QEMU_DEFAULT_PCI_RESERVATIONS.
-  # If the above constants change without updating _DEFAULT_PCI_RESERVATIONS
-  # properly, TestGenerateDeviceHVInfo() will probably break.
-  _DEFAULT_PCI_RESERVATIONS = "11111111111100000000000000000000"
+  # and is handled separately (see PCIeAllocator and the q35 pools).
   _DEFAULT_PCI_RESERVED_SLOTS = 12
-  _DEFAULT_PCI_SLOTS = 32
   # The SCSI bus is created on demand or automatically and is empty.
   # For simplicity we decide to use a different target (scsi-id)
   # for each SCSI disk. Here we support 16 SCSI disks which is
@@ -519,7 +551,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # NOTE: Max device counts depend on the SCSI controller type;
   # Just for the record, lsi supports up to 7, megasas 64,
   # and virtio-scsi-pci 255.
-  _DEFAULT_SCSI_RESERVATIONS = "0000000000000000"
   _DEFAULT_SCSI_SLOTS = 16
 
   ANCILLARY_FILES = [
@@ -1182,7 +1213,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                     "-device",   ",".join(dev_opts)])
 
   def _CdromOption(self, kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
-                   cdrom_id):
+                   cdrom_id, chipset=_CHIPSET_I440FX, cdrom_index=0):
     """Extends L{kvm_cmd} with the '-blockdev/-device' options for a cdrom, and
     optionally the '-boot' option.
 
@@ -1200,6 +1231,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     @type cdrom_id: str
     @param cdrom_id:
+
+    @type chipset: str
+    @param chipset: resolved chipset (C{i440fx} or C{q35}). On q35,
+        C{ide-cd} is pinned to a deterministic channel of the chipset
+        ich9-ahci controller (C{bus=ide.<cdrom_index>}); on i440fx QEMU
+        auto-attaches to the PIIX3 IDE bus.
+
+    @type cdrom_index: int
+    @param cdrom_index: zero-based index of this CD-ROM within the
+        instance (0 for C{cdrom1}, 1 for C{cdrom2}). Used as the AHCI
+        channel number on q35 (C{bus=ide.<cdrom_index>}); ignored on
+        i440fx and for non-IDE cdrom types.
 
     """
     # Check that the ISO image is accessible
@@ -1228,7 +1271,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dev_opts = []
     if cdrom_disk_type == constants.HT_DISK_IDE:
       dev_opts.append("ide-cd")
+      if chipset == _CHIPSET_Q35:
+        # q35 has no legacy IDE controller; the only ATAPI host is the
+        # chipset ich9-ahci at 0x1f.2, whose AHCI ports expose ATA/ATAPI
+        # child buses named "ide.0".."ide.5" (QEMU's AHCI registers them
+        # via ide_bus_init()). Pin cdrom1 to ide.0 and cdrom2 to ide.1
+        # so the layout is deterministic and SeaBIOS can boot from it.
+        dev_opts.append(f"bus=ide.{cdrom_index}")
     elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
+      # Reachable only on i440fx; validate_q35_capability rejects
+      # paravirtual cdroms on q35.
       dev_opts.append(self._VIRTIO_BLK_PCI)
     elif cdrom_disk_type == constants.HT_DISK_SCSI_CD:
       dev_opts.append("scsi-cd")
@@ -1245,6 +1297,56 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
                     "-device",   ",".join(dev_opts)])
 
+  def _SoundhwOption(self, kvm_cmd, soundhw, spice_bind, chipset, kvmhelp):
+    """Append the sound-card option(s) for the given C{soundhw} model.
+
+    On q35 only C{ac97} and C{hda} are supported (enforced by
+    L{validate_q35_capability}); both are emitted as explicit C{-device}
+    options pinned to function L{_Q35_FN_SOUND} of the static
+    multifunction group so they cannot collide with cold-boot fixed
+    devices on C{pcie.0}. The C{hda} shortcut expands to an
+    C{intel-hda} controller plus an C{hda-duplex} codec.
+
+    On i440fx the model is passed straight to C{-soundhw} (QEMU < 7.1)
+    or the C{-audio} shortcut (QEMU >= 7.1) and QEMU auto-places the
+    resulting PCI device on C{pci.0}.
+
+    @type kvm_cmd: list
+    @param kvm_cmd: the KVM command line, extended in place
+    @type soundhw: str
+    @param soundhw: the sound-card model (e.g. C{ac97}, C{hda})
+    @type spice_bind: str
+    @param spice_bind: SPICE bind address; selects the C{spice} audio
+        backend when set, C{none} otherwise
+    @type chipset: str
+    @param chipset: resolved chipset (C{i440fx} or C{q35})
+    @type kvmhelp: str
+    @param kvmhelp: output of C{kvm --help}, used to detect C{-soundhw}
+        support on i440fx
+
+    """
+    # Pick a host backend: spice if configured, otherwise none (silent).
+    driver = "spice" if spice_bind else "none"
+
+    if chipset == _CHIPSET_Q35:
+      static_addr = _Q35StaticAddr(_Q35_FN_SOUND)
+      kvm_cmd.extend(["-audiodev", f"{driver},id=soundhw-dev"])
+      if soundhw == "hda":
+        kvm_cmd.extend(["-device",
+                        f"intel-hda,id=soundhw{static_addr}"])
+        kvm_cmd.extend(["-device",
+                        "hda-duplex,bus=soundhw.0,audiodev=soundhw-dev"])
+      else:  # ac97 - any other value is rejected by validate_q35_capability
+        kvm_cmd.extend(["-device",
+                        f"AC97,id=soundhw,"
+                        f"audiodev=soundhw-dev{static_addr}"])
+    elif self._SOUND_RE.search(kvmhelp):
+      kvm_cmd.extend(["-soundhw", soundhw])
+    else:
+      # Qemu versions >= 7.1 do not support -soundhw anymore.
+      kvm_cmd.extend(["-audio",
+                      f"driver={driver},model={soundhw},id=soundhw"])
+
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp) -> KVMRuntime:
     """Generate KVM information to start an instance.
@@ -1260,7 +1362,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     # pylint: disable=R0912,R0914,R0915
-    hvp = instance.hvparams
+    # Don't mutate instance.hvparams - we may rewrite the
+    # machine_version below.
+    hvp = dict(instance.hvparams)
     self.ValidateParameters(hvp)
 
     pidfile = self._InstancePidFile(instance.name)
@@ -1288,7 +1392,35 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd.extend(["-pidfile", pidfile])
 
-    bus_manager = self._get_bus_manager(hvp)
+    machine_version = hvp[constants.HV_KVM_MACHINE_VERSION]
+    if not machine_version:
+      machine_version = self._GetDefaultMachineVersion(kvm)
+      # Persist the defaulted value so hot-add reads the same token
+      # the kvm_cmd was built with
+      hvp[constants.HV_KVM_MACHINE_VERSION] = machine_version
+    resolved_chipset = _CHIPSET_Q35 if is_q35(machine_version) \
+                       else _CHIPSET_I440FX
+
+    bus_manager = self._get_bus_manager(hvp, chipset=resolved_chipset)
+
+    if resolved_chipset == _CHIPSET_Q35:
+      # pcie.0 is not hot-pluggable; both pools must be pre-allocated
+      # at cold boot. The NIC/disk split is enforced by the
+      # BusAllocatorManager; PCIeNicAllocator attaches acpi-index to
+      # the NIC leaf for stable eno<N> naming.
+      for slot in _Q35_NIC_POOL_SLOTS + _Q35_DISK_POOL_SLOTS:
+        kvm_cmd.extend([
+          "-device",
+          f"pcie-root-port,id=rp{slot},bus=pcie.0,addr={hex(slot)},"
+          f"chassis={slot},port={slot}",
+        ])
+
+    if resolved_chipset == _CHIPSET_Q35:
+      kvm_cmd.extend(["-device",
+                      "virtio-balloon-pci" +
+                      _Q35StaticAddr(_Q35_FN_BALLOON)])
+    else:
+      kvm_cmd.extend(["-device", "virtio-balloon"])
 
     if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES \
             or hvp[constants.HV_KVM_CDROM_DISK_TYPE]\
@@ -1296,12 +1428,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # In case a SCSI disk is given, QEMU adds a SCSI contorller
       # (LSI Logic / Symbios Logic 53c895a) implicitly.
       # Here, we add the controller explicitly with the default id.
-      kvm_cmd.extend([
-        "-device",
-        "%s,id=scsi" % hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]
-        ])
-
-    kvm_cmd.extend(["-device", "virtio-balloon"])
+      scsi_dev = f"{hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]},id=scsi"
+      if resolved_chipset == _CHIPSET_Q35:
+        scsi_dev += _Q35StaticAddr(_Q35_FN_SCSI_CTRL)
+      kvm_cmd.extend(["-device", scsi_dev])
     kvm_cmd.extend(["-daemonize"])
     # logfile for qemu
     qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
@@ -1312,11 +1442,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         constants.INSTANCE_REBOOT_EXIT:
       kvm_cmd.extend(["-no-reboot"])
 
-    machine_params = []
-    mversion = hvp[constants.HV_KVM_MACHINE_VERSION]
-    if not mversion:
-      mversion = self._GetDefaultMachineVersion(kvm)
-    machine_params.append(mversion)
+    machine_params = [machine_version]
 
     if not instance.hvparams[constants.HV_ACPI]:
       if self._ACPI_RE.search(kvmhelp):
@@ -1345,16 +1471,24 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Now we can specify a different device type for CDROM devices.
     cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
     if not cdrom_disk_type:
-      cdrom_disk_type = disk_type
+      if resolved_chipset == _CHIPSET_Q35:
+        # The KVM default disk_type=paravirtual would otherwise inherit
+        # into cdrom_disk_type=paravirtual, which is rejected on q35.
+        # Default to ide on q35; it lands on the chipset ich9-ahci
+        # (SATA) controller and SeaBIOS can boot from it.
+        cdrom_disk_type = constants.HT_DISK_IDE
+      else:
+        cdrom_disk_type = disk_type
 
     cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
     if cdrom_image1:
       self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
-                        "cdrom1")
+                        "cdrom1", chipset=resolved_chipset, cdrom_index=0)
 
     cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
     if cdrom_image2:
-      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, "cdrom2")
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, "cdrom2",
+                        chipset=resolved_chipset, cdrom_index=1)
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:
@@ -1391,12 +1525,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
     spice_ip_version = None
 
-    kvm_cmd.extend(["-usb"])
+    # Pointer device: explicit usb_mouse wins, otherwise VNC implies tablet.
+    pointer = mouse_type
+    if not pointer and vnc_bind_address:
+      pointer = constants.HT_MOUSE_TABLET
+    usb_devices = hvp[constants.HV_USB_DEVICES]
 
-    if mouse_type:
-      kvm_cmd.extend(["-usbdevice", mouse_type])
-    elif vnc_bind_address:
-      kvm_cmd.extend(["-usbdevice", constants.HT_MOUSE_TABLET])
+    if resolved_chipset == _CHIPSET_Q35:
+      # q35 has no implicit UHCI; emit qemu-xhci once if any USB
+      # consumer (pointer or usb_devices) is present. -usbdevice later
+      # attaches to the only available USB bus, i.e. this xhci.
+      if pointer or usb_devices:
+        kvm_cmd.extend(["-device", "qemu-xhci,id=usb" +
+                        _Q35StaticAddr(_Q35_FN_USB_XHCI)])
+      if pointer:
+        kvm_cmd.extend(["-device", f"usb-{pointer},bus=usb.0"])
+    else:
+      kvm_cmd.extend(["-usb"])
+      if pointer:
+        kvm_cmd.extend(["-usbdevice", pointer])
 
     if vnc_bind_address:
       if netutils.IsValidInterface(vnc_bind_address):
@@ -1535,7 +1682,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # Enable the spice agent communication channel between the host and the
         # agent.
-        kvm_cmd.extend(["-device", "virtio-serial-pci,id=spice"])
+        spice_vserial = "virtio-serial-pci,id=spice"
+        if resolved_chipset == _CHIPSET_Q35:
+          spice_vserial += _Q35StaticAddr(_Q35_FN_SPICE_VSERIAL)
+        kvm_cmd.extend(["-device", spice_vserial])
         kvm_cmd.extend([
           "-device",
           "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0",
@@ -1555,20 +1705,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # As requested by music lovers
     if hvp[constants.HV_SOUNDHW]:
-      soundhw = hvp[constants.HV_SOUNDHW]
-      if self._SOUND_RE.search(kvmhelp):
-        kvm_cmd.extend(["-soundhw", soundhw])
-      else:
-        # Qemu versions >= 7.1 do not support -soundhw anymore
-        # also, we need to pick a host backend/driver. we'll use
-        # spice if that is configured, otherwise there will be
-        # no sound output
-        if spice_bind:
-          driver = "spice"
-        else:
-          driver = "none"
-        kvm_cmd.extend(["-audio", "driver={},model={},id=soundhw"
-                       .format(driver, soundhw)])
+      self._SoundhwOption(kvm_cmd, hvp[constants.HV_SOUNDHW],
+                          spice_bind=spice_bind,
+                          chipset=resolved_chipset,
+                          kvmhelp=kvmhelp)
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-rtc", "base=localtime"])
@@ -1584,9 +1724,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     elif spice_bind:
       kvm_cmd.extend(["-vga", "qxl"])
 
-    # Various types of usb devices, comma separated
-    if hvp[constants.HV_USB_DEVICES]:
-      for dev in hvp[constants.HV_USB_DEVICES].split(","):
+    # Various types of usb devices, comma separated. On q35 these attach
+    # to the qemu-xhci controller emitted above; on i440fx, to the
+    # implicit UHCI created by -usb.
+    if usb_devices:
+      for dev in usb_devices.split(","):
         kvm_cmd.extend(["-usbdevice", dev])
 
     # Set system UUID to instance UUID
@@ -1599,9 +1741,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       logging.info("KVM: Guest Agent available at %s", qga_path)
       # The 'qga0' identified can change, but the 'org.qemu.guest_agent.0'
       # string is the default expected by the Guest Agent.
+      qga_vserial = "virtio-serial,id=qga0"
+      if resolved_chipset == _CHIPSET_Q35:
+        qga_vserial += _Q35StaticAddr(_Q35_FN_QGA_VSERIAL)
       kvm_cmd.extend([
         "-chardev", "socket,path=%s,server,nowait,id=qga0" % qga_path,
-        "-device", "virtio-serial,id=qga0",
+        "-device", qga_vserial,
         "-device", "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0",
         ])
 
@@ -2156,82 +2301,43 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if version < (1, 7, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
-  def _get_bus_manager(self, hvp=None, runtime: KVMRuntime=None) -> (
-          BusAllocatorManager):
-    """
-    Helper function to get the bus manager.
+  def _get_bus_manager(self, hvp=None, runtime: KVMRuntime=None,
+                       chipset: str = _CHIPSET_I440FX) -> BusAllocatorManager:
+    """Return a bus manager appropriate to the chipset.
+
+    @param chipset: resolved chipset string ("i440fx" or "q35"). On
+        i440fx, NICs and paravirtual disks share L{PCIAllocator}'s flat
+        C{pci.0} bus. On q35, NICs use L{PCIeNicAllocator}'s 8-slot
+        pool (acpi-indexed for stable C{eno<N>} names) and paravirtual
+        disks use L{PCIeDiskAllocator}'s 16-slot pool. SCSI disks always
+        use L{SCSIAllocator}.
     """
 
     scsi_allocator = SCSIAllocator(max_slots=self._DEFAULT_SCSI_SLOTS,
                                    reserved_slots=0)
 
-    reserved_pci_slots = self._DEFAULT_PCI_RESERVED_SLOTS
-    if hvp and constants.HV_KVM_PCI_RESERVATIONS in hvp:
-      reserved_pci_slots = hvp[constants.HV_KVM_PCI_RESERVATIONS]
+    if chipset == _CHIPSET_Q35:
+      pcie_nic_allocator = PCIeNicAllocator()
+      pcie_disk_allocator = PCIeDiskAllocator()
+      pci_allocators = [pcie_nic_allocator, pcie_disk_allocator]
+    else:
+      reserved_pci_slots = self._DEFAULT_PCI_RESERVED_SLOTS
+      if hvp and constants.HV_KVM_PCI_RESERVATIONS in hvp:
+        reserved_pci_slots = hvp[constants.HV_KVM_PCI_RESERVATIONS]
 
-    pci_allocator = PCIAllocator(max_slots=constants.QEMU_PCI_SLOTS,
-                                 reserved_slots=reserved_pci_slots)
+      pci_allocators = [PCIAllocator(max_slots=constants.QEMU_PCI_SLOTS,
+                                     reserved_slots=reserved_pci_slots)]
 
     # during hot-add
     if runtime:
       nics = runtime.kvm_nics
       disks = [d for d, _, _ in runtime.kvm_disks]
       dev_infos = [info.hvinfo for info in (disks + nics)]
-      pci_allocator.initialize_from_device_info(dev_infos)
+      for allocator in pci_allocators:
+        allocator.initialize_from_device_info(dev_infos)
       scsi_allocator.initialize_from_device_info(dev_infos)
 
-    return BusAllocatorManager([pci_allocator, scsi_allocator])
-
-  def _GetBusSlots(self, hvp=None, runtime: KVMRuntime=None):
-    """Helper function to get the slots of PCI and SCSI QEMU buses.
-
-    This will return the status of the first PCI and SCSI buses. By default
-    QEMU boots with one PCI bus (pci.0) and occupies the first 3 PCI slots. If
-    a SCSI disk is found then a SCSI controller is added on the PCI bus and a
-    SCSI bus (scsi.0) is created.
-
-    During hotplug we could query QEMU via info qtree HMP command but parsing
-    the result is too complicated. Instead we use the info stored in runtime
-    files. We parse NIC and disk entries and based on their hvinfo we reserve
-    the corresponding slots.
-
-    The runtime argument is a tuple as returned by _LoadKVMRuntime(). Obtain
-    disks and NICs from it. In case a runtime file is not available (see
-    _GenerateKVMRuntime()) we return the bus slots that QEMU boots with by
-    default.
-
-    """
-    # This is by default and returned during _GenerateKVMRuntime()
-    bus_slots = {
-      _PCI_BUS: bitarray(self._DEFAULT_PCI_RESERVATIONS),
-      _SCSI_BUS: bitarray(self._DEFAULT_SCSI_RESERVATIONS),
-      }
-
-    # Adjust the empty slots depending of the corresponding hvparam
-    if hvp and constants.HV_KVM_PCI_RESERVATIONS in hvp:
-      res = hvp[constants.HV_KVM_PCI_RESERVATIONS]
-      pci = bitarray(constants.QEMU_PCI_SLOTS)
-      pci.setall(False) # pylint: disable=E1101
-      pci[0:res:1] = True
-      bus_slots[_PCI_BUS] = pci
-
-    # This is during hot-add
-    if runtime:
-      nics = runtime.kvm_nics
-      disks = [d for d, _, _ in runtime.kvm_disks]
-      for d in disks + nics:
-        if not d.hvinfo or "bus" not in d.hvinfo:
-          continue
-        bus = d.hvinfo["bus"]
-        slots = bus_slots[bus]
-        if bus == _PCI_BUS:
-          slot = d.hvinfo["addr"]
-          slots[int(slot, 16)] = True
-        elif bus == _SCSI_BUS:
-          slot = d.hvinfo["scsi-id"]
-          slots[slot] = True
-
-    return bus_slots
+    return BusAllocatorManager(pci_allocators + [scsi_allocator])
 
   @_with_qmp
   def _VerifyHotplugCommand(self, _instance, kvm_devid, should_exist):
@@ -2260,6 +2366,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       msg = "Device %s should have been added but is missing" % kvm_devid
       raise errors.HypervisorError(msg)
 
+    if should_exist:
+      # QEMU has accepted the device, but the guest still needs to
+      # claim it (assign BARs / wire IRQ) before any follow-up
+      # operation - in particular hot-unplug - is safe. On q35 the
+      # guest's pciehp driver mediates this asynchronously and the
+      # wait can take seconds; on i440fx BARs are assigned at
+      # device_add time so the wait normally returns on the first
+      # poll. Run it on both paths so the BAR/IRQ predicate is the
+      # single source of truth for "device is usable". Symmetric
+      # with the DEVICE_DELETED wait on the unplug side.
+      self.qmp.WaitForDeviceClaim(kvm_devid)
+
     logging.info("Device %s has been correctly hot-plugged", kvm_devid)
 
   @_with_qmp
@@ -2273,8 +2391,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
     up_hvp = runtime[2]
+    chipset = _CHIPSET_Q35 \
+              if is_q35(up_hvp.get(constants.HV_KVM_MACHINE_VERSION, "")) \
+              else _CHIPSET_I440FX
     device_type = _DEVICE_TYPE[dev_type](up_hvp)
-    bus_manager = self._get_bus_manager(up_hvp, runtime)
+    bus_manager = self._get_bus_manager(up_hvp, runtime, chipset=chipset)
+
     allocation = bus_manager.get_next_allocation(dev_type=dev_type,
                                                  hv_dev_type=device_type)
     # in case of hot-mod this is given
@@ -2347,7 +2469,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       self.qmp.HotDelNic(kvm_devid)
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
-    self._VerifyHotplugCommand(instance, kvm_devid, False)
+    # DEVICE_DELETED event received inside HotDelDisk/HotDelNic is authoritative
+    # proof the device is gone; query-pci polling is redundant and would
+    # time out on q35 where detach is guest-mediated and asynchronous.
+
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
@@ -2831,6 +2956,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_MLIST)
     validate_machine_version(hvparams, kvm_output)
 
+    # q35-specific capability/configuration check. Raises if q35 is
+    # requested but the QEMU build has no pc-q35-* machine type, and
+    # surfaces suboptimal-default warnings (lsi, IDE CD-ROM, floppy,
+    # cirrus VGA) - see the design doc for rationale.
+    for warning in validate_q35_capability(hvparams, kvm_output):
+      logging.warning("%s", warning)
+
   @classmethod
   def AssessParameters(cls, hvparams):
     """Check the given parameters for uncommon/suboptimal values
@@ -2912,10 +3044,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if machine_version == "pc":
       warnings.append("machine_version is set to the 'pc' type which "
                       "could cause problems during live migration")
-
-    if machine_version.startswith("q35"):
-      warnings.append("machine_version is set to the 'q35' type which "
-                      "is currently not properly supported.")
 
     if machine_version in ["none", "microvm", "isapc", "x-remote"]:
       warnings.append("machine_version is set to %s which is unsupported "

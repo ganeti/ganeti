@@ -350,6 +350,16 @@ class QmpConnection(QemuMonitorSocket):
 
   """
   _QMP_TIMEOUT = 5
+  # On q35 the guest's pciehp driver mediates detach; 30 s covers driver
+  # release and BAR deallocation on a loaded 1-vcpu guest.
+  _HOT_UNPLUG_EVENT_TIMEOUT = 30
+  # Mirrors _HOT_UNPLUG_EVENT_TIMEOUT for the hot-add side. After
+  # device_add succeeds on q35, the guest's pciehp must online the slot
+  # and assign BAR addresses before any follow-up operation (in
+  # particular hot-unplug) is safe. Successful claims are sub-second on
+  # a responsive guest; 5 s is generous.
+  _HOT_PLUG_CLAIM_TIMEOUT = 5
+  _HOT_PLUG_CLAIM_POLL_INTERVAL = 0.1
   _FIRST_MESSAGE_KEY = "QMP"
   _RETURN_KEY = "return"
   _ACTUAL_KEY = ACTUAL_KEY = "actual"
@@ -362,7 +372,8 @@ class QmpConnection(QemuMonitorSocket):
   # List of valid attributes for the device_add QMP command.
   # Extra attributes found in device's hvinfo will be ignored.
   _DEVICE_ATTRIBUTES = [
-    "driver", "id", "bus", "addr", "channel", "scsi-id", "lun"
+    "driver", "id", "bus", "addr", "channel", "scsi-id", "lun",
+    "acpi-index",
     ]
 
   def __init__(self, socket_path: str):
@@ -511,8 +522,8 @@ class QmpConnection(QemuMonitorSocket):
       arguments.update({
         "romfile": "",
       })
-    # Note that hvinfo that _GenerateDeviceHVInfo() creates
-    # should include *only* the driver, id, bus, and addr keys
+    # _filter_hvinfo drops keys not in _DEVICE_ATTRIBUTES; on q35 the
+    # NIC's hvinfo also carries acpi-index for stable eno<N> naming.
     arguments.update(self._filter_hvinfo(nic.hvinfo))
     if enable_mq:
       arguments.update({
@@ -525,8 +536,28 @@ class QmpConnection(QemuMonitorSocket):
   def HotDelNic(self, devid):
     """Hot-del a NIC
 
+    Issues device_del, then waits for DEVICE_DELETED before removing the
+    netdev backend.  On q35/PCIe the guest's pciehp driver must release
+    the device before QEMU can detach it; netdev_del must not run until
+    then or QEMU will error on a still-live frontend.
+
     """
     self.execute_qmp("device_del", {"id": devid})
+
+    event = self.wait_for_qmp_event(
+      ["DEVICE_DELETED", "DEVICE_UNPLUG_GUEST_ERROR"],
+      self._HOT_UNPLUG_EVENT_TIMEOUT)
+    if event is None:
+      raise errors.HypervisorError(
+        f"Hot-unplug of {devid} not acknowledged by guest within"
+        f" {self._HOT_UNPLUG_EVENT_TIMEOUT}s. On q35 the guest's PCIe"
+        " hotplug driver (pciehp) must release the device before QEMU"
+        " can remove it. Verify the guest's kernel has"
+        " CONFIG_HOTPLUG_PCI_PCIE and is responsive.")
+    elif event.event_type == "DEVICE_UNPLUG_GUEST_ERROR":
+      raise errors.HypervisorError(
+        f"DEVICE_UNPLUG_GUEST_ERROR event occurred for {devid}")
+
     self.execute_qmp("netdev_del", {"id": devid})
 
   @_ensure_connection
@@ -573,14 +604,19 @@ class QmpConnection(QemuMonitorSocket):
     """
     self.execute_qmp("device_del", {"id": devid})
 
-    # wait for the DEVICE_DELETED event with five seconds timeout
-    event = self.wait_for_qmp_event(["DEVICE_DELETED",
-                                     "DEVICE_UNPLUG_GUEST_ERROR"], 5)
+    event = self.wait_for_qmp_event(
+      ["DEVICE_DELETED", "DEVICE_UNPLUG_GUEST_ERROR"],
+      self._HOT_UNPLUG_EVENT_TIMEOUT)
     if event is None:
-      raise errors.HypervisorError("DEVICE_DELETED event has not arrived")
+      raise errors.HypervisorError(
+        f"Hot-unplug of {devid} not acknowledged by guest within"
+        f" {self._HOT_UNPLUG_EVENT_TIMEOUT}s. On q35 the guest's PCIe"
+        " hotplug driver (pciehp) must release the device before QEMU"
+        " can remove it. Verify the guest's kernel has"
+        " CONFIG_HOTPLUG_PCI_PCIE and is responsive.")
     elif event.event_type == "DEVICE_UNPLUG_GUEST_ERROR":
-      raise errors.HypervisorError("DEVICE_UNPLUG_GUEST_ERROR event has "
-                                   "occurred")
+      raise errors.HypervisorError(
+        f"DEVICE_UNPLUG_GUEST_ERROR event occurred for {devid}")
 
     self.execute_qmp("blockdev-del", {"node-name": devid})
 
@@ -609,12 +645,106 @@ class QmpConnection(QemuMonitorSocket):
   def _HasPCIDevice(self, devid):
     """Check if a specific device ID exists on the PCI bus.
 
+    Walks C{pci_bridge} subtrees too: on q35 leaf devices live behind
+    a pre-allocated C{pcie-root-port}, not on the top-level C{pcie.0}
+    bus, so a flat scan of the top-level C{devices} list misses them.
+    On i440fx the leaves sit directly on C{pci.0} with no
+    C{pci_bridge} field, so the recursion is a no-op there.
     """
-    for d in self._GetPCIDevices():
-      if d["qdev_id"] == devid:
-        return True
+    return self._GetPCIDeviceInfo(devid) is not None
 
+  def _GetPCIDeviceInfo(self, devid):
+    """Return the full C{query-pci} entry for a given qdev_id.
+
+    Same recursive walk as L{_HasPCIDevice} (handles q35 leaves behind a
+    C{pcie-root-port}), but returns the device dict so callers can
+    inspect runtime fields such as C{regions} and C{irq}. Returns
+    C{None} if the device is not present on a PCI bus (e.g. SCSI luns
+    behind an HBA).
+
+    """
+    def _walk(devices):
+      for device in devices:
+        if device.get("qdev_id") == devid:
+          return device
+        found = _walk((device.get("pci_bridge") or {}).get("devices", []))
+        if found is not None:
+          return found
+      return None
+
+    return _walk(self._GetPCIDevices())
+
+  @staticmethod
+  def _IsPCIDeviceClaimed(info):
+    """Check whether the guest has visibly claimed a PCI device.
+
+    The C{query-pci} fields that move once the guest's PCI subsystem
+    (pciehp on q35) has finished bringing the slot up:
+
+      - Any BAR C{regions[*].address} flips from C{-1} (the QEMU
+        placeholder for an unassigned BAR) to a real bus address once
+        the guest allocates PCI resources. This is the primary signal
+        because it requires guest-side action.
+      - C{irq} flips from C{0} to a non-zero line once INTx is wired.
+        This is a secondary signal: virtio-pci with MSI-X may
+        legitimately keep C{irq=0} even when fully online, so it must
+        not be used as the sole indicator.
+
+    Use (BAR populated) OR (irq != 0) so both INTx-only and MSI-X
+    device types are covered.
+
+    """
+    for region in info.get("regions", []):
+      if region.get("address", -1) != -1:
+        return True
+    if info.get("irq", 0):
+      return True
     return False
+
+  @_ensure_connection
+  def WaitForDeviceClaim(self, devid, timeout=None):
+    """Wait for the guest to claim a freshly hot-added PCI(e) device.
+
+    There is no QEMU signal which will tell us that a given PCI(e)
+    device has been picked up / claimed by the guest. So we need to
+    figure out a different way of detecting the guest has accepted
+    the device. Especially on Q35 chipsets it is important to feed
+    failure back to the user because subsequent HotRemove requests to
+    the same device will fail if the guest has never claimed the device
+    in the first place.
+
+    Runs on both chipsets. On i440fx leaves attach directly to C{pci.0}
+    and BARs are assigned synchronously at C{device_add} time, so the
+    predicate (BAR mapped OR C{irq != 0}) is normally satisfied on the
+    first poll and the call returns immediately. On q35 the guest's
+    pciehp driver has to online the slot first, so the wait may take
+    up to C{timeout} seconds before BARs/IRQ are observable. We
+    deliberately run it on both paths so the BAR/IRQ predicate is the
+    single source of truth for "device is usable" - keeping the
+    behavioural contract identical between chipsets.
+
+    @raise errors.HypervisorError: if the device is still unclaimed
+        after C{timeout} seconds.
+
+    """
+    if timeout is None:
+      timeout = self._HOT_PLUG_CLAIM_TIMEOUT
+
+    deadline = time.monotonic() + timeout
+    while True:
+      info = self._GetPCIDeviceInfo(devid)
+      if info is None:
+        return
+      if self._IsPCIDeviceClaimed(info):
+        return
+      if time.monotonic() >= deadline:
+        raise errors.HypervisorError(
+          f"Guest did not claim hot-added device {devid} within"
+          f" {timeout}s. On q35 the guest's PCIe hotplug driver"
+          " (pciehp) must bring the device online before it is usable."
+          " Verify the guest's kernel has CONFIG_HOTPLUG_PCI_PCIE"
+          " enabled and is responsive.")
+      time.sleep(self._HOT_PLUG_CLAIM_POLL_INTERVAL)
 
   def _GetBlockDevices(self):
     """Get the block devices of a running instance.

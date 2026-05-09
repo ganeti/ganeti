@@ -1616,6 +1616,77 @@ NIC types like ``e1000``. Please check the :manpage:`gnt-instance(8)` man page f
 the parameters ``disk_type`` and ``nic_type`` for all possible values. The setting
 always applies to *all* disks and NICs for a given instance.
 
+KVM machine type and guest network interface naming
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ganeti supports two QEMU machine types for KVM instances, selectable via
+``machine_version``:
+
+- ``pc-i440fx-*`` (the legacy PCI-based ``pc`` family).
+- ``pc-q35-*`` (the modern PCIe-based Q35 + ICH9 chipset).
+
+For new instances we recommend ``pc-q35-*``. It is the upstream-recommended
+chipset for new x86 guests and it enables predictable
+``eno<N>`` interface naming in systemd guests, which makes it much easier
+to write stable in-guest network configuration.
+
+Predictable interface naming
+............................
+
+On q35, Ganeti tags each NIC's PCIe slot with an ACPI ``acpi-index``
+attribute. systemd-udev uses that attribute via the ``net_id`` builtin to
+assign an ``eno<N>`` name. The mapping is:
+
+  NIC enumeration position (0-based) + 1 → ``eno<N>``
+
+So a freshly created q35 instance with three NICs gets ``eno1``, ``eno2``
+and ``eno3`` inside the guest, mirroring the order Ganeti lists them in.
+
+On ``pc-i440fx-*``, this method has no effect, so systemd falls back to its
+PCI-slot-based ``ens<slot>`` form. The exact name therefore depends on
+the PCI slot Ganeti allocated, and may shift across machine versions.
+
+Setting ``net.ifnames=0`` on the guest kernel command line disables
+predictable naming entirely; the guest then gets ``eth0``, ``eth1`` ...
+regardless of chipset. This is most often useful for legacy images.
+
+Custom QEMU options on q35 (``kvm_extra``)
+..........................................
+
+PCI devices that Ganeti adds itself (NICs, disks, balloon, USB controller,
+SCSI controller, virtio-serial channels) live at known addresses on q35's
+PCIe root complex so they don't collide with each other:
+cold-boot fixed devices share slot ``0x02`` as functions of one
+multifunction group, and Ganeti pre-allocates a pool of empty
+``pcie-root-port``\ s at slots ``0x03..0x1a`` to host NICs and disks
+(the per-instance hard cap is 24 leaf devices, one per pool slot).
+Ganeti has no visibility into devices added via the ``kvm_extra`` hvparam,
+so on q35 a user-supplied ``-device`` line that lacks an explicit ``bus=``
+and ``addr=`` may be auto-placed by QEMU onto a slot Ganeti has already
+reserved, and the instance will fail to start with a ``slot N function 0
+not available`` error.
+
+When passing ``-device`` lines via ``kvm_extra`` on a q35 instance, attach
+the device to a Ganeti-managed bus that doesn't share slots with
+``pcie.0``: ``bus=usb.0`` for USB devices, ``bus=scsi.0`` for SCSI
+devices, or ``bus=rp<N>`` for an unused root-port from Ganeti's pool
+(any slot the instance hasn't already filled with a NIC or disk).
+Hot-add via ``gnt-instance modify`` is preferred for NICs/disks since
+Ganeti tracks pool occupancy and won't hand out a slot that you've
+manually claimed.
+
+This caveat does not apply to ``pc-i440fx-*``: QEMU's auto-placement on
+the flat ``pci.0`` bus does not collide with Ganeti's allocations there.
+
+Sound cards (``soundhw``)
+.........................
+
+On q35, only ``soundhw=ac97`` and ``soundhw=hda`` are supported; both
+are pinned into Ganeti's static-device multifunction group on
+``pcie.0``. Any other value (``es1370``, ``sb16``, ``adlib``, ``gus``,
+``cs4231a``, ``pcspk``, ...) is rejected at validation time. Use a
+``pc-i440fx-*`` ``machine_version`` if you need one of those models.
+
 Configuring Storage
 -------------------
 
