@@ -113,13 +113,13 @@ iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 ifupdir = $(sysconfdir)/ganeti
-NET_MODES = bridged ovs routed
+NET_MODES = bridged openvswitch routed
 
 NET_SCRIPT_LIST = \
 	tools/net-bridged-down \
 	tools/net-bridged-up \
-	tools/net-ovs-down \
-	tools/net-ovs-up \
+	tools/net-openvswitch-down \
+	tools/net-openvswitch-up \
 	tools/net-routed-down \
 	tools/net-routed-up
 
@@ -133,7 +133,7 @@ SYMLINK_TARGET_DIRS = \
 	$(sysconfdir)/ganeti \
 	$(libdir)/ganeti/iallocators \
 	$(libdir)/ganeti/network/bridged \
-	$(libdir)/ganeti/network/ovs \
+	$(libdir)/ganeti/network/openvswitch \
 	$(libdir)/ganeti/network/routed \
 	$(libdir)/ganeti/tools \
 	$(prefix)/share/ganeti \
