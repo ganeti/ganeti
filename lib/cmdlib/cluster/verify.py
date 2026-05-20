@@ -773,7 +773,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if nresult[constants.NV_NODELIST]:
         for a_node, a_msg in nresult[constants.NV_NODELIST].items():
           self._ErrorIf(True, constants.CV_ENODESSH, ninfo.name,
-                        "ssh communication with node '%s': %s", a_node, a_msg)
+                        "ssh communication with node '%s': %s",
+                        a_node, a_msg.rstrip("\r\n"))
 
     if constants.NV_NODENETTEST not in nresult:
       self._ErrorMsg(constants.CV_ENODENET, ninfo.name,
