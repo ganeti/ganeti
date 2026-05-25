@@ -930,13 +930,25 @@ class RADOSBlockDevice(base.BlockDev):
     # First shutdown the device (remove mappings).
     self.Shutdown()
 
-    # Remove the actual Volume (Image) from the RADOS cluster.
-    cmd = self.__class__.MakeRbdCmd(self.params, ["rm", "-p", rbd_pool,
-                                                  rbd_name])
-    result = utils.RunCmd(cmd)
-    if result.failed:
-      base.ThrowError("Can't remove Volume from cluster with rbd rm: %s - %s",
-                      result.fail_reason, result.output)
+    delayed_suffix = self.params.get(constants.LDP_DELAYED_DELETE_SUFFIX, "")
+    if delayed_suffix:
+      # Rename instead of deleting so snapshots can expire first;
+      # a separate cleanup job should purge these images later.
+      cmd = self.__class__.MakeRbdCmd(self.params, ["mv", "-p", rbd_pool,
+                                                    rbd_name,
+                                                    rbd_name + delayed_suffix])
+      result = utils.RunCmd(cmd)
+      if result.failed:
+        base.ThrowError("Can't rename Volume with rbd mv: %s - %s",
+                        result.fail_reason, result.output)
+    else:
+      # Remove the actual Volume (Image) from the RADOS cluster.
+      cmd = self.__class__.MakeRbdCmd(self.params, ["rm", "-p", rbd_pool,
+                                                    rbd_name])
+      result = utils.RunCmd(cmd)
+      if result.failed:
+        base.ThrowError("Can't remove Volume from cluster with rbd rm:"
+                        " %s - %s", result.fail_reason, result.output)
 
   def Rename(self, new_id):
     """Rename this device.

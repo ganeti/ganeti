@@ -458,12 +458,17 @@ class TestLUClusterSetParams(CmdlibTestCase):
       self.ExecOpCodeExpectOpPrereqError(op, "verify diskparams")
 
   def testValidDiskparams(self):
-    diskparams = {constants.DT_RBD: {constants.RBD_POOL: "mock_pool",
-                                     constants.RBD_ACCESS: "kernelspace",
-                                     constants.RBD_USER_ID: "mock_user"}}
+    diskparams = {constants.DT_RBD: {
+      constants.RBD_POOL: "mock_pool",
+      constants.RBD_ACCESS: "kernelspace",
+      constants.RBD_USER_ID: "mock_user",
+    }}
     op = opcodes.OpClusterSetParams(diskparams=diskparams)
     self.ExecOpCode(op)
-    self.assertEqual(diskparams[constants.DT_RBD],
+    expected = diskparams[constants.DT_RBD].copy()
+    expected.setdefault(
+        constants.RBD_DELAYED_DELETE_SUFFIX, "")
+    self.assertEqual(expected,
                      self.cluster.diskparams[constants.DT_RBD])
 
   def testMinimalDiskparams(self):
