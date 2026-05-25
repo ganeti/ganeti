@@ -352,6 +352,9 @@ class CfgUpgrade(object):
     if "ssh_key_bits" not in cluster:
       cluster["ssh_key_bits"] = 1024
 
+    if "min_vg_size" not in cluster:
+      cluster["min_vg_size"] = constants.MIN_VG_SIZE
+
     if "hvparams" in cluster:
       variants = [constants.HT_XEN_PVM, constants.HT_XEN_HVM]
       for variant in variants:
@@ -792,12 +795,20 @@ class CfgUpgrade(object):
       raise Error("Can't find the cluster entry in the configuration")
     _removeRbdUserId(nodegroups)
 
+  @OrFail("Removing the min_vg_size parameter")
+  def DowngradeMinVgSize(self):
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+    cluster.pop("min_vg_size", None)
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
     self.DowngradeRbdUserId()
+    self.DowngradeMinVgSize()
     return not self.errors
 
   def _ComposePaths(self):

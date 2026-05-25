@@ -505,6 +505,7 @@ class LUClusterQuery(NoHooksLU):
       "default_iallocator": cluster.default_iallocator,
       "default_iallocator_params": cluster.default_iallocator_params,
       "reserved_lvs": cluster.reserved_lvs,
+      "min_vg_size": cluster.min_vg_size,
       "primary_ip_version": primary_ip_version,
       "prealloc_wipe_disks": cluster.prealloc_wipe_disks,
       "hidden_os": cluster.hidden_os,
@@ -1017,9 +1018,10 @@ class LUClusterSetParams(LogicalUnit):
                         " (ignoring node): %s",
                         self.cfg.GetNodeName(node_uuid), msg)
         continue
+      min_vg_size = self.cfg.GetClusterInfo().min_vg_size
       vgstatus = utils.CheckVolumeGroupSize(vglist[node_uuid].payload,
                                             self.op.vg_name,
-                                            constants.MIN_VG_SIZE)
+                                            min_vg_size)
       if vgstatus:
         raise errors.OpPrereqError("Error on node '%s': %s" %
                                    (self.cfg.GetNodeName(node_uuid), vgstatus),
@@ -1751,6 +1753,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.reserved_lvs is not None:
       self.cluster.reserved_lvs = self.op.reserved_lvs
+
+    if self.op.min_vg_size is not None:
+      self.cluster.min_vg_size = self.op.min_vg_size
 
     if self.op.use_external_mip_script is not None:
       self.cluster.use_external_mip_script = self.op.use_external_mip_script

@@ -250,6 +250,7 @@ $(genOpCode "OpCode"
      , pMasterNetdev
      , pMasterNetmask
      , pReservedLvs
+     , pMinVgSize
      , pHiddenOs
      , pBlacklistedOs
      , pUseExternalMipScript
