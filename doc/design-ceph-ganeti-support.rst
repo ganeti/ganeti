@@ -65,10 +65,9 @@ This approach ensures that no disk template specific changes are
 required in hv_kvm.py allowing easy integration of other distributed
 storage systems (like Gluster).
 
-Note that the RBD volume is mapped as a local block device as before.
-The local mapping won't be used during instance operation in the
-``userspace`` access mode, but can be used by administrators and OS
-scripts.
+Note that the RBD volume is not mapped as a local block device as before
+in the ``userspace`` access mode. Administrators and OS scripts should
+adopt using userspace URIs only.
 
 Updated commands
 ----------------

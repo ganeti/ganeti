@@ -884,6 +884,7 @@ class RADOSBlockDevice(base.BlockDev):
 
     self.driver, self.rbd_name = unique_id
     self.rbd_pool = params[constants.LDP_POOL]
+    self.rbd_access = params[constants.LDP_ACCESS]
 
     self.major = self.minor = None
     self.Attach()
@@ -952,6 +953,11 @@ class RADOSBlockDevice(base.BlockDev):
 
     """
     self.attached = False
+
+    # no block device mapping, if access is userspace
+    if self.rbd_access == "userspace":
+      self.attached = True
+      return True
 
     # Map the rbd volume to a block device under /dev
     self.dev_path = self._MapVolumeToBlockdev(self.unique_id)
