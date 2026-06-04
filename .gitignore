@@ -131,8 +131,8 @@
 /tools/net-common
 /tools/net-bridged-up
 /tools/net-bridged-down
-/tools/net-ovs-up
-/tools/net-ovs-down
+/tools/net-openvswitch-up
+/tools/net-openvswitch-down
 /tools/net-routed-up
 /tools/net-routed-down
 /tools/kvm-ifup-os
