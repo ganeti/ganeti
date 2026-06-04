@@ -83,7 +83,14 @@ output applies to KVM based instances only::
 The user id for ceph authentication is an optional setting. If it is not
 provided, then no special option is passed to ceph. If it is provided,
 then all ceph commands are run with the ``--id`` option and the
-configured username.
+configured username.::
+
+  $ gnt-cluster modify -D rbd:namespace=foobar
+
+The namespace for RBD is an optional setting. If it is not provided, the
+default/empty namespace is used. If it is provided, then all ceph
+commands are run with the ``--namespace`` option and the configured
+namespace.
 
 Ceph configuration on Ganeti nodes
 ==================================
