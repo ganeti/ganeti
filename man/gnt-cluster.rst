@@ -485,6 +485,18 @@ pool
     When a new RADOS cluster is deployed, the default pool to put rbd
     volumes (Images in RADOS terminology) is 'rbd'.
 
+namespace
+    The RBD namespace this cluster should use. By default no namespace
+    is used.
+
+    Useful for separating RBD consumers and their permissions in
+    combination with 'user-id' below. For example multiple Ganeti
+    clusters sharing a single Ceph cluster.
+
+    Be aware that setting or changing the namespace renders disks from
+    existing instances inaccessible, e.g., by rebooting the instances.
+    The effect is like changing the RBD pool.
+
 access
     If 'userspace', instances will access their disks directly without
     going through a block device, avoiding expensive context switches
@@ -501,14 +513,6 @@ access
 user-id
     The user id is used by ceph to determine the keyring to use for
     authentication. By default the admin keyring is used.
-
-namespace
-    The rbd namespace this cluster should use. By default no namespace
-    is used.
-
-    Useful for separating RBD consumers and their permissions in
-    combination with user-id above. For example multiple Ganeti clusters
-    sharing a single Ceph cluster).
 
 
 .. _deadlocks: http://tracker.ceph.com/issues/3076
