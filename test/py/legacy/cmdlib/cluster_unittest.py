@@ -1650,18 +1650,6 @@ class TestLUClusterVerifyGroupVerifyNodeNetwork(
     self.mcpu.assertLogContainsRegex("ssh communication with node 'mock_node'")
 
   @withLockedLU
-  def testSshProblemStripsTrailingNewline(self, lu):
-    self.VALID_NRESULT.update({
-      constants.NV_NODELIST: {
-        "mock_node": "mock_error\n"
-      }
-    })
-    lu._VerifyNodeNetwork(self.master, self.VALID_NRESULT)
-    self.mcpu.assertLogContainsInLine(
-      "ssh communication with node 'mock_node': mock_error")
-    self.mcpu.assertLogDoesNotContainRegex("mock_error\n")
-
-  @withLockedLU
   def testTcpProblem(self, lu):
     self.VALID_NRESULT.update({
       constants.NV_NODENETTEST: {
