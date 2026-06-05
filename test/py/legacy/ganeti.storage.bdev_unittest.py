@@ -97,7 +97,8 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     self.pool_name = "rbd"
     self.test_unique_id = ("rbd", self.volume_name)
     self.test_params = {
-      constants.LDP_POOL: "fake_pool"
+      constants.LDP_POOL: "fake_pool",
+      constants.LDP_ACCESS: "fake_access"
       }
 
   def testParseRbdShowmappedJson(self):
@@ -210,6 +211,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     map_mock.return_value = "/fake/path"
     dev = bdev.RADOSBlockDevice.__new__(bdev.RADOSBlockDevice)
     dev.unique_id = self.test_unique_id
+    dev.rbd_access = "fake_access"
 
     self.assertEqual(dev.Attach(), True)
 
@@ -221,6 +223,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     map_mock.return_value = "/fake/path"
     dev = bdev.RADOSBlockDevice.__new__(bdev.RADOSBlockDevice)
     dev.unique_id = self.test_unique_id
+    dev.rbd_access = "fake_access"
 
     self.assertEqual(dev.Attach(), False)
 
@@ -232,6 +235,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     map_mock.return_value = "/fake/path"
     dev = bdev.RADOSBlockDevice.__new__(bdev.RADOSBlockDevice)
     dev.unique_id = self.test_unique_id
+    dev.rbd_access = "fake_access"
 
     self.assertEqual(dev.Attach(), False)
 
