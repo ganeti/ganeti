@@ -1319,6 +1319,23 @@ class RADOSBlockDevice(base.BlockDev):
       base.ThrowError("Hypervisor %s doesn't support RBD userspace access" %
                       hypervisor)
 
+  def SetInfo(self, text):
+    """Update metadata with info text.
+
+    """
+    # Replace invalid characters
+    text = re.sub("^[^A-Za-z0-9_+.]", "_", text)
+    text = re.sub("[^-A-Za-z0-9_+.]", "_", text)
+
+    key, _, val = text.partition("+")
+
+    rbd_pool = self.params[constants.LDP_POOL]
+    rbd_name = self.unique_id[1]
+    cmd = self.__class__.MakeRbdCmd(self.params, ["image-meta", "set",
+                                                  "-p", rbd_pool, rbd_name,
+                                                  key, val])
+    _CheckResult(utils.RunCmd(cmd))
+
 
 def _VerifyDiskType(dev_type):
   if dev_type not in DEV_MAP:
