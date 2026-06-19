@@ -1030,14 +1030,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       qmp.close()
     except errors.HypervisorError:
       pass
-    # during instance shutdown it may happen, that qemu has already exited
-    # in the middle of talking to it via QMP
-    except BrokenPipeError:
-      logging.debug("Error: Broken pipe. The QMP socket %s has shut down." %
-                    socket_path)
-    except ConnectionError:
-      logging.debug("Error: Unable to connect to the QMP socket %s." %
-                    socket_path)
+    # QMP may be transiently unavailable while the instance is starting up or
+    # shutting down (socket missing, refused, or broken pipe). Harmless here:
+    # fall back to the pid-derived values above.
+    except OSError as err:
+      logging.debug(f"Ignoring transient QMP error on socket {socket_path}:"
+                    f" {err}")
 
     return (instance_name, pid, memory, vcpus, istat, times)
 
@@ -1056,6 +1054,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         info = self.GetInstanceInfo(name)
       except errors.HypervisorError:
         # Ignore exceptions due to instances being shut down
+        continue
+      except OSError as err:
+        # One instance in flux must not abort info gathering for the rest.
+        logging.debug(f"Skipping instance {name} while collecting info: {err}")
         continue
       if info:
         data.append(info)
