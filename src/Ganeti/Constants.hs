@@ -1623,6 +1623,9 @@ hvBootloaderPath = "bootloader_path"
 hvBootOrder :: String
 hvBootOrder = "boot_order"
 
+hvPvhMode :: String
+hvPvhMode = "pvh_mode"
+
 hvCdromImagePath :: String
 hvCdromImagePath = "cdrom_image_path"
 
@@ -1871,6 +1874,7 @@ hvsParameterTitles =
   Map.fromList
   [(hvAcpi, "ACPI"),
    (hvBootOrder, "Boot_order"),
+   (hvPvhMode, "Pvh_mode"),
    (hvCdromImagePath, "CDROM_image_path"),
    (hvCpuType, "cpu_type"),
    (hvDiskType, "Disk_type"),
@@ -1971,6 +1975,7 @@ hvsParameterTypes = Map.fromList
   , (hvVncX509Verify,                   VTypeBool)
   , (hvVnetHdr,                         VTypeBool)
   , (hvXenCpuid,                        VTypeString)
+  , (hvPvhMode, 						VTypeString)
   ]
 
 -- * Migration statuses
@@ -4096,6 +4101,7 @@ hvcDefaults =
              , (hvVifScript,      PyValueEx "")
              , (hvXenCpuid,       PyValueEx "")
              , (hvSoundhw,        PyValueEx "")
+			 , (hvPvhMode,  	  PyValueEx "")
              ])
   , (XenHvm, Map.fromList
              [ (hvBootOrder,      PyValueEx "cd")
