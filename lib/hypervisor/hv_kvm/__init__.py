@@ -1861,7 +1861,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return hv_base.GenerateTapName()
 
-  def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp):
+  def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp, vcpus):
     """Get network device options to properly enable supported features.
 
     Return a dict of supported and enabled tap features with nic_model along
@@ -1905,7 +1905,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         else:
           raise errors.HypervisorError("vhost_net is configured"
                                        " but it is not available")
-        virtio_net_queues = up_hvp.get(constants.HV_VIRTIO_NET_QUEUES, 1)
+        _queues = up_hvp[constants.HV_VIRTIO_NET_QUEUES]
+        _queues_auto = min(vcpus, constants.MAX_VIRTIO_NET_QUEUES_AUTO)
+        virtio_net_queues = _queues_auto if _queues == "auto" else _queues
         if virtio_net_queues > 1:
           # Check for multiqueue virtio-net support.
           if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
@@ -2010,8 +2012,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
+      vcpus = instance.beparams[constants.BE_VCPUS]
       features, tap_extra, nic_extra = \
-          self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+          self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp, vcpus)
       nic_model = features["driver"]
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
       for nic_seq, nic in enumerate(kvm_nics):
@@ -2426,7 +2429,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       is_chrooted = instance.hvparams[constants.HV_KVM_USE_CHROOT]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
-      features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      vcpus = len(self.qmp.GetCpuInformation())
+      features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp,
+                                                      vcpus)
       (tap, tapfds, vhostfds) = OpenTap(features=features)
       try:
         self._ConfigureNIC(instance, seq, device, tap)

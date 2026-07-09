@@ -1578,6 +1578,9 @@ vtypeSize = VTypeSize
 vtypeString :: VType
 vtypeString = VTypeString
 
+vtypeIntOrAuto :: VType
+vtypeIntOrAuto = VTypeIntOrAuto
+
 enforceableTypes :: FrozenSet VType
 enforceableTypes = ConstantUtils.mkSet [minBound..]
 
@@ -1836,6 +1839,9 @@ hvVirtioNetQueues = "virtio_net_queues"
 maxVirtioNetQueues :: Int
 maxVirtioNetQueues = 32
 
+maxVirtioNetQueuesAuto :: Int
+maxVirtioNetQueuesAuto = 8
+
 hvVifScript :: String
 hvVifScript = "vif_script"
 
@@ -1960,7 +1966,7 @@ hvsParameterTypes = Map.fromList
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
-  , (hvVirtioNetQueues,                 VTypeInt)
+  , (hvVirtioNetQueues,                 VTypeIntOrAuto)
   , (hvVifScript,                       VTypeString)
   , (hvVifType,                         VTypeString)
   , (hvViridian,                        VTypeBool)

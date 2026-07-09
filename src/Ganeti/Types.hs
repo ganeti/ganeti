@@ -826,6 +826,7 @@ $(THH.declareLADT ''String "VType"
   , ("VTypeSize",        "size")
   , ("VTypeInt",         "int")
   , ("VTypeFloat",       "float")
+  , ("VTypeIntOrAuto",   "int-or-auto")
   ])
 $(THH.makeJSONInstance ''VType)
 

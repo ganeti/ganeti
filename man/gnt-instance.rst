@@ -1019,8 +1019,14 @@ virtio\_net\_queues
     If set to ``1`` queue, it effectively disables multiqueue support
     on the tap and virio-net devices.
 
-    For instances it is necessary to manually set number of queues (on
-    Linux using: ``ethtool -L ethX combined $queues``).
+    For instances check if it is necessary to manually set number of
+    queues (on Linux using: ``ethtool -L ethX combined $queues``). Modern
+    OSs automatically use multiple queues.
+
+    Make sure to set the number of queues not greater than the
+    instance's ``vcpus``. For convenience the special value ``auto`` will
+    follow the number of ``vcpus`` up to the limited of ``8`` queues per
+    instance NIC.
 
     It is set to ``1`` by default.
 
