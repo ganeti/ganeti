@@ -269,7 +269,7 @@ setup_network_interfaces() {
     ip addr add "$ipaddr" dev "$netdev"
   done
 
-  route add -net $netprefix.0 netmask 255.255.255.0 dev $netdev || :
+  ip route add "$netprefix.0/24" dev "$netdev" || :
 }
 
 setup_scripts() {
