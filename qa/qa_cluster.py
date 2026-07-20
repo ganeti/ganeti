@@ -162,6 +162,7 @@ def PrepareHvParameterSets():
       "disk_type": ["ide", "paravirtual"],
       "soundhw": ["ac97", "hda"],
       "machine_version": ["", "pc", "q35"],
+      "virtio_disk_iothreads": [0, 1, 2],
     }
 
   assembled_tests = {}
