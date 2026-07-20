@@ -373,7 +373,7 @@ class QmpConnection(QemuMonitorSocket):
   # Extra attributes found in device's hvinfo will be ignored.
   _DEVICE_ATTRIBUTES = [
     "driver", "id", "bus", "addr", "channel", "scsi-id", "lun",
-    "acpi-index",
+    "acpi-index", "iothread", "iothread-vq-mapping", "num-queues"
     ]
 
   def __init__(self, socket_path: str):

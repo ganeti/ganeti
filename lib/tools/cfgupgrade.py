@@ -794,12 +794,32 @@ class CfgUpgrade(object):
     for setting in ["user-id", "namespace"]:
       _removeRbdSetting(nodegroups, setting)
 
+  @OrFail("Removing the virtio_disk_iothreads parameter")
+  def DowngradeIothreadSettings(self):
+    """Remove the virtio_disk_iothreads parameter
+
+    """
+    cluster = self.config_data.get("cluster", None)
+    hvparams = cluster.get("hvparams", None)
+    kvm_params = hvparams.get("kvm", None)
+
+    if kvm_params is not None:
+      if "virtio_disk_iothreads" in kvm_params:
+        kvm_params.pop("virtio_disk_iothreads")
+
+      instances = self.config_data.get("instances", None)
+      for inst in instances:
+        inst_hvparams = instances[inst].get("hvparams", None)
+        if hvparams is not None and "virtio_disk_iothreads" in inst_hvparams:
+          inst_hvparams.pop("virtio_disk_iothreads")
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
     self.DowngradeRbdSettings()
+    self.DowngradeIothreadSettings()
     return not self.errors
 
   def _ComposePaths(self):

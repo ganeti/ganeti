@@ -371,7 +371,7 @@ disk\_type
     - ioemu [default] (HVM & KVM)
     - paravirtual (HVM & KVM)
     - ide (KVM)
-    - scsi (KVM)
+    - scsi-hd (KVM)
     - sd (KVM)
     - mtd (KVM)
     - pflash (KVM)
@@ -1029,6 +1029,31 @@ virtio\_net\_queues
     instance NIC.
 
     It is set to ``1`` by default.
+
+virtio\_disk\_iothreads
+    Valid for the KVM hypervisor.
+
+    Set a number of IOThreads shared among *all* instance's disks. Qemu
+    by default emulates devices in vCPU threads or the main event loop. This
+    can become a scalability bottleneck. IOThreads allow device emulation
+    and I/O to run on other host CPUs. This only works with paravirtual
+    disks (virtio-blk, virtio-scsi) and *not* with ``aio=threads``.
+
+    Ganeti silently adjusts the number of IOThreads if requirements are
+    not satisfied. It disables IOThreads for unsupported ``disk_type`` /
+    ``scsi_controller_type`` and unsupported ``aio``. It also checks Qemu
+    version for supporting mapping between IOThreads and virtqueues. If
+    virtqueue-mapping is supported, values greater than ``1`` are possible
+    (Qemu-9.0 for virtio-blk and 10.0 for virtio-scsi). In this case
+    IOThreads are assigned round robin to every instance's disk-queues.
+    Ganeti sets the number of disk queues equal to the number of vCPUs, hence
+    IOThreads can not be larger than number of disk queues/vCPUs.
+
+    The default is set to ``1`` IOThread and should be enough for most
+    workloads. An appropriate number of vCPUs is necessary to exploit
+    multiple IOThreads. Adding IOThreads beyond saturation does not increase
+    performance and may harm it. The maximum number of IOThreads is limited
+    to ``8``.
 
 startup\_timeout
     Valid for the LXC hypervisor.

@@ -1842,6 +1842,12 @@ maxVirtioNetQueues = 32
 maxVirtioNetQueuesAuto :: Int
 maxVirtioNetQueuesAuto = 8
 
+hvVirtioDiskIothreads :: String
+hvVirtioDiskIothreads = "virtio_disk_iothreads"
+
+maxVirtioDiskIothreads :: Int
+maxVirtioDiskIothreads = 8
+
 hvVifScript :: String
 hvVifScript = "vif_script"
 
@@ -1967,6 +1973,7 @@ hvsParameterTypes = Map.fromList
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
   , (hvVirtioNetQueues,                 VTypeIntOrAuto)
+  , (hvVirtioDiskIothreads,             VTypeInt)
   , (hvVifScript,                       VTypeString)
   , (hvVifType,                         VTypeString)
   , (hvViridian,                        VTypeBool)
@@ -4178,6 +4185,7 @@ hvcDefaults =
           , (hvKvmFlag,                         PyValueEx "")
           , (hvVhostNet,                        PyValueEx True)
           , (hvVirtioNetQueues,                 PyValueEx (1 :: Int))
+          , (hvVirtioDiskIothreads,             PyValueEx (1 :: Int))
           , (hvKvmUseChroot,                    PyValueEx False)
           , (hvKvmUserShutdown,                 PyValueEx False)
           , (hvMemPath,                         PyValueEx "")
