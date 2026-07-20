@@ -123,6 +123,10 @@ _VIRTIO_NET_QUEUES_CHECK = (lambda x: x == "auto" or (isinstance(x, int) and
                             0 < x <= constants.MAX_VIRTIO_NET_QUEUES),
                             "invalid number of queues", None, None)
 
+_VIRTIO_DISK_IOTHREADS_CHECK = (lambda x:
+                                0 < x <= constants.MAX_VIRTIO_DISK_IOTHREADS,
+                                "invalid number of iothreads", None, None)
+
 # Check that an integer is non negative
 _NONNEGATIVE_INT_CHECK = (lambda x: x >= 0, "cannot be negative", None, None)
 
@@ -137,6 +141,8 @@ REQ_NET_PORT_CHECK = (True, ) + _NET_PORT_CHECK
 OPT_NET_PORT_CHECK = (False, ) + _NET_PORT_CHECK
 REQ_VIRTIO_NET_QUEUES_CHECK = (True, ) + _VIRTIO_NET_QUEUES_CHECK
 OPT_VIRTIO_NET_QUEUES_CHECK = (False, ) + _VIRTIO_NET_QUEUES_CHECK
+REQ_VIRTIO_DISK_IOTHREADS_CHECK = (True, ) + _VIRTIO_DISK_IOTHREADS_CHECK
+OPT_VIRTIO_DISK_IOTHREADS_CHECK = (False, ) + _VIRTIO_DISK_IOTHREADS_CHECK
 REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
 REQ_MULTI_CPU_MASK_CHECK = (True, ) + _MULTI_CPU_MASK_CHECK

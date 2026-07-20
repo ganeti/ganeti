@@ -236,4 +236,8 @@ def _upgrade_serialized_runtime(loaded_runtime: List) -> List:
     except ValueError:
       pass
 
+    # new HV parameters, that default value effects KVM cmd line
+    if constants.HV_VIRTIO_DISK_IOTHREADS not in hvparams:
+      hvparams[constants.HV_VIRTIO_DISK_IOTHREADS] = 0
+
   return [kvm_cmd, serialized_nics, hvparams, serialized_disks]

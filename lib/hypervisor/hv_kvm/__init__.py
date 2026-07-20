@@ -42,6 +42,7 @@ import logging
 import pwd
 import shlex
 import shutil
+import json
 import urllib.request, urllib.error, urllib.parse
 from bitarray import bitarray
 
@@ -474,6 +475,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
     constants.HV_VHOST_NET: hv_base.NO_CHECK,
     constants.HV_VIRTIO_NET_QUEUES: hv_base.OPT_VIRTIO_NET_QUEUES_CHECK,
+    constants.HV_VIRTIO_DISK_IOTHREADS: hv_base.OPT_VIRTIO_DISK_IOTHREADS_CHECK,
     constants.HV_KVM_USE_CHROOT: hv_base.NO_CHECK,
     constants.HV_KVM_USER_SHUTDOWN: hv_base.NO_CHECK,
     constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
@@ -501,6 +503,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO = "virtio"
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
+  _VIRTIO_SCSI_PCI = "virtio-scsi-pci"
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -513,6 +516,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _VHOST_RE = re.compile(r"^-netdev\stap.*,vhost=on\|off", re.M | re.S)
   _VIRTIO_NET_QUEUES_RE = re.compile(r"^-netdev\stap.*,fds=x:y:...:z", re.M)
+  _VIRTIO_BLK_IOTHREAD_VQ_MAPPING_RE = re.compile(
+        f"^{_VIRTIO_BLK_PCI} options:.*iothread-vq-mapping="
+        r"<IOThreadVirtQueueMappingList>",
+        re.M | re.S)
+  _VIRTIO_SCSI_IOTHREAD_VQ_MAPPING_RE = re.compile(
+        f"^{_VIRTIO_SCSI_PCI} options:.*iothread-vq-mapping="
+        r"<IOThreadVirtQueueMappingList>",
+        re.M | re.S)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
@@ -564,6 +575,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _KVMOPT_HELP = "help"
   _KVMOPT_MLIST = "mlist"
   _KVMOPT_DEVICELIST = "devicelist"
+  _KVMOPT_DEVICEHELP_VIRTIO_BLK = "devicehelpvirtioblk"
+  _KVMOPT_DEVICEHELP_VIRTIO_SCSI = "devicehelpvirtioscsi"
 
   # Command to execute to get the output from kvm, and whether to
   # accept the output even on failure.
@@ -571,6 +584,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     _KVMOPT_HELP: (["--help"], False),
     _KVMOPT_MLIST: (["-machine", "?"], False),
     _KVMOPT_DEVICELIST: (["-device", "?"], True),
+    _KVMOPT_DEVICEHELP_VIRTIO_BLK: (["-device", f"{_VIRTIO_BLK_PCI},?"], False),
+    _KVMOPT_DEVICEHELP_VIRTIO_SCSI: (["-device", f"{_VIRTIO_SCSI_PCI},?"],
+                                     False),
   }
 
   def __init__(self):
@@ -1092,7 +1108,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     }
 
   def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
-                                      kvmhelp, devlist):
+                                      kvmhelp, devlist, vcpus):
     """Generate KVM options regarding instance's block devices.
 
     @type up_hvp: dict
@@ -1143,30 +1159,48 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       blockdevice = self._GenerateKVMBlockDevice(drive_uri, cfdev, up_hvp,
                                                  kvm_devid)
 
-      dev_val = ""
+      # for iothread to queue mapping, only json command line options are
+      # supported:
+      # https://patchew.org/QEMU/20231220134755.814917-1-stefanha@redhat.com/
+      dev_dict = {}
 
       if disk_type == constants.HT_DISK_IDE:
-        dev_val += "ide-hd,drive={},write-cache={}".format(
-          kvm_devid, kvm_utils.TranslateBoolToOnOff(writeback)
-        )
+        dev_dict.update({
+          "driver": "ide-hd",
+          "drive": kvm_devid,
+          "write-cache": kvm_utils.TranslateBoolToOnOff(writeback)
+          })
       else:
         # hvinfo will exist for paravirtual devices either due to
         # _UpgradeSerializedRuntime() for old instances or due to
         # _GenerateKVMRuntime() for new instances.
 
         # Add driver, id, bus, and addr or channel, scsi-id, lun if any.
-        dev_val += _GenerateDeviceHVInfoStr(cfdev.hvinfo)
-        dev_val += ",drive={},write-cache={}".format(
-          kvm_devid, kvm_utils.TranslateBoolToOnOff(writeback)
-        )
+        dev_dict.update(cfdev.hvinfo)
+        dev_dict.update({
+              "drive": kvm_devid,
+              "write-cache": kvm_utils.TranslateBoolToOnOff(writeback)
+          })
+
+      # iothread
+      if disk_type == constants.HT_DISK_PARAVIRTUAL:
+        iothreads = self._CalcVirtioDiskIothreads(up_hvp, vcpus)
+        if iothreads > 0:
+          dev_dict["num-queues"] = vcpus
+          if iothreads == 1:
+            dev_dict["iothread"] = "iothread0"
+          else:
+            dev_dict["iothread-vq-mapping"] = [
+              {"iothread": f"iothread{t}"} for t in range(iothreads)
+            ]
 
       # TODO: handle FD_LOOP and FD_BLKTAP
       # add bootindex property to the first disk if disk boot is enabled
       if boot_disk:
-        dev_val += ",bootindex=1"
+        dev_dict["bootindex"] = 1
         boot_disk = False
 
-      dev_opts.extend(["-device", dev_val])
+      dev_opts.extend(["-device", json.dumps(dev_dict)])
 
       # QEMU 4.0 introduced dynamic auto-read-only for file-backed drives. This
       # is unhandled in Ganeti and breaks live migration with
@@ -1433,7 +1467,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       scsi_dev = f"{hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]},id=scsi"
       if resolved_chipset == _CHIPSET_Q35:
         scsi_dev += _Q35StaticAddr(_Q35_FN_SCSI_CTRL)
-      kvm_cmd.extend(["-device", scsi_dev])
+
+      # iothreads requires json
+      scsi_dev_parts = scsi_dev.split(",")
+      scsi_dev_dict = {}
+      scsi_dev_dict["driver"] = scsi_dev_parts[0]
+      for i in scsi_dev_parts[1:]:
+        k, v = i.split('=', 1)
+        scsi_dev_dict[k] = v
+      if scsi_dev_dict["driver"] == constants.HT_SCSI_CONTROLLER_VIRTIO:
+        vcpus = instance.beparams[constants.BE_VCPUS]
+        iothreads = self._CalcVirtioDiskIothreads(hvp, vcpus)
+        if iothreads > 0:
+          scsi_dev_dict["num_queues"] = vcpus
+          if iothreads == 1:
+            scsi_dev_dict["iothread"] = "iothread0"
+          else:
+            scsi_dev_dict["iothread-vq-mapping"] = [
+              {"iothread": f"iothread{t}"} for t in range(iothreads)
+            ]
+
+      kvm_cmd.extend(["-device", json.dumps(scsi_dev_dict)])
+
     kvm_cmd.extend(["-daemonize"])
     # logfile for qemu
     qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
@@ -1927,6 +1982,57 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return features, tap_extra_str, nic_extra_str
 
+  def _CalcVirtioDiskIothreads(self, up_hvp, vcpus):
+    # old running instances do not have the new iothreads parameter
+    if constants.HV_VIRTIO_DISK_IOTHREADS not in up_hvp:
+      return 0
+
+    virtio_disk_iothreads = up_hvp[constants.HV_VIRTIO_DISK_IOTHREADS]
+    if virtio_disk_iothreads == 0:
+      return 0
+
+    aio = up_hvp.get(constants.HV_KVM_DISK_AIO)
+    disk_type = up_hvp.get(constants.HV_DISK_TYPE)
+    kvmpath = up_hvp.get(constants.HV_KVM_PATH)
+    scsi_controller_type = up_hvp.get(constants.HV_KVM_SCSI_CONTROLLER_TYPE)
+
+    # iothreads are not designed to work with aio=threads
+    valid_aio_modes = [constants.HT_KVM_AIO_NATIVE,
+                       constants.HT_KVM_AIO_IO_URING]
+    if aio not in valid_aio_modes:
+      return 0
+
+    # iothreads only work with virtio
+    is_virtio_blk = (disk_type == constants.HT_DISK_PARAVIRTUAL)
+    is_virtio_scsi = (
+      disk_type == constants.HT_DISK_SCSI_HD
+      and scsi_controller_type == constants.HT_SCSI_CONTROLLER_VIRTIO
+    )
+    if not (is_virtio_blk or is_virtio_scsi):
+      return 0
+
+    if is_virtio_blk:
+      device_help = self._KVMOPT_DEVICEHELP_VIRTIO_BLK
+      regex = self._VIRTIO_BLK_IOTHREAD_VQ_MAPPING_RE
+    else:  # is_virtio_scsi
+      device_help = self._KVMOPT_DEVICEHELP_VIRTIO_SCSI
+      regex = self._VIRTIO_SCSI_IOTHREAD_VQ_MAPPING_RE
+
+    # device supports multiple iothreads
+    if virtio_disk_iothreads >= 2 and \
+       self._CheckDeviceFeature(kvmpath, device_help, regex):
+      return min(virtio_disk_iothreads, vcpus)
+    else:
+      # fallback to 1 iothread
+      return 1
+
+  def _CheckDeviceFeature(self, kvmpath, device_help, regex):
+    kvm_output = self._GetKVMOutput(kvmpath, device_help)
+    if regex.search(kvm_output):
+      return True
+
+    return False
+
   def _GenerateRunwith(self, username=None, chroot_dir=None, kvmhelp=None):
     args = []
     if self._RUNWITH_RE.search(kvmhelp):
@@ -1990,6 +2096,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
+    # iothread objects
+    vcpus = instance.beparams[constants.BE_VCPUS]
+    iothreads = self._CalcVirtioDiskIothreads(up_hvp, vcpus)
+    for t in range(iothreads):
+      kvm_cmd.extend(["-object", f"iothread,id=iothread{t}"])
+
     # the VNC keymap
     keymap = conf_hvp[constants.HV_KEYMAP]
     if keymap:
@@ -2012,7 +2124,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
-      vcpus = instance.beparams[constants.BE_VCPUS]
       features, tap_extra, nic_extra = \
           self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp, vcpus)
       nic_model = features["driver"]
@@ -2118,7 +2229,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
                                                      kvm_disks,
                                                      kvmhelp,
-                                                     devlist)
+                                                     devlist,
+                                                     vcpus)
     kvm_cmd.extend(bdev_opts)
     # CPU affinity requires kvm to start paused, so we set this flag if the
     # instance is not already paused and if we are not going to accept a
@@ -2422,6 +2534,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       blockdevice = self._GenerateKVMBlockDevice(target, disk_info, up_hvp,
                                                  kvm_devid)
+
+      if device_type == constants.HT_DISK_PARAVIRTUAL:
+        vcpus = len(self.qmp.GetCpuInformation())
+        iothreads = self._CalcVirtioDiskIothreads(up_hvp, vcpus)
+        if iothreads > 0:
+          device.hvinfo["num-queues"] = vcpus
+          if iothreads == 1:
+            device.hvinfo["iothread"] = "iothread0"
+          else:
+            device.hvinfo["iothread-vq-mapping"] = [
+              {"iothread": f"iothread{t}"} for t in range(iothreads)
+            ]
 
       self.qmp.HotAddDisk(device, access_mode, writeback, direct, blockdevice)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
