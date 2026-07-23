@@ -801,17 +801,16 @@ class CfgUpgrade(object):
     """
     cluster = self.config_data.get("cluster", None)
     hvparams = cluster.get("hvparams", None)
-    kvm_params = hvparams.get("kvm", None)
-
-    if kvm_params is not None:
-      if "virtio_disk_iothreads" in kvm_params:
+    if hvparams is not None:
+      kvm_params = hvparams.get("kvm", None)
+      if kvm_params is not None and "virtio_disk_iothreads" in kvm_params:
         kvm_params.pop("virtio_disk_iothreads")
 
-      instances = self.config_data.get("instances", None)
-      for inst in instances:
-        inst_hvparams = instances[inst].get("hvparams", None)
-        if hvparams is not None and "virtio_disk_iothreads" in inst_hvparams:
-          inst_hvparams.pop("virtio_disk_iothreads")
+    instances = self.config_data.get("instances", None)
+    for inst in instances:
+      inst_hvparams = instances[inst].get("hvparams", None)
+      if hvparams is not None and "virtio_disk_iothreads" in inst_hvparams:
+        inst_hvparams.pop("virtio_disk_iothreads")
 
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
