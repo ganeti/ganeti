@@ -5,6 +5,8 @@ import pytest
 from ganeti.hypervisor.hv_kvm.kvm_runtime import KVMRuntime
 from ganeti import objects
 from ganeti import serializer
+from ganeti.hypervisor.hv_kvm.kvm_runtime import _upgrade_serialized_runtime
+from ganeti import constants
 
 kvm_cmd = ['/usr/bin/kvm', 'dummy']
 
@@ -60,5 +62,24 @@ class TestKVMRuntime:
       assert (deserialized_runtime.kvm_disks[index][0].uuid ==
               kvm_runtime.kvm_disks[index][0].uuid)
 
-    # assert deserialized_runtime.kvm_nics == kvm_runtime.kvm_nics
-    # assert deserialized_runtime.kvm_disks == kvm_runtime.kvm_disks
+   # assert deserialized_runtime.kvm_nics == kvm_runtime.kvm_nics
+   # assert deserialized_runtime.kvm_disks == kvm_runtime.kvm_disks
+
+  def test_upgrade_serialized_runtime_adds_iothreads(self):
+    """checks, wheather runtime updates set IOThread parameter to 0."""
+    old_hvparams = {
+        'acpi': True,
+        'boot_order': 'disk'
+    }
+    mock_loaded_runtime = [
+      ['/usr/bin/kvm', 'dummy'],
+      [],
+      old_hvparams,
+      []
+    ]
+    upgraded_runtime = _upgrade_serialized_runtime(mock_loaded_runtime)
+    upgraded_hvparams = upgraded_runtime[2]
+    assert constants.HV_VIRTIO_DISK_IOTHREADS in upgraded_hvparams, \
+      f"parameter {constants.HV_VIRTIO_DISK_IOTHREADS} missing after upgrade"
+    assert upgraded_hvparams[constants.HV_VIRTIO_DISK_IOTHREADS] == 0, \
+      f"parameter {constants.HV_VIRTIO_DISK_IOTHREADS} not equal 0"

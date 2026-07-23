@@ -215,29 +215,30 @@ def _upgrade_serialized_runtime(loaded_runtime: List) -> List:
 
       # Replace the original vnc argument with the new ones
       kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
+  # end VNC
 
-    # with 3.1 the 'default' value for disk_discard has been dropped
-    # and replaced by 'ignore'
-    if constants.HV_DISK_DISCARD in hvparams \
-      and hvparams[constants.HV_DISK_DISCARD] not in \
-        constants.HT_VALID_DISCARD_TYPES:
-      hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
+  # with 3.1 the 'default' value for disk_discard has been dropped
+  # and replaced by 'ignore'
+  if constants.HV_DISK_DISCARD in hvparams \
+    and hvparams[constants.HV_DISK_DISCARD] not in \
+      constants.HT_VALID_DISCARD_TYPES:
+    hvparams[constants.HV_DISK_DISCARD] = constants.HT_DISCARD_IGNORE
 
-    # remove chroot from the runtime
-    # commit e607423 addresses that the -chroot parameter is now combined into
-    # -run-with. This happens in a way that -chroot is no longer written into
-    # the KVM runtime.  When live migrating, the old runtime (containing
-    # -chroot) is read and therefore has to be filtered out. Otherwise kvm_cmd
-    # will contain old -chroot and new -run-with. This makes live
-    # migration to >=Qemu-9.0 possible.
-    try:
-      idx = kvm_cmd.index("-chroot")
-      del kvm_cmd[idx:idx+2]
-    except ValueError:
-      pass
+  # remove chroot from the runtime
+  # commit e607423 addresses that the -chroot parameter is now combined into
+  # -run-with. This happens in a way that -chroot is no longer written into
+  # the KVM runtime.  When live migrating, the old runtime (containing
+  # -chroot) is read and therefore has to be filtered out. Otherwise kvm_cmd
+  # will contain old -chroot and new -run-with. This makes live
+  # migration to >=Qemu-9.0 possible.
+  try:
+    idx = kvm_cmd.index("-chroot")
+    del kvm_cmd[idx:idx+2]
+  except ValueError:
+    pass
 
-    # new HV parameters, that default value effects KVM cmd line
-    if constants.HV_VIRTIO_DISK_IOTHREADS not in hvparams:
-      hvparams[constants.HV_VIRTIO_DISK_IOTHREADS] = 0
+  # new HV parameters, that default value effects KVM cmd line
+  if constants.HV_VIRTIO_DISK_IOTHREADS not in hvparams:
+    hvparams[constants.HV_VIRTIO_DISK_IOTHREADS] = 0
 
   return [kvm_cmd, serialized_nics, hvparams, serialized_disks]
