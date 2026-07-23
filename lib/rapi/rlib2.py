@@ -215,6 +215,28 @@ def _UpdateBeparams(inst):
   return inst
 
 
+def _NormalizeConnectedNodeGroups(group_list):
+  """Normalizes the network's group_list into a JSON-friendly view.
+
+  @param group_list: list of tuples from the query layer
+  @type group_list: list
+  @return: list of dictionaries with name/mode/link/vlan
+
+  """
+  if not group_list:
+    return []
+
+  def _NormalizeValue(value):
+    return None if value == "" else value
+
+  return [{
+    "name": group[0],
+    "mode": _NormalizeValue(group[1]),
+    "link": _NormalizeValue(group[2]),
+    "vlan": _NormalizeValue(group[3]),
+  } for group in group_list]
+
+
 def _CheckIfConnectionDropped(sock):
   """Utility function to monitor the state of an open connection.
 
@@ -894,7 +916,11 @@ class R_2_networks(baserlib.OpcodeResource):
 
     if self.useBulk():
       bulkdata = client.QueryNetworks([], NET_FIELDS, False)
-      return baserlib.MapBulkFields(bulkdata, NET_FIELDS)
+      bulk = baserlib.MapBulkFields(bulkdata, NET_FIELDS)
+      for item in bulk:
+        item["connected_node_groups"] = _NormalizeConnectedNodeGroups(
+          item.get("group_list", []))
+      return bulk
     else:
       data = client.QueryNetworks([], ["name"], False)
       networknames = [row[0] for row in data]
@@ -920,7 +946,10 @@ class R_2_networks_name(baserlib.OpcodeResource):
                                             fields=NET_FIELDS,
                                             use_locking=self.useLocking())
 
-    return baserlib.MapFields(NET_FIELDS, result[0])
+    mapped = baserlib.MapFields(NET_FIELDS, result[0])
+    mapped["connected_node_groups"] = _NormalizeConnectedNodeGroups(
+      mapped.get("group_list", []))
+    return mapped
 
   def GetDeleteOpInput(self):
     """Delete a network.
