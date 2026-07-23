@@ -1025,7 +1025,7 @@ virtio\_net\_queues
 
     Make sure to set the number of queues not greater than the
     instance's ``vcpus``. For convenience the special value ``auto`` will
-    follow the number of ``vcpus`` up to the limited of ``8`` queues per
+    follow the number of ``vcpus`` up to the limit of ``8`` queues per
     instance NIC.
 
     It is set to ``1`` by default.
