@@ -1,9 +1,10 @@
 =================
-Ganeti 3.2 design
+Ganeti 4.0 design
 =================
 
-The following designs have been implemented in Ganeti 3.2
+The following designs have been implemented in Ganeti 4.0
 
 - :doc:`design-replace-asyncore`
 - :doc:`design-q35`
 - :doc:`design-vcpu-hotplug`
+- :doc:`design-uefi-boot`

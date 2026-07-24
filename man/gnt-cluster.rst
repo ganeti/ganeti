@@ -774,6 +774,17 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--user-shutdown`` options are
 described in the **init** command.
 
+Setting the cluster-wide KVM default ``boot_type`` to ``uefi`` with
+``-H kvm:boot_type=uefi`` is refused while KVM instances without an
+instance-level ``boot_type`` override and without a UEFI firmware disk
+exist: only the per-instance ``gnt-instance modify -H
+boot_type=uefi`` (instance stopped) creates that disk. With
+``--force``, a follow-up ``gnt-instance modify`` job is submitted for
+every affected **stopped** instance, creating its firmware disk
+(migrated instances end up with an explicit instance-level
+``boot_type=uefi``). Running or offline instances only get a warning
+and will refuse to start after a stop until switched explicitly.
+
 The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
 the **init** command.
 
