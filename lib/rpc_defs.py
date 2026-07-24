@@ -388,6 +388,13 @@ _BLOCKDEV_CALLS = [
     ("size", None, None),
     ], None, None,
     "Request to dump an image with given size onto a block device"),
+  ("blockdev_seed_firmware", SINGLE, None, constants.RPC_TMO_SLOW, [
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
+    ("code_path", None, None),
+    ("vars_path", None, None),
+    ], None, None,
+    "Seed an instance's UEFI firmware disk with the OVMF code and vars"
+    " templates"),
   ("blockdev_wipe", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("offset", None, None),

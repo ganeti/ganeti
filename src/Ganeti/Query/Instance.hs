@@ -201,6 +201,9 @@ instanceFields =
   , (FieldDefinition "disk.spindles" "Disk_spindles" QFTOther
      "List of disk spindles",
      FieldConfig getDiskSpindles, QffNormal)
+  , (FieldDefinition "disk.roles" "Disk_roles" QFTOther
+     "List of disk roles (data/firmware)",
+     FieldConfig getDiskRoles, QffNormal)
   , (FieldDefinition "disk.names" "Disk_names" QFTOther
      "List of disk names",
      FieldConfig getDiskNames, QffNormal)
@@ -403,6 +406,12 @@ getDiskSizes cfg =
 getDiskSpindles :: ConfigData -> Instance -> ResultEntry
 getDiskSpindles cfg =
   rsErrorNoData . liftA (map (MaybeForJSON . diskSpindles)) .
+    getInstDisksFromObj cfg
+
+-- | Get a list of disk roles for an instance
+getDiskRoles :: ConfigData -> Instance -> ResultEntry
+getDiskRoles cfg =
+  rsErrorNoData . liftA (map (diskRoleToRaw . diskRole)) .
     getInstDisksFromObj cfg
 
 -- | Get a list of disk names for an instance

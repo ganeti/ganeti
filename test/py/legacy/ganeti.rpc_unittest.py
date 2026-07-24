@@ -922,6 +922,7 @@ class TestRpcRunner(unittest.TestCase):
       "logical_id": ("vg", "disk6120"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
       "serial_no": 1,
+      "role": constants.DR_ROLE_DATA,
       "uuid": "disk_uuid_1",
       }, {
       "dev_type": constants.DT_PLAIN,
@@ -930,6 +931,7 @@ class TestRpcRunner(unittest.TestCase):
       "logical_id": ("vg", "disk8508"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
       "serial_no": 1,
+      "role": constants.DR_ROLE_DATA,
       "uuid": "disk_uuid_2",
       }])
 

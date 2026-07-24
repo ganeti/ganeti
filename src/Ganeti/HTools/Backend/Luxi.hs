@@ -143,7 +143,7 @@ queryInstancesMsg =
       "status", "pnode", "snodes", "tags",
       "be/auto_balance", "disk_template",
       "be/spindle_use", "disk.sizes", "disk.spindles",
-      "forthcoming"] Qlang.EmptyFilter
+      "disk.roles", "forthcoming"] Qlang.EmptyFilter
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -185,7 +185,7 @@ parseInstance :: NameAssoc
 parseInstance ktn [ name, disk, mem, vcpus
                   , status, pnode, snodes, tags
                   , auto_balance, disk_template, su
-                  , dsizes, dspindles, forthcoming ] = do
+                  , dsizes, dspindles, droles, forthcoming ] = do
   xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
@@ -203,8 +203,10 @@ parseInstance ktn [ name, disk, mem, vcpus
   xsu <- convert "be/spindle_use" su
   xdsizes <- convert "disk.sizes" dsizes
   xdspindles <- convertArrayMaybe "Instance" xname "disk.spindles" dspindles
+  xdroles_raw <- convert "disk.roles" droles :: Result [String]
+  xdroles <- mapM diskRoleFromRaw xdroles_raw
   xforthcoming <- convert "forthcoming" forthcoming
-  let disks = zipWith Instance.Disk xdsizes xdspindles
+  let disks = zipWith3 Instance.Disk xdsizes xdspindles xdroles
       inst = Instance.create xname xmem xdisk disks
              xvcpus xrunning xtags xauto_balance xpnode snode xdt xsu []
              xforthcoming

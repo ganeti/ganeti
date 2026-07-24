@@ -774,6 +774,13 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--user-shutdown`` options are
 described in the **init** command.
 
+The cluster-wide KVM default ``boot_type`` (set with
+``-H kvm:boot_type=<value>``) is a creation-time seed: it changes the
+default for newly created instances only and does not modify any
+existing instance. A warning to that effect is printed whenever the
+parameter is touched. To change an existing instance, stop it and run
+``gnt-instance modify -H boot_type=<value> <name>``.
+
 The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
 the **init** command.
 
