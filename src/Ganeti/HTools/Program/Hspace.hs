@@ -444,7 +444,7 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
 instFromSpec :: RSpec -> DiskTemplate -> Int -> Instance.Instance
 instFromSpec spx dt su =
   Instance.create "new" (rspecMem spx) (rspecDsk spx)
-    [Instance.Disk (rspecDsk spx) (Just $ rspecSpn spx)]
+    [Instance.Disk (rspecDsk spx) (Just $ rspecSpn spx) DiskRoleData]
     (rspecCpu spx) Running [] True (-1) (-1) dt su [] False
 
 combineTiered :: AlgorithmOptions

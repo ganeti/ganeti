@@ -147,6 +147,9 @@ module Ganeti.Types
   , roleDescription
   , DiskMode(..)
   , diskModeToRaw
+  , DiskRole(..)
+  , diskRoleToRaw
+  , diskRoleFromRaw
   , BlockDriver(..)
   , blockDriverToRaw
   , AdminState(..)
@@ -858,6 +861,15 @@ $(THH.declareLADT ''String "DiskMode"
   , ("DiskRdWr",   "rw")
   ])
 $(THH.makeJSONInstance ''DiskMode)
+
+-- | The role a disk plays for its instance. Ordinary data disks have role
+-- 'DiskRoleData'; the per-instance OVMF firmware disk (code + vars regions)
+-- has role 'DiskRoleFirmware'. The role is category-level, not blob-specific.
+$(THH.declareLADT ''String "DiskRole"
+  [ ("DiskRoleData",     "data")
+  , ("DiskRoleFirmware", "firmware")
+  ])
+$(THH.makeJSONInstance ''DiskRole)
 
 -- | The persistent block driver type. Currently only one type is allowed.
 $(THH.declareLADT ''String "BlockDriver"

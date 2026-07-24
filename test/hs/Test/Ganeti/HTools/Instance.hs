@@ -47,6 +47,7 @@ module Test.Ganeti.HTools.Instance
 import Control.Arrow ((&&&))
 import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
+import qualified Test.HUnit as HUnit
 
 import Test.Ganeti.TestHTools (nullISpec)
 import Test.Ganeti.TestHelper
@@ -80,7 +81,7 @@ genInstanceWithin min_mem min_dsk min_cpu min_spin
     Nothing -> genMaybe $ choose (min_spin, maxSpindles)
     Just ls -> liftM Just $ choose (min_spin, ls)
   forthcoming <- arbitrary
-  let disk = Instance.Disk dsk spindles
+  let disk = Instance.Disk dsk spindles Types.DiskRoleData
   return $ Instance.create
     name mem dsk [disk] vcpus run_st [] True pn sn dt 1 [] forthcoming
 
@@ -219,13 +220,38 @@ prop_shrinkDF :: Instance.Instance -> Property
 prop_shrinkDF inst =
   forAll (choose (0, 2 * Types.unitDsk - 1)) $ \dsk ->
     let inst' = inst { Instance.dsk = dsk
-                     , Instance.disks = [Instance.Disk dsk Nothing] }
+                     , Instance.disks =
+                         [Instance.Disk dsk Nothing Types.DiskRoleData] }
     in isBad $ Instance.shrinkByType inst' Types.FailDisk
 
 prop_setMovable :: Instance.Instance -> Bool -> Property
 prop_setMovable inst m =
   Instance.movable inst' ==? m
     where inst' = Instance.setMovable inst m
+
+-- | A two-disk instance: a data disk plus a same-sized disk whose role is
+-- given. Used to check that the firmware disk is exempt from the disk-size
+-- policy while a same-sized data disk is not.
+twoDiskInst :: Types.DiskRole -> Instance.Instance
+twoDiskInst role =
+  Instance.create "policy-inst" 1024 1056
+    [ Instance.Disk 1024 Nothing Types.DiskRoleData
+    , Instance.Disk 32 Nothing role ]
+    1 Types.Running [] True (-1) (-1) Types.DTPlain 1 [] False
+
+-- | The firmware disk must be ignored by the disk-size ipolicy: an instance
+-- whose only sub-minimum disk is the firmware disk satisfies the spec, while
+-- the same instance with that disk marked as data violates it.
+case_firmwareDiskIgnoredByISpec :: HUnit.Assertion
+case_firmwareDiskIgnoredByISpec =
+  let minISpec = nullISpec { Types.iSpecDiskSize = 512 }
+  in do
+    HUnit.assertEqual "firmware disk is exempt from the disk-size policy"
+      (Ok ()) (Instance.instAboveISpec (twoDiskInst Types.DiskRoleFirmware)
+                                       minISpec False)
+    HUnit.assertEqual "a same-sized data disk still violates the policy"
+      (Bad Types.FailDisk)
+      (Instance.instAboveISpec (twoDiskInst Types.DiskRoleData) minISpec False)
 
 testSuite "HTools/Instance"
             [ 'prop_creat
@@ -242,4 +268,5 @@ testSuite "HTools/Instance"
             , 'prop_shrinkDG
             , 'prop_shrinkDF
             , 'prop_setMovable
+            , 'case_firmwareDiskIgnoredByISpec
             ]

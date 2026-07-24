@@ -518,17 +518,59 @@ More information can be found in the Xen wiki pages for `pvgrub
 KVM
 ~~~
 
-For KVM also the kernel can be loaded either way.
+For KVM the boot mode is selected explicitly with the ``boot_type``
+hypervisor parameter, which is the single source of truth for how the
+instance boots:
 
-For loading the kernels from the node, you need to set:
+- ``direct_kernel`` (the default) boots a kernel from the node:
 
-- ``kernel_path`` to a valid value
-- ``initrd_path`` optionally set if you use an initrd
-- ``kernel_args`` optionally set to a valid value (e.g. ``ro``)
+  - ``kernel_path`` to a valid value
+  - ``initrd_path`` optionally set if you use an initrd
+  - ``kernel_args`` optionally set to a valid value (e.g. ``ro``)
 
-If you want instead to have the instance boot from its disk (and execute
-its bootloader), simply set the ``kernel_path`` parameter to an empty
-string, and all the others will be ignored.
+- ``bios`` boots from the instance's disks via the legacy BIOS (SeaBIOS),
+  driven by ``boot_order``.
+- ``uefi`` boots via UEFI/OVMF firmware, driven by ``boot_order``.
+
+Using an empty ``kernel_path`` to switch a KVM instance to disk boot is
+deprecated; set ``boot_type`` explicitly instead. ``kernel_path`` /
+``initrd_path`` / ``kernel_args`` are honored only under ``direct_kernel``,
+and ``boot_order`` only under ``bios`` / ``uefi``.
+
+UEFI / OVMF firmware
+....................
+
+A UEFI instance (``boot_type=uefi``) carries a small, per-instance
+*firmware disk* (visible in ``gnt-instance info`` with ``role: firmware``)
+that holds the OVMF read-only code and the writable NVRAM (vars). It is
+seeded at creation from the configure-time templates
+(``--with-ovmf-code-template`` / ``--with-ovmf-vars-template``); the code
+template can be overridden per instance with the ``ovmf_code`` hvparam to
+pin an alternative OVMF build. The firmware code is therefore pinned at
+creation and does **not** change when the node's OVMF package is updated.
+
+The firmware disk uses the same disk template as the data disks (so it is
+mirrored on DRBD instances) and is treated as precious NVRAM: it travels
+with the instance through live migration, failover, cold move and
+disk-template conversion, is never wiped or recreated as an empty volume,
+and cannot be grown or removed while ``boot_type`` is ``uefi``. It counts
+towards ``MAX_DISKS``, so a UEFI instance supports at most 15 data disks.
+
+Switching a stopped instance to ``boot_type=uefi`` creates and seeds the
+firmware disk; switching away from ``uefi`` keeps the (now inert) firmware
+disk in place, and it can be removed explicitly later.
+
+**RBD caveat:** the firmware disk is always created with local
+(kernelspace) access so its regions can be exposed as pflash backing.
+On RBD this means UEFI requires krbd-capable nodes even when the data
+disks use userspace RBD, and the firmware volume may fail to map if it
+carries image features that krbd does not support.
+
+**Recovery:** because v1 does not round-trip the firmware disk through
+export/import, exporting a UEFI instance is rejected. If a firmware disk
+is ever lost (e.g. a node disaster), recover it from an out-of-band backup
+of the firmware volume; recreating the instance re-seeds a fresh firmware
+disk but loses any boot entries stored in the NVRAM.
 
 Instance HA features
 --------------------

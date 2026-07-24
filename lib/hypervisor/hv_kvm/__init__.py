@@ -51,6 +51,7 @@ from ganeti.hypervisor.hv_kvm.bus_manager import BusAllocatorManager, \
   Q35_STATIC_SLOT as _Q35_STATIC_SLOT, \
   Q35_NIC_POOL_SLOTS as _Q35_NIC_POOL_SLOTS, \
   Q35_DISK_POOL_SLOTS as _Q35_DISK_POOL_SLOTS
+from ganeti.hypervisor.hv_kvm import firmware as kvm_firmware
 
 try:
   import psutil   # pylint: disable=F0401
@@ -405,6 +406,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   PARAMETERS = {
     constants.HV_KVM_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_BOOT_TYPE:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_BOOT_MODES),
+    # ovmf_code accepts an empty/absent value (-> cluster default) or a plain
+    # string; filesystem existence is deferred to create/seed time on the node
+    # that hosts the instance (the master cannot see the node's OVMF files).
+    constants.HV_OVMF_CODE: hv_base.NO_CHECK,
     constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_ROOT_PATH: hv_base.NO_CHECK,
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
@@ -795,6 +802,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(cls._InstanceQmpMonitor(instance_name))
     utils.RemoveFile(cls._InstanceQemuGuestAgentMonitor(instance_name))
     utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
+    # Tear down any UEFI firmware pflash mappings (idempotent: a no-op for
+    # non-UEFI instances). The firmware *volume* itself is never touched here.
+    cls._CleanupFirmwareDisk(instance_name)
     uid_file = cls._InstanceUidFile(instance_name)
     uid = cls._TryReadUidFile(uid_file)
     utils.RemoveFile(uid_file)
@@ -1107,8 +1117,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: list of command line options eventually used by kvm executable
 
     """
-    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
-    if kernel_path:
+    boot_type = up_hvp[constants.HV_BOOT_TYPE]
+    if boot_type == constants.HT_BOOT_DIRECT_KERNEL:
       boot_disk = False
     else:
       boot_disk = up_hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
@@ -1129,6 +1139,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    % driver)
 
     for cfdev, link_name, uri in kvm_disks:
+      # The firmware disk is attached as pflash (a -machine property), not as a
+      # guest block device, so it emits no virtio/ide -device here. Its pflash
+      # -blockdev nodes are emitted directly in _GenerateKVMRuntime.
+      if cfdev.role == constants.DR_ROLE_FIRMWARE:
+        continue
+
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
@@ -1349,6 +1365,178 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-audio",
                       f"driver={driver},model={soundhw},id=soundhw"])
 
+  # -- UEFI/OVMF firmware disk (pflash) helpers --------------------------
+
+  @staticmethod
+  def _FirmwareDmName(instance_name, region):
+    """Deterministic device-mapper name for a firmware region.
+
+    The name must be identical on every node so the serialized C{kvm_cmd}
+    (which references C{/dev/mapper/<name>}) resolves on the migration target.
+
+    @type instance_name: str
+    @type region: str
+    @param region: one of L{kvm_firmware.REGION_CODE} / C{REGION_VARS}
+    @rtype: str
+
+    """
+    return "%s-ovmf-%s" % (instance_name, region)
+
+  @classmethod
+  def _FirmwareDmPath(cls, instance_name, region):
+    """Full C{/dev/mapper} path for a firmware region.
+
+    See L{_FirmwareDmName} for the naming scheme.
+
+    """
+    return "/dev/mapper/%s" % cls._FirmwareDmName(instance_name, region)
+
+  @staticmethod
+  def _FindFirmwareDisk(block_devices):
+    """Return the C{(disk, link, uri)} tuple of the firmware disk, or None.
+
+    @type block_devices: list of tuples
+    @param block_devices: list of C{(L{objects.Disk}, link, uri)} tuples
+
+    """
+    for disk, link_name, uri in block_devices:
+      if disk.role == constants.DR_ROLE_FIRMWARE:
+        return (disk, link_name, uri)
+    return None
+
+  @staticmethod
+  def _FirmwareRegionBase(disk, link):
+    """Return the local block device the firmware regions are carved from.
+
+    For block-backed templates (drbd/plain/rbd/ext) the firmware disk's link
+    already is a C{/dev} block node, used directly. For file-backed templates
+    (file/sharedfile/gluster) the link is a regular file, so a loop device is
+    attached over the whole firmware disk and returned. The loop is detached
+    at cleanup (see L{_CleanupFirmwareDisk}).
+
+    @type disk: L{objects.Disk}
+    @type link: str
+    @param link: node-local symlink/path to the firmware disk
+    @rtype: str
+    @return: path to a local block device
+
+    """
+    if disk.dev_type in constants.DTS_FILEBASED:
+      result = utils.RunCmd(["losetup", "-f", "--show", link])
+      if result.failed:
+        raise errors.HypervisorError("Can't attach loop device over firmware"
+                                     " disk %s: %s" % (link, result.output))
+      return result.stdout.strip()
+    return link
+
+  @classmethod
+  def _ExposeFirmwareRegion(cls, instance_name, region, base, offset, size,
+                            ro):
+    """Expose one firmware region as a standalone whole device-mapper device.
+
+    QEMU pflash requires its backing node to be exactly the flash size and the
+    C{-blockdev file} driver has no offset/size option, so each region is
+    presented as its own device via a device-mapper C{linear} target over the
+    firmware disk's local backing.
+
+    @type instance_name: str
+    @type region: str
+    @type base: str
+    @param base: local block device returned by L{_FirmwareRegionBase}
+    @type offset: int
+    @param offset: region start in bytes (must be sector-aligned)
+    @type size: int
+    @param size: region size in bytes (must be a sector multiple)
+    @type ro: bool
+    @param ro: whether to create the mapping read-only (the code region)
+    @rtype: str
+    @return: path to the C{/dev/mapper} device
+
+    """
+    name = cls._FirmwareDmName(instance_name, region)
+    sectors = size // kvm_firmware.SECTOR_SIZE
+    offset_sectors = offset // kvm_firmware.SECTOR_SIZE
+    table = "0 %d linear %s %d" % (sectors, base, offset_sectors)
+    cmd = ["dmsetup", "create", name]
+    if ro:
+      cmd.append("--readonly")
+    cmd.extend(["--table", table])
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      raise errors.HypervisorError("Can't expose firmware region %s for %s:"
+                                   " %s" % (region, instance_name,
+                                            result.output))
+    return cls._FirmwareDmPath(instance_name, region)
+
+  def _SetupFirmwareDisk(self, instance, kvm_disks):
+    """Expose the firmware disk's code and vars regions as pflash backings.
+
+    Run at instance start and on the migration target (both go through
+    L{_ExecuteKVMRuntime}). Reads the on-disk superblock to learn the region
+    geometry, then creates the device-mapper devices whose deterministic paths
+    the serialized C{kvm_cmd} already references. Idempotent: any stale mapping
+    from a crashed instance is torn down first.
+
+    @type instance: L{objects.Instance}
+    @type kvm_disks: list of C{(L{objects.Disk}, link, uri)} tuples
+
+    """
+    fw = self._FindFirmwareDisk(kvm_disks)
+    if fw is None:
+      raise errors.HypervisorError("Instance %s requests UEFI boot but has no"
+                                   " firmware disk" % instance.name)
+    disk, link, _ = fw
+
+    # Defensive: the firmware disk must always present a local backing.
+    access = (disk.params or {}).get(constants.LDP_ACCESS)
+    if access is not None and access != constants.DISK_KERNELSPACE:
+      raise errors.HypervisorError("Firmware disk of instance %s must use"
+                                   " kernelspace access, found %s"
+                                   % (instance.name, access))
+
+    # Clear any leftover mappings before (re)creating them.
+    self._CleanupFirmwareDisk(instance.name)
+
+    with open(link, "rb") as fobj:
+      superblock = fobj.read(kvm_firmware.SECTOR_SIZE)
+    layout = kvm_firmware.UnpackSuperblock(superblock)
+    code_off, code_size = layout[kvm_firmware.REGION_CODE]
+    vars_off, vars_size = layout[kvm_firmware.REGION_VARS]
+
+    base = self._FirmwareRegionBase(disk, link)
+    self._ExposeFirmwareRegion(instance.name, kvm_firmware.REGION_CODE,
+                               base, code_off, code_size, ro=True)
+    self._ExposeFirmwareRegion(instance.name, kvm_firmware.REGION_VARS,
+                               base, vars_off, vars_size, ro=False)
+
+  @classmethod
+  def _CleanupFirmwareDisk(cls, instance_name):
+    """Tear down a firmware disk's device-mapper and loop devices.
+
+    Idempotent and safe to call even when the instance never used UEFI: the
+    deterministic mapping names simply do not exist. Any loop device backing a
+    region (file-backed templates) is detached after the mappings are removed.
+
+    """
+    loops = set()
+    for region in (kvm_firmware.REGION_CODE, kvm_firmware.REGION_VARS):
+      name = cls._FirmwareDmName(instance_name, region)
+      if not os.path.exists(cls._FirmwareDmPath(instance_name, region)):
+        continue
+      deps = utils.RunCmd(["dmsetup", "deps", "-o", "devname", name])
+      if not deps.failed:
+        loops.update("/dev/%s" % m
+                     for m in re.findall(r"\((loop\d+)\)", deps.stdout))
+      remove = utils.RunCmd(["dmsetup", "remove", name])
+      if remove.failed:
+        logging.warning("Could not remove firmware mapping %s: %s",
+                        name, remove.output)
+    for loop in loops:
+      detach = utils.RunCmd(["losetup", "-d", loop])
+      if detach.failed:
+        logging.warning("Could not detach firmware loop device %s: %s",
+                        loop, detach.output)
+
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp) -> KVMRuntime:
     """Generate KVM information to start an instance.
@@ -1456,10 +1644,41 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
       machine_params.append("accel=kvm")
 
+    boot_type = hvp[constants.HV_BOOT_TYPE]
+
+    # UEFI/OVMF: attach the firmware disk's code and vars regions as pflash via
+    # -blockdev plus the -machine pflash0=/pflash1= properties. The -blockdev
+    # nodes must be defined before the -machine line that references them, so
+    # this happens here (before the -machine extend below). The device-mapper
+    # devices these paths point at are created as a side effect at start and on
+    # the migration target in _ExecuteKVMRuntime; here we only build the
+    # command, using deterministic, node-portable /dev/mapper paths.
+    if boot_type == constants.HT_BOOT_UEFI:
+      fw = self._FindFirmwareDisk(block_devices)
+      if fw is None:
+        raise errors.HypervisorError("Instance %s requests UEFI boot but has"
+                                     " no firmware disk" % instance.name)
+      fw_access = (fw[0].params or {}).get(constants.LDP_ACCESS)
+      if fw_access is not None and fw_access != constants.DISK_KERNELSPACE:
+        raise errors.HypervisorError("Firmware disk of instance %s must use"
+                                     " kernelspace access, found %s"
+                                     % (instance.name, fw_access))
+      code_dev = self._FirmwareDmPath(instance.name,
+                                      kvm_firmware.REGION_CODE)
+      vars_dev = self._FirmwareDmPath(instance.name,
+                                      kvm_firmware.REGION_VARS)
+      kvm_cmd.extend(["-blockdev",
+                      "node-name=ovmf-code,driver=raw,read-only=on,"
+                      "file.driver=host_device,file.filename=%s" % code_dev])
+      kvm_cmd.extend(["-blockdev",
+                      "node-name=ovmf-vars,driver=raw,"
+                      "file.driver=host_device,file.filename=%s" % vars_dev])
+      machine_params.append("pflash0=ovmf-code")
+      machine_params.append("pflash1=ovmf-vars")
+
     kvm_cmd.extend(["-machine", ",".join(machine_params)])
 
-    kernel_path = hvp[constants.HV_KERNEL_PATH]
-    if kernel_path:
+    if boot_type == constants.HT_BOOT_DIRECT_KERNEL:
       boot_cdrom = boot_floppy = False
     else:
       boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
@@ -1496,7 +1715,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if floppy_image:
       self._FloppyOption(kvm_cmd, floppy_image, boot_floppy)
 
-    if kernel_path:
+    # kernel_path/initrd_path/kernel_args are honored only under direct-kernel
+    # boot; boot_type is the single source of truth (kernel_path as a boot-mode
+    # toggle is deprecated).
+    if boot_type == constants.HT_BOOT_DIRECT_KERNEL:
+      kernel_path = hvp[constants.HV_KERNEL_PATH]
       kvm_cmd.extend(["-kernel", kernel_path])
       initrd_path = hvp[constants.HV_INITRD_PATH]
       if initrd_path:
@@ -1768,7 +1991,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_disks = []
     for disk, link_name, uri in block_devices:
-      _generate_kvm_device(constants.HOTPLUG_TARGET_DISK, disk, bus_manager)
+      # The firmware disk is attached as pflash (a -machine property), not as a
+      # guest block device: it gets no PCI slot / hvinfo. It is still kept in
+      # kvm_disks (and thus serialized) so _ExecuteKVMRuntime/AcceptInstance
+      # can expose its regions as pflash backing on every node.
+      if disk.role != constants.DR_ROLE_FIRMWARE:
+        _generate_kvm_device(constants.HOTPLUG_TARGET_DISK, disk, bus_manager)
       kvm_disks.append((disk, link_name, uri))
 
     kvm_nics = []
@@ -2000,8 +2228,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     taps = []
     devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
 
-    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
-    if kernel_path:
+    boot_type = up_hvp[constants.HV_BOOT_TYPE]
+    if boot_type == constants.HT_BOOT_DIRECT_KERNEL:
       boot_network = False
     else:
       boot_network = (up_hvp.get(constants.HV_BOOT_ORDER, '') ==
@@ -2111,6 +2339,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                             instance.name, nic_seq, err)
           continue
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
+
+    # UEFI: expose the firmware disk's regions as pflash backing devices. This
+    # is the node-local side effect (dmsetup/losetup) matching the -blockdev
+    # paths already baked into kvm_cmd by _GenerateKVMRuntime. Reached both at
+    # normal start and on the migration target (AcceptInstance also calls
+    # _ExecuteKVMRuntime), which re-exposes the regions before launch.
+    if up_hvp[constants.HV_BOOT_TYPE] == constants.HT_BOOT_UEFI:
+      self._SetupFirmwareDisk(instance, kvm_disks)
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
                                                      kvm_disks,
@@ -2333,7 +2569,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # during hot-add
     if runtime:
       nics = runtime.kvm_nics
-      disks = [d for d, _, _ in runtime.kvm_disks]
+      # The firmware disk is pflash, not a PCI/SCSI device: it has no hvinfo
+      # and must be excluded from the bus allocator initialization.
+      disks = [d for d, _, _ in runtime.kvm_disks
+               if d.role != constants.DR_ROLE_FIRMWARE]
       dev_infos = [info.hvinfo for info in (disks + nics)]
       for allocator in pci_allocators:
         allocator.initialize_from_device_info(dev_infos)

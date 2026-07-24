@@ -280,16 +280,31 @@ def validate_security_model(hvparams):
 
 
 def check_boot_parameters(hvparams):
+    # boot_type is the single source of truth for the boot mode. Treat it as
+    # authoritative and silently ignore parameters that do not apply to the
+    # selected mode (kernel_path has a non-empty default, so warning about it
+    # would fire for essentially every bios/uefi instance). Only genuinely
+    # invalid combinations raise. This is a master-side, no-filesystem check.
+    boot_type = hvparams.get(constants.HV_BOOT_TYPE,
+                             constants.HT_BOOT_DIRECT_KERNEL)
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if (boot_order == constants.HT_BO_CDROM and
-        not hvparams[constants.HV_CDROM_IMAGE_PATH]):
-      raise errors.HypervisorError("Cannot boot from cdrom without an"
-                                   " ISO path")
-    kernel_path = hvparams[constants.HV_KERNEL_PATH]
-    if kernel_path:
-      if not hvparams[constants.HV_ROOT_PATH]:
+
+    if boot_type == constants.HT_BOOT_DIRECT_KERNEL:
+      # boot_order is ignored; the kernel/initrd/append drive the boot.
+      if (hvparams[constants.HV_KERNEL_PATH] and
+          not hvparams[constants.HV_ROOT_PATH]):
         raise errors.HypervisorError("Need a root partition for the instance,"
                                      " if a kernel is defined")
+    else:
+      # bios/uefi: boot_order is authoritative; kernel_path is ignored.
+      if (boot_order == constants.HT_BO_CDROM and
+          not hvparams[constants.HV_CDROM_IMAGE_PATH]):
+        raise errors.HypervisorError("Cannot boot from cdrom without an"
+                                     " ISO path")
+      if (boot_type == constants.HT_BOOT_UEFI and
+          boot_order == constants.HT_BO_FLOPPY):
+        raise errors.HypervisorError("UEFI boot does not support booting from"
+                                     " floppy")
     return True
 
 
