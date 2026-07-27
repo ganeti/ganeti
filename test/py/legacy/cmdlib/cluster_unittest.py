@@ -39,6 +39,7 @@ import unittest
 import re
 import shutil
 import os
+from unittest import mock
 
 from ganeti.cmdlib import cluster
 from ganeti.cmdlib.cluster import verify
@@ -1870,6 +1871,30 @@ class TestLUClusterVerifyGroupVerifyNPlusOneMemory(
     node1_img.mfree = 1000
     lu._VerifyNPlusOneMemory(node_imgs, self.cfg.GetAllInstancesInfo())
     self.mcpu.assertLogIsEmpty()
+
+
+class TestLUClusterVerifyGroupVerifyWithHcheck(TestLUClusterVerifyGroupMethods):
+  @withLockedLU
+  def testHcheckUnavailable(self, lu):
+    with mock.patch.object(utils, "RunCmd",
+                           side_effect=errors.OpExecError("hcheck missing")):
+      lu._VerifyWithHcheck()
+    self.mcpu.assertLogContainsRegex("hcheck not available")
+
+  @withLockedLU
+  def testHcheckReportsIssues(self, lu):
+    hcheck_result = mock.Mock()
+    hcheck_result.failed = True
+    hcheck_result.stdout = (
+      '{"ok": false, "initial": {"cluster": {"need_rebalance": true}, '
+      '"groups": [{"name": "group-01", "n1_fail": 1, "gn1_fail": 1}]}}')
+    hcheck_result.stderr = ""
+
+    with mock.patch.object(utils, "RunCmd", return_value=hcheck_result):
+      lu._VerifyWithHcheck()
+
+    self.mcpu.assertLogContainsRegex("hcheck reported cluster problems")
+    self.mcpu.assertLogContainsRegex("need rebalancing")
 
 
 class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):

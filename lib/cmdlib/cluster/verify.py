@@ -30,6 +30,7 @@
 """Logical units for cluster verification."""
 
 import itertools
+import json
 import logging
 import operator
 import re
@@ -986,6 +987,62 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       self.cfg.GetNodeName(node_uuid),
                       "volume %s is unknown", volume,
                       code=_VerifyErrors.ETYPE_WARNING)
+
+  def _VerifyWithHcheck(self):
+    """Verify cluster health through hcheck when available.
+
+    Only the initial phase of the hcheck report is considered; the existing
+    verification logic remains intact and the hcheck check is best-effort.
+
+    """
+    self._feedback_fn("* Verifying cluster with hcheck")
+
+    try:
+      result = utils.RunCmd(["hcheck", "--output", "json"])
+    except errors.OpExecError:
+      self._feedback_fn("  - WARNING: hcheck not available")
+      return
+
+    if result.failed and not result.stdout:
+      self._Error(constants.CV_ECLUSTERCFG, None,
+                  "hcheck execution failed: %s",
+                  result.fail_reason or result.output,
+                  code=self.ETYPE_WARNING)
+      return
+
+    try:
+      report = json.loads(result.stdout)
+    except (TypeError, ValueError) as err:
+      self._Error(constants.CV_ECLUSTERCFG, None,
+                  "hcheck returned invalid JSON: %s", err,
+                  code=self.ETYPE_WARNING)
+      return
+
+    initial = report.get("initial", {})
+    cluster = initial.get("cluster", {})
+    groups = initial.get("groups", [])
+
+    issues = []
+    if cluster.get("need_rebalance"):
+      issues.append("need rebalancing")
+
+    for group in groups:
+      group_name = group.get("name")
+      if group.get("n1_fail") > 0:
+        issues.append("Nodes not n+1 happy: %d in group %s"
+                      % (group.get("n1_fail"), group_name))
+
+      if group.get("gn1_fail") > 0:
+        issues.append("Nodes not directly evacuateable: %d in group %s"
+                      % (group.get("gn1_fail"), group_name))
+
+    if not issues and report.get("ok") is False:
+      issues.append("cluster is not healthy")
+
+    if issues:
+      self._Error(constants.CV_ECLUSTERCFG, None,
+                  "hcheck reported cluster problems: %s",
+                  ", ".join(issues), code=self.ETYPE_ERROR)
 
   def _VerifyNPlusOneMemory(self, node_image, all_insts):
     """Verify N+1 Memory Resilience.
@@ -2273,6 +2330,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           break
 
     self._VerifyOrphanVolumes(vg_name, node_vol_should, node_image, reserved)
+
+    self._VerifyWithHcheck()
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
