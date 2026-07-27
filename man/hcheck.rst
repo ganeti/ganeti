@@ -41,6 +41,7 @@ Algorithm options:
 Reporting options:
 
 **[\--machine-readable**[=*CHOICE*] **]**
+**[ \--output *FORMAT* ]**
 **[ -p[ *fields* ] ]**
 **[ \--print-instances ]**
 **[ -v... | -q ]**
@@ -76,6 +77,11 @@ OPTIONS
   Do not check for global N+1 redundancy, i.e., do not warn if the
   shared-storage instances of one node cannot be moved to the others
   should that node fail.
+
+\--output FORMAT
+  Select the output format. Supported values are ``text`` and ``json``.
+  The JSON output reports the initial and final cluster state and whether
+  the cluster is considered healthy.
 
 For a detailed description about the options listed above have a look at
 **htools**\(1), **hspace**\(1) and **hbal**\(1).

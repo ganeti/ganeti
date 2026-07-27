@@ -83,6 +83,7 @@ module Ganeti.HTools.CLI
   , genOLuxiSocket
   , oLuxiSocket
   , oMachineReadable
+  , oOutputFormat
   , oMaxCpu
   , oMaxSolLength
   , oMinDisk
@@ -123,7 +124,7 @@ module Ganeti.HTools.CLI
   ) where
 
 import Control.Monad
-import Data.Char (toUpper)
+import Data.Char (toLower, toUpper)
 import Data.Maybe (fromMaybe)
 import System.Console.GetOpt
 import System.IO
@@ -175,6 +176,7 @@ data Options = Options
   , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
   , optJobDelay    :: Double         -- ^ Delay before executing first job
   , optMachineReadable :: Bool       -- ^ Output machine-readable format
+  , optOutputFormat :: String        -- ^ Output format: 'text' or 'json'
   , optMaster      :: String         -- ^ Collect data from RAPI
   , optMaxLength   :: Int            -- ^ Stop after this many steps
   , optMcpu        :: Maybe Double   -- ^ Override max cpu ratio for nodes
@@ -249,6 +251,7 @@ defaultOptions  = Options
   , optLuxi        = Nothing
   , optJobDelay    = 10
   , optMachineReadable = False
+  , optOutputFormat = "text"
   , optMaster      = ""
   , optMaxLength   = -1
   , optMcpu        = Nothing
@@ -571,6 +574,19 @@ oMachineReadable =
    \ explicitly control the flag, or without an argument defaults to\
    \ yes)",
    optComplYesNo)
+
+oOutputFormat :: OptType
+oOutputFormat =
+  (Option "" ["output"]
+   (ReqArg (\ f opts ->
+              case map toLower f of
+                "text" -> Ok opts { optOutputFormat = "text" }
+                "json" -> Ok opts { optOutputFormat = "json" }
+                _ -> Bad ("Invalid output format '" ++ f ++
+                          "', expected 'text' or 'json'"))
+    "FORMAT")
+   "select output format ('text' or 'json')",
+   OptComplNone)
 
 oMaxCpu :: OptType
 oMaxCpu =

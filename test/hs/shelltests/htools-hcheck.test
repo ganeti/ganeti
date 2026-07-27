@@ -22,3 +22,11 @@
 >>>/Cluster is not healthy: False/
 >>>= 0
 
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --output json
+>>>/"need_rebalance":true/
+>>>= 1
+
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --output json
+>>>/"name":"group-01"/
+>>>= 1
+

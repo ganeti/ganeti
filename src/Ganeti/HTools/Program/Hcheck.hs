@@ -39,8 +39,9 @@ module Ganeti.HTools.Program.Hcheck
   ) where
 
 import Control.Monad
+import qualified Data.Char as Char
 import qualified Data.IntMap as IntMap
-import Data.List (transpose)
+import Data.List (intercalate, transpose)
 import System.Exit
 import Text.Printf (printf)
 
@@ -79,6 +80,7 @@ options = do
     , oInstMoves
     , luxi
     , oMachineReadable
+    , oOutputFormat
     , oMaxCpu
     , oMaxSolLength
     , oMinDisk
@@ -215,6 +217,64 @@ printStats opts False level phase values = do
     putStr prefix
     mapM_ (uncurry (printf "    %s: %s\n")) (zip descr values)
 
+renderJsonObject :: [(String, String)] -> String
+renderJsonObject [] = "{}"
+renderJsonObject pairs =
+  "{" ++ intercalate ", " (map renderJsonField pairs) ++ "}"
+  where
+    renderJsonField (k, v) = show (map Char.toLower k) ++ ":" ++ v
+
+renderJsonArray :: [String] -> String
+renderJsonArray [] = "[]"
+renderJsonArray items = "[" ++ intercalate ", " items ++ "]"
+
+renderJsonValue :: String -> String
+renderJsonValue value
+  | value == "true" || value == "false" = value
+  | all (\c -> Char.isDigit c || c == '.' || c == '-') value = value
+  | otherwise = show value
+
+renderJsonKeyValue :: String -> String -> String
+renderJsonKeyValue key value =
+  show (map Char.toLower key) ++ ":" ++ renderJsonValue value
+
+clusterStatsToJson :: Options -> [Int] -> Bool -> String
+clusterStatsToJson opts stats needhbal =
+  let values = map show stats ++ [if needhbal then "true" else "false"]
+      keys = map fst $ clusterData opts
+      pairs = zip keys values
+  in renderJsonObject $ map (\(k, v) -> (k, renderJsonValue v)) pairs
+
+groupStatsToJson :: Options -> GroupStats -> String
+groupStatsToJson opts ((grp, score), stats) =
+  let values = prepareGroupValues stats score
+      keys = map fst $ groupData opts
+      groupName = Group.name grp
+      pairs = [("name", groupName)] ++ zip keys values
+  in renderJsonObject $
+       map (\(k, v) -> (map Char.toLower k, renderJsonValue v)) pairs
+
+printJsonReport :: Options -> [GroupStats] -> [Int] -> Bool ->
+                   [GroupStats] -> [Int] -> Bool -> Bool -> IO ()
+printJsonReport opts initialGroups initialCluster initialNeed
+                finalGroups finalCluster finalNeed exitOK = do
+  let initialPhase = renderJsonObject
+        [ ("cluster", clusterStatsToJson opts initialCluster initialNeed)
+        , ("groups", renderJsonArray $
+            map (groupStatsToJson opts) initialGroups)
+        ]
+      finalPhase = renderJsonObject
+        [ ("cluster", clusterStatsToJson opts finalCluster finalNeed)
+        , ("groups", renderJsonArray $
+            map (groupStatsToJson opts) finalGroups)
+        ]
+      root = renderJsonObject
+        [ ("initial", initialPhase)
+        , ("final", finalPhase)
+        , ("ok", if exitOK then "true" else "false")
+        ]
+  putStrLn root
+
 -- | Extract name or idx from group.
 extractGroupData :: Bool -> Group.Group -> String
 extractGroupData True grp = show $ Group.idx grp
@@ -316,6 +376,7 @@ main opts args = do
 
   let verbose = optVerbose opts
       machineread = optMachineReadable opts
+      outputjson = map Char.toLower (optOutputFormat opts) == "json"
       nosimulation = optNoSimulation opts
 
   (ClusterData gl fixed_nl ilf _ _) <- loadExternalData opts
@@ -329,32 +390,44 @@ main opts args = do
       clusterstats = map sum . transpose . map snd $ groupsstats
       needrebalance = clusterNeedsRebalance clusterstats
 
-  unless (verbose < 1 || machineread) .
+  unless (verbose < 1 || machineread || outputjson) .
     putStrLn $ if nosimulation
                  then "Running in no-simulation mode."
                  else if needrebalance
                         then "Cluster needs rebalancing."
                         else "No need to rebalance cluster, no problems found."
 
-  mapM_ (printGroupStats opts machineread Initial) groupsstats
+  if outputjson
+    then do
+      let exitOK = nosimulation || not needrebalance
+          simulate = not nosimulation && needrebalance
+      rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
+      let newgroupstats = map (perGroupChecks opts gl) rebalancedcluster
+          newclusterstats = map sum . transpose . map snd $ newgroupstats
+          newneedrebalance = clusterNeedsRebalance newclusterstats
+      printJsonReport opts groupsstats clusterstats needrebalance
+                      newgroupstats newclusterstats newneedrebalance exitOK
+      unless exitOK . exitWith $ ExitFailure 1
+    else do
+      mapM_ (printGroupStats opts machineread Initial) groupsstats
 
-  printClusterStats opts machineread Initial clusterstats needrebalance
+      printClusterStats opts machineread Initial clusterstats needrebalance
 
-  let exitOK = nosimulation || not needrebalance
-      simulate = not nosimulation && needrebalance
+      let exitOK = nosimulation || not needrebalance
+          simulate = not nosimulation && needrebalance
 
-  rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
+      rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
 
-  when (simulate || machineread) $ do
-    let newgroupstats = map (perGroupChecks opts gl) rebalancedcluster
-        newclusterstats = map sum . transpose . map snd $ newgroupstats
-        newneedrebalance = clusterNeedsRebalance clusterstats
+      when (simulate || machineread) $ do
+        let newgroupstats = map (perGroupChecks opts gl) rebalancedcluster
+            newclusterstats = map sum . transpose . map snd $ newgroupstats
+            newneedrebalance = clusterNeedsRebalance clusterstats
 
-    mapM_ (printGroupStats opts machineread Rebalanced) newgroupstats
+        mapM_ (printGroupStats opts machineread Rebalanced) newgroupstats
 
-    printClusterStats opts machineread Rebalanced newclusterstats
+        printClusterStats opts machineread Rebalanced newclusterstats
                            newneedrebalance
 
-  printFinalHTC machineread
+      printFinalHTC machineread
 
-  unless exitOK . exitWith $ ExitFailure 1
+      unless exitOK . exitWith $ ExitFailure 1
