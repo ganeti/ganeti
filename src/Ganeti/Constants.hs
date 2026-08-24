@@ -1975,7 +1975,7 @@ hvsParameterTypes = Map.fromList
   , (hvVncX509Verify,                   VTypeBool)
   , (hvVnetHdr,                         VTypeBool)
   , (hvXenCpuid,                        VTypeString)
-  , (hvPvhMode, 						VTypeString)
+  , (hvPvhMode, 						VTypeBool)
   ]
 
 -- * Migration statuses
@@ -4101,7 +4101,7 @@ hvcDefaults =
              , (hvVifScript,      PyValueEx "")
              , (hvXenCpuid,       PyValueEx "")
              , (hvSoundhw,        PyValueEx "")
-			 , (hvPvhMode,  	  PyValueEx "")
+			 , (hvPvhMode,  	  PyValueEx False)
              ])
   , (XenHvm, Map.fromList
              [ (hvBootOrder,      PyValueEx "cd")
