@@ -1487,7 +1487,7 @@ class XenPvmHypervisor(XenHypervisor):
 
     pvh_mode = hvp[constants.HV_PVH_MODE]
     if (pvh_mode is True):
-        config.write("type = 'pvh'\n)
+        config.write("type = 'pvh'\n")
 
     self._WriteNicConfig(config, instance, hvp)
 
