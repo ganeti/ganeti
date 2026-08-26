@@ -1266,11 +1266,14 @@ def WipeDisks(lu, instance, disks=None):
 
   try:
     for (idx, device, offset) in disks:
-      # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
-      # MAX_WIPE_CHUNK at max. Truncating to integer to avoid rounding errors.
+      # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk, at
+      # least 1 MiB but MAX_WIPE_CHUNK at max. Truncating to integer to avoid
+      # rounding errors.
       wipe_chunk_size = \
-        int(min(constants.MAX_WIPE_CHUNK,
-                device.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT))
+        max(1,
+            int(min(constants.MAX_WIPE_CHUNK,
+                    device.size / 100.0 *
+                    constants.MIN_WIPE_CHUNK_PERCENT)))
 
       size = device.size
       last_output = 0

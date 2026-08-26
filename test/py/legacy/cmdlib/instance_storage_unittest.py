@@ -39,6 +39,7 @@ from ganeti.cmdlib import instance_storage
 from ganeti import errors
 from ganeti import objects
 from ganeti import opcodes
+from ganeti.rpc import node as rpc
 
 import testutils
 
@@ -191,6 +192,118 @@ class TestCheckComputeDisksInfo(unittest.TestCase):
     self.assertRaises(
       AssertionError, instance_storage.ComputeDisksInfo,
       self.disks, constants.DT_EXT, self.default_vg, self.ext_params)
+
+
+class TestWipeDisks(unittest.TestCase):
+  def _PrepareWipe(self, disk_size, start_offset=0,
+                   wipe_result=(True, None)):
+    node_uuid = "node-uuid"
+    disk = objects.Disk(dev_type=constants.DT_PLAIN,
+                        logical_id=("vg", "disk"),
+                        size=disk_size,
+                        uuid="disk-uuid")
+    instance = objects.Instance(name="instance.example.com",
+                                primary_node=node_uuid,
+                                disk_template=constants.DT_PLAIN,
+                                disks=[disk.uuid])
+    wipe_requests = []
+    sync_states = []
+
+    def PauseResume(node, disk_info, pause):
+      (disks, call_instance) = disk_info
+      self.assertEqual(node, node_uuid)
+      self.assertEqual(len(disks), 1)
+      self.assertIs(disks[0], disk)
+      self.assertIs(call_instance, instance)
+      sync_states.append(pause)
+      return rpc.RpcResult(data=(True, [True]))
+
+    def Wipe(node, disk_info, offset, size):
+      (call_disk, call_instance) = disk_info
+      self.assertEqual(node, node_uuid)
+      self.assertIs(call_disk, disk)
+      self.assertIs(call_instance, instance)
+      wipe_requests.append((offset, size))
+      self.assertLessEqual(len(wipe_requests), disk_size - start_offset)
+      return rpc.RpcResult(data=wipe_result)
+
+    lu = mock.Mock()
+    lu.cfg.GetNodeName.return_value = "node.example.com"
+    lu.rpc.call_blockdev_pause_resume_sync.side_effect = PauseResume
+    lu.rpc.call_blockdev_wipe.side_effect = Wipe
+
+    return (lu, instance, disk, start_offset, wipe_requests, sync_states)
+
+  def _AssertValidWipeRequests(self, disk_size, start_offset, requests):
+    next_offset = start_offset
+    for (offset, size) in requests:
+      self.assertEqual(offset, next_offset)
+      self.assertGreater(size, 0)
+      self.assertLessEqual(size, constants.MAX_WIPE_CHUNK)
+      self.assertLessEqual(offset + size, disk_size)
+      next_offset += size
+    return next_offset
+
+  def _RunWipe(self, disk_size, start_offset=0):
+    (lu, instance, disk, start_offset, wipe_requests, sync_states) = \
+      self._PrepareWipe(disk_size, start_offset)
+
+    with mock.patch.object(instance_storage.time, "time", return_value=1000):
+      instance_storage.WipeDisks(lu, instance,
+                                 disks=[(0, disk, start_offset)])
+
+    final_offset = self._AssertValidWipeRequests(
+      disk_size, start_offset, wipe_requests)
+    self.assertEqual(final_offset, disk_size)
+    self.assertEqual(sync_states, [True, False])
+    return (lu, wipe_requests)
+
+  def testFourMebibyteDisk(self):
+    (lu, wipe_requests) = self._RunWipe(4)
+
+    self.assertEqual(wipe_requests, [(0, 1), (1, 1), (2, 1), (3, 1)])
+    progress = [call for call in lu.LogInfo.call_args_list
+                if call[0][0] == " - done: %.1f%% ETA: %s"]
+    self.assertEqual(len(progress), 1)
+
+  def testFourMebibyteDiskWithStartOffset(self):
+    (_, wipe_requests) = self._RunWipe(4, start_offset=3)
+
+    self.assertEqual(wipe_requests, [(3, 1)])
+
+  def testOffsetAtEndOfDisk(self):
+    (_, wipe_requests) = self._RunWipe(4, start_offset=4)
+
+    self.assertEqual(wipe_requests, [])
+
+  def testZeroSizeDisk(self):
+    (_, wipe_requests) = self._RunWipe(0)
+
+    self.assertEqual(wipe_requests, [])
+
+  def testChunkSizeIsFloored(self):
+    (_, wipe_requests) = self._RunWipe(11)
+
+    self.assertEqual(wipe_requests[0], (0, 1))
+
+  def testChunkSizeIsCapped(self):
+    disk_size = 20 * constants.MAX_WIPE_CHUNK
+    (_, wipe_requests) = self._RunWipe(disk_size)
+
+    self.assertEqual(wipe_requests[0], (0, constants.MAX_WIPE_CHUNK))
+
+  def testWipeFailureResumesSynchronization(self):
+    (lu, instance, disk, start_offset, wipe_requests, sync_states) = \
+      self._PrepareWipe(4, wipe_result=(False, "wipe failed"))
+
+    with mock.patch.object(instance_storage.time, "time", return_value=1000):
+      with self.assertRaises(errors.OpExecError):
+        instance_storage.WipeDisks(lu, instance,
+                                   disks=[(0, disk, start_offset)])
+
+    self._AssertValidWipeRequests(disk.size, start_offset, wipe_requests)
+    self.assertEqual(wipe_requests, [(0, 1)])
+    self.assertEqual(sync_states, [True, False])
 
 
 class TestLUInstanceReplaceDisks(CmdlibTestCase):
