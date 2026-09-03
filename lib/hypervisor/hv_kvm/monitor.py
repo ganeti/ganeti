@@ -622,7 +622,10 @@ class QmpConnection(QemuMonitorSocket):
     The query-block QMP command returns a list of dictionaries
     including information for each virtual disk. For example:
 
+    old drive_add
     [{"device": "disk-049f140d", "inserted": {"file": ..., "image": ...}}]
+    new blockdev_add + device_add
+    [{"device": "", "inserted": {...}, "qdev": "disk-5d029f20-0c04-4652", ...}]
 
     @rtype: list of dicts
     @return: Info about the virtual disks of the instance.
@@ -637,7 +640,7 @@ class QmpConnection(QemuMonitorSocket):
 
     """
     for d in self._GetBlockDevices():
-      if d["device"] == devid:
+      if d["qdev"] == devid:
         return True
 
     return False
