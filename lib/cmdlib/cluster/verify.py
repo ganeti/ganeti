@@ -987,43 +987,35 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       "volume %s is unknown", volume,
                       code=_VerifyErrors.ETYPE_WARNING)
 
-  def _VerifyNPlusOneMemory(self, node_image, all_insts):
+  def _VerifyNPlusOneMemory(self, group_uuid):
     """Verify N+1 Memory Resilience.
 
-    Check that if one single node dies we can still start all the
-    instances it was primary for.
+    use htools (hcheck) as the only source for N+1 alogorithm
 
     """
-    cluster_info = self.cfg.GetClusterInfo()
-    for node_uuid, n_img in node_image.items():
-      # This code checks that every node which is now listed as
-      # secondary has enough memory to host all instances it is
-      # supposed to should a single other node in the cluster fail.
-      # FIXME: not ready for failover to an arbitrary node
-      # FIXME: does not support file-backed instances
-      # WARNING: we currently take into account down instances as well
-      # as up ones, considering that even if they're down someone
-      # might want to start them even in the event of a node failure.
-      if n_img.offline or \
-         self.all_node_info[node_uuid].group != self.group_uuid:
-        # we're skipping nodes marked offline and nodes in other groups from
-        # the N+1 warning, since most likely we don't have good memory
-        # information from them; we already list instances living on such
-        # nodes, and that's enough warning
-        continue
-      #TODO(dynmem): also consider ballooning out other instances
-      for prinode, inst_uuids in n_img.sbp.items():
-        needed_mem = 0
-        for inst_uuid in inst_uuids:
-          bep = cluster_info.FillBE(all_insts[inst_uuid])
-          if bep[constants.BE_AUTO_BALANCE]:
-            needed_mem += bep[constants.BE_MINMEM]
-        test = n_img.mfree < needed_mem
-        self._ErrorIf(test, constants.CV_ENODEN1,
-                      self.cfg.GetNodeName(node_uuid),
-                      "not enough memory to accomodate instance failovers"
-                      " should node %s fail (%dMiB needed, %dMiB available)",
-                      self.cfg.GetNodeName(prinode), needed_mem, n_img.mfree)
+    try:
+      result = utils.RunCmd(["hcheck", "-L", "--no-simulation",
+                             "--machine-readable"])
+    except errors.OpExecError:
+      self._feedback_fn("  - WARNING: hcheck not available")
+      return
+
+    pattern = rf"^HCHECK_GROUP_UUID_(\d+)='{group_uuid}"
+    match = re.search(pattern, result.stdout, re.M)
+    if match:
+      group_index = match.group(1)
+      pattern_n1 = rf"HCHECK_INIT_GROUP_{group_index}_N1_FAIL=(\d+)"
+      pattern_gn1 = rf"HCHECK_INIT_GROUP_{group_index}_GN1_FAIL=(\d+)"
+      match_n1 = re.search(pattern_n1, result.stdout, re.M)
+      match_gn1 = re.search(pattern_gn1, result.stdout, re.M)
+      n1_fail = int(match_n1.group(1))
+      gn1_fail = int(match_gn1.group(1))
+      if n1_fail > 0 or gn1_fail > 0:
+        self._Error(constants.CV_ENODEN1, None,
+                    f"There are {n1_fail} nodes not N+1 happy"
+                    f" and {gn1_fail} nodes not directly evacuateable."
+                    " Use hbal --print-nodes to find out which nodes and how"
+                    " to possibly solve the problem")
 
   def _CertError(self, *args):
     """Helper function for _VerifyClientCertificates."""
@@ -2276,7 +2268,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
-      self._VerifyNPlusOneMemory(node_image, self.my_inst_info)
+      self._VerifyNPlusOneMemory(self.group_uuid)
 
     if constants.VERIFY_HVPARAM_ASSESSMENT not in self.op.skip_checks:
       self._AssessHypervisorParameters()
