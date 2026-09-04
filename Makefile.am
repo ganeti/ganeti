@@ -282,6 +282,7 @@ DIRS = \
 PYTHON_TEST_DIRS = \
 	test/py/unit \
 	test/py/unit/cmdlib \
+	test/py/unit/cmdlib/cluster \
 	test/py/unit/confd \
 	test/py/unit/http \
 	test/py/unit/hypervisor \
