@@ -490,6 +490,11 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual({}, self.client.GetInfo())
     self.assertHandler(rlib2.R_2_info)
 
+  def testGetHypervisorParameters(self):
+    self.rapi.AddResponse("{}")
+    self.assertEqual({}, self.client.GetHypervisorParameters())
+    self.assertHandler(rlib2.R_2_info_hypervisor_parameters)
+
   def testGetInstances(self):
     self.rapi.AddResponse("[]")
     self.assertEqual([], self.client.GetInstances(bulk=True))

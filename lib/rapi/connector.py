@@ -271,6 +271,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     "/2/instances-multi-alloc": rlib2.R_2_instances_multi_alloc,
     "/2/tags": rlib2.R_2_tags,
     "/2/info": rlib2.R_2_info,
+    "/2/info/hypervisor-parameters":
+      rlib2.R_2_info_hypervisor_parameters,
     "/2/os": rlib2.R_2_os,
     "/2/redistribute-config": rlib2.R_2_redist_config,
     "/2/features": rlib2.R_2_features,
