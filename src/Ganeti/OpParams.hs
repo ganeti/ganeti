@@ -1523,7 +1523,7 @@ pDiskIndex =
 
 pDiskChgAmount :: Field
 pDiskChgAmount =
-  withDoc "Disk amount to add or grow to" .
+  withDoc "Disk amount in MiB to add or grow to" .
   renameField "DiskChgAmount" $ simpleField "amount" [t| NonNegative Int |]
 
 pDiskChgAbsolute :: Field
