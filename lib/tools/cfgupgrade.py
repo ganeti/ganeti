@@ -62,10 +62,22 @@ TARGET_MAJOR = constants.CONFIG_MAJOR
 TARGET_MINOR = constants.CONFIG_MINOR
 #: Last supported v2.x minor
 LAST_V2_MINOR = 16
-#: Target major version for downgrade
-DOWNGRADE_MAJOR = TARGET_MAJOR
-#: Target minor version for downgrade
-DOWNGRADE_MINOR = TARGET_MINOR - 1
+#: Last supported v3.x minor
+LAST_V3_MINOR = 1
+
+# Downgrade targets the previous stable version. Within a major series that is
+# the preceding minor; the first release of a new major series (x.0) instead
+# downgrades to the last minor of the preceding series.
+if TARGET_MINOR > 0:
+  #: Target major version for downgrade
+  DOWNGRADE_MAJOR = TARGET_MAJOR
+  #: Target minor version for downgrade
+  DOWNGRADE_MINOR = TARGET_MINOR - 1
+else:
+  #: Target major version for downgrade
+  DOWNGRADE_MAJOR = TARGET_MAJOR - 1
+  #: Target minor version for downgrade
+  DOWNGRADE_MINOR = LAST_V3_MINOR
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -185,8 +197,9 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.0-2.16 and 3.0 to 3.1
+    # Upgrade from 2.0-2.16 and 3.0-3.1 to the target version
     elif ((config_major == TARGET_MAJOR and config_minor in range(TARGET_MINOR))
+         or (config_major == 3 and config_minor in range(LAST_V3_MINOR + 1))
          or (config_major == 2 and config_minor in range(LAST_V2_MINOR + 1))):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
@@ -365,6 +378,18 @@ class CfgUpgrade(object):
         cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] = \
           constants.HT_DISCARD_IGNORE
 
+      # boot_type added with 4.0: synthesize it for the KVM cluster defaults
+      # from the literal state of kernel_path (non-empty -> direct kernel boot,
+      # empty/absent -> BIOS boot), preserving pre-4.0 behaviour. Idempotent so
+      # repeated UpgradeAll runs are safe.
+      kvm_hvparams = cluster["hvparams"].get(constants.HT_KVM)
+      if kvm_hvparams is not None and \
+         constants.HV_BOOT_TYPE not in kvm_hvparams:
+        if kvm_hvparams.get(constants.HV_KERNEL_PATH):
+          kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
+
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
     cl_ipolicy = self.config_data["cluster"].get("ipolicy")
@@ -487,6 +512,20 @@ class CfgUpgrade(object):
             constants.HT_DISCARD_IGNORE
           logging.info("disk_discard was explicitly set to 'default' on "
                        "instance '%s': migrated to 'ignore'" % iobj["name"])
+
+      # boot_type added with 4.0. Instance hvparams hold overrides only, so
+      # synthesize boot_type only when kernel_path is an explicit instance-level
+      # override; otherwise leave it unset so the cluster boot_type is
+      # inherited. Only KVM instances grow this parameter.
+      ihvparams = iobj.get("hvparams")
+      if ihvparams is not None and \
+         iobj.get("hypervisor") == constants.HT_KVM and \
+         constants.HV_BOOT_TYPE not in ihvparams and \
+         constants.HV_KERNEL_PATH in ihvparams:
+        if ihvparams[constants.HV_KERNEL_PATH]:
+          ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
 
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have
@@ -794,12 +833,42 @@ class CfgUpgrade(object):
     for setting in ["user-id", "namespace"]:
       _removeRbdSetting(nodegroups, setting)
 
+  @OrFail("Removing the boot_type and ovmf_code parameters")
+  def DowngradeBootType(self):
+    """Remove the KVM boot_type and ovmf_code hvparams.
+
+    These parameters were introduced with 4.0 (boot_type + UEFI/OVMF support);
+    older Ganeti versions do not know them, so strip them from the cluster
+    defaults and from every instance's hvparam overrides. The Disk.role field
+    can stay: it defaults to 'data' and is harmless to older code.
+
+    """
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    new_hvparams = [constants.HV_BOOT_TYPE, constants.HV_OVMF_CODE]
+
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    kvm_hvparams = cluster.get("hvparams", {}).get(constants.HT_KVM, None)
+    if kvm_hvparams is not None:
+      for param in new_hvparams:
+        kvm_hvparams.pop(param, None)
+
+    for iobj in self.config_data.get("instances", {}).values():
+      ihvparams = iobj.get("hvparams", None)
+      if ihvparams is not None:
+        for param in new_hvparams:
+          ihvparams.pop(param, None)
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
     self.DowngradeRbdSettings()
+    self.DowngradeBootType()
     return not self.errors
 
   def _ComposePaths(self):

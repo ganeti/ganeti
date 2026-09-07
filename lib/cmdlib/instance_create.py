@@ -61,6 +61,7 @@ from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, CheckSpindlesExclusiveStorage, \
   ComputeDiskSizePerVG, CreateDisks, \
   GenerateDiskTemplate, CommitDisks, \
+  GenerateFirmwareDisk, SeedFirmwareDisk, \
   WaitForSync, ComputeDisks, \
   ImageDisks, WipeDisks
 from ganeti.cmdlib.instance_utils import \
@@ -797,6 +798,21 @@ class LUInstanceCreate(LogicalUnit):
     hv_type = hypervisor.GetHypervisorClass(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
+
+    # Disk adoption reuses pre-existing volumes and never allocates new ones,
+    # but a UEFI instance carries a per-instance firmware (OVMF) disk that
+    # Ganeti must allocate and seed itself. The two are incompatible, so refuse
+    # the combination outright rather than fail midway and leave a
+    # half-created instance behind.
+    if (self.adopt_disks and
+        self.op.hypervisor == constants.HT_KVM and
+        self.hv_full.get(constants.HV_BOOT_TYPE) == constants.HT_BOOT_UEFI):
+      raise errors.OpPrereqError(
+          "Disk adoption is not supported for UEFI instances"
+          " (boot_type=uefi): the per-instance firmware (OVMF) disk must be"
+          " created and seeded by Ganeti and cannot be adopted.",
+          errors.ECODE_INVAL)
+
     # check that we don't specify global parameters on an instance
     CheckParamsNotGlobal(self.op.hvparams, constants.HVC_GLOBALS, "hypervisor",
                          "instance", "cluster")
@@ -1446,6 +1462,15 @@ class LUInstanceCreate(LogicalUnit):
     # has no disks yet (we are generating them right here).
     nodegroup = self.cfg.GetNodeGroup(self.pnode.group)
 
+    # A UEFI KVM instance carries a per-instance firmware (OVMF) disk, appended
+    # at the tail of inst.disks with role 'firmware'. It is created and seeded
+    # along the normal disk path below. (forthcoming/commit instances do not
+    # grow one in the initial UEFI boot implementation.)
+    want_firmware_disk = (
+        not self.op.commit and not self.op.forthcoming and
+        self.op.hypervisor == constants.HT_KVM and
+        self.hv_full.get(constants.HV_BOOT_TYPE) == constants.HT_BOOT_UEFI)
+
     if self.op.commit:
       disks = self.cfg.GetInstanceDisks(instance_uuid)
       CommitDisks(disks)
@@ -1461,6 +1486,13 @@ class LUInstanceCreate(LogicalUnit):
                                    feedback_fn,
                                    self.cfg.GetGroupDiskParams(nodegroup),
                                    forthcoming=self.op.forthcoming)
+      if want_firmware_disk:
+        firmware_disk = GenerateFirmwareDisk(
+            self, self.op.disk_template, instance_uuid, self.pnode.uuid,
+            self.secondaries, len(disks), self.instance_file_storage_dir,
+            self.op.file_driver, feedback_fn,
+            self.cfg.GetGroupDiskParams(nodegroup))
+        disks.append(firmware_disk)
 
     if self.op.os_type is None:
       os_type = ""
@@ -1546,6 +1578,20 @@ class LUInstanceCreate(LogicalUnit):
         disk_abort = True
 
     self._RemoveDegradedDisks(feedback_fn, disk_abort, iobj)
+
+    # Seed the UEFI firmware disk after any wipe (the firmware disk is excluded
+    # from wiping). The vars region is written exactly once, here, and never
+    # rewritten afterwards.
+    if want_firmware_disk:
+      inst_disks = self.cfg.GetInstanceDisks(iobj.uuid)
+      firmware_devs = [d for d in inst_disks
+                       if d.role == constants.DR_ROLE_FIRMWARE]
+      if firmware_devs:
+        feedback_fn("* seeding UEFI firmware disk...")
+        code_path = (self.hv_full.get(constants.HV_OVMF_CODE) or
+                     constants.OVMF_CODE_TEMPLATE)
+        vars_path = constants.OVMF_VARS_TEMPLATE
+        SeedFirmwareDisk(self, iobj, firmware_devs[0], code_path, vars_path)
 
     # Image disks
     os_image = objects.GetOSImage(iobj.osparams)

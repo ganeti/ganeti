@@ -204,6 +204,19 @@ class LUBackupExport(LogicalUnit):
           "Cannot retrieve locked instance %s" % self.op.instance_name
     CheckNodeOnline(self, self.instance.primary_node)
 
+    # Initial UEFI boot implementation does not round-trip the per-instance
+    # firmware (OVMF) disk through export/import, so block exporting a UEFI
+    # instance rather than producing a backup that would restore as a bricked
+    # VM. (Tracked follow-up: full firmware-disk export/import round-trip.)
+    if self.instance.hypervisor == constants.HT_KVM:
+      eff_hvparams = self.cfg.GetClusterInfo().FillHV(self.instance)
+      if eff_hvparams.get(constants.HV_BOOT_TYPE) == constants.HT_BOOT_UEFI:
+        raise errors.OpPrereqError(
+            "Exporting UEFI instances is not yet supported: the firmware disk"
+            " (OVMF code/vars) is not round-tripped through export/import."
+            " This will be implemented in a future Ganeti release.",
+            errors.ECODE_INVAL)
+
     if (self.op.remove_instance and
         self.instance.admin_state == constants.ADMINST_UP and
         not self.op.shutdown):
@@ -288,7 +301,19 @@ class LUBackupExport(LogicalUnit):
                                    "enabled for zeroing to work",
                                    errors.ECODE_INVAL)
 
-      # Check that the instance is set to boot from the disk
+      # Check that the instance is set to boot from the disk via firmware. For
+      # KVM, boot_type is the source of truth: the zeroing image boots from
+      # disk, so direct-kernel boot is rejected; bios/uefi must then boot from
+      # disk (boot_order). (UEFI instances are already blocked from export
+      # above; this keeps the check consistent and forward-compatible.)
+      boot_type = hvparams.get(constants.HV_BOOT_TYPE,
+                               constants.HT_BOOT_DIRECT_KERNEL)
+      if self.instance.hypervisor == constants.HT_KVM and \
+         boot_type == constants.HT_BOOT_DIRECT_KERNEL:
+        raise errors.OpPrereqError("Zeroing requires the instance to boot from"
+                                   " disk via firmware (boot_type 'bios' or"
+                                   " 'uefi'), not direct kernel boot",
+                                   errors.ECODE_INVAL)
       if constants.HV_BOOT_ORDER in hvparams and \
          hvparams[constants.HV_BOOT_ORDER] != constants.HT_BO_DISK:
         raise errors.OpPrereqError("Booting from disk must be set for zeroing "

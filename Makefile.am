@@ -680,6 +680,7 @@ hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/validation.py \
 	lib/hypervisor/hv_kvm/kvm_utils.py \
 	lib/hypervisor/hv_kvm/kvm_runtime.py \
+	lib/hypervisor/hv_kvm/firmware.py \
 	lib/hypervisor/hv_kvm/bus_manager.py
 
 jqueue_PYTHON = \
@@ -805,7 +806,7 @@ docinput = \
 	doc/design-2.16.rst \
 	doc/design-3.0.rst \
 	doc/design-3.1.rst \
-	doc/design-3.2.rst \
+	doc/design-4.0.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -873,6 +874,7 @@ docinput = \
 	doc/design-storagetypes.rst \
 	doc/design-sync-rate-throttling.rst \
 	doc/design-systemd.rst \
+	doc/design-uefi-boot.rst \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
@@ -2048,7 +2050,14 @@ python_tests_unit = \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
 	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
 	test/py/unit/hypervisor/hv_kvm/test_instance_info.py \
+	test/py/unit/hypervisor/hv_kvm/test_kvm_runtime.py \
+	test/py/unit/hypervisor/hv_kvm/test_boot_type.py \
 	test/py/unit/hypervisor/hv_kvm/test_q35.py \
+	test/py/unit/test_disk_role.py \
+	test/py/unit/test_firmware_seed.py \
+	test/py/unit/test_cfgupgrade_boot_type.py \
+	test/py/unit/cmdlib/test_firmware_disk.py \
+	test/py/unit/cmdlib/test_ipolicy_firmware.py \
 	test/py/unit/http/test_auth.py \
 	test/py/unit/http/test_server.py \
 	test/py/unit/http/test_ssl.py \
@@ -2416,6 +2425,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DDEFAULT_BRIDGE="$(DEFAULT_BRIDGE)" \
 	    -DDEFAULT_VG="$(DEFAULT_VG)" \
 	    -DKVM_PATH="$(KVM_PATH)" \
+	    -DOVMF_CODE_TEMPLATE="$(OVMF_CODE_TEMPLATE)" \
+	    -DOVMF_VARS_TEMPLATE="$(OVMF_VARS_TEMPLATE)" \
 	    -DIP_PATH="$(IP_PATH)" \
 	    -DSOCAT_PATH="$(SOCAT)" \
 	    -DPYTHON_PATH="$(PYTHON)" \

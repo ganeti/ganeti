@@ -236,4 +236,16 @@ def _upgrade_serialized_runtime(loaded_runtime: List) -> List:
     except ValueError:
       pass
 
+  # boot_type was added with 4.0 and is the single source of truth for the
+  # boot mode. Old serialized runtimes (read verbatim by AcceptInstance during
+  # live migration) lack it; synthesize it from the literal state of
+  # kernel_path. up_hvp is fully merged here, so kernel_path is always present
+  # via its default. This runs unconditionally (unlike the disk_discard fix
+  # above, which is nested in the -vnc handling).
+  if constants.HV_BOOT_TYPE not in hvparams:
+    if hvparams.get(constants.HV_KERNEL_PATH):
+      hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+    else:
+      hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
+
   return [kvm_cmd, serialized_nics, hvparams, serialized_disks]

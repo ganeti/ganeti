@@ -702,6 +702,66 @@ def GenerateDiskTemplate(
   return disks
 
 
+def GenerateFirmwareDisk(lu, template_name, instance_uuid, primary_node_uuid,
+                         secondary_node_uuids, base_index, file_storage_dir,
+                         file_driver, feedback_fn, full_disk_params):
+  """Generate the per-instance UEFI firmware (OVMF) disk.
+
+  The firmware disk uses the same C{dev_type} as the instance's data disks
+  (so it is mirrored on DRBD instances and moves with the instance through all
+  the generic disk paths), but is tagged with role C{firmware} and forced to
+  local (kernelspace) access so its regions can always be exposed as pflash
+  backing on the node (see L{ganeti.hypervisor.hv_kvm}).
+
+  @type base_index: int
+  @param base_index: index for the firmware disk (the tail of C{inst.disks})
+  @rtype: L{objects.Disk}
+  @return: the firmware disk, not yet attached to the instance
+
+  """
+  disk_info = [{
+    constants.IDISK_SIZE: constants.OVMF_FIRMWARE_DISK_SIZE,
+    constants.IDISK_MODE: constants.DISK_RDWR,
+    # force local access so drbd/plain/rbd present a /dev block node and
+    # file/sharedfile/gluster present a local file for the dm/loop mechanism
+    constants.IDISK_ACCESS: constants.DISK_KERNELSPACE,
+    }]
+  disks = GenerateDiskTemplate(lu, template_name, instance_uuid,
+                               primary_node_uuid, secondary_node_uuids,
+                               disk_info, file_storage_dir, file_driver,
+                               base_index, feedback_fn, full_disk_params)
+  firmware_disk = disks[0]
+  firmware_disk.role = constants.DR_ROLE_FIRMWARE
+  if firmware_disk.params is None:
+    firmware_disk.params = {}
+  firmware_disk.params[constants.LDP_ACCESS] = constants.DISK_KERNELSPACE
+  return firmware_disk
+
+
+def SeedFirmwareDisk(lu, instance, firmware_disk, code_path, vars_path):
+  """Seed a freshly created firmware disk with the OVMF code and vars.
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance owning the firmware disk
+  @type firmware_disk: L{objects.Disk}
+  @param firmware_disk: the firmware disk (already created on the primary node)
+  @type code_path: string
+  @param code_path: resolved OVMF code template path
+  @type vars_path: string
+  @param vars_path: resolved OVMF vars template path
+
+  """
+  node_uuid = instance.primary_node
+  node_name = lu.cfg.GetNodeName(node_uuid)
+  lu.LogInfo("Seeding UEFI firmware disk for instance '%s' on node '%s'",
+             instance.name, node_name)
+  result = lu.rpc.call_blockdev_seed_firmware(node_uuid,
+                                              (firmware_disk, instance),
+                                              code_path, vars_path)
+  result.Raise("Could not seed firmware disk for instance '%s' on node '%s'" %
+               (instance.name, node_name))
+
+
 def CommitDisks(disks):
   """Recursively remove the forthcoming flag
 
@@ -987,18 +1047,38 @@ class LUInstanceRecreateDisks(LogicalUnit):
       CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
                          msg="cannot recreate disks")
 
+    # The firmware disk holds precious OVMF NVRAM (and a read-only code region):
+    # recreating it as an empty volume would brick the instance. It is never
+    # part of a recreate-disks run; firmware loss is a separate, documented
+    # recovery procedure.
+    disk_objs = self.cfg.GetInstanceDisks(instance.uuid)
+    firmware_idxs = set(idx for (idx, disk) in enumerate(disk_objs)
+                        if disk.role == constants.DR_ROLE_FIRMWARE)
+    data_idxs = [idx for idx in range(len(instance.disks))
+                 if idx not in firmware_idxs]
+
     if self.op.disks:
       self.disks = dict(self.op.disks)
+      bad_idxs = firmware_idxs.intersection(self.disks.keys())
+      if bad_idxs:
+        raise errors.OpPrereqError("Cannot recreate the firmware disk(s) %s;"
+                                   " the firmware disk holds precious OVMF"
+                                   " NVRAM and is restored via a separate"
+                                   " recovery procedure" %
+                                   utils.CommaJoin(sorted(bad_idxs)),
+                                   errors.ECODE_INVAL)
     else:
-      self.disks = dict((idx, {}) for idx in range(len(instance.disks)))
+      # A bare recreate-disks touches only the data disks.
+      self.disks = dict((idx, {}) for idx in data_idxs)
 
-    maxidx = max(self.disks.keys())
-    if maxidx >= len(instance.disks):
-      raise errors.OpPrereqError("Invalid disk index '%s'" % maxidx,
-                                 errors.ECODE_INVAL)
+    if self.disks:
+      maxidx = max(self.disks.keys())
+      if maxidx >= len(instance.disks):
+        raise errors.OpPrereqError("Invalid disk index '%s'" % maxidx,
+                                   errors.ECODE_INVAL)
 
     if ((self.op.node_uuids or self.op.iallocator) and
-         sorted(self.disks.keys()) != list(range(len(instance.disks)))):
+         sorted(self.disks.keys()) != data_idxs):
       raise errors.OpPrereqError("Can't recreate disks partially and"
                                  " change the nodes at the same time",
                                  errors.ECODE_INVAL)
@@ -1248,8 +1328,12 @@ def WipeDisks(lu, instance, disks=None):
 
   if disks is None:
     inst_disks = lu.cfg.GetInstanceDisks(instance.uuid)
+    # The firmware disk is seeded with OVMF code/vars right after creation;
+    # wiping it would be pointless (and must never run after seeding), so it is
+    # excluded from the default wipe set.
     disks = [(idx, disk, 0)
-             for (idx, disk) in enumerate(inst_disks)]
+             for (idx, disk) in enumerate(inst_disks)
+             if disk.role != constants.DR_ROLE_FIRMWARE]
 
   logging.info("Pausing synchronization of disks of instance '%s'",
                instance.name)
@@ -1799,6 +1883,11 @@ class LUInstanceGrowDisk(LogicalUnit):
     self.node_es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_uuids)
 
     self.disk = self.cfg.GetDiskInfo(self.instance.FindDisk(self.op.disk))
+
+    if self.disk.role == constants.DR_ROLE_FIRMWARE:
+      raise errors.OpPrereqError(
+          "Cannot grow the firmware disk; its size is fixed",
+          errors.ECODE_INVAL)
 
     if self.disk.dev_type not in constants.DTS_GROWABLE:
       raise errors.OpPrereqError(

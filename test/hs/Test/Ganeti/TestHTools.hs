@@ -113,7 +113,8 @@ defGroupAssoc = Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 -- | Create an instance given its spec.
 createInstance :: Int -> Int -> Int -> Instance.Instance
 createInstance mem dsk vcpus =
-  Instance.create "inst-unnamed" mem dsk [Instance.Disk dsk Nothing] vcpus
+  Instance.create "inst-unnamed" mem dsk
+    [Instance.Disk dsk Nothing Types.DiskRoleData] vcpus
     Types.Running [] True (-1) (-1) Types.DTDrbd8 1 [] False
 
 -- | Create a small cluster by repeating a node spec.
@@ -140,5 +141,6 @@ setInstanceSmallerThanNode node inst =
           , Instance.disks = [Instance.Disk new_dsk
                               (if Node.exclStorage node
                                then Just $ Node.fSpindlesForth node `div` 2
-                               else Nothing)]
+                               else Nothing)
+                              Types.DiskRoleData]
           }

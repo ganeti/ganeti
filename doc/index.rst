@@ -81,7 +81,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.16.rst
    design-3.0.rst
    design-3.1.rst
-   design-3.2.rst
+   design-4.0.rst
 
 Draft designs
 -------------
@@ -151,6 +151,7 @@ Draft designs
    design-ssh-ports.rst
    design-storagetypes.rst
    design-systemd.rst
+   design-uefi-boot.rst
    design-upgrade.rst
    design-virtual-clusters.rst
    dev-codestyle.rst

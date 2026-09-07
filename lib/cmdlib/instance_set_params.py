@@ -58,6 +58,7 @@ from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckDiskExtProvider, CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, \
   CheckSpindlesExclusiveStorage, ComputeDiskSizePerVG, ComputeDisksInfo, \
   CreateDisks, CreateSingleBlockDev, GenerateDiskTemplate, \
+  GenerateFirmwareDisk, SeedFirmwareDisk, \
   IsExclusiveStorageEnabledNodeUuid, ShutdownInstanceDisks, \
   WaitForSync, WipeOrCleanupDisks, AssembleInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
@@ -458,10 +459,24 @@ class LUInstanceSetParams(LogicalUnit):
         self.needed_locks[locking.LEVEL_NODE] = \
           list(self.cfg.GetNodeGroupMembersByNodes(
             self.needed_locks[locking.LEVEL_NODE]))
-    elif level == locking.LEVEL_NODE_RES and self.op.disk_template:
-      # Copy node locks
+    elif level == locking.LEVEL_NODE_RES and (self.op.disk_template or
+                                              self._RequestsUefiBoot()):
+      # Copy node locks. Switching boot_type to uefi adds a firmware disk, so
+      # node resource locks are needed for it just like for a template change.
       self.needed_locks[locking.LEVEL_NODE_RES] = \
         CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+
+  def _RequestsUefiBoot(self):
+    """Whether this operation explicitly switches boot_type to uefi.
+
+    Used in L{DeclareLocks} (where only the requested hvparam overrides are
+    available) to decide whether node resource locks are required for the
+    firmware disk that the switch adds.
+
+    """
+    return (self.op.hvparams is not None and
+            self.op.hvparams.get(constants.HV_BOOT_TYPE) ==
+            constants.HT_BOOT_UEFI)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -825,7 +840,11 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
                                  " more" % constants.MAX_DISKS,
                                  errors.ECODE_STATE)
-    disk_sizes = [disk.size for disk in inst_disks]
+    # The firmware (OVMF) disk has a fixed, policy-exempt size; exclude it from
+    # the disk-size/disk-count ipolicy spec (a 32 MiB firmware disk would
+    # otherwise violate a higher disk-size minimum).
+    disk_sizes = [disk.size for disk in inst_disks
+                  if disk.role != constants.DR_ROLE_FIRMWARE]
     disk_sizes.extend(params["size"] for (op, idx, params, private) in
                       self.diskmod if op == constants.DDM_ADD)
     ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
@@ -1179,6 +1198,7 @@ class LUInstanceSetParams(LogicalUnit):
     self._PreCheckDisks(ispec)
 
     self._ProcessHVParams(node_uuids)
+    self._CheckBootTypeTransition()
     be_old = self._ProcessBeParams()
 
     self._ValidateCpuParams()
@@ -1253,7 +1273,11 @@ class LUInstanceSetParams(LogicalUnit):
         count = ispec[constants.ISPEC_DISK_COUNT]
         new_disk_types = [self.op.disk_template] * count
       else:
-        old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+        # The firmware disk is excluded from the ipolicy disk spec (see
+        # _PreCheckDisks), so it must be excluded here too to keep
+        # disk_types aligned with the disk-size/disk-count spec.
+        old_disks = [d for d in self.cfg.GetInstanceDisks(self.instance.uuid)
+                     if d.role != constants.DR_ROLE_FIRMWARE]
         add_disk_count = ispec[constants.ISPEC_DISK_COUNT] - len(old_disks)
         dev_type = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
         if dev_type == constants.DT_DISKLESS and add_disk_count != 0:
@@ -1281,6 +1305,35 @@ class LUInstanceSetParams(LogicalUnit):
                (group_info, group_info.name,
                 utils.CommaJoin(set(res_max + res_min))))
         raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+  @staticmethod
+  def _PreserveDiskRoles(old_disks, new_disks):
+    """Carry non-data disk roles (firmware) across a template conversion.
+
+    Disk-template conversion regenerates disks from the data-disk specs, which
+    default to role 'data'. Without this the converted firmware disk would lose
+    its role (and the identity of its precious OVMF NVRAM), and the instance
+    would no longer boot via UEFI.
+
+    Correctness relies on C{old_disks} and C{new_disks} being positionally
+    aligned 1:1: conversion regenerates every disk (firmware included) from the
+    same ordering, so C{new_disks[i]} corresponds to C{old_disks[i]}. The
+    firmware disk may sit at ANY index -- it is the tail only on a freshly
+    created instance; adding data disks later moves it into the middle -- so
+    this must never be rewritten to assume a tail position (e.g. by excluding
+    the firmware disk from the regenerated list and re-appending it). Each
+    non-data role is carried across by position, so the firmware disk inherits
+    the new C{dev_type} (e.g. plain->drbd makes it mirrored too) and is never
+    silently dropped.
+
+    """
+    for (old, new) in zip(old_disks, new_disks):
+      if old.role != constants.DR_ROLE_DATA:
+        new.role = old.role
+        if old.role == constants.DR_ROLE_FIRMWARE:
+          if new.params is None:
+            new.params = {}
+          new.params[constants.LDP_ACCESS] = constants.DISK_KERNELSPACE
 
   def _ConvertInstanceDisks(self, feedback_fn):
     """Converts the disks of an instance to another type.
@@ -1335,6 +1388,9 @@ class LUInstanceSetParams(LogicalUnit):
                                      0,
                                      feedback_fn,
                                      self.diskparams)
+
+    # Preserve the firmware (and any other non-data) role across conversion.
+    self._PreserveDiskRoles(old_disks, new_disks)
 
     # Create the new block devices for the instance.
     feedback_fn("Creating new empty disks of type '%s'..." % template_info)
@@ -1449,6 +1505,11 @@ class LUInstanceSetParams(LogicalUnit):
                                      [snode_uuid], self.disks_info,
                                      None, None, 0,
                                      feedback_fn, self.diskparams)
+
+    # Preserve the firmware (and any other non-data) role across conversion so
+    # the firmware disk becomes a mirrored DRBD disk like the data disks.
+    self._PreserveDiskRoles(old_disks, new_disks)
+
     anno_disks = rpc.AnnotateDiskParams(new_disks, self.diskparams)
     p_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, pnode_uuid)
     s_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, snode_uuid)
@@ -1531,6 +1592,10 @@ class LUInstanceSetParams(LogicalUnit):
       child.mode = parent.mode
       child.name = parent.name
       child.nodes = [self.instance.primary_node]
+
+    # Preserve the firmware (and any other non-data) role across conversion so
+    # the promoted plain disk keeps holding the OVMF NVRAM.
+    self._PreserveDiskRoles(old_disks, new_disks)
 
     # this is a DRBD disk, return its port to the pool
     for disk in old_disks:
@@ -1650,6 +1715,98 @@ class LUInstanceSetParams(LogicalUnit):
     if not self.instance.disks_active:
       ShutdownInstanceDisks(self, self.instance, disks=[disk])
 
+  def _CheckBootTypeTransition(self):
+    """Validate a boot_type change and record the firmware-disk decision.
+
+    Switching boot_type to uefi adds a per-instance firmware (OVMF) disk
+    (created and seeded in Exec); switching away keeps the firmware disk
+    untouched, since it holds precious NVRAM (it is simply inert while
+    boot_type != uefi). Only the decision is made here; no disk is created.
+
+    """
+    self._add_firmware_disk = False
+
+    if self.instance.hypervisor != constants.HT_KVM:
+      return
+
+    new_boot_type = self.hv_proposed.get(constants.HV_BOOT_TYPE)
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    has_firmware = any(d.role == constants.DR_ROLE_FIRMWARE
+                       for d in inst_disks)
+
+    if new_boot_type == constants.HT_BOOT_UEFI and not has_firmware:
+      # Adding a disk: the instance must be stopped, and node resource locks
+      # must be held (arranged by _RequestsUefiBoot in DeclareLocks).
+      CheckInstanceState(self, self.instance, INSTANCE_NOT_RUNNING,
+                         msg="cannot add the UEFI firmware disk")
+      if not self.owned_locks(locking.LEVEL_NODE_RES):
+        raise errors.OpPrereqError(
+            "Switching boot_type to 'uefi' adds a firmware disk and therefore"
+            " requires node resource locks; please retry the operation",
+            errors.ECODE_STATE)
+      self._add_firmware_disk = True
+
+  def _CreateFirmwareDiskForBootType(self, feedback_fn):
+    """Create and seed the firmware disk for a boot_type switch to uefi.
+
+    Mirrors the instance-creation firmware path (L{GenerateFirmwareDisk} +
+    seed), reusing the instance's current nodes and disk template so the
+    firmware disk is mirrored on DRBD instances.
+
+    """
+    disk_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    base_index = len(inst_disks)
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
+    pnode_info = self.cfg.GetNodeInfo(self.instance.primary_node)
+    nodegroup = self.cfg.GetNodeGroup(pnode_info.group)
+    file_path = CalculateFileStorageDir(
+        disk_template, self.cfg, self.instance.name,
+        file_storage_dir=self.op.file_storage_dir)
+    self._FillFileDriver()
+
+    feedback_fn("Creating UEFI firmware disk")
+    firmware_disk = GenerateFirmwareDisk(
+        self, disk_template, self.instance.uuid, self.instance.primary_node,
+        secondary_nodes, base_index, file_path, self.op.file_driver,
+        self.Log, self.cfg.GetGroupDiskParams(nodegroup))
+
+    CreateDisks(self, self.instance, disks=[firmware_disk])
+    self.cfg.AddInstanceDisk(self.instance.uuid, firmware_disk, base_index)
+    # re-read the instance from the configuration
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
+
+    feedback_fn("Seeding UEFI firmware disk")
+    code_path = (self.hv_proposed.get(constants.HV_OVMF_CODE) or
+                 constants.OVMF_CODE_TEMPLATE)
+    vars_path = constants.OVMF_VARS_TEMPLATE
+    SeedFirmwareDisk(self, self.instance, firmware_disk, code_path, vars_path)
+
+    if not WaitForSync(self, self.instance, disks=[firmware_disk],
+                       oneshot=not self.op.wait_for_sync):
+      raise errors.OpExecError("Failed to sync firmware disk of %s" %
+                               self.instance.name)
+
+    # the firmware disk is active after creation/seeding; deactivate it if the
+    # instance's disks are supposed to be inactive
+    if not self.instance.disks_active:
+      ShutdownInstanceDisks(self, self.instance, disks=[firmware_disk])
+
+  def _CheckFirmwareRoleRemovable(self, root):
+    """Reject removing/detaching the firmware disk of a UEFI instance.
+
+    The firmware disk holds the precious OVMF NVRAM; removing it while the
+    instance still boots via uefi would brick it.
+
+    """
+    if (root.role == constants.DR_ROLE_FIRMWARE and
+        self.hv_proposed.get(constants.HV_BOOT_TYPE) ==
+        constants.HT_BOOT_UEFI):
+      raise errors.OpPrereqError(
+          "Cannot remove or detach the firmware disk of a UEFI instance; it"
+          " holds the precious OVMF NVRAM. Switch boot_type away from 'uefi'"
+          " first if you really want to remove it.", errors.ECODE_STATE)
+
   def _AttachDisk(self, idx, params, _):
     """Attaches an existing disk to an instance.
 
@@ -1735,6 +1892,8 @@ class LUInstanceSetParams(LogicalUnit):
     """Removes a disk.
 
     """
+    self._CheckFirmwareRoleRemovable(root)
+
     hotmsg = ""
     if self.op.hotplug:
       hotmsg = self._HotplugDevice(constants.HOTPLUG_ACTION_REMOVE,
@@ -1760,6 +1919,8 @@ class LUInstanceSetParams(LogicalUnit):
     """Detaches a disk from an instance.
 
     """
+    self._CheckFirmwareRoleRemovable(root)
+
     hotmsg = ""
     if self.op.hotplug:
       hotmsg = self._HotplugDevice(constants.HOTPLUG_ACTION_REMOVE,
@@ -1874,9 +2035,14 @@ class LUInstanceSetParams(LogicalUnit):
     for warn in self.warn:
       feedback_fn("WARNING: %s" % warn)
 
-    assert ((self.op.disk_template is None) ^
-            bool(self.owned_locks(locking.LEVEL_NODE_RES))), \
-      "Not owning any node resource locks"
+    # Node resource locks are held when changing the disk template, and also
+    # when switching boot_type to uefi (DeclareLocks acquires them so the
+    # firmware disk can be created if needed). The lock state must match.
+    expect_node_res_locks = (self.op.disk_template is not None or
+                             self._RequestsUefiBoot())
+    assert expect_node_res_locks == \
+           bool(self.owned_locks(locking.LEVEL_NODE_RES)), \
+      "Node resource locks not held as expected"
 
     result = []
 
@@ -1933,6 +2099,13 @@ class LUInstanceSetParams(LogicalUnit):
         ("Expected disk template '%s', found '%s'" %
          (self.op.disk_template,
           self.cfg.GetInstanceDiskTemplate(self.instance.uuid)))
+
+    # Switching boot_type to uefi adds the firmware disk. Must run while node
+    # (resource) locks are still held, i.e. before the ReleaseLocks below.
+    if self._add_firmware_disk:
+      self._CreateFirmwareDiskForBootType(feedback_fn)
+      result.append(("firmware_disk", "add:role=%s" %
+                     constants.DR_ROLE_FIRMWARE))
 
     # Release node and resource locks if there are any (they might already have
     # been released during disk conversion)
