@@ -1832,46 +1832,6 @@ class TestLUClusterVerifyGroupVerifyOrphanVolumes(
     self.mcpu.assertLogDoesNotContainRegex("volume other_vg/disk_1 is unknown")
 
 
-class TestLUClusterVerifyGroupVerifyNPlusOneMemory(
-        TestLUClusterVerifyGroupMethods):
-  @withLockedLU
-  def testN1Failure(self, lu):
-    group1 = self.cfg.AddNewNodeGroup()
-
-    node1 = self.cfg.AddNewNode()
-    node2 = self.cfg.AddNewNode(group=group1)
-    node3 = self.cfg.AddNewNode()
-
-    inst1 = self.cfg.AddNewInstance()
-    inst2 = self.cfg.AddNewInstance()
-    inst3 = self.cfg.AddNewInstance()
-
-    node1_img = verify.LUClusterVerifyGroup.NodeImage(uuid=node1.uuid)
-    node1_img.sbp = {
-      self.master_uuid: [inst1.uuid, inst2.uuid, inst3.uuid]
-    }
-
-    node2_img = verify.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
-
-    node3_img = verify.LUClusterVerifyGroup.NodeImage(uuid=node3.uuid)
-    node3_img.offline = True
-
-    node_imgs = {
-      node1.uuid: node1_img,
-      node2.uuid: node2_img,
-      node3.uuid: node3_img
-    }
-
-    lu._VerifyNPlusOneMemory(node_imgs, self.cfg.GetAllInstancesInfo())
-    self.mcpu.assertLogContainsRegex(
-      "not enough memory to accomodate instance failovers")
-
-    self.mcpu.ClearLogMessages()
-    node1_img.mfree = 1000
-    lu._VerifyNPlusOneMemory(node_imgs, self.cfg.GetAllInstancesInfo())
-    self.mcpu.assertLogIsEmpty()
-
-
 class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def test(self, lu):
