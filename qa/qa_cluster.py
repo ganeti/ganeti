@@ -159,7 +159,7 @@ def PrepareHvParameterSets():
       "disk_aio": constants.HT_KVM_VALID_AIO_TYPES,
       "disk_cache": constants.HT_VALID_CACHE_TYPES,
       "usb_mouse": constants.HT_KVM_VALID_MOUSE_TYPES,
-      "disk_type": ["ide", "paravirtual"],
+      "disk_type": ["ide", "paravirtual", "scsi-hd"],
       "soundhw": ["ac97", "hda"],
       "machine_version": ["", "pc", "q35"],
     }
