@@ -54,7 +54,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types ( IMove(Failover), Ndx, Gdx, Idx, opToResult,
-                             FailMode(FailN1) )
+                             FailMode(FailN1), nullIPolicy )
 import Ganeti.Types ( DiskTemplate(DTDrbd8), diskTemplateMovable
                     , EvacMode(ChangePrimary))
 
@@ -77,9 +77,10 @@ recreate :: [Ndx]
          -> Result (Node.List, Instance.List)
 recreate targetnodes (nl, il) inst = do
   let opts = defaultOptions { algIgnoreSoftErrors = True, algEvacMode = True }
+      clean_nl = Container.map (\n -> n { Node.iPolicy = nullIPolicy }) nl
       sols = foldl (\cstate ->
                        AllocSol.concatAllocCollections cstate
-                       . allocateOnSingle opts nl inst
+                       . allocateOnSingle opts clean_nl inst
                    ) AllocSol.emptyAllocCollection targetnodes
       sol = AllocSol.collectionToSolution FailN1 (const True) sols
   alloc <- maybe (fail "No solution found") return $ AllocSol.asSolution sol
