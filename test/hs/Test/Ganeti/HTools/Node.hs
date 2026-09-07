@@ -106,7 +106,7 @@ genNode min_multiplier max_multiplier = do
   let n = Node.create name (fromIntegral mem_t) mem_n mem_f
           (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) cpu_n offl spindles
           0 0 False
-      n1 = Node.setPolicy nullIPolicy n
+      n1 = Node.setPolicy Types.nullIPolicy n
       n2 = Loader.updateMemStat n1 Container.empty
   return $ Node.buildPeers n2 Container.empty
 
