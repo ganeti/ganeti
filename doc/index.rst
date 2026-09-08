@@ -152,6 +152,7 @@ Draft designs
    design-storagetypes.rst
    design-systemd.rst
    design-upgrade.rst
+   design-vcpu-hotplug.rst
    design-virtual-clusters.rst
    dev-codestyle.rst
    glossary.rst

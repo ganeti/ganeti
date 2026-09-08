@@ -2,7 +2,7 @@
 Design document drafts
 ======================
 
-.. Last updated for Ganeti 3.1
+.. Last updated for Ganeti 3.2
 
 .. toctree::
    :maxdepth: 2
@@ -19,6 +19,7 @@ Design document drafts
    design-repaird.rst
    design-scsi-kvm.rst
    design-disks.rst
+   design-vcpu-hotplug.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
