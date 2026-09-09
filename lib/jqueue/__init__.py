@@ -670,7 +670,7 @@ def _EncodeOpError(err):
   if isinstance(err, errors.GenericError):
     to_encode = err
   else:
-    to_encode = errors.OpExecError(str(err))
+    to_encode = errors.OpExecError(str(err) or err.__class__.__name__)
 
   return errors.EncodeException(to_encode)
 

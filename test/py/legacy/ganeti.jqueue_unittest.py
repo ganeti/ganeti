@@ -78,6 +78,15 @@ class _FakeJob:
 
 
 class TestEncodeOpError(unittest.TestCase):
+  def testEmptyException(self):
+    self.assertEqual(jqueue._EncodeOpError(utils.RetryTimeout()),
+                     ("OpExecError", ("RetryTimeout",)))
+
+  def testRetryTimeout(self):
+    message = "WConfd config-lock timeout - UpdateInstance"
+    self.assertEqual(jqueue._EncodeOpError(utils.RetryTimeout(message)),
+                     ("OpExecError", (message,)))
+
   def test(self):
     encerr = jqueue._EncodeOpError(errors.LockError("Test 1"))
     self.assertTrue(isinstance(encerr, tuple))

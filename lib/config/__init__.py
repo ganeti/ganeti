@@ -3033,12 +3033,19 @@ class ConfigWriter(object):
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
 
+    polls = 0
+
     def WithRetry():
+      nonlocal polls
+      polls += 1
       result = update_function(target.ToDict())
       self.OutDate()
 
       if result is None:
-        raise utils.RetryAgain()
+        raise utils.RetryAgain(
+          "WConfd config-lock timeout - %s for object UUID %s;"
+          " config lock unavailable on all %s polls (30-second retry budget)" %
+          (update_function.__name__, target.uuid, polls))
       else:
         return result
     vals = utils.Retry(WithRetry, 0.1, 30)
