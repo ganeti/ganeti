@@ -124,7 +124,10 @@ class TestParameterCheck(testutils.GanetiTestCase):
     self.assertTrue(validation.check_security_model(valid_data))
 
   def testInvalidBootParameters(self):
+    # boot_type is now authoritative: boot_order (here cdrom without an ISO) is
+    # only enforced under bios/uefi, not under the direct_kernel default.
     invalid_data = {
+      constants.HV_BOOT_TYPE: constants.HT_BOOT_BIOS,
       constants.HV_BOOT_ORDER: constants.HT_BO_CDROM,
       constants.HV_CDROM_IMAGE_PATH: None,
       constants.HV_KERNEL_PATH: "/some/path",
@@ -134,11 +137,25 @@ class TestParameterCheck(testutils.GanetiTestCase):
     self.assertRaises(errors.HypervisorError,
                       validation.check_boot_parameters, invalid_data)
 
+    # direct_kernel boot with a kernel but no root partition.
     invalid_data = {
+      constants.HV_BOOT_TYPE: constants.HT_BOOT_DIRECT_KERNEL,
       constants.HV_BOOT_ORDER: constants.HT_BO_CDROM,
       constants.HV_CDROM_IMAGE_PATH: "/cd.iso",
       constants.HV_KERNEL_PATH: "/some/path",
       constants.HV_ROOT_PATH: None
+    }
+
+    self.assertRaises(errors.HypervisorError,
+                      validation.check_boot_parameters, invalid_data)
+
+    # UEFI cannot boot from floppy.
+    invalid_data = {
+      constants.HV_BOOT_TYPE: constants.HT_BOOT_UEFI,
+      constants.HV_BOOT_ORDER: constants.HT_BO_FLOPPY,
+      constants.HV_CDROM_IMAGE_PATH: None,
+      constants.HV_KERNEL_PATH: "/some/path",
+      constants.HV_ROOT_PATH: "/"
     }
 
     self.assertRaises(errors.HypervisorError,

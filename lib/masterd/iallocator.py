@@ -798,10 +798,16 @@ class IAllocator(object):
                  cfg.GetNodeNames(
                    cfg.GetInstanceSecondaryNodes(iinfo.uuid)),
         "nics": nic_data,
+        # The per-instance disk list carries the disk 'role'. The firmware
+        # (OVMF) disk is reported like any other disk, but tagged so the
+        # consumer (htools) can exempt it from the disk-size/count/spindle
+        # ipolicy. 'role' is an additive, backwards-compatible field: older
+        # consumers ignore it.
         "disks": [{constants.IDISK_TYPE: dsk.dev_type,
                    constants.IDISK_SIZE: dsk.size,
                    constants.IDISK_MODE: dsk.mode,
-                   constants.IDISK_SPINDLES: dsk.spindles}
+                   constants.IDISK_SPINDLES: dsk.spindles,
+                   "role": dsk.role}
                   for dsk in inst_disks],
         "disk_template": inst_disktemplate,
         "disks_active": iinfo.disks_active,

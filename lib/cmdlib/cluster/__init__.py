@@ -1344,12 +1344,14 @@ class LUClusterSetParams(LogicalUnit):
 
     # hypervisor list/parameters
     self.new_hvparams = new_hvp = objects.FillDict(cluster.hvparams, {})
+    self._boot_type_migration_jobs = None  # set when --force migrates
     if self.op.hvparams:
       for hv_name, hv_dict in self.op.hvparams.items():
         if hv_name not in self.new_hvparams:
           self.new_hvparams[hv_name] = hv_dict
         else:
           self.new_hvparams[hv_name].update(hv_dict)
+      self._CheckBootTypeDefaultTransition()
 
     # disk template parameters
     self.new_diskparams = objects.FillDict(cluster.diskparams, {})
@@ -1447,6 +1449,80 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.compression_tools:
       CheckCompressionTools(self.op.compression_tools)
+
+  def _CheckBootTypeDefaultTransition(self):
+    """Guard or complete the cluster-wide KVM boot_type flip to uefi.
+
+    Instances inheriting the new default would boot UEFI without a
+    firmware disk; only an explicit per-instance switch creates one.
+    Without --force, refuse while affected instances exist. With
+    --force, submit a follow-up OpInstanceSetParams job for every
+    *stopped* affected instance (creating its firmware disk); running
+    or offline instances are only warned about.
+
+    The instance scan is advisory (node locks only), like the nicparams
+    validation in CheckPrereq.
+
+    """
+    old_kvm_default = objects.FillDict(
+      constants.HVC_DEFAULTS[constants.HT_KVM],
+      self.cluster.hvparams.get(constants.HT_KVM, {}))
+    new_kvm_default = self.new_hvparams.get(constants.HT_KVM, {})
+    if (new_kvm_default.get(constants.HV_BOOT_TYPE) !=
+        constants.HT_BOOT_UEFI or
+        old_kvm_default.get(constants.HV_BOOT_TYPE) ==
+        constants.HT_BOOT_UEFI):
+      return
+
+    affected = []
+    for instance in self.cfg.GetAllInstancesInfo().values():
+      if (instance.hypervisor != constants.HT_KVM or
+          constants.HV_BOOT_TYPE in (instance.hvparams or {}) or
+          any(d.role == constants.DR_ROLE_FIRMWARE
+              for d in self.cfg.GetInstanceDisks(instance.uuid))):
+        continue
+      affected.append(instance)
+
+    if not affected:
+      return
+
+    if not self.op.force:
+      raise errors.OpPrereqError(
+          "Setting the cluster-wide KVM boot_type default to 'uefi' will"
+          " leave %d instance(s) (e.g. '%s') resolving to UEFI boot without"
+          " a UEFI firmware disk; they will refuse to start until each has"
+          " been switched explicitly via 'gnt-instance modify -H"
+          " boot_type=uefi <name>' (which creates and seeds the firmware"
+          " disk; the instance must be stopped). Use --force to apply the"
+          " change and automatically create the firmware disks of all"
+          " affected stopped instances."
+          % (len(affected), affected[0].name), errors.ECODE_INVAL)
+
+    stopped = [i for i in affected
+               if i.admin_state == constants.ADMINST_DOWN]
+    not_stopped = [i.name for i in affected if i.admin_state !=
+                   constants.ADMINST_DOWN]
+    if not_stopped:
+      self.LogWarning("%d affected instance(s) are running or offline and"
+                      " will not receive a firmware disk automatically;"
+                      " they will refuse to start after a stop until"
+                      " switched explicitly via 'gnt-instance modify -H"
+                      " boot_type=uefi' while stopped: %s"
+                      % (len(not_stopped),
+                         utils.CommaJoin(utils.NiceSort(not_stopped))))
+
+    if stopped:
+      self.LogWarning("Submitting follow-up jobs to switch %d stopped"
+                      " affected instance(s) to boot_type=uefi explicitly,"
+                      " creating and seeding their firmware disks: %s"
+                      % (len(stopped),
+                         utils.CommaJoin(utils.NiceSort(
+                           i.name for i in stopped))))
+      self._boot_type_migration_jobs = [
+          [opcodes.OpInstanceSetParams(
+              instance_name=i.name,
+              hvparams={constants.HV_BOOT_TYPE: constants.HT_BOOT_UEFI})]
+          for i in stopped]
 
   def _BuildOSParams(self, cluster):
     "Calculate the new OS parameters for this operation."
@@ -1843,6 +1919,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.compression_tools is not None:
       self.cfg.SetCompressionTools(self.op.compression_tools)
+
+    if self._boot_type_migration_jobs:
+      return ResultWithJobs(self._boot_type_migration_jobs)
 
     network_name = self.op.instance_communication_network
     if network_name is not None:
