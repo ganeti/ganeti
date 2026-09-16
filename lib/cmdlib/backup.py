@@ -32,7 +32,8 @@
 
 import logging
 
-import OpenSSL
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
 
 from ganeti import compat
 from ganeti import constants
@@ -87,8 +88,11 @@ class LUBackupPrepare(NoHooksLU):
 
       (name, cert_pem) = result.payload
 
-      cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                             cert_pem)
+      # RPC payloads are strings; the loader requires bytes.
+      if not isinstance(cert_pem, bytes):
+        cert_pem = cert_pem.encode("ascii")
+
+      cert = cryptography_x509.load_pem_x509_certificate(cert_pem)
 
       return {
         "handshake": masterd.instance.ComputeRemoteExportHandshake(self._cds),
@@ -247,8 +251,9 @@ class LUBackupExport(LogicalUnit):
 
       # Load and verify CA
       try:
-        (cert, _) = utils.LoadSignedX509Certificate(self.dest_x509_ca_pem, cds)
-      except OpenSSL.crypto.Error as err:
+        (cert, _) = utils.LoadSignedX509Certificate(self.dest_x509_ca_pem,
+                                                  cds)
+      except (errors.GenericError, ValueError) as err:
         raise errors.OpPrereqError("Unable to load destination X509 CA (%s)" %
                                    (err, ), errors.ECODE_INVAL)
 
@@ -475,9 +480,8 @@ class LUBackupExport(LogicalUnit):
 
           (key_name, _, _) = self.x509_key_name
 
-          dest_ca_pem = \
-            OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                            self.dest_x509_ca)
+          dest_ca_pem = self.dest_x509_ca.public_bytes(
+            serialization.Encoding.PEM).decode("ascii")
 
           (fin_resu, dresults) = helper.RemoteExport(self.dest_disk_info,
                                                      key_name, dest_ca_pem,

@@ -34,8 +34,11 @@ import unittest
 import shutil
 import tempfile
 import os.path
-import OpenSSL
 import time
+
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
+from cryptography.x509.oid import NameOID
 
 from ganeti import constants
 from ganeti import errors
@@ -44,6 +47,15 @@ from ganeti import utils
 from ganeti.tools import common
 
 import testutils
+
+
+def _NameCn(name):
+  """Returns the commonName attribute of a cryptography X509 name."""
+  attrs = name.get_attributes_for_oid(NameOID.COMMON_NAME)
+  if not attrs:
+    return None
+
+  return attrs[0].value
 
 
 class TestGenerateClientCert(unittest.TestCase):
@@ -72,12 +84,13 @@ class TestGenerateClientCert(unittest.TestCase):
 
     client_cert_pem = utils.ReadFile(self.client_cert)
     server_cert_pem = utils.ReadFile(self.server_cert)
-    client_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                  client_cert_pem)
-    signing_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                   server_cert_pem)
-    self.assertEqual(client_cert.get_issuer().CN, signing_cert.get_subject().CN)
-    self.assertEqual(client_cert.get_subject().CN, my_node_name)
+
+    client_cert = cryptography_x509.load_pem_x509_certificate(
+      client_cert_pem.encode("ascii"))
+    signing_cert = cryptography_x509.load_pem_x509_certificate(
+      server_cert_pem.encode("ascii"))
+    self.assertEqual(_NameCn(client_cert.issuer), _NameCn(signing_cert.subject))
+    self.assertEqual(_NameCn(client_cert.subject), my_node_name)
 
 
 class TestLoadData(unittest.TestCase):
@@ -172,7 +185,7 @@ class TestVerifyCertificateStrong(testutils.GanetiTestCase):
 
   @staticmethod
   def _Check(cert):
-    assert cert.get_subject()
+    assert cert.subject
 
   def testSuccessfulCheck(self):
     cert_filename = testutils.TestDataFilename("cert2.pem")
@@ -181,10 +194,12 @@ class TestVerifyCertificateStrong(testutils.GanetiTestCase):
       common._VerifyCertificateStrong(cert_pem, self.MyException,
                                       _check_fn=self._Check)
 
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, result)
+    cert = cryptography_x509.load_pem_x509_certificate(
+      result.encode("ascii"))
     self.assertTrue(cert)
 
-    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, result)
+    key = serialization.load_pem_private_key(result.encode("ascii"),
+                                              password=None)
     self.assertTrue(key)
 
   def testMismatchingKey(self):
@@ -192,16 +207,16 @@ class TestVerifyCertificateStrong(testutils.GanetiTestCase):
     cert2_path = testutils.TestDataFilename("cert2.pem")
 
     # Extract certificate
-    cert1 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                            utils.ReadFile(cert1_path))
-    cert1_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                cert1)
+    cert1 = cryptography_x509.load_pem_x509_certificate(
+      utils.ReadFile(cert1_path).encode("ascii"))
+    cert1_pem = cert1.public_bytes(serialization.Encoding.PEM)
 
     # Extract mismatching key
-    key2 = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                          utils.ReadFile(cert2_path))
-    key2_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                              key2)
+    key2 = serialization.load_pem_private_key(
+      utils.ReadFile(cert2_path).encode("ascii"), password=None)
+    key2_pem = key2.private_bytes(
+      serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+      serialization.NoEncryption())
 
     try:
       common._VerifyCertificateStrong(cert1_pem + key2_pem, self.MyException,

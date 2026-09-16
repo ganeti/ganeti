@@ -35,7 +35,10 @@ Before installing, please verify that you have the following programs:
 - `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
 - `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
 - `Python <http://www.python.org/>`_, version 3.6 or above
-- `Python OpenSSL bindings <https://www.pyopenssl.org/>`_
+- `Python OpenSSL bindings <https://www.pyopenssl.org/>`_ (used for the
+  SSL/TLS connection layer; certificate and key handling is done via the
+  `cryptography <https://github.com/pyca/cryptography>`_ package below)
+- `cryptography Python package <https://github.com/pyca/cryptography>`_
 - `pyparsing Python module <https://pyparsing-docs.readthedocs.io/>`_, version
   1.5.7 or above
 - `PycURL Python module <http://pycurl.io/>`_
@@ -61,6 +64,7 @@ packages, except for RBD, DRBD and Xen::
 
   $ apt-get install lvm2 ssh iproute iputils-arping make m4 \
                     ndisc6 python3 python3-openssl openssl \
+                    python3-cryptography \
                     python3-pyparsing python3-bitarray \
                     python3-pycurl socat fping
 
@@ -85,8 +89,8 @@ For example::
 On Fedora to install all required packages except RBD, DRBD and Xen::
 
   $ yum install openssh openssh-clients iproute ndisc6 make \
-                pyOpenSSL python-lxm socat pyparsing \
-                fping python-bitarray python-ipaddr
+                pyOpenSSL python-cryptography python-lxm socat \
+                pyparsing fping python-bitarray python-ipaddr
 
 For optional packages use the command::
 

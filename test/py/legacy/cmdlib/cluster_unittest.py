@@ -32,7 +32,6 @@
 
 """
 
-import OpenSSL
 
 import copy
 import unittest
@@ -48,6 +47,7 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import utils
+from ganeti.utils import security
 from ganeti import pathutils
 from ganeti import query
 from ganeti.hypervisor import hv_xen
@@ -1099,7 +1099,7 @@ class TestLUClusterVerifyConfig(CmdlibTestCase):
     super(TestLUClusterVerifyConfig, self).setUp()
 
     self._load_cert_patcher = testutils \
-      .patch_object(OpenSSL.crypto, "load_certificate")
+      .patch_object(security, "VerifyCertificate")
     self._load_cert_mock = self._load_cert_patcher.start()
     self._verify_cert_patcher = testutils \
       .patch_object(utils, "VerifyCertificate")
