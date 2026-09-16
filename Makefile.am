@@ -271,6 +271,7 @@ PYTHON_TEST_DIRS = \
 	test/py/unit \
 	test/py/unit/hypervisor \
 	test/py/unit/hypervisor/hv_kvm \
+	test/py/unit/utils \
 	test/py/unit/test_data \
 	test/py/integration
 
@@ -2026,7 +2027,8 @@ python_tests_legacy = \
 	test/py/legacy/tempfile_fork_unittest.py
 
 python_tests_unit = \
-	test/py/unit/hypervisor/hv_kvm/test_monitor.py
+	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
+	test/py/unit/utils/test_x509.py
 
 python_tests = $(python_tests_integration) $(python_tests_legacy) $(python_tests_unit)
 

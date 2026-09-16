@@ -37,7 +37,8 @@ import time
 
 from io import StringIO
 
-import OpenSSL
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
 
 from ganeti import constants
 from ganeti import errors
@@ -73,40 +74,43 @@ def _VerifyCertificateStrong(cert_pem, error_fn,
   @return: Formatted key and certificate
 
   """
+  # Loaders require bytes; input may be str (e.g. from JSON).
+  if not isinstance(cert_pem, bytes):
+    cert_pem = cert_pem.encode("ascii")
+
   try:
-    cert = \
-      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
+    cert = cryptography_x509.load_pem_x509_certificate(cert_pem)
   except Exception as err:
     raise error_fn("(stdin) Unable to load certificate: %s" % err)
 
   try:
-    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except OpenSSL.crypto.Error as err:
+    key = serialization.load_pem_private_key(
+      cert_pem, password=None)
+  except Exception as err: # pylint: disable=W0703
     raise error_fn("(stdin) Unable to load private key: %s" % err)
 
   # Check certificate with given key; this detects cases where the key given on
   # stdin doesn't match the certificate also given on stdin
-  try:
-    utils.X509CertKeyCheck(cert, key)
-  except OpenSSL.SSL.Error:
+  if not utils.X509CertKeyCheck(cert, key):
     raise error_fn("(stdin) Certificate is not signed with given key")
 
   # Standard checks, including check against an existing local certificate
   # (no-op if that doesn't exist)
   _check_fn(cert)
 
-  key_encoded = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key)
-  cert_encoded = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                 cert)
+  key_encoded = key.private_bytes(
+    serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+    serialization.NoEncryption())
+  cert_encoded = cert.public_bytes(serialization.Encoding.PEM)
   complete_cert_encoded = key_encoded + cert_encoded
-  if not cert_pem == complete_cert_encoded.decode('ascii'):
+  if not cert_pem == complete_cert_encoded:
     logging.error("The certificate differs after being reencoded. Please"
                   " renew the certificates cluster-wide to prevent future"
                   " inconsistencies.")
 
   # Format for storing on disk
   buf = StringIO()
-  buf.write(cert_pem)
+  buf.write(cert_pem.decode("ascii"))
   return buf.getvalue()
 
 
@@ -118,16 +122,19 @@ def _VerifyCertificateSoft(cert_pem, error_fn,
   @param cert_pem: Certificate in PEM format (no key)
 
   """
+
+  if not isinstance(cert_pem, bytes):
+    cert_pem = cert_pem.encode("ascii")
+
   try:
-    OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except OpenSSL.crypto.Error as err:
+    serialization.load_pem_private_key(cert_pem, password=None)
+  except Exception: # pylint: disable=W0703
     pass
   else:
     raise error_fn("No private key may be given")
 
   try:
-    cert = \
-      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
+    cert = cryptography_x509.load_pem_x509_certificate(cert_pem)
   except Exception as err:
     raise errors.X509CertError("(stdin)",
                                "Unable to load certificate: %s" % err)

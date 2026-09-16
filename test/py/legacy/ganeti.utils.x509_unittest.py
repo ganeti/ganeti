@@ -30,13 +30,17 @@
 
 """Script for testing ganeti.utils.x509"""
 
+import datetime
 import os
 import tempfile
 import unittest
 import shutil
 import string
-import OpenSSL
-import packaging.version
+
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 from ganeti import constants
 from ganeti import utils
@@ -45,59 +49,15 @@ from ganeti import errors
 import testutils
 
 
-class TestParseAsn1Generalizedtime(unittest.TestCase):
-  def setUp(self):
-    self._Parse = utils.x509._ParseAsn1Generalizedtime
-
-  def test(self):
-    # UTC
-    self.assertEqual(self._Parse("19700101000000Z"), 0)
-    self.assertEqual(self._Parse("20100222174152Z"), 1266860512)
-    self.assertEqual(self._Parse("20380119031407Z"), (2**31) - 1)
-
-    # With offset
-    self.assertEqual(self._Parse("20100222174152+0000"), 1266860512)
-    self.assertEqual(self._Parse("20100223131652+0000"), 1266931012)
-    self.assertEqual(self._Parse("20100223051808-0800"), 1266931088)
-    self.assertEqual(self._Parse("20100224002135+1100"), 1266931295)
-    self.assertEqual(self._Parse("19700101000000-0100"), 3600)
-
-    # Leap seconds are not supported by datetime.datetime
-    self.assertRaises(ValueError, self._Parse, "19841231235960+0000")
-    self.assertRaises(ValueError, self._Parse, "19920630235960+0000")
-
-    # Errors
-    self.assertRaises(ValueError, self._Parse, "")
-    self.assertRaises(ValueError, self._Parse, "invalid")
-    self.assertRaises(ValueError, self._Parse, "20100222174152")
-    self.assertRaises(ValueError, self._Parse, "Mon Feb 22 17:47:02 UTC 2010")
-    self.assertRaises(ValueError, self._Parse, "2010-02-22 17:42:02")
-
-
 class TestGetX509CertValidity(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    pyopenssl_version = packaging.version.parse(OpenSSL.__version__)
-    minimal_pyopenssl_version = packaging.version.parse("0.7")
-
-    # Test whether we have pyOpenSSL in desired_pyopenssl_version (0.7) or above
-    self.pyopenssl0_7 = pyopenssl_version >= minimal_pyopenssl_version
-
-    if not self.pyopenssl0_7:
-      warnings.warn("This test requires pyOpenSSL 0.7 or above to"
-                    " function correctly")
-
   def _LoadCert(self, name):
-    return OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           testutils.ReadTestData(name))
+    return cryptography_x509.load_pem_x509_certificate(
+      testutils.ReadTestData(name).encode("ascii"))
 
   def test(self):
     validity = utils.GetX509CertValidity(self._LoadCert("cert1.pem"))
-    if self.pyopenssl0_7:
-      self.assertEqual(validity, (1519816700, 1519903100))
-    else:
-      self.assertEqual(validity, (None, None))
+    self.assertEqual(validity, (1519816700, 1519903100))
+
 
 
 class TestSignX509Certificate(unittest.TestCase):
@@ -108,8 +68,8 @@ class TestSignX509Certificate(unittest.TestCase):
     # Generate certificate valid for 5 minutes
     (_, cert_pem) = utils.GenerateSelfSignedX509Cert(None, 300, 1)
 
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           cert_pem)
+    cert = cryptography_x509.load_pem_x509_certificate(cert_pem)
+
 
     # No signature at all
     self.assertRaises(errors.GenericError,
@@ -148,7 +108,8 @@ class TestSignX509Certificate(unittest.TestCase):
   def _Check(self, cert, salt, pem):
     (cert2, salt2) = utils.LoadSignedX509Certificate(pem, self.KEY)
     self.assertEqual(salt, salt2)
-    self.assertEqual(cert.digest("sha1"), cert2.digest("sha1"))
+    self.assertEqual(cert.fingerprint(hashes.SHA1()),
+                     cert2.fingerprint(hashes.SHA1()))
 
     # Other key
     self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
@@ -166,32 +127,36 @@ class TestCertVerification(testutils.GanetiTestCase):
 
   def testVerifyCertificate(self):
     cert_pem = testutils.ReadTestData("cert1.pem")
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           cert_pem)
+    cert = cryptography_x509.load_pem_x509_certificate(
+      cert_pem.encode("ascii"))
 
     # Not checking return value as this certificate is expired
     utils.VerifyX509Certificate(cert, 30, 7)
 
   @staticmethod
   def _GenCert(key, before, validity):
-    # Urgh... mostly copied from x509.py :(
+    # Builds a self-signed certificate with a not_valid_before in the
+    # past ("before" < 0) or future ("before" > 0), mirroring the old
+    # pyOpenSSL gmtime_adj_notBefore behaviour.
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    not_before = now + datetime.timedelta(seconds=int(before))
+    not_after = now + datetime.timedelta(seconds=validity)
 
-    # Create self-signed certificate
-    cert = OpenSSL.crypto.X509()
-    cert.set_serial_number(1)
-    if before != 0:
-      cert.gmtime_adj_notBefore(int(before))
-    cert.gmtime_adj_notAfter(validity)
-    cert.set_issuer(cert.get_subject())
-    cert.set_pubkey(key)
-    cert.sign(key, constants.X509_CERT_SIGN_DIGEST)
-    return cert
+    return (
+      cryptography_x509.CertificateBuilder()
+        .subject_name(cryptography_x509.Name([]))
+        .issuer_name(cryptography_x509.Name([]))
+        .public_key(key.public_key())
+        .serial_number(1)
+        .not_valid_before(not_before)
+        .not_valid_after(not_after)
+        .sign(key, hashes.SHA256()))
 
   def testClockSkew(self):
     SKEW = constants.NODE_MAX_CLOCK_SKEW
     # Create private and public key
-    key = OpenSSL.crypto.PKey()
-    key.generate_key(OpenSSL.crypto.TYPE_RSA, constants.RSA_KEY_BITS)
+    key = rsa.generate_private_key(public_exponent=65537,
+                                   key_size=constants.RSA_KEY_BITS)
 
     validity = 7 * 86400
     # skew small enough, accepting cert; note that this is a timed
@@ -272,18 +237,15 @@ class TestGenerateX509Certs(unittest.TestCase):
       self._checkRsaPrivateKey(key_pem)
       self._checkCertificate(cert_pem)
 
-      key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                           key_pem)
-      self.assertTrue(key.bits() >= 1024)
-      self.assertEqual(key.bits(), constants.RSA_KEY_BITS)
-      self.assertEqual(key.type(), OpenSSL.crypto.TYPE_RSA)
+      key = serialization.load_pem_private_key(key_pem, password=None)
+      self.assertTrue(key.key_size >= 1024)
+      self.assertEqual(key.key_size, constants.RSA_KEY_BITS)
+      self.assertTrue(isinstance(key, rsa.RSAPrivateKey))
 
-      x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                             cert_pem)
-      self.assertFalse(x509.has_expired())
-      self.assertEqual(x509.get_issuer().CN, common_name)
-      self.assertEqual(x509.get_subject().CN, common_name)
-      self.assertEqual(x509.get_pubkey().bits(), constants.RSA_KEY_BITS)
+      x509 = cryptography_x509.load_pem_x509_certificate(cert_pem)
+      self.assertEqual(_NameCn(x509.issuer), common_name)
+      self.assertEqual(_NameCn(x509.subject), common_name)
+      self.assertEqual(x509.public_key().key_size, constants.RSA_KEY_BITS)
 
   def testLegacy(self):
     cert1_filename = os.path.join(self.tmpdir, "cert1.pem")
@@ -296,15 +258,7 @@ class TestGenerateX509Certs(unittest.TestCase):
     self.assertTrue(self._checkCertificate(cert1))
 
   def _checkKeyMatchesCert(self, key, cert):
-    ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-    ctx.use_privatekey(key)
-    ctx.use_certificate(cert)
-    try:
-      ctx.check_privatekey()
-    except OpenSSL.SSL.Error:
-      return False
-    else:
-      return True
+    return utils.X509CertKeyCheck(cert, key)
 
   def testSignedSslCertificate(self):
     server_cert_filename = os.path.join(self.tmpdir, "server.pem")
@@ -320,14 +274,25 @@ class TestGenerateX509Certs(unittest.TestCase):
     self._checkRsaPrivateKey(client_cert_pem)
     self._checkCertificate(client_cert_pem)
 
-    priv_key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                              client_cert_pem)
-    client_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           client_cert_pem)
+    priv_key = serialization.load_pem_private_key(
+      client_cert_pem.encode("ascii"), password=None)
+    client_cert = cryptography_x509.load_pem_x509_certificate(
+      client_cert_pem.encode("ascii"))
 
     self.assertTrue(self._checkKeyMatchesCert(priv_key, client_cert))
-    self.assertEqual(client_cert.get_issuer().CN, "ganeti.example.com")
-    self.assertEqual(client_cert.get_subject().CN, client_hostname)
+    self.assertEqual(_NameCn(client_cert.issuer), "ganeti.example.com")
+    self.assertEqual(_NameCn(client_cert.subject), client_hostname)
+
+
+
+
+def _NameCn(name):
+  """Returns the commonName attribute of a cryptography X509 name."""
+  attrs = name.get_attributes_for_oid(NameOID.COMMON_NAME)
+  if not attrs:
+    return None
+
+  return attrs[0].value
 
 
 class TestCheckNodeCertificate(testutils.GanetiTestCase):
@@ -343,8 +308,8 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
     other_cert = testutils.TestDataFilename("cert1.pem")
     node_cert = testutils.TestDataFilename("cert2.pem")
 
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           utils.ReadFile(other_cert))
+    cert = cryptography_x509.load_pem_x509_certificate(
+      utils.ReadFile(other_cert).encode("ascii"))
 
     try:
       utils.CheckNodeCertificate(cert, _noded_cert_file=node_cert)
@@ -358,10 +323,8 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
     cert_filename = testutils.TestDataFilename("cert2.pem")
 
     # Extract certificate
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           utils.ReadFile(cert_filename))
-    cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                               cert)
+    cert = cryptography_x509.load_pem_x509_certificate(
+      utils.ReadFile(cert_filename).encode("ascii"))
 
     utils.CheckNodeCertificate(cert, _noded_cert_file=cert_filename)
 
@@ -391,16 +354,16 @@ class TestCheckNodeCertificate(testutils.GanetiTestCase):
     tmpfile = utils.PathJoin(self.tmpdir, "cert")
 
     # Extract certificate
-    cert1 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                            utils.ReadFile(cert1_path))
-    cert1_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                cert1)
+    cert1 = cryptography_x509.load_pem_x509_certificate(
+      utils.ReadFile(cert1_path).encode("ascii"))
+    cert1_pem = cert1.public_bytes(serialization.Encoding.PEM)
 
     # Extract mismatching key
-    key2 = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                          utils.ReadFile(cert2_path))
-    key2_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                              key2)
+    key2 = serialization.load_pem_private_key(
+      utils.ReadFile(cert2_path).encode("ascii"), password=None)
+    key2_pem = key2.private_bytes(
+      serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+      serialization.NoEncryption())
 
     # Write to file
     utils.WriteFile(tmpfile, data=cert1_pem + key2_pem)
