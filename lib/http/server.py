@@ -34,7 +34,6 @@ using Python's standard library.
 
 """
 
-import hashlib
 import html
 import logging
 import os
@@ -46,6 +45,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from ganeti import http
 from ganeti import netutils
+from ganeti import utils
 
 
 # Default error message
@@ -92,9 +92,9 @@ class _HttpServerRequest(object):
 def _FormatCertificateDigest(der_cert):
   """Compute SHA1 digest of a DER-encoded certificate.
 
-  Returns the digest in the same colon-separated hex format as
-  PyOpenSSL's C{X509.digest()}, for compatibility with existing
-  certificate digest storage (ssconf, etc.).
+  Thin wrapper keeping the historical module-level name; the actual
+  implementation lives in L{ganeti.utils.x509.FormatCertificateDigest}
+  so that all certificate digest consumers share one code path.
 
   @type der_cert: bytes
   @param der_cert: DER-encoded certificate
@@ -102,8 +102,7 @@ def _FormatCertificateDigest(der_cert):
   @return: SHA1 digest in "XX:XX:XX:..." format
 
   """
-  raw = hashlib.sha1(der_cert).digest()
-  return ":".join(f"{b:02X}" for b in raw)
+  return utils.x509.FormatCertificateDigest(der_cert)
 
 
 class _ChildProcessReaper(object):

@@ -78,7 +78,7 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
 
   @staticmethod
   def _Check(cert):
-    assert cert.get_subject()
+    assert cert.subject
 
   def testSuccessfulCheck(self):
     cert_filename = testutils.TestDataFilename("cert1.pem")

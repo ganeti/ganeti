@@ -34,7 +34,9 @@
 
 import logging
 import time
-import OpenSSL
+
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
 
 from hashlib import sha1
 
@@ -1530,7 +1532,7 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
   @param instance: Instance object
   @type pnode: L{objects.Node}
   @param pnode: Primary node of instance as an object
-  @type source_x509_ca: OpenSSL.crypto.X509
+  @type source_x509_ca: cryptography.x509.Certificate
   @param source_x509_ca: Import source's X509 CA
   @type cds: string
   @param cds: Cluster domain secret
@@ -1540,8 +1542,8 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
   @param timeouts: Timeouts for this import
 
   """
-  source_ca_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                  source_x509_ca)
+  source_ca_pem = source_x509_ca.public_bytes(
+    serialization.Encoding.PEM).decode("ascii")
 
   magic_base = utils.GenerateSecret(6)
 
@@ -1556,8 +1558,8 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
   (x509_key_name, x509_cert_pem) = result.payload
   try:
     # Load certificate
-    x509_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                x509_cert_pem)
+    x509_cert = cryptography_x509.load_pem_x509_certificate(
+      x509_cert_pem.encode("ascii"))
 
     # Sign certificate
     signed_x509_cert_pem = \

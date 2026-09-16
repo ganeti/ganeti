@@ -42,7 +42,8 @@ import tempfile
 
 from io import StringIO
 
-import OpenSSL
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
 
 from ganeti.cli import *
 from ganeti import bootstrap
@@ -981,14 +982,14 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
                                "Unable to read certificate: %s" % str(err))
 
   try:
-    OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pem)
+    cryptography_x509.load_pem_x509_certificate(pem.encode("ascii"))
   except Exception as err:
     raise errors.X509CertError(cert_filename,
                                "Unable to load certificate: %s" % str(err))
 
   if verify_private_key:
     try:
-      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, pem)
+      serialization.load_pem_private_key(pem.encode("ascii"), password=None)
     except Exception as err:
       raise errors.X509CertError(cert_filename,
                                  "Unable to load private key: %s" % str(err))

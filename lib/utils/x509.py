@@ -38,7 +38,10 @@ import logging
 import re
 import time
 
-import OpenSSL
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 from ganeti import errors
 from ganeti import constants
@@ -60,63 +63,128 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
 (CERT_WARNING,
  CERT_ERROR) = range(1, 3)
 
-#: ASN1 time regexp
-_ASN1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
+# Map constants to actual hash digests
+_SIGN_DIGESTS = {"SHA256": hashes.SHA256}
+def _GenerateRsaKey():
+  return rsa.generate_private_key(public_exponent=65537,
+                                  key_size=constants.RSA_KEY_BITS)
 
 
-def _ParseAsn1Generalizedtime(value):
-  """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
+def _BuildCertificate(common_name, validity, serial_no,
+                      issuer_name, public_key, is_ca=False,
+                      issuer_public_key=None):
+  """Builds an X509 certificate template.
 
-  @type value: string or bytes
-  @param value: ASN1 GENERALIZEDTIME timestamp
-  @return: Seconds since the Epoch (1970-01-01 00:00:00 UTC)
+  @type common_name: string
+  @param common_name: commonName of the certificate's subject
+  @type validity: int, seconds from now
+  @param validity: Validity of the certificate in seconds
+  @type serial_no: int
+  @param serial_no: Serial number of the certificate
+  @type issuer_name: cryptography.x509.Name
+  @param issuer_name: Name of the issuing certificate
+  @type public_key: cryptography public key
+  @param public_key: Public key of the certificate's subject
+  @type is_ca: bool
+  @param is_ca: Whether the certificate may act as a CA, i.e. sign other
+                certificates; Ganeti's cluster certificate is used both
+                as a server certificate and as the CA signing the node
+                client certificates
+  @type issuer_public_key: cryptography public key or None
+  @param issuer_public_key: Public key of the issuer, used to build the
+                            authority key identifier extension
+  @rtype: cryptography.x509.CertificateBuilder
+  @return: The unsigned certificate template
 
   """
-  if value is None:
+  subject_attrs = []
+  if common_name:
+    subject_attrs.append(
+      cryptography_x509.NameAttribute(NameOID.COMMON_NAME, common_name))
+
+  now = datetime.datetime.now(datetime.timezone.utc)
+  builder = (
+    cryptography_x509.CertificateBuilder()
+      .subject_name(cryptography_x509.Name(subject_attrs))
+      .issuer_name(issuer_name)
+      .public_key(public_key)
+      .serial_number(serial_no)
+      .not_valid_before(now)
+      .not_valid_after(now + datetime.timedelta(seconds=validity)))
+
+  # A CA cert needs an explicit basicConstraints CA flag; pyOpenSSL's
+  # bare v1 certs were accepted implicitly, v3 certs are not.
+  builder = builder.add_extension(
+    cryptography_x509.BasicConstraints(ca=is_ca, path_length=None),
+    critical=True)
+
+  builder = builder.add_extension(
+    cryptography_x509.KeyUsage(
+      digital_signature=True,
+      content_commitment=False,
+      key_encipherment=True,
+      data_encipherment=False,
+      key_agreement=False,
+      key_cert_sign=is_ca,
+      crl_sign=is_ca,
+      encipher_only=False,
+      decipher_only=False),
+    critical=True)
+
+  builder = builder.add_extension(
+    cryptography_x509.SubjectKeyIdentifier.from_public_key(public_key),
+    critical=False)
+
+  if issuer_public_key is not None:
+    builder = builder.add_extension(
+      cryptography_x509.AuthorityKeyIdentifier.from_issuer_public_key(
+        issuer_public_key),
+      critical=False)
+
+  return builder
+
+
+def _CertValidityTime(cert, attr):
+  # cryptography >= 42 deprecates the naive not_valid_* properties in
+  # favor of aware not_valid_*_utc; older releases (Debian Bookworm
+  # ships 38.x, Trixie < 42) only have the former.
+  dt = getattr(cert, attr + "_utc", None) or getattr(cert, attr)
+  if dt is None:
     return None
 
-  if isinstance(value, bytes):
-    value = value.decode("ascii")
+  return dt.replace(tzinfo=None)
 
-  m = _ASN1_TIME_REGEX.match(value)
-  if m:
-    # We have an offset
-    asn1time = m.group(1)
-    hours = int(m.group(2))
-    minutes = int(m.group(3))
-    utcoffset = (60 * hours) + minutes
-  else:
-    if not value.endswith("Z"):
-      raise ValueError("Missing timezone")
-    asn1time = value[:-1]
-    utcoffset = 0
 
-  parsed = time.strptime(asn1time, "%Y%m%d%H%M%S")
+def _DatetimeToUnix(dt):
+  """Converts a naive-UTC datetime to a Unix timestamp.
 
-  tt = datetime.datetime(*(parsed[:7])) - datetime.timedelta(minutes=utcoffset)
+  @type dt: datetime.datetime or None
+  @param dt: Naive datetime interpreted as UTC
+  @return: Seconds since the Epoch, or None
 
-  return calendar.timegm(tt.utctimetuple())
+  """
+  if dt is None:
+    return None
+
+  return calendar.timegm(dt.utctimetuple())
 
 
 def GetX509CertValidity(cert):
   """Returns the validity period of the certificate.
 
-  @type cert: OpenSSL.crypto.X509
+  @type cert: cryptography.x509.Certificate
   @param cert: X509 certificate object
 
   """
-  not_before = _ParseAsn1Generalizedtime(cert.get_notBefore())
-  not_after = _ParseAsn1Generalizedtime(cert.get_notAfter())
-
-  return (not_before, not_after)
-
+  return (_DatetimeToUnix(_CertValidityTime(cert, "not_valid_before")),
+          _DatetimeToUnix(_CertValidityTime(cert, "not_valid_after")))
 
 def _VerifyCertificateInner(expired, not_before, not_after, now,
                             warn_days, error_days):
   """Verifies certificate validity.
 
   @type expired: bool
-  @param expired: Whether pyOpenSSL considers the certificate as expired
+  @param expired: Whether the certificate is expired as of now
   @type not_before: number or None
   @param not_before: Unix timestamp before which certificate is not valid
   @type not_after: number or None
@@ -131,7 +199,6 @@ def _VerifyCertificateInner(expired, not_before, not_after, now,
   """
   if expired:
     msg = "Certificate is expired"
-
     if not_before is not None and not_after is not None:
       msg += (" (valid from %s to %s)" %
               (utils_text.FormatTime(not_before),
@@ -165,7 +232,7 @@ def _VerifyCertificateInner(expired, not_before, not_after, now,
 def VerifyX509Certificate(cert, warn_days, error_days):
   """Verifies a certificate for LUClusterVerify.
 
-  @type cert: OpenSSL.crypto.X509
+  @type cert: cryptography.x509.Certificate
   @param cert: X509 certificate object
   @type warn_days: number or None
   @param warn_days: How many days before expiration a warning should be reported
@@ -173,12 +240,17 @@ def VerifyX509Certificate(cert, warn_days, error_days):
   @param error_days: How many days before expiration an error should be reported
 
   """
-  # Depending on the pyOpenSSL version, this can just return (None, None)
   (not_before, not_after) = GetX509CertValidity(cert)
 
   now = time.time() + constants.NODE_MAX_CLOCK_SKEW
 
-  return _VerifyCertificateInner(cert.has_expired(), not_before, not_after,
+  # The clock skew allowance above is deliberately included here: a
+  # certificate that expired within the last NODE_MAX_CLOCK_SKEW seconds
+  # is still accepted, mirroring the behaviour of the previous
+  # pyOpenSSL-based implementation.
+  expired = not_after is None or not_after < now
+
+  return _VerifyCertificateInner(expired, not_before, not_after,
                                  now, warn_days, error_days)
 
 
@@ -187,7 +259,7 @@ def SignX509Certificate(cert, key, salt):
 
   An RFC822-like signature header is added in front of the certificate.
 
-  @type cert: OpenSSL.crypto.X509
+  @type cert: cryptography.x509.Certificate
   @param cert: X509 certificate object
   @type key: string
   @param key: Key for HMAC
@@ -201,8 +273,7 @@ def SignX509Certificate(cert, key, salt):
     raise errors.GenericError("Invalid salt: %r" % salt)
 
   # Dumping as PEM here ensures the certificate is in a sane format
-  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                             cert).decode("ascii")
+  cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode("ascii")
 
   return ("%s: %s/%s\n\n%s" %
           (constants.X509_CERT_SIGNATURE_HEADER, salt,
@@ -236,7 +307,7 @@ def LoadSignedX509Certificate(cert_pem, key):
   @param cert_pem: Certificate in PEM format and with signature header
   @type key: string
   @param key: Key for HMAC
-  @rtype: tuple; (OpenSSL.crypto.X509, string)
+  @rtype: tuple; (cryptography.x509.Certificate, string)
   @return: X509 certificate object and salt
 
   """
@@ -262,23 +333,19 @@ def GenerateSelfSignedX509Cert(common_name, validity, serial_no):
            certificate
 
   """
-  # Create private and public key
-  key = OpenSSL.crypto.PKey()
-  key.generate_key(OpenSSL.crypto.TYPE_RSA, constants.RSA_KEY_BITS)
+  key = _GenerateRsaKey()
+  subject = cryptography_x509.Name(
+    [cryptography_x509.NameAttribute(NameOID.COMMON_NAME, common_name)]
+    if common_name else [])
 
-  # Create self-signed certificate
-  cert = OpenSSL.crypto.X509()
-  if common_name:
-    cert.get_subject().CN = common_name
-  cert.set_serial_number(serial_no)
-  cert.gmtime_adj_notBefore(0)
-  cert.gmtime_adj_notAfter(validity)
-  cert.set_issuer(cert.get_subject())
-  cert.set_pubkey(key)
-  cert.sign(key, constants.X509_CERT_SIGN_DIGEST)
+  cert = (_BuildCertificate(common_name, validity, serial_no,
+                            subject, key.public_key(), is_ca=True)
+          .sign(key, _SIGN_DIGESTS[constants.X509_CERT_SIGN_DIGEST]()))
 
-  key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key)
-  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+  key_pem = key.private_bytes(
+    serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+    serialization.NoEncryption())
+  cert_pem = cert.public_bytes(serialization.Encoding.PEM)
 
   return (key_pem, cert_pem)
 
@@ -326,39 +393,34 @@ def GenerateSignedX509Cert(common_name, validity, serial_no,
   @param signing_cert_pem: PEM-encoded private key of the signing certificate
   @return: a tuple of strings containing the PEM-encoded private key and
            certificate
-
   """
-  # Create key pair with private and public key.
-  key_pair = OpenSSL.crypto.PKey()
-  key_pair.generate_key(OpenSSL.crypto.TYPE_RSA, constants.RSA_KEY_BITS)
 
-  # Create certificate sigining request.
-  req = OpenSSL.crypto.X509Req()
-  req.get_subject().CN = common_name
-  req.set_pubkey(key_pair)
-  req.sign(key_pair, constants.X509_CERT_SIGN_DIGEST)
+  # Create private RSA key
+  key = _GenerateRsaKey()
+
+
+  # Ganeti reads PEM files as text; the loaders require bytes.
+  if not isinstance(signing_cert_pem, bytes):
+    signing_cert_pem = signing_cert_pem.encode("ascii")
 
   # Load the certificates used for signing.
-  signing_key = OpenSSL.crypto.load_privatekey(
-      OpenSSL.crypto.FILETYPE_PEM, signing_cert_pem)
-  signing_cert = OpenSSL.crypto.load_certificate(
-      OpenSSL.crypto.FILETYPE_PEM, signing_cert_pem)
+  signing_key = serialization.load_pem_private_key(signing_cert_pem,
+                                                   password=None)
+  signing_cert = cryptography_x509.load_pem_x509_certificate(
+    signing_cert_pem)
 
   # Create a certificate and sign it.
-  cert = OpenSSL.crypto.X509()
-  cert.set_subject(req.get_subject())
-  cert.set_serial_number(serial_no)
-  cert.gmtime_adj_notBefore(0)
-  cert.gmtime_adj_notAfter(validity)
-  cert.set_issuer(signing_cert.get_subject())
-  cert.set_pubkey(req.get_pubkey())
-  cert.sign(signing_key, constants.X509_CERT_SIGN_DIGEST)
+  cert = (_BuildCertificate(common_name, validity, serial_no,
+                            signing_cert.subject, key.public_key(),
+                            is_ca=False,
+                            issuer_public_key=signing_key.public_key())
+          .sign(signing_key, _SIGN_DIGESTS[constants.X509_CERT_SIGN_DIGEST]()))
 
   # Encode the key and certificate in PEM format.
-  key_pem = OpenSSL.crypto.dump_privatekey(
-      OpenSSL.crypto.FILETYPE_PEM, key_pair)
-  cert_pem = OpenSSL.crypto.dump_certificate(
-      OpenSSL.crypto.FILETYPE_PEM, cert)
+  key_pem = key.private_bytes(
+    serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+    serialization.NoEncryption())
+  cert_pem = cert.public_bytes(serialization.Encoding.PEM)
 
   return (key_pem, cert_pem)
 
@@ -381,32 +443,56 @@ def ExtractX509Certificate(pem):
   """Extracts the certificate from a PEM-formatted string.
 
   @type pem: string
-  @rtype: tuple; (OpenSSL.X509 object, string)
+  @rtype: tuple; (cryptography.x509.Certificate, string)
   @return: Certificate object and PEM-formatted certificate
 
   """
-  cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pem)
+  if not isinstance(pem, bytes):
+    pem = pem.encode("ascii")
+
+  cert = cryptography_x509.load_pem_x509_certificate(pem)
 
   return (cert,
-          OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+          cert.public_bytes(serialization.Encoding.PEM).decode("ascii"))
 
 
 def X509CertKeyCheck(cert, key):
   """Function for verifying certificate with a certain private key.
 
-  @type key: OpenSSL.crypto.PKey
+  @type key: cryptography private key object
   @param key: Private key object
-  @type cert: OpenSSL.crypto.X509
+  @type cert: cryptography.x509.Certificate
   @param cert: X509 certificate object
-  @rtype: callable
-  @return: Callable doing the actual check; will raise C{OpenSSL.SSL.Error} if
-    certificate is not signed by given private key
+  @rtype: bool
+  @return: Whether the certificate's public key matches the private key
 
   """
-  ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-  ctx.use_certificate(cert)
-  ctx.use_privatekey(key)
-  ctx.check_privatekey()
+  cert_pub = cert.public_key().public_bytes(
+    serialization.Encoding.DER,
+    serialization.PublicFormat.SubjectPublicKeyInfo)
+  key_pub = key.public_key().public_bytes(
+    serialization.Encoding.DER,
+    serialization.PublicFormat.SubjectPublicKeyInfo)
+
+  return cert_pub == key_pub
+
+
+def FormatCertificateDigest(der_cert):
+  """Compute SHA1 digest of a DER-encoded certificate.
+
+  Returns the digest in the same colon-separated hex format as
+  pyOpenSSL's C{X509.digest()}, for compatibility with existing
+  certificate digest storage (ssconf, etc.).
+
+  @type der_cert: bytes
+  @param der_cert: DER-encoded certificate
+  @rtype: string
+  @return: SHA1 digest in "XX:XX:XX:..." format
+
+  """
+  raw = hashes.Hash(hashes.SHA1())
+  raw.update(der_cert)
+  return ":".join(f"{b:02X}" for b in raw.finalize())
 
 
 def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
@@ -416,7 +502,7 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
   L{pathutils.NODED_CERT_FILE} file). No error is raised if no local
   certificate can be found.
 
-  @type cert: OpenSSL.crypto.X509
+  @type cert: cryptography.x509.Certificate
   @param cert: X509 certificate object
   @raise errors.X509CertError: When an error related to X509 occurred
   @raise errors.GenericError: When the verification failed
@@ -431,32 +517,29 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
     logging.debug("Node certificate file '%s' was not found", _noded_cert_file)
     return
 
+  if not isinstance(noded_pem, bytes):
+    noded_pem = noded_pem.encode("ascii")
+
   try:
-    noded_cert = \
-      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
+    noded_cert = cryptography_x509.load_pem_x509_certificate(noded_pem)
   except Exception as err:
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load certificate: %s" % err)
 
   try:
-    noded_key = \
-      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, noded_pem)
+    noded_key = serialization.load_pem_private_key(noded_pem, password=None)
   except Exception as err:
     raise errors.X509CertError(_noded_cert_file,
                                "Unable to load private key: %s" % err)
 
   # Check consistency of server.pem file
-  try:
-    X509CertKeyCheck(noded_cert, noded_key)
-  except OpenSSL.SSL.Error:
+  if not X509CertKeyCheck(noded_cert, noded_key):
     # This should never happen as it would mean the certificate in server.pem
     # is out of sync with the private key stored in the same file
     raise errors.X509CertError(_noded_cert_file,
                                "Certificate does not match with private key")
 
   # Check with supplied certificate with local key
-  try:
-    X509CertKeyCheck(cert, noded_key)
-  except OpenSSL.SSL.Error:
+  if not X509CertKeyCheck(cert, noded_key):
     raise errors.GenericError("Given cluster certificate does not match"
                               " local key")

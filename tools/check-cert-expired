@@ -36,7 +36,7 @@
 
 import os.path
 import sys
-import OpenSSL
+from cryptography import x509 as cryptography_x509
 
 from ganeti import constants
 from ganeti import cli
@@ -64,8 +64,7 @@ def main():
 
   # Check validity
   try:
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           cert_pem)
+    cert = cryptography_x509.load_pem_x509_certificate(cert_pem.encode("ascii"))
 
     (errcode, msg) = utils.VerifyX509Certificate(cert, None, None)
     if msg:
