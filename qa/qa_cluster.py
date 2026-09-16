@@ -1405,8 +1405,15 @@ def TestClusterRenewCrypto():
     _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
 
-    # Comprehensively test various types of SSH key changes
-    _TestSSHKeyChanges(master)
+    # Comprehensively test various types of SSH key changes;
+    # skipped if the cluster runs without Ganeti-managed SSH keys
+    # (gnt-cluster init --no-ssh-init), as the tests expect the keys
+    # to be present and rotatable.
+    if qa_config.GetModifySshSetup():
+      _TestSSHKeyChanges(master)
+    else:
+      print("Skipping SSH key replacement checks: "
+            "cluster was initialized with --no-ssh-init")
 
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
@@ -1537,8 +1544,12 @@ def TestUpgrade():
   # regardless of cluster defaults.
   if constants.VERSION_MINOR != 16:
     raise qa_error.Error("Please remove the key type downgrade code in 2.17")
-  AssertCommand(["gnt-cluster", "renew-crypto", "--no-ssh-key-check", "-f",
-                 "--new-ssh-keys", "--ssh-key-type=dsa"])
+  if qa_config.GetModifySshSetup():
+    AssertCommand(["gnt-cluster", "renew-crypto", "--no-ssh-key-check", "-f",
+                   "--new-ssh-keys", "--ssh-key-type=dsa"])
+  else:
+    print(qa_utils.FormatInfo("Skipping SSH key switch to DSA as the cluster"
+                              " was initialized without SSH key management"))
 
   AssertRedirectedCommand(["gnt-cluster", "upgrade", "--to", other_version])
   AssertRedirectedCommand(["gnt-cluster", "verify"])
