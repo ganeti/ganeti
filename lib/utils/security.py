@@ -36,7 +36,9 @@ import os
 import time
 import uuid as uuid_module
 
-import OpenSSL
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
+from cryptography.x509.oid import NameOID
 
 from ganeti.utils import io
 from ganeti.utils import x509
@@ -50,14 +52,31 @@ def UuidToInt(uuid):
   return uuid_obj.int # pylint: disable=E1101
 
 
+def _GetNameCn(name):
+  """Returns the commonName attribute of an X509 name.
+
+  @type name: cryptography.x509.Name
+  @param name: X509 name (subject or issuer)
+  @return: The commonName value, or None if not present
+
+  """
+  attrs = name.get_attributes_for_oid(NameOID.COMMON_NAME)
+  if not attrs:
+    return None
+
+  return attrs[0].value
+
+
 def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
   """Reads the SSL certificate and returns the sha1 digest.
 
   """
   cert_plain = io.ReadFile(cert_filename)
-  cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                         cert_plain)
-  return cert.digest("sha1").decode("ascii")
+  cert = cryptography_x509.load_pem_x509_certificate(
+    cert_plain.encode("ascii"))
+  # The DER encoding is exactly what X509.digest() hashed in pyOpenSSL.
+  return x509.FormatCertificateDigest(
+    cert.public_bytes(serialization.Encoding.DER))
 
 
 def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,
@@ -112,8 +131,8 @@ def VerifyCertificate(filename):
 
   """
   try:
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           io.ReadFile(filename))
+    cert = cryptography_x509.load_pem_x509_certificate(
+      io.ReadFile(filename).encode("ascii"))
   except Exception as err: # pylint: disable=W0703
     return (constants.CV_ERROR,
             "Failed to load X509 certificate %s: %s" % (filename, err))
@@ -152,13 +171,16 @@ def IsCertificateSelfSigned(cert_filename):
 
   """
   try:
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           io.ReadFile(cert_filename))
+    cert = cryptography_x509.load_pem_x509_certificate(
+      io.ReadFile(cert_filename).encode("ascii"))
   except Exception as err: # pylint: disable=W0703
     return (constants.CV_ERROR,
             "Failed to load X509 certificate %s: %s" % (cert_filename, err))
 
-  if cert.get_subject().CN == cert.get_issuer().CN:
+  subject_cn = _GetNameCn(cert.subject)
+  issuer_cn = _GetNameCn(cert.issuer)
+
+  if subject_cn == issuer_cn:
     msg = "The certificate '%s' is self-signed. Please run 'gnt-cluster" \
           " renew-crypto --new-node-certificates' to get a properly signed" \
           " certificate." % cert_filename
