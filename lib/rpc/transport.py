@@ -51,6 +51,10 @@ from ganeti.rpc import errors
 DEF_CTMO = constants.LUXI_DEF_CTMO
 DEF_RWTO = constants.LUXI_DEF_RWTO
 
+# Receive chunk size. Full-config messages are several MB; 256 KiB keeps
+# syscall count and per-transport memory bounded (issue #1654).
+RECV_CHUNK_SIZE = 256 * 1024
+
 
 class Transport(object):
   """Low-level transport class.
@@ -176,6 +180,9 @@ class Transport(object):
     timeout, and making sure we don't go over 2x_rwtimeout as a global
     limit.
 
+    Scans only newly read data for the single-byte terminator, so the
+    already scanned buffer is never rescanned (issue #1654).
+
     """
     self._CheckSocket()
     etime = time.time() + self._rwtimeout
@@ -184,7 +191,7 @@ class Transport(object):
         raise errors.TimeoutError("Extended receive timeout")
       while True:
         try:
-          data = self.socket.recv(4096)
+          data = self.socket.recv(RECV_CHUNK_SIZE)
         except socket.timeout as err:
           raise errors.TimeoutError("Receive timeout: %s" % str(err))
         except socket.error as err:
@@ -194,10 +201,20 @@ class Transport(object):
         break
       if not data:
         raise errors.ConnectionClosedError("Connection closed while reading")
-      new_msgs = (self._buffer + data).split(constants.LUXI_EOM)
-      self._buffer = new_msgs.pop()
-      self._msgs.extend(new_msgs)
+      self._RecvBuffer(data)
     return self._msgs.popleft().decode("utf-8")
+
+  def _RecvBuffer(self, data):
+    """Extract complete messages from newly received data.
+
+    Scans only C{data}; the single-byte terminator cannot straddle chunk
+    boundaries, so C{self._buffer} is always terminator-free.
+
+    """
+    new_msgs = data.split(constants.LUXI_EOM)
+    new_msgs[0] = self._buffer + new_msgs[0]
+    self._buffer = new_msgs.pop()
+    self._msgs.extend(new_msgs)
 
   def Call(self, msg):
     """Send a message and wait for the response.
@@ -299,15 +316,16 @@ class FdTransport(object):
     """Try to receive a message from the read part of the socket.
 
     In case we already have messages queued, we just return from the
-    queue.
+    queue. Same chunking and scanning as L{Transport.Recv} (issue #1654).
 
     """
     self._CheckSocket()
     while not self._msgs:
-      data = self._rstream.read(4096)
+      data = self._rstream.read(RECV_CHUNK_SIZE)
       if not data:
         raise errors.ConnectionClosedError("Connection closed while reading")
-      new_msgs = (self._buffer + data).split(constants.LUXI_EOM)
+      new_msgs = data.split(constants.LUXI_EOM)
+      new_msgs[0] = self._buffer + new_msgs[0]
       self._buffer = new_msgs.pop()
       self._msgs.extend(new_msgs)
     return self._msgs.popleft().decode("utf-8")

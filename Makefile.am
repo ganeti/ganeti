@@ -284,6 +284,8 @@ PYTHON_TEST_DIRS = \
 	test/py/unit/cmdlib \
 	test/py/unit/cmdlib/cluster \
 	test/py/unit/confd \
+	test/py/unit/config \
+	test/py/unit/rpc \
 	test/py/unit/http \
 	test/py/unit/hypervisor \
 	test/py/unit/hypervisor/hv_kvm \
@@ -2056,6 +2058,8 @@ python_tests_unit = \
 	test/py/unit/http/test_ssl.py \
 	test/py/unit/server/test_rapi.py \
 	test/py/unit/storage/test_drbd_grow.py \
+	test/py/unit/rpc/test_transport.py \
+	test/py/unit/config/test_config_lock_retry.py \
 	test/py/unit/utils/test_x509.py
 
 python_tests = $(python_tests_integration) $(python_tests_legacy) $(python_tests_unit)
