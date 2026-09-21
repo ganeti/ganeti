@@ -72,6 +72,13 @@ from ganeti import pathutils
 from ganeti import network
 
 
+# Exponential backoff (start, factor, limit) and budget for acquiring
+# WConfd's config lock; avoids hammering wconfd at peak contention
+# (issue #1978).
+_CONFIG_LOCK_RETRY_DELAY = (0.1, 1.5, 2.0)
+_CONFIG_LOCK_RETRY_TIMEOUT = 30
+
+
 def GetWConfdContext(ec_id, livelock):
   """Prepare a context for communication with WConfd.
 
@@ -2655,16 +2662,20 @@ class ConfigWriter(object):
         else:
           dict_data = None
       else:
-        # poll until we acquire the lock
-        while True:
+        # Poll with backoff; contended lock means a busy wconfd.
+        def TryLockConfig():
           logging.debug("Receiving config from WConfd.LockConfig [shared=%s]",
                         bool(shared))
           dict_data = \
               self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
           if dict_data is not None:
             logging.debug("Received config from WConfd.LockConfig")
-            break
-          time.sleep(random.random())
+            return dict_data
+          raise utils.RetryAgain()
+
+        dict_data = utils.Retry(TryLockConfig,
+                                _CONFIG_LOCK_RETRY_DELAY,
+                                _CONFIG_LOCK_RETRY_TIMEOUT)
 
       try:
         if dict_data is not None:
@@ -3032,7 +3043,6 @@ class ConfigWriter(object):
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
-
     polls = 0
 
     def WithRetry():
@@ -3044,11 +3054,15 @@ class ConfigWriter(object):
       if result is None:
         raise utils.RetryAgain(
           "WConfd config-lock timeout - %s for object UUID %s;"
-          " config lock unavailable on all %s polls (30-second retry budget)" %
-          (update_function.__name__, target.uuid, polls))
+          " config lock unavailable on all %s polls within"
+          " the %.0f-second retry budget" %
+          (update_function.__name__, target.uuid, polls,
+           _CONFIG_LOCK_RETRY_TIMEOUT))
       else:
         return result
-    vals = utils.Retry(WithRetry, 0.1, 30)
+    vals = utils.Retry(WithRetry,
+                       _CONFIG_LOCK_RETRY_DELAY,
+                       _CONFIG_LOCK_RETRY_TIMEOUT)
     self.OutDate()
     target.serial_no = vals[0]
     target.mtime = float(vals[1])
