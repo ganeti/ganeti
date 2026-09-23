@@ -150,6 +150,7 @@ curlOpts = [ CurlFollowLocation False
            , CurlSSLVerifyPeer True
            , CurlSSLCertType "PEM"
            , CurlSSLKeyType "PEM"
+           , CurlCAPath ""
            , CurlConnectTimeout (fromIntegral C.rpcConnectTimeout)
            , CurlHttpHeaders ["Expect:"]
            ]
