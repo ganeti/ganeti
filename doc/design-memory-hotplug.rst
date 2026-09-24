@@ -26,10 +26,12 @@ provide more guest-visible memory, Ganeti needs memory hotplug.
 
 QEMU/KVM provides two mechanisms for memory hotplug:
 
-1. **pc-dimm** — Uses discrete memory devices (DAX devices on Windows)
-   that are hotplugged as individual DIMMs with fixed sizes. Requires
-   PCI slot reservation, explicit slot assignment, and the hypervisor
-   must persist DIMM device IDs and slot mappings for migration.
+1. **pc-dimm** — Uses discrete memory devices that are
+   hotplugged as individual DIMMs with fixed sizes. Uses the
+   memory-device framework (not PCI): each DIMM is allocated a memory
+   slot (memslot). Requires explicit memslot assignment, and the
+   hypervisor must persist DIMM device IDs and slot mappings for
+   migration.
 
 2. **virtio-mem** — Uses a single sparse memory backend that exposes a
    configurable amount of memory to the VM. Memory is managed in blocks
@@ -74,27 +76,27 @@ Choosing virtio-mem over pc-dimm
 Two memory hotplug mechanisms exist in QEMU/KVM.
 Here a comparison:
 
-================== ================================== =========================
-Aspect             pc-dimm                            virtio-mem
-================== ================================== =========================
-Device model       Multiple fixed-size DIMMs          Single expandable device
-Hot-unplug         Supported (remove DIMM device)     Possible (reduce
-                                                      requested-size)
-PCI slot usage     One slot per DIMM; slots must be   One slot for the
-                   pre-reserved at boot time          virtio-mem-pci device
-Migration state    DIMM devices, IDs, and slot        virtio-mem is migrated
-                   mappings must be persisted by      natively since QEMU 6.2;
-                   Ganeti and rebuilt on target       no Ganeti-side state needed
-Guest requirements ACPI is enabled.                   Guest must have a virtio-mem
-                                                      driver.
-                                                      Linux: fully supported
-                                                      since kernel 5.8.
-                                                      Windows: experimental.
-Sizing granularity Fixed sizes (must plan ahead)      Arbitrary (multiple of
-                                                      block-size)
-Complexity         Requires slot reservation,         Simpler: one device, change
-                   device persistence, migration      one property
-================== ================================== =========================
+================== ============================== ===========================
+Aspect             pc-dimm                        virtio-mem
+================== ============================== ===========================
+Device model       Multiple fixed-size DIMMs      Single expandable device
+Hot-unplug         Supported (remove DIMM device) Possible (reduce
+                                                  requested-size)
+Memory slot usage  Defined by ``-m ...,slots=``   Not used
+PCI slot usage     Not used                       One slot for the
+                                                  virtio-mem-pci device
+Migration state    DIMM devices, IDs, and slot    virtio-mem is migrated
+                                                  no Ganeti-side state needed
+Guest requirements ACPI is enabled.               Guest must have a
+                                                  virtio-mem driver.
+                                                  Linux: fully supported
+                                                  since kernel 5.8.
+                                                  Windows: experimental.
+Sizing granularity Fixed sizes (must plan ahead)  Arbitrary (multiple of
+                                                  block-size)
+Complexity         Requires slot reservation,     Simpler: one device, change
+                   device persistence, migration  one property
+================== ============================== ===========================
 
 Rationale for virtio-mem
 ------------------------
@@ -488,9 +490,9 @@ Future work
   values; a new option (e.g. ``pc-dimm``) would enable pc-dimm-based
   hotplug. pc-dimm is needed for scenarios where virtio-mem is not
   suitable (e.g., guests without a virtio-mem driver, or when
-  discrete DIMM boundaries are required). pc-dimm requires PCI slot
-  reservation, device persistence in the runtime file, and migration
-  state reconstruction.
+  discrete DIMM boundaries are required). pc-dimm requires memory
+  slot (memslot) reservation, device persistence in the runtime file,
+  and migration state reconstruction.
 
 - Memory hot-unplug — Support reducing the ``requested-size`` of the
   virtio-mem device to free memory. Shrinking may fail if the guest
