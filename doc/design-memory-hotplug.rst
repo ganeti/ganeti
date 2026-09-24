@@ -44,8 +44,9 @@ Goals
 =====
 
 - Allow increasing the guest-visible memory of a running KVM instance
-  without a reboot, as long as the new memory does not exceed the
-  node's hotplug ceiling (configured via a fixed hypervisor constant).
+  without a reboot, as long as the ``memory_hotplug_method`` hvparam
+  is set to ``virtio-mem`` and the new memory does not exceed the
+  node's hotplug ceiling (a fixed Python constant).
 - For increases beyond the ceiling: the modification is still
   performed (the new value is stored in the configuration) and the
   job output carries a warning that the change takes effect only
@@ -139,6 +140,25 @@ For Ganeti's initial deployment, the trade-off is acceptable.
 Configuration
 =============
 
+New hvparam: ``memory_hotplug_method``
+---------------------------------------
+
+A new hypervisor parameter controls whether memory hotplug is enabled
+per instance:
+
+``memory_hotplug_method``
+   One of ``none``, ``virtio-mem``. Default: ``none``.
+
+   This is a per-instance hvparam. It
+   defaults to ``none`` for existing instances
+   on cluster upgrade, making the feature opt-in. The default
+   ensures backward compatibility: instances are unaffected until the
+   operator explicitly enables hotplug.
+
+   This parameter also enables future extensibility: additional
+   hotplug methods (e.g. ``pc-dimm``) can be added without changing
+   the enable/disable semantics.
+
 New constant
 --------------
 
@@ -156,7 +176,7 @@ A new Python constant defines the node's hotplug ceiling:
 
    This is a Python constant, not a hypervisor parameter. It is not
    stored in ``hvparams`` — it is defined in the KVM hypervisor
-   module directly. This keeps the design simple.
+   module directly.
 
 Backend parameter separation
 ----------------------------
@@ -168,8 +188,8 @@ parameter (see Behavior section).
 QEMU mapping
 ~~~~~~~~~~~~
 
-When ``memory_hotplug`` is enabled, the backend parameters map to QEMU
-as follows:
+When ``memory_hotplug_method`` is set to ``virtio-mem``, the backend
+parameters map to QEMU as follows:
 
 - ``memory`` → ``-m <memory>`` (base memory)
 - memory-backend-ram object ``size`` → ``KVM_VIRTIO_MEM_MAX_SIZE`` (the
@@ -201,7 +221,8 @@ implementation uses a fixed block size of 1 MiB.
 Behavior
 ========
 
-Hotplug is triggered exclusively via the ``memory`` backend parameter:
+Hotplug is triggered exclusively via the ``memory`` backend parameter
+and the ``memory_hotplug_method`` hypervisor parameter:
 
 ::
 
@@ -214,8 +235,8 @@ This is distinct from the existing ballooning path which uses
 
    gnt-instance modify -B maxmem=X instance-name
 
-``gnt-instance modify -B memory=X`` on a running KVM instance
-(with ``memory_hotplug`` enabled):
+When ``memory_hotplug_method`` is ``virtio-mem``,
+``gnt-instance modify -B memory=X`` on a running KVM instance:
 
 - ``X`` equal to the current ``memory`` value: no action is taken.
 - ``X > memory`` (growth within the ceiling): the difference
@@ -232,6 +253,9 @@ This is distinct from the existing ballooning path which uses
   (hot-unplug is out of scope); the new value applies at the next
   cold boot.
 
+When ``memory_hotplug_method`` is ``none``, ``memory`` modifications
+are handled as before (no hotplug, only ballooning via ``maxmem``).
+
 Instances that are not running are updated as today.
 
 ``gnt-instance modify -B maxmem=X`` continues to work as before
@@ -243,8 +267,9 @@ Mechanism
 Cold boot
 ---------
 
-The KVM command generation is extended to create
-a virtio-mem device at boot time:
+When ``memory_hotplug_method`` is set to ``virtio-mem``, the KVM
+command generation is extended to create a virtio-mem device at
+boot time:
 
 1. A memory backend is created using ``memory-backend-ram`` (or
    ``memory-backend-file`` / ``memory-backend-memfd`` depending on
@@ -258,6 +283,14 @@ a virtio-mem device at boot time:
    The ``size`` is the fixed ``KVM_VIRTIO_MEM_MAX_SIZE`` value
    (the node's hotplug ceiling).
 
+   The ``reserve=off`` property is critical: it allows sparse
+   allocation, meaning memory is only consumed as the guest actually
+   plugs blocks. Without it, the full ``size`` would be immediately
+   committed.
+
+   The ``dump=off`` property prevents sparse unplugged memory from
+   being included in crash dumps.
+
 2. A virtio-mem-pci device is added, referencing the backend:
 
    ::
@@ -270,13 +303,17 @@ a virtio-mem device at boot time:
 
 3. The ``-m`` parameter equals the current ``memory`` value.
 
-Concrete example: node with ``KVM_VIRTIO_MEM_MAX_SIZE = 64``,
-instance with ``memory = 8192``:
+When ``memory_hotplug_method`` is ``none``, no virtio-mem device is
+created.
+
+Concrete example: node with ``KVM_VIRTIO_MEM_MAX_SIZE = 64G``,
+instance with ``memory_hotplug_method = virtio-mem``,
+``memory = 8192``:
 
 ::
 
   -m 8192
-  -object memory-backend-ram,id=vmem0,size=64G
+  -object memory-backend-ram,id=vmem0,size=64G,reserve=off,dump=off
   -device virtio-mem-pci,id=vmem0,requested-size=0,block-size=1M
 
 The guest initially sees exactly 8 GiB (from ``-m``). The virtio-mem
@@ -291,18 +328,21 @@ The hotplug machinery is extended with a memory resize operation:
   ``HotAddDisk``/``HotAddNic`` in
   ``lib/hypervisor/hv_kvm/__init__.py``) which:
 
-  1. Reads the current ``memory`` value from the instance
+  1. Checks that ``memory_hotplug_method`` is set to ``virtio-mem``
+     (if ``none``, the operation is rejected or falls back to
+     ballooning depending on cmdlib logic).
+  2. Reads the current ``memory`` value from the instance
      configuration.
-  2. Computes the new ``requested-size``:
+  3. Computes the new ``requested-size``:
      ``new_requested_size = X - memory`` (where ``X`` is the
      requested ``memory`` value from the ``modify`` command).
-  3. Verifies that the computed ``requested-size`` does not exceed
+  4. Verifies that the computed ``requested-size`` does not exceed
      the virtio-mem device's ``size`` (i.e.
-     ``X - memory <= ``KVM_VIRTIO_MEM_MAX_SIZE````).
-  4. Opens a QMP connection to the running instance.
-  5. Discovers the virtio-mem device's QOM path by listing devices
+     ``X - memory <= KVM_VIRTIO_MEM_MAX_SIZE``).
+  5. Opens a QMP connection to the running instance.
+  6. Discovers the virtio-mem device's QOM path by listing devices
      via ``qom-list`` and finding the device with the matching ``id``.
-  6. Issues the QMP ``qom-set`` command to update the device's
+  7. Issues the QMP ``qom-set`` command to update the device's
      ``requested-size`` property:
 
      ::
@@ -325,7 +365,7 @@ The hotplug machinery is extended with a memory resize operation:
   resize, as for the existing device types.
 
 - The operation requires the virtio-mem device to exist (i.e.,
-  ``memory_hotplug`` was enabled on the node at boot).
+  ``memory_hotplug_method`` was set to ``virtio-mem`` at boot).
 
 Guest-side behavior
 -------------------
@@ -389,11 +429,20 @@ and QEMU restores its internal state from the migration stream.
 Existing instances
 ------------------
 
-Instances whose runtime file predates this feature have no virtio-mem
-device. For those, memory hotplug is not available through the
-hotplug mechanism: a warning is shown and memory growth takes effect
-after the next reboot, at which point the regenerated runtime file
-carries the virtio-mem configuration.
+On cluster upgrade, all existing instances are set to
+``memory_hotplug_method = none`` explicitly. This ensures that:
+
+1. The feature is opt-in — no existing instance is affected by
+   default.
+2. The setting is visible in the instance configuration, making the
+   operator's intent explicit.
+3. There is no ambiguity about whether an instance should use hotplug
+   or not — the value is always known.
+
+New instances also default to ``none``. To enable memory hotplug on
+an instance, the operator must explicitly set
+``memory_hotplug_method = virtio-mem`` via ``gnt-instance modify``
+or instance creation parameters.
 
 Interactions
 ============
@@ -435,9 +484,9 @@ Future work
 ===========
 
 - pc-dimm support — Implement pc-dimm as an alternative to virtio-mem.
-  A hypervisor parameter (e.g. ``memory_hotplug_method``, with values
-  ``virtio-mem`` or ``pc-dimm``) could control which mechanism is
-  used. pc-dimm is needed for scenarios where virtio-mem is not
+  The ``memory_hotplug_method`` hvparam already supports additional
+  values; a new option (e.g. ``pc-dimm``) would enable pc-dimm-based
+  hotplug. pc-dimm is needed for scenarios where virtio-mem is not
   suitable (e.g., guests without a virtio-mem driver, or when
   discrete DIMM boundaries are required). pc-dimm requires PCI slot
   reservation, device persistence in the runtime file, and migration
@@ -448,7 +497,11 @@ Future work
   cannot reclaim memory.
 
 - Per-instance hotplug ceiling — Currently
-  ``KVM_VIRTIO_MEM_MAX_SIZE`` is a fixed constant
+  ``KVM_VIRTIO_MEM_MAX_SIZE`` is a fixed node-level ceiling
+  (analogous to the fixed ``maxcpus`` in the initial vCPU hotplug
+  design). A per-instance ceiling could be added as a BE parameter
+  (e.g. ``BE_MAX_HOTPLUG_MEMORY``) in the future, allowing different
+  hotplug capacities per instance.
 
 - NUMA-aware hotplug — When vNUMA support is added to Ganeti, each
   vNUMA node would need its own virtio-mem device with the ``node``
