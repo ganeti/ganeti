@@ -561,6 +561,7 @@ class Disk(ConfigObject):
     "mode",
     "params",
     "spindles",
+    "role",
     "pci",
     "hvinfo",
     "serial_no",
@@ -942,6 +943,11 @@ class Disk(ConfigObject):
     if self.ctime is None:
       self.ctime = time.time()
 
+    # Disks predating the boot_type/UEFI feature have no role; they are all
+    # ordinary data disks (no firmware disk existed before Ganeti 4.0).
+    if self.role is None:
+      self.role = constants.DR_ROLE_DATA
+
     # map of legacy device types (mapping differing LD constants to new
     # DT constants)
     LEG_DEV_TYPE_MAP = {"lvm": constants.DT_PLAIN, "drbd8": constants.DT_DRBD8}
@@ -1305,6 +1311,24 @@ class Instance(TaggableObject):
           del self.hvparams[key]
         except KeyError:
           pass
+      # Synthesize boot_type for pre-4.0 KVM instances from an explicit
+      # instance-level kernel_path override - the only case this hook can
+      # see. It runs on every config load with a single instance in
+      # isolation (instance overrides only, no cluster hvparams), so the
+      # no-override case is not "preserving inheritance" (under the seed
+      # model there is no cluster inheritance for boot_type): cfgupgrade
+      # already pinned those instances from their effective kernel_path.
+      # Must stay idempotent so repeated loads never mangle an already-
+      # pinned instance. (Distinct from the runtime synthesis, which acts
+      # on fully-merged hvparams where kernel_path is always present.)
+      if (self.hypervisor == constants.HT_KVM and
+          constants.HV_BOOT_TYPE not in self.hvparams and
+          constants.HV_KERNEL_PATH in self.hvparams):
+        if self.hvparams[constants.HV_KERNEL_PATH]:
+          self.hvparams[constants.HV_BOOT_TYPE] = \
+            constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          self.hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
     if self.osparams is None:
       self.osparams = {}
     if self.osparams_private is None:

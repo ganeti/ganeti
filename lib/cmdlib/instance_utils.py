@@ -584,6 +584,41 @@ def CheckNodeFreeMemory(lu, node_uuid, reason, requested, hvname, hvparams):
   return free_mem
 
 
+def CheckFirmwareDiskPresent(lu, instance, hvparams=None):
+  """Raise an error if the instance resolves to UEFI boot without a
+  firmware disk.
+
+  Boot paths never create disks; this turns the deep hypervisor
+  failure into an actionable prereq error.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the LU on behalf of which we make the check
+  @type instance: L{objects.Instance}
+  @param instance: the instance about to be booted/moved
+  @type hvparams: dict
+  @param hvparams: start-time hvparam overrides; an ephemeral
+      boot_type=uefi counts as resolving to uefi
+
+  """
+  if instance.hypervisor != constants.HT_KVM:
+    return
+  cluster = lu.cfg.GetClusterInfo()
+  filled = cluster.FillHV(instance, skip_globals=True)
+  if hvparams:
+    filled.update(hvparams)
+  if filled.get(constants.HV_BOOT_TYPE) != constants.HT_BOOT_UEFI:
+    return
+  disks = lu.cfg.GetInstanceDisks(instance.uuid)
+  if any(d.role == constants.DR_ROLE_FIRMWARE for d in disks):
+    return
+  raise errors.OpPrereqError(
+      "Instance '%s' resolves to boot_type=uefi (check the cluster default)"
+      " but has no UEFI firmware disk; while the instance is stopped, run"
+      " 'gnt-instance modify -H boot_type=uefi %s' to create and seed it,"
+      " or set an explicit non-uefi boot_type on the instance"
+      % (instance.name, instance.name), errors.ECODE_STATE)
+
+
 def CheckInstanceBridgesExist(lu, instance, node_uuid=None):
   """Check that the brigdes needed by an instance exist.
 
@@ -1305,3 +1340,20 @@ def ComputeNics(op, cluster, default_ip, cfg, ec_id):
     nics.append(nic_obj)
 
   return nics
+
+def ResolveOvmfTemplates(hvparams):
+  """Resolve OVMF code/vars seed paths from filled hvparams.
+
+  Empty or absent overrides fall back to the cluster-wide configure-time
+  templates. The result is read exactly once, at firmware disk seed time.
+
+  @type hvparams: dict
+  @param hvparams: fully filled instance hvparams
+  @rtype: tuple
+  @return: (code_path, vars_path)
+
+  """
+  return (hvparams.get(constants.HV_OVMF_CODE) or
+          constants.OVMF_CODE_TEMPLATE,
+          hvparams.get(constants.HV_OVMF_VARS) or
+          constants.OVMF_VARS_TEMPLATE)
