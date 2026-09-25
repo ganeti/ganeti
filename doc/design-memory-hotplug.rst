@@ -21,7 +21,7 @@ exclusively used for ballooning: the balloon driver adjusts the
 guest-visible memory within the ``minmem``..``maxmem`` range at runtime.
 Ballooning, however, only changes how much of the already available
 memory the guest actually uses — it cannot make *additional*
-guest-usable memory available beyond the original ``-m`` value. To
+guest-usable memory available beyond the Qemu ``-m`` value. To
 provide more guest-visible memory, Ganeti needs memory hotplug.
 
 QEMU/KVM provides two mechanisms for memory hotplug:
@@ -231,11 +231,11 @@ and the ``memory_hotplug_method`` hypervisor parameter:
    gnt-instance modify -B memory=X instance-name
 
 This is distinct from the existing ballooning path which uses
-``maxmem``:
+``--runtime-memory``:
 
 ::
 
-   gnt-instance modify -B maxmem=X instance-name
+   gnt-instance modify --runtime-memory X instance-name
 
 When ``memory_hotplug_method`` is ``virtio-mem``,
 ``gnt-instance modify -B memory=X`` on a running KVM instance:
@@ -260,8 +260,9 @@ are handled as before (no hotplug, only ballooning via ``maxmem``).
 
 Instances that are not running are updated as today.
 
-``gnt-instance modify -B maxmem=X`` continues to work as before
-and the instances are not available for that mechanism.
+Instances where ballooning is active (i.e. ``memory``, ``minmem``, and
+``maxmem`` are not all equal) cannot use virtio-mem, because the two
+mechanisms would conflict.
 
 Mechanism
 =========
