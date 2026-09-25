@@ -218,7 +218,7 @@ Choosing the block size
 
 The virtio-mem device uses a ``block-size`` parameter that determines
 the granularity of memory plug/unplug operations. The initial
-implementation uses a fixed block size of 1 MiB.
+implementation uses a fixed block size of 64 MiB.
 
 Behavior
 ========
