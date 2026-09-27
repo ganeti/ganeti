@@ -222,7 +222,9 @@ count_jobs 31
 
 upto 'Certificate expiration'
 gencert $tmpdir/validcert 30 & vcpid=${!}
-gencert $tmpdir/expcert -30 & ecpid=${!}
+# Validity cannot be negative with cryptography:
+# https://github.com/pyca/cryptography/blob/c8d4429f2f059f7e501446d05b050159d294b809/src/cryptography/x509/base.py#L486-L489
+gencert $tmpdir/expcert 0 & ecpid=${!}
 wait $vcpid $ecpid
 create_certdirs $tmpdir/validcert foo{a,b,c}123 trvRMH4Wvt OfDlh6Pc2n
 create_certdirs $tmpdir/expcert bar{x,y,z}999 fx0ljoImWr em3RBC0U8c

@@ -58,7 +58,9 @@ VALIDITY=1 impexpd_helper $tmpdir/cert-valid gencert
 $CCE $tmpdir/cert-valid 2>/dev/null && \
   err 'Reported valid certificate as expired'
 
-VALIDITY=-50 impexpd_helper $tmpdir/cert-expired gencert
+# Validity cannot be negative with cryptography:
+# https://github.com/pyca/cryptography/blob/c8d4429f2f059f7e501446d05b050159d294b809/src/cryptography/x509/base.py#L486-L489
+VALIDITY=0 impexpd_helper $tmpdir/cert-expired gencert
 $CCE $tmpdir/cert-expired 2>/dev/null || \
   err 'Reported expired certificate as valid'
 
