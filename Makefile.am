@@ -684,6 +684,7 @@ hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/validation.py \
 	lib/hypervisor/hv_kvm/kvm_utils.py \
 	lib/hypervisor/hv_kvm/kvm_runtime.py \
+	lib/hypervisor/hv_kvm/firmware.py \
 	lib/hypervisor/hv_kvm/bus_manager.py
 
 jqueue_PYTHON = \
@@ -2053,8 +2054,19 @@ python_tests_unit = \
 	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
 	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
 	test/py/unit/hypervisor/hv_kvm/test_instance_info.py \
+	test/py/unit/hypervisor/hv_kvm/test_kvm_runtime.py \
+	test/py/unit/hypervisor/hv_kvm/test_boot_type.py \
 	test/py/unit/hypervisor/hv_kvm/test_q35.py \
 	test/py/unit/test_disk_role.py \
+	test/py/unit/test_firmware_seed.py \
+	test/py/unit/test_cfgupgrade_boot_type.py \
+	test/py/unit/cmdlib/test_firmware_disk.py \
+	test/py/unit/cmdlib/test_firmware_disk_create.py \
+	test/py/unit/cmdlib/test_attach_firmware_disk.py \
+	test/py/unit/cmdlib/test_boot_type_transition.py \
+	test/py/unit/cmdlib/test_backup_zeroing.py \
+	test/py/unit/cmdlib/test_revert_to_defaults.py \
+	test/py/unit/cmdlib/test_ipolicy_firmware.py \
 	test/py/unit/http/test_auth.py \
 	test/py/unit/http/test_server.py \
 	test/py/unit/http/test_ssl.py \

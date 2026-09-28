@@ -394,6 +394,104 @@ def TestInstanceReboot(instance):
   AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
 
 
+def _TestInstanceAddWithBootType(nodes, disk_template, boot_type):
+  """gnt-instance add with an explicit KVM boot_type hvparam.
+
+  The per-mode boot assets (kernel_path/initrd_path/root_path) are
+  identical across the direct modes and are set cluster-wide by the
+  environment, so only boot_type itself is overridden here.
+
+  """
+  instance = qa_config.AcquireInstance()
+  try:
+    nodes_spec = ":".join(n.primary for n in nodes)
+    cmd = (["gnt-instance", "add",
+            "--os-type=%s" % qa_config.get("os"),
+            "--disk-template=%s" % disk_template,
+            "--node=%s" % nodes_spec,
+            "-H", "kvm:boot_type=%s" % boot_type] +
+           GetGenericAddParameters(instance, disk_template))
+    cmd.append(instance.name)
+
+    AssertCommand(cmd)
+
+    CheckSsconfInstanceList(instance.name)
+    instance.SetDiskTemplate(disk_template)
+    return instance
+  except:
+    instance.Release()
+    raise
+
+
+def _AssertFirmwareDiskPresent(instance):
+  """Assert that the instance has a firmware-role disk."""
+  roles = _GetInstanceField(instance.name, "disk.roles")
+  if "firmware" not in roles.split(","):
+    raise qa_error.Error("Instance %s has no firmware disk; disk.roles is %s"
+                         % (instance.name, roles))
+
+
+def TestInstanceBootTypes():
+  """Exercise the configured KVM boot_type values end to end.
+
+  For each boot_type listed in the "kvm-boot-types" config key a fresh
+  instance is created with an explicit -H kvm:boot_type=..., booted,
+  rebooted and removed. This is done for every enabled single-node
+  template: plain covers firmware-disk seeding on a raw block device,
+  file/sharedfile cover the file-backed path (loop/dm exposure, NFS
+  for sharedfile), rbd covers the RADOS-block-device path, whose
+  semantics differ for the firmware disk. On drbd (two nodes) live
+  migration and failover are exercised additionally - live migration
+  is what forces the firmware dm/loop regions to re-expose on the
+  target node. For direct_kernel_efi the presence of the firmware disk
+  is asserted via the disk.roles query field.
+
+  """
+  boot_types = qa_config.get("kvm-boot-types", [])
+  assert boot_types
+
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
+  single_node_templates = [
+    tmpl for tmpl in (constants.DT_PLAIN, constants.DT_FILE,
+                      constants.DT_SHARED_FILE, constants.DT_RBD)
+    if tmpl in enabled_disk_templates]
+
+  for boot_type in boot_types:
+    for disk_template in single_node_templates:
+      pnode = qa_config.AcquireNode()
+      try:
+        instance = _TestInstanceAddWithBootType([pnode], disk_template,
+                                                boot_type)
+        try:
+          if boot_type == constants.HT_BOOT_DIRECT_KERNEL_EFI:
+            _AssertFirmwareDiskPresent(instance)
+          TestInstanceStartup(instance)
+          TestInstanceReboot(instance)
+        finally:
+          TestInstanceRemove(instance)
+          instance.Release()
+        del instance
+      finally:
+        pnode.Release()
+
+    if constants.DT_DRBD8 in enabled_disk_templates:
+      inodes = qa_config.AcquireManyNodes(2)
+      try:
+        instance = _TestInstanceAddWithBootType(inodes, constants.DT_DRBD8,
+                                                boot_type)
+        try:
+          if boot_type == constants.HT_BOOT_DIRECT_KERNEL_EFI:
+            _AssertFirmwareDiskPresent(instance)
+          TestInstanceMigrate(instance)
+          TestInstanceFailover(instance)
+        finally:
+          TestInstanceRemove(instance)
+          instance.Release()
+        del instance
+      finally:
+        qa_config.ReleaseManyNodes(inodes)
+
+
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""

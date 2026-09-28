@@ -302,9 +302,18 @@ boot\_type
         Legacy BIOS (SeaBIOS) boot driven by ``boot_order``.
 
     uefi
-        UEFI/OVMF boot driven by ``boot_order`` (the per-instance firmware
-        disk this mode requires is introduced with UEFI support in a
-        following change).
+        UEFI/OVMF boot driven by ``boot_order``. The instance gains a small,
+        per-instance *firmware disk* (role ``firmware``, shown by
+        ``gnt-instance info``) that stores the OVMF code and the writable
+        NVRAM (vars). This disk uses the same disk template as the data disks
+        and is treated as precious: it is never wiped, recreated as empty, or
+        silently dropped, and it cannot be grown or removed while ``boot_type``
+        is ``uefi`` or ``direct_kernel_efi``. Because the firmware disk must be
+        created and seeded by Ganeti, disk adoption (``--disk N:adopt=...``)
+        is not supported for OVMF instances. Due to limitations in QEMU,
+        firmware disks are restricted to kernelspace access and are silently
+        set to it, even when userspace access is configured (affects RBD and
+        Gluster storage backends).
 
     direct_kernel_efi
         Direct kernel boot through UEFI/OVMF firmware: the hybrid of
@@ -313,13 +322,30 @@ boot\_type
         OVMF loads the kernel through its EFI stub, so the guest sees a
         genuine EFI environment (``/sys/firmware/efi`` present) while
         still booting the injected kernel. ``boot_order`` is ignored, as
-        under ``direct_kernel``.
+        under ``direct_kernel``; the per-instance firmware disk is
+        required, exactly as under ``uefi``.
 
     ``boot_type`` is the single source of truth for the boot mode. Setting
     ``kernel_path`` to toggle disk boot is **deprecated**; set ``boot_type``
     explicitly instead. ``kernel_path`` is kept non-empty by default and is
     simply ignored unless ``boot_type`` is ``direct_kernel`` or
     ``direct_kernel_efi``.
+
+    Only an explicit ``gnt-instance modify -H boot_type=uefi`` or
+    ``-H boot_type=direct_kernel_efi`` (instance stopped) creates and
+    seeds the firmware disk; a modify that leaves the resolved
+    ``boot_type`` unchanged is a no-op. Switching away from ``uefi`` or
+    ``direct_kernel_efi`` keeps the disk in place but inert; it can be
+    removed explicitly later.
+
+    **start**, **failover** and **move** refuse to run for an instance
+    that resolves to ``uefi`` or ``direct_kernel_efi`` (instance setting
+    or start-time override) but has no firmware disk; while stopped, run
+    ``gnt-instance modify -H boot_type=<mode> <instance>`` to create it.
+
+    Because the firmware disk counts towards the ``MAX_DISKS`` (16) limit, a
+    UEFI instance supports at most 15 data disks. The firmware disk occupies
+    no PCI slot (it is attached as pflash, a machine property).
 
     The cluster-level default is a creation-time seed: it is pinned into
     every new instance at ``gnt-instance add`` (the default for new
@@ -342,6 +368,12 @@ ovmf\_code
     once the firmware disk has been seeded. Ganeti will include maintenance
     commands for that in a future release.
 
+    **RBD caveat:** the firmware disk is always forced to local
+    (kernelspace) access so its regions can be exposed as pflash backing.
+    On RBD this means UEFI requires krbd-capable nodes even when the data
+    disks use userspace RBD, and the firmware volume may fail to map if it
+    carries image features krbd does not support.
+
 ovmf\_vars
     Valid for the KVM hypervisor.
 
@@ -355,6 +387,12 @@ ovmf\_vars
     Currently there is no way to update/change an instace's NVRAM once the
     firmware disk has been seeded. Ganeti will include maintenance commands
     for that in a future release.
+
+    **RBD caveat:** the firmware disk is always forced to local
+    (kernelspace) access so its regions can be exposed as pflash backing.
+    On RBD this means UEFI requires krbd-capable nodes even when the data
+    disks use userspace RBD, and the firmware volume may fail to map if it
+    carries image features krbd does not support.
 
 blockdev\_prefix
     Valid for the Xen HVM and PVM hypervisors.

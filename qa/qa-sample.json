@@ -51,6 +51,11 @@
     "diskless"
   ],
 
+  "# KVM boot_type values the environment can boot (kernel assets are": null,
+  "# cluster-level). OVMF modes need no image change; bios/uefi need an": null,
+  "# image-based OS provider and are out of scope here.": null,
+  "kvm-boot-types": ["direct_kernel", "direct_kernel_efi"],
+
   "# Default file storage directories": null,
   "default-file-storage-dir": "/srv/ganeti/file-storage",
   "default-shared-file-storage-dir": "/srv/ganeti/shared-file-storage",
@@ -241,6 +246,7 @@
     "instance-migrate": true,
     "instance-modify": true,
     "instance-iterate-hvparams": true,
+    "instance-boot-types": true,
     "instance-modify-primary": true,
     "instance-modify-disks": false,
     "instance-reboot": true,
