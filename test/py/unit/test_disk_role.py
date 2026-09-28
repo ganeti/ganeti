@@ -50,3 +50,43 @@ class TestDiskRole:
     disk = objects.Disk.FromDict({"dev_type": constants.DT_PLAIN, "size": 1})
     disk.UpgradeConfig()
     assert disk.role == constants.DR_ROLE_DATA
+
+
+def _kvm_instance(**hvparams):
+  return objects.Instance(name="i1", hypervisor=constants.HT_KVM,
+                          hvparams=hvparams, nics=[], disks=[], beparams={},
+                          osparams={}, admin_state=constants.ADMINST_DOWN)
+
+
+class TestInstanceBootTypeSynthesis:
+  """Instance.UpgradeConfig synthesizes boot_type only from explicit
+  kernel_path overrides (the only case it can see from a single
+  instance's override-only hvparams); cfgupgrade pins all other
+  instances from their effective kernel_path."""
+
+  def test_explicit_kernel_path_gives_direct_kernel(self):
+    inst = _kvm_instance(**{constants.HV_KERNEL_PATH: "/boot/vmlinuz"})
+    inst.UpgradeConfig()
+    assert (inst.hvparams[constants.HV_BOOT_TYPE]
+            == constants.HT_BOOT_DIRECT_KERNEL)
+
+  def test_explicit_empty_kernel_path_gives_bios(self):
+    inst = _kvm_instance(**{constants.HV_KERNEL_PATH: ""})
+    inst.UpgradeConfig()
+    assert inst.hvparams[constants.HV_BOOT_TYPE] == constants.HT_BOOT_BIOS
+
+  def test_no_kernel_path_override_leaves_boot_type_unset(self):
+    # UpgradeConfig sees one instance in isolation (no cluster hvparams),
+    # so it cannot compute the effective kernel_path for the no-override
+    # case; pinning those instances is cfgupgrade's job.
+    inst = _kvm_instance()
+    inst.UpgradeConfig()
+    assert constants.HV_BOOT_TYPE not in inst.hvparams
+
+  def test_non_kvm_instance_is_untouched(self):
+    inst = objects.Instance(name="x", hypervisor=constants.HT_XEN_PVM,
+                            hvparams={constants.HV_KERNEL_PATH: "/k"}, nics=[],
+                            disks=[], beparams={}, osparams={},
+                            admin_state=constants.ADMINST_DOWN)
+    inst.UpgradeConfig()
+    assert constants.HV_BOOT_TYPE not in inst.hvparams

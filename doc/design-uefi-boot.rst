@@ -144,6 +144,15 @@ in three places, each acting on the data it actually has:
   node. Here ``up_hvp`` is fully merged (``kernel_path`` always present),
   so a plain ``kernel_path`` test suffices.
 
+Cluster downgrades are blocked/refused when any instance is configured
+with an UEFI boot mode. The reason is that downgraded instances will
+keep their firmware disks which are rejected by the 3.x allocation
+policies. Also running instances will retain the ``role`` field for disks
+which breaks 3.x disk handling code.
+To allow a successful downgrade, the operator must switch all instances
+to boot mode ``bios`` or ``direct_kernel`` first and remove the firmware
+disks from those instances.
+
 
 The firmware disk
 =================
