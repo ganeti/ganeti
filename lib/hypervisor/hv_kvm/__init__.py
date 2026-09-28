@@ -94,7 +94,8 @@ from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 validate_spice_parameters, \
                                                 validate_vnc_parameters, \
                                                 validate_disk_parameters, \
-                                                is_q35
+                                                is_q35, \
+                                                uses_direct_kernel
 
 from ganeti.hypervisor.hv_kvm import kvm_utils
 
@@ -406,6 +407,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   PARAMETERS = {
     constants.HV_KVM_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_BOOT_TYPE:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_BOOT_MODES),
+    # ovmf_code accepts an empty/absent value (-> cluster default) or a plain
+    # string; filesystem existence is deferred to create/seed time on the node
+    # that hosts the instance (the master cannot see the node's OVMF files).
+    constants.HV_OVMF_CODE: hv_base.NO_CHECK,
+    constants.HV_OVMF_VARS: hv_base.NO_CHECK,
     constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_ROOT_PATH: hv_base.NO_CHECK,
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
@@ -1123,8 +1131,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: list of command line options eventually used by kvm executable
 
     """
-    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
-    if kernel_path:
+    boot_type = up_hvp[constants.HV_BOOT_TYPE]
+    if uses_direct_kernel(boot_type):
       boot_disk = False
     else:
       boot_disk = up_hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
@@ -1511,10 +1519,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
       machine_params.append("accel=kvm")
 
+    boot_type = hvp[constants.HV_BOOT_TYPE]
+
     kvm_cmd.extend(["-machine", ",".join(machine_params)])
 
-    kernel_path = hvp[constants.HV_KERNEL_PATH]
-    if kernel_path:
+    if uses_direct_kernel(boot_type):
       boot_cdrom = boot_floppy = False
     else:
       boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
@@ -1551,7 +1560,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if floppy_image:
       self._FloppyOption(kvm_cmd, floppy_image, boot_floppy)
 
-    if kernel_path:
+    # kernel_path/initrd_path/kernel_args are honored only under direct-kernel
+    # boot; boot_type is the single source of truth (kernel_path as a boot-mode
+    # toggle is deprecated).
+    if uses_direct_kernel(boot_type):
+      kernel_path = hvp[constants.HV_KERNEL_PATH]
       kvm_cmd.extend(["-kernel", kernel_path])
       initrd_path = hvp[constants.HV_INITRD_PATH]
       if initrd_path:
@@ -2114,8 +2127,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     taps = []
     devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
 
-    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
-    if kernel_path:
+    boot_type = up_hvp[constants.HV_BOOT_TYPE]
+    if uses_direct_kernel(boot_type):
       boot_network = False
     else:
       boot_network = (up_hvp.get(constants.HV_BOOT_ORDER, '') ==
