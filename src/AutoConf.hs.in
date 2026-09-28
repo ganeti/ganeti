@@ -121,6 +121,12 @@ defaultBridge = "DEFAULT_BRIDGE"
 kvmPath :: String
 kvmPath = "KVM_PATH"
 
+ovmfCodeTemplate :: String
+ovmfCodeTemplate = "OVMF_CODE_TEMPLATE"
+
+ovmfVarsTemplate :: String
+ovmfVarsTemplate = "OVMF_VARS_TEMPLATE"
+
 ipPath :: String
 ipPath = "IP_PATH"
 

@@ -673,6 +673,10 @@ class LUInstanceCreate(LogicalUnit):
     # hvparams
     hv_defs = cluster.SimpleFillHV(self.op.hypervisor, self.op.os_type, {})
     for name in list(self.op.hvparams):
+      # seed params (HV_SEED_PARAMS) belong to the instance even when equal to
+      # the cluster default; never revert them
+      if name in constants.HV_SEED_PARAMS:
+        continue
       if name in hv_defs and hv_defs[name] == self.op.hvparams[name]:
         del self.op.hvparams[name]
     # beparams
@@ -795,6 +799,17 @@ class LUInstanceCreate(LogicalUnit):
     hv_type = hypervisor.GetHypervisorClass(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
+
+    # Seed params (HV_SEED_PARAMS, e.g. boot_type) are pinned into the
+    # instance's explicit hvparams at plain creation time; afterwards the
+    # instance owns the value and never reads the cluster default again.
+    # Import is excluded: it must preserve the exported instance's own pinned
+    # value, not reseed from this cluster's default.
+    if (self.op.mode == constants.INSTANCE_CREATE and
+        self.op.hypervisor == constants.HT_KVM):
+      for name in constants.HV_SEED_PARAMS:
+        if name not in self.op.hvparams:
+          self.op.hvparams[name] = self.hv_full[name]
     # check that we don't specify global parameters on an instance
     CheckParamsNotGlobal(self.op.hvparams, constants.HVC_GLOBALS, "hypervisor",
                          "instance", "cluster")
