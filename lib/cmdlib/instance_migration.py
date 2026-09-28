@@ -45,8 +45,9 @@ from ganeti.cmdlib.common import ExpandInstanceUuidAndName, \
 from ganeti.cmdlib.instance_storage import CheckDiskConsistency, \
   ExpandCheckDisks, ShutdownInstanceDisks, AssembleInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
-  CheckTargetNodeIPolicy, ReleaseLocks, CheckNodeNotDrained, \
-  CopyLockList, CheckNodeFreeMemory, CheckInstanceBridgesExist
+  CheckFirmwareDiskPresent, CheckTargetNodeIPolicy, ReleaseLocks, \
+  CheckNodeNotDrained, CopyLockList, CheckNodeFreeMemory, \
+  CheckInstanceBridgesExist
 
 import ganeti.masterd.instance
 
@@ -326,7 +327,11 @@ class TLMigrateInstance(Tasklet):
                       " switching to failover")
       self.failover = True
 
+    if self.failover:  # boots on the target node
+      CheckFirmwareDiskPresent(self.lu, self.instance)
+
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
 
     if not utils.AllDiskOfType(disks, constants.DTS_MIRRORED):
       if self.failover:
