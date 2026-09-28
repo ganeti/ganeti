@@ -62,6 +62,7 @@ from ganeti.cmdlib.instance_utils import \
   CheckNodeVmCapable, CheckTargetNodeIPolicy, \
   GetInstanceInfoText, RemoveDisks, CheckNodeFreeMemory, \
   CheckInstanceBridgesExist, \
+  CheckFirmwareDiskPresent, \
   CheckInstanceExistence, \
   CheckHostnameSane, CheckOpportunisticLocking, ComputeFullBeParams, \
   ComputeNics, CreateInstanceAllocRequest
@@ -391,6 +392,8 @@ class LUInstanceMove(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+
+    CheckFirmwareDiskPresent(self, self.instance)  # boots on target node
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     for idx, dsk in enumerate(disks):
