@@ -1311,6 +1311,26 @@ class Instance(TaggableObject):
           del self.hvparams[key]
         except KeyError:
           pass
+      # Synthesize boot_type for pre-4.0 KVM instances from an explicit
+      # instance-level kernel_path override - the only case this hook can
+      # see. It runs on every config load with a single instance in
+      # isolation (instance overrides only, no cluster hvparams), so the
+      # no-override case is not "preserving inheritance" (under the seed
+      # model there is no cluster inheritance for boot_type): cfgupgrade
+      # already pinned those instances from their effective kernel_path.
+      # Must stay idempotent so repeated loads never mangle an already-
+      # pinned instance. (Distinct from the runtime synthesis, which acts
+      # on fully-merged hvparams where kernel_path is always present.)
+      if (self.hypervisor == constants.HT_KVM and
+          constants.HV_BOOT_TYPE not in self.hvparams and
+          constants.HV_KERNEL_PATH in self.hvparams):
+        # Pre-4.0 had no OVMF support, so synthesis can only ever yield
+        # direct_kernel or bios - never uefi/direct_kernel_efi.
+        if self.hvparams[constants.HV_KERNEL_PATH]:
+          self.hvparams[constants.HV_BOOT_TYPE] = \
+            constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          self.hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
     if self.osparams is None:
       self.osparams = {}
     if self.osparams_private is None:

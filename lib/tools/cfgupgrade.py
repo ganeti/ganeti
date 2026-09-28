@@ -378,6 +378,20 @@ class CfgUpgrade(object):
         cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] = \
           constants.HT_DISCARD_IGNORE
 
+      # boot_type added with 4.0: synthesize it for the KVM cluster defaults
+      # from the literal state of kernel_path (non-empty -> direct kernel boot,
+      # empty/absent -> BIOS boot), preserving pre-4.0 behaviour. Idempotent so
+      # repeated UpgradeAll runs are safe.
+      # Pre-4.0 had no OVMF support, so this synthesis can only ever yield
+      # direct_kernel or bios - never uefi/direct_kernel_efi.
+      kvm_hvparams = cluster["hvparams"].get(constants.HT_KVM)
+      if kvm_hvparams is not None and \
+         constants.HV_BOOT_TYPE not in kvm_hvparams:
+        if kvm_hvparams.get(constants.HV_KERNEL_PATH):
+          kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
+
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
     cl_ipolicy = self.config_data["cluster"].get("ipolicy")
@@ -500,6 +514,26 @@ class CfgUpgrade(object):
             constants.HT_DISCARD_IGNORE
           logging.info("disk_discard was explicitly set to 'default' on "
                        "instance '%s': migrated to 'ignore'" % iobj["name"])
+
+      # boot_type added with 4.0. Under the seed model every KVM instance owns
+      # an explicit boot_type, so pin it here from the instance's *effective*
+      # kernel_path (instance override if present, else the cluster KVM
+      # default): non-empty -> direct_kernel, empty -> bios. This inverts the
+      # pre-4.0-development "don't freeze inheritance" rule: there is no
+      # cluster inheritance for boot_type anymore.
+      # Pre-4.0 had no OVMF support, so this synthesis can only ever yield
+      # direct_kernel or bios - never uefi/direct_kernel_efi.
+      kvm_hvparams = self.config_data["cluster"].get("hvparams", {}).get(
+        constants.HT_KVM, {})
+      ihvparams = iobj.get("hvparams")
+      if ihvparams is not None and \
+         iobj.get("hypervisor") == constants.HT_KVM and \
+         constants.HV_BOOT_TYPE not in ihvparams:
+        if ihvparams.get(constants.HV_KERNEL_PATH,
+                         kvm_hvparams.get(constants.HV_KERNEL_PATH, "")):
+          ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
 
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have
@@ -824,6 +858,35 @@ class CfgUpgrade(object):
       inst_hvparams = instances[inst].get("hvparams", None)
       if hvparams is not None and "virtio_disk_iothreads" in inst_hvparams:
         inst_hvparams.pop("virtio_disk_iothreads")
+  @OrFail("Removing the boot_type and ovmf_code/ovmf_vars parameters")
+  def DowngradeBootType(self):
+    """Remove the KVM boot_type and ovmf_code/ovmf_vars hvparams.
+
+    These parameters were introduced with 4.0 (boot_type + UEFI/OVMF support);
+    older Ganeti versions do not know them, so strip them from the cluster
+    defaults and from every instance's hvparam overrides. The Disk.role field
+    can stay: it defaults to 'data' and is harmless to older code.
+
+    """
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    new_hvparams = [constants.HV_BOOT_TYPE, constants.HV_OVMF_CODE,
+                    constants.HV_OVMF_VARS]
+
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    kvm_hvparams = cluster.get("hvparams", {}).get(constants.HT_KVM, None)
+    if kvm_hvparams is not None:
+      for param in new_hvparams:
+        kvm_hvparams.pop(param, None)
+
+    for iobj in self.config_data.get("instances", {}).values():
+      ihvparams = iobj.get("hvparams", None)
+      if ihvparams is not None:
+        for param in new_hvparams:
+          ihvparams.pop(param, None)
 
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
@@ -832,6 +895,7 @@ class CfgUpgrade(object):
     self.DowngradeXenSettings()
     self.DowngradeRbdSettings()
     self.DowngradeIothreadSettings()
+    self.DowngradeBootType()
     return not self.errors
 
   def _ComposePaths(self):

@@ -1350,6 +1350,13 @@ class LUClusterSetParams(LogicalUnit):
           self.new_hvparams[hv_name] = hv_dict
         else:
           self.new_hvparams[hv_name].update(hv_dict)
+      if (constants.HT_KVM in self.op.hvparams and
+          constants.HV_BOOT_TYPE in self.op.hvparams[constants.HT_KVM]):
+        self.LogWarning("boot_type is a creation-time seed: it changes the"
+                        " default for newly created instances only and does"
+                        " not modify any existing instance. To change an"
+                        " existing instance, stop it and run 'gnt-instance"
+                        " modify -H boot_type=<value> <name>'.")
 
     # disk template parameters
     self.new_diskparams = objects.FillDict(cluster.diskparams, {})

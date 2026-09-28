@@ -64,6 +64,27 @@ _Q35_MACHINE_RE = re.compile(r"^pc-q35-\S+", re.M)
 # rejected on q35: i440fx remains available for those.
 _Q35_VALID_SOUNDHW = frozenset(["", "ac97", "hda"])
 
+def uses_ovmf(boot_type):
+  """Whether C{boot_type} runs on OVMF firmware.
+
+  OVMF modes need the firmware disk, the pflash attach, the dm/loop
+  region exposure and the live-migration re-expose.
+
+  """
+  return boot_type in (constants.HT_BOOT_UEFI,
+                       constants.HT_BOOT_DIRECT_KERNEL_EFI)
+
+
+def uses_direct_kernel(boot_type):
+  """Whether C{boot_type} injects the kernel via -kernel/-initrd/-append.
+
+  Direct-kernel modes ignore C{boot_order}; the kernel/initrd/append
+  drive the boot.
+
+  """
+  return boot_type in (constants.HT_BOOT_DIRECT_KERNEL,
+                       constants.HT_BOOT_DIRECT_KERNEL_EFI)
+
 
 def is_q35(machine_version):
   """Return True iff C{machine_version} names a q35 machine type.
@@ -280,16 +301,31 @@ def validate_security_model(hvparams):
 
 
 def check_boot_parameters(hvparams):
+    # boot_type is the single source of truth for the boot mode. Treat it as
+    # authoritative and silently ignore parameters that do not apply to the
+    # selected mode (kernel_path has a non-empty default, so warning about it
+    # would fire for essentially every bios/uefi instance). Only genuinely
+    # invalid combinations raise. This is a master-side, no-filesystem check.
+    boot_type = hvparams.get(constants.HV_BOOT_TYPE,
+                             constants.HT_BOOT_DIRECT_KERNEL)
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if (boot_order == constants.HT_BO_CDROM and
-        not hvparams[constants.HV_CDROM_IMAGE_PATH]):
-      raise errors.HypervisorError("Cannot boot from cdrom without an"
-                                   " ISO path")
-    kernel_path = hvparams[constants.HV_KERNEL_PATH]
-    if kernel_path:
-      if not hvparams[constants.HV_ROOT_PATH]:
+
+    if uses_direct_kernel(boot_type):
+      # boot_order is ignored; the kernel/initrd/append drive the boot.
+      if (hvparams[constants.HV_KERNEL_PATH] and
+          not hvparams[constants.HV_ROOT_PATH]):
         raise errors.HypervisorError("Need a root partition for the instance,"
                                      " if a kernel is defined")
+    else:
+      # bios/uefi: boot_order is authoritative; kernel_path is ignored.
+      if (boot_order == constants.HT_BO_CDROM and
+          not hvparams[constants.HV_CDROM_IMAGE_PATH]):
+        raise errors.HypervisorError("Cannot boot from cdrom without an"
+                                     " ISO path")
+      if (uses_ovmf(boot_type) and
+          boot_order == constants.HT_BO_FLOPPY):
+        raise errors.HypervisorError("UEFI boot does not support booting from"
+                                     " floppy")
     return True
 
 
