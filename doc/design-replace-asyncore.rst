@@ -56,7 +56,7 @@ using standard library components:
 - Selector-compatible implementation of the UDPClient
 
 The migration will be performed incrementally to minimize risk and allow
-thorough testing at each stage. The ultimate goal is to ship version 3.2
+thorough testing at each stage. The ultimate goal is to ship version 4.0
 without any dependency on asyncore.
 
 
