@@ -686,7 +686,12 @@ def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
   cpu_count = be_full[constants.BE_VCPUS]
   inst_nodes = cfg.GetInstanceNodes(instance.uuid)
   es_flags = rpc.GetExclusiveStorageForNodes(cfg, inst_nodes)
-  disks = cfg.GetInstanceDisks(instance.uuid)
+  # The firmware (OVMF) disk is a fixed-size, system-managed disk; it must not
+  # be checked against the user-facing disk-size/disk-count/disk-type ipolicy
+  # limits (a 32 MiB firmware disk would otherwise violate a higher disk-size
+  # minimum). It is also excluded from the spindle accounting.
+  disks = [disk for disk in cfg.GetInstanceDisks(instance.uuid)
+           if disk.role != constants.DR_ROLE_FIRMWARE]
   if any(es_flags.values()):
     # With exclusive storage use the actual spindles
     try:
