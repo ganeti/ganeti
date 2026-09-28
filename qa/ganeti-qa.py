@@ -1106,6 +1106,11 @@ def RunQa():
       RunTestBlock(RunInstanceTests)
       restore_conf_f(oldconf)
 
+  if (qa_config.TestEnabled("instance-boot-types") and
+      qa_config.GetDefaultHypervisor() == constants.HT_KVM and
+      qa_config.get("kvm-boot-types", [])):
+    RunTestBlock(qa_instance.TestInstanceBootTypes)
+
   pnode = qa_config.AcquireNode()
   try:
     if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
