@@ -6,7 +6,7 @@ Ganeti Instance Network Configuration
 Introduction
 ------------
 
-Beginning with Ganeti 3.2 the instance networking configuration has
+Beginning with Ganeti 4.0 the instance networking configuration has
 been refactored so that it is more accessible and easier to adapt to
 custom network deployments. The per-mode network logic is split across
 two directory trees:
