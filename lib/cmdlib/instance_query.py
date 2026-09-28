@@ -213,6 +213,7 @@ class LUInstanceQueryData(NoHooksLU):
       "spindles": dev.spindles,
       "name": dev.name,
       "uuid": dev.uuid,
+      "role": dev.role,
       }
 
   def Exec(self, feedback_fn):

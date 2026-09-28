@@ -69,6 +69,9 @@ module Ganeti.HTools.Types
   , DiskTemplate(..)
   , diskTemplateToRaw
   , diskTemplateFromRaw
+  , DiskRole(..)
+  , diskRoleToRaw
+  , diskRoleFromRaw
   , MirrorType(..)
   , templateMirrorType
   , MoveJob
