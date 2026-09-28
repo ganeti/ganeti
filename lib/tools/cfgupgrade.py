@@ -62,10 +62,22 @@ TARGET_MAJOR = constants.CONFIG_MAJOR
 TARGET_MINOR = constants.CONFIG_MINOR
 #: Last supported v2.x minor
 LAST_V2_MINOR = 16
-#: Target major version for downgrade
-DOWNGRADE_MAJOR = TARGET_MAJOR
-#: Target minor version for downgrade
-DOWNGRADE_MINOR = TARGET_MINOR - 1
+#: Last supported v3.x minor
+LAST_V3_MINOR = 1
+
+# Downgrade targets the previous stable version. Within a major series that is
+# the preceding minor; the first release of a new major series (x.0) instead
+# downgrades to the last minor of the preceding series.
+if TARGET_MINOR > 0:
+  #: Target major version for downgrade
+  DOWNGRADE_MAJOR = TARGET_MAJOR
+  #: Target minor version for downgrade
+  DOWNGRADE_MINOR = TARGET_MINOR - 1
+else:
+  #: Target major version for downgrade
+  DOWNGRADE_MAJOR = TARGET_MAJOR - 1
+  #: Target minor version for downgrade
+  DOWNGRADE_MINOR = LAST_V3_MINOR
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -185,8 +197,9 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.0-2.16 and 3.0 to 3.1
+    # Upgrade from 2.0-2.16 and 3.0-3.1 to the target version
     elif ((config_major == TARGET_MAJOR and config_minor in range(TARGET_MINOR))
+         or (config_major == 3 and config_minor in range(LAST_V3_MINOR + 1))
          or (config_major == 2 and config_minor in range(LAST_V2_MINOR + 1))):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)

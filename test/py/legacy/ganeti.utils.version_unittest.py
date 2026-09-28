@@ -57,10 +57,10 @@ class UpgradeRangeTest(unittest.TestCase):
                           None)
         self.assertEqual(version.UpgradeRange((3,0,0), current=(2,12,0)),
                          "major version up- or downgrades are only supported"
-                         " between 2.16 and 3.0")
+                         " between 2.16 and 3.0, and between 3.1 and 4.0")
         self.assertEqual(version.UpgradeRange((2,12,0), current=(3,0,0)),
                          "major version up- or downgrades are only supported"
-                         " between 2.16 and 3.0")
+                         " between 2.16 and 3.0, and between 3.1 and 4.0")
         self.assertEqual(version.UpgradeRange((2,10,0), current=(2,12,0)),
                           "can only downgrade one minor version at a time")
         self.assertEqual(version.UpgradeRange((2,9,0), current=(2,10,0)),
@@ -71,6 +71,10 @@ class UpgradeRangeTest(unittest.TestCase):
                           None)
         self.assertEqual(version.UpgradeRange((2,16,1), current=(3,0,0)),
                           None)
+        self.assertEqual(version.UpgradeRange((4,0,0), current=(3,1,0)),
+                          None)
+        self.assertEqual(version.UpgradeRange((3,1,0), current=(4,0,0)),
+                          None)
 
 class ShouldCfgdowngradeTest(unittest.TestCase):
     def testShouldCfgDowngrade(self):
@@ -79,6 +83,18 @@ class ShouldCfgdowngradeTest(unittest.TestCase):
         self.assertFalse(version.ShouldCfgdowngrade((2,9,0), current=(2,11,0)))
         self.assertFalse(version.ShouldCfgdowngrade((2,9,0), current=(3,10,0)))
         self.assertFalse(version.ShouldCfgdowngrade((2,10,0), current=(3,10,0)))
+        # the major downgrade 4.0 -> 3.1 needs a config downgrade while
+        # the newer binary is still in place
+        self.assertTrue(version.ShouldCfgdowngrade((3,1,0), current=(4,0,0)))
+        self.assertTrue(version.ShouldCfgdowngrade((3,1,2), current=(4,0,0)))
+        # but no other major pair (including upgrades), even where
+        # UpgradeRange whitelists them (e.g. 3.0 -> 2.16)
+        self.assertFalse(version.ShouldCfgdowngrade((2,16,0),
+                                                    current=(3,0,0)))
+        self.assertFalse(version.ShouldCfgdowngrade((2,15,0),
+                                                    current=(3,0,0)))
+        self.assertFalse(version.ShouldCfgdowngrade((3,0,0), current=(4,0,0)))
+        self.assertFalse(version.ShouldCfgdowngrade((4,0,0), current=(3,1,0)))
 
 
 class IsCorrectConfigVersionTest(unittest.TestCase):
