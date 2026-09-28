@@ -151,6 +151,7 @@ Draft designs
    design-ssh-ports.rst
    design-storagetypes.rst
    design-systemd.rst
+   design-uefi-boot.rst
    design-upgrade.rst
    design-vcpu-hotplug.rst
    design-memory-hotplug.rst
