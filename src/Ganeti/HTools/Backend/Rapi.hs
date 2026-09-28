@@ -137,6 +137,12 @@ parseInstance ktn a = do
   disk <- extract "disk_usage" a
   dsizes <- extract "disk.sizes" a
   dspindles <- tryArrayMaybeFromObj owner_name a "disk.spindles"
+  -- disk.roles is optional: older RAPI versions don't report it, in which
+  -- case all disks are treated as data disks.
+  mdroles <- annotateResult owner_name (maybeFromObj a "disk.roles")
+  droles <- case mdroles of
+              Just rs -> mapM diskRoleFromRaw rs
+              Nothing -> Ok (replicate (length dsizes) DiskRoleData)
   beparams <- liftM fromJSObject (extract "beparams" a)
   omem <- extract "oper_ram" a
   mem <- case omem of
@@ -155,7 +161,7 @@ parseInstance ktn a = do
   su <- extract "spindle_use" beparams
   -- Not forthcoming by default.
   forthcoming <- extract "forthcoming" a `orElse` Ok False
-  let disks = zipWith Instance.Disk dsizes dspindles
+  let disks = zipWith3 Instance.Disk dsizes dspindles droles
   let inst = Instance.create name mem disk disks vcpus running tags
              auto_balance pnode snode dt su [] forthcoming
   return (name, inst)
