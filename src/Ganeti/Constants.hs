@@ -1116,6 +1116,17 @@ diskRdwr = Types.diskModeToRaw DiskRdWr
 diskAccessSet :: FrozenSet String
 diskAccessSet = ConstantUtils.mkSet $ map Types.diskModeToRaw [minBound..]
 
+-- * Disk role
+
+-- | An ordinary data disk.
+drRoleData :: String
+drRoleData = Types.diskRoleToRaw DiskRoleData
+
+-- | The per-instance firmware disk holding OVMF code and vars regions (and,
+-- in the future, other precious firmware blobs such as vTPM state).
+drRoleFirmware :: String
+drRoleFirmware = Types.diskRoleToRaw DiskRoleFirmware
+
 -- * Disk replacement mode
 
 replaceDiskAuto :: String

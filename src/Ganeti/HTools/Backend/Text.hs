@@ -307,7 +307,9 @@ loadInst ktn (name:mem:dsk:vcpus:status:auto_bal:pnode:snode
                    "N" -> return False
                    x -> fail $ "Invalid forthcoming value '"
                                ++ x ++ "' for instance " ++ name
-  let disk = Instance.Disk dsize vspindles
+  -- The text backend represents an instance as a single aggregate disk, so
+  -- there is no per-disk role information; treat it as a data disk.
+  let disk = Instance.Disk dsize vspindles DiskRoleData
   let vtags = commaSplit tags
       newinst = Instance.create name vmem dsize [disk] vvcpus vstatus vtags
                 auto_balance pidx sidx disk_template spindle_use [] forthcoming
