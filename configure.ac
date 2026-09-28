@@ -1,6 +1,6 @@
 # Configure script for Ganeti
-m4_define([gnt_version_major], [3])
-m4_define([gnt_version_minor], [2])
+m4_define([gnt_version_major], [4])
+m4_define([gnt_version_minor], [0])
 m4_define([gnt_version_revision], [0])
 m4_define([gnt_version_suffix], [~alpha1])
 m4_define([gnt_version_full],
@@ -299,6 +299,26 @@ AC_ARG_WITH([kvm-path],
   [kvm_path="$withval"],
   [kvm_path="/usr/bin/kvm"])
 AC_SUBST(KVM_PATH, $kvm_path)
+
+# --with-ovmf-code-template=...
+AC_ARG_WITH([ovmf-code-template],
+  [AS_HELP_STRING([--with-ovmf-code-template=PATH],
+    [OVMF firmware code template seeded into each UEFI instance's firmware]
+    [ disk (default is /usr/share/OVMF/OVMF_CODE.fd)]
+  )],
+  [ovmf_code="$withval"],
+  [ovmf_code="/usr/share/OVMF/OVMF_CODE.fd"])
+AC_SUBST(OVMF_CODE_TEMPLATE, $ovmf_code)
+
+# --with-ovmf-vars-template=...
+AC_ARG_WITH([ovmf-vars-template],
+  [AS_HELP_STRING([--with-ovmf-vars-template=PATH],
+    [OVMF firmware vars (NVRAM) template seeded into each UEFI instance's]
+    [ firmware disk (default is /usr/share/OVMF/OVMF_VARS.fd)]
+  )],
+  [ovmf_vars="$withval"],
+  [ovmf_vars="/usr/share/OVMF/OVMF_VARS.fd"])
+AC_SUBST(OVMF_VARS_TEMPLATE, $ovmf_vars)
 
 # --with-lvm-stripecount=...
 AC_ARG_WITH([lvm-stripecount],
