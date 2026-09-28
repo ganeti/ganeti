@@ -2425,6 +2425,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DDEFAULT_BRIDGE="$(DEFAULT_BRIDGE)" \
 	    -DDEFAULT_VG="$(DEFAULT_VG)" \
 	    -DKVM_PATH="$(KVM_PATH)" \
+	    -DOVMF_CODE_TEMPLATE="$(OVMF_CODE_TEMPLATE)" \
+	    -DOVMF_VARS_TEMPLATE="$(OVMF_VARS_TEMPLATE)" \
 	    -DIP_PATH="$(IP_PATH)" \
 	    -DSOCAT_PATH="$(SOCAT)" \
 	    -DPYTHON_PATH="$(PYTHON)" \
