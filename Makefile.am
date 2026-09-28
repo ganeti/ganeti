@@ -877,6 +877,7 @@ docinput = \
 	doc/design-storagetypes.rst \
 	doc/design-sync-rate-throttling.rst \
 	doc/design-systemd.rst \
+	doc/design-uefi-boot.rst \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
