@@ -809,7 +809,7 @@ docinput = \
 	doc/design-2.16.rst \
 	doc/design-3.0.rst \
 	doc/design-3.1.rst \
-	doc/design-3.2.rst \
+	doc/design-4.0.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
