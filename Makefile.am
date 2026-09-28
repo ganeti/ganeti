@@ -2056,6 +2056,7 @@ python_tests_unit = \
 	test/py/unit/hypervisor/hv_kvm/test_q35.py \
 	test/py/unit/hypervisor/hv_kvm/test_serial.py \
 	test/py/unit/hypervisor/hv_kvm/test_qemu_log.py \
+	test/py/unit/test_disk_role.py \
 	test/py/unit/http/test_auth.py \
 	test/py/unit/http/test_server.py \
 	test/py/unit/http/test_ssl.py \

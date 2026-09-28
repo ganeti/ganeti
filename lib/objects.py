@@ -561,6 +561,7 @@ class Disk(ConfigObject):
     "mode",
     "params",
     "spindles",
+    "role",
     "pci",
     "hvinfo",
     "serial_no",
@@ -941,6 +942,11 @@ class Disk(ConfigObject):
       self.mtime = time.time()
     if self.ctime is None:
       self.ctime = time.time()
+
+    # Disks predating the boot_type/UEFI feature have no role; they are all
+    # ordinary data disks (no firmware disk existed before Ganeti 4.0).
+    if self.role is None:
+      self.role = constants.DR_ROLE_DATA
 
     # map of legacy device types (mapping differing LD constants to new
     # DT constants)
