@@ -605,6 +605,15 @@ def _TestKVMHotplug(instance, instance_info):
   """Tests hotplug modification commands, noting that they
 
   """
+  # Hotplugging requires a booted, settled guest: this test usually runs
+  # shortly after an instance start or reboot (TestInstanceStartup,
+  # TestInstanceReboot), and hot-adding a device while the guest kernel
+  # is still enumerating its PCI bus might corrupt the guest's ACPI hotplug
+  # state (acpiphp enable_slot sysfs errors), which then wedges the
+  # following hot-unplug until Ganeti's DEVICE_DELETED timeout. We'll add an
+  # extra 5 seconds here to let the guest settle.
+  time.sleep(5)
+
   args_to_try = [
     ["--net", "-1:add"],
     ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--force"],
