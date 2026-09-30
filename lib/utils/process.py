@@ -796,7 +796,7 @@ def IsProcessAlive(pid):
       os.stat(name)
       return True
     except EnvironmentError as err:
-      if err.errno in (errno.ENOENT, errno.ENOTDIR):
+      if err.errno in (errno.ENOENT, errno.ENOTDIR, errno.ESRCH):
         return False
       elif err.errno == errno.EINVAL:
         raise utils_retry.RetryAgain(err)
