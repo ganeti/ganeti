@@ -110,7 +110,6 @@ class _HttpServerRequest(object):
 
     return "<%s at %#x>" % (" ".join(status), id(self))
 
-
 class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
   """Writes an HTTP response to client.
 
