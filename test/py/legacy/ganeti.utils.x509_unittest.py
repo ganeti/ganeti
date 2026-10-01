@@ -154,9 +154,17 @@ class TestCertVerification(testutils.GanetiTestCase):
 
   def testClockSkew(self):
     SKEW = constants.NODE_MAX_CLOCK_SKEW
+    # Old Python Cryptography needs valid backend, newer versions handle this.
+    try:
+      # pylint: disable=E0611
+      from cryptography.hazmat.backends import default_backend
+      _backend = default_backend()
+    except ImportError:
+      _backend = None
     # Create private and public key
     key = rsa.generate_private_key(public_exponent=65537,
-                                   key_size=constants.RSA_KEY_BITS)
+                                   key_size=constants.RSA_KEY_BITS,
+                                   backend=_backend)
 
     validity = 7 * 86400
     # skew small enough, accepting cert; note that this is a timed

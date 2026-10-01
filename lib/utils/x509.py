@@ -65,9 +65,19 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
 
 # Map constants to actual hash digests
 _SIGN_DIGESTS = {"SHA256": hashes.SHA256}
+
+# Old Python Cryptography needs valid backend, newer versions handle this.
+try:
+  # pylint: disable=E0611
+  from cryptography.hazmat.backends import default_backend
+  _backend = default_backend()
+except ImportError:
+  _backend = None
+
 def _GenerateRsaKey():
   return rsa.generate_private_key(public_exponent=65537,
-                                  key_size=constants.RSA_KEY_BITS)
+                                  key_size=constants.RSA_KEY_BITS,
+                                  backend=_backend)
 
 
 def _BuildCertificate(common_name, validity, serial_no,
@@ -340,7 +350,8 @@ def GenerateSelfSignedX509Cert(common_name, validity, serial_no):
 
   cert = (_BuildCertificate(common_name, validity, serial_no,
                             subject, key.public_key(), is_ca=True)
-          .sign(key, _SIGN_DIGESTS[constants.X509_CERT_SIGN_DIGEST]()))
+          .sign(key, _SIGN_DIGESTS[constants.X509_CERT_SIGN_DIGEST](),
+                backend=_backend))
 
   key_pem = key.private_bytes(
     serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
