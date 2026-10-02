@@ -22,7 +22,7 @@ jobs:
         os: [bookworm, trixie, testing, jammy, noble, resolute, leap16.0]
     container:
       image: ganeti/ci:${{ matrix.os }}-py3
-      options: "--init"
+      options: "--init --cap-add=SYS_NICE"
     steps:
       - uses: actions/checkout@v1
 
