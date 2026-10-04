@@ -246,6 +246,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.BlockdevImage(bdev, image, size)
 
   @staticmethod
+  def perspective_blockdev_seed_firmware(params):
+    """Seed an instance's UEFI firmware disk.
+
+    """
+    bdev_s, code_path, vars_path = params
+    bdev = objects.Disk.FromDict(bdev_s)
+    return backend.BlockdevSeedFirmware(bdev, code_path, vars_path)
+
+  @staticmethod
   def perspective_blockdev_wipe(params):
     """Wipe a block device.
 

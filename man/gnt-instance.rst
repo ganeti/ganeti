@@ -282,9 +282,117 @@ boot\_order
     For KVM the boot order is either "floppy", "cdrom", "disk" or
     "network".  Please note that older versions of KVM couldn't netboot
     from virtio interfaces. This has been fixed in more recent versions
-    and is confirmed to work at least with qemu-kvm 0.11.1. Also note
-    that if you have set the ``kernel_path`` option, that will be used
-    for booting, and this setting will be silently ignored.
+    and is confirmed to work at least with qemu-kvm 0.11.1.
+
+    For KVM, ``boot_order`` is honored only when ``boot_type`` is ``bios``
+    or ``uefi``; under ``direct_kernel`` and ``direct_kernel_efi`` it is
+    ignored. With ``uefi`` the ``floppy`` boot order is rejected.
+
+boot\_type
+    Valid for the KVM hypervisor.
+
+    Selects how a KVM instance boots. One of:
+
+    direct_kernel
+        Direct kernel boot under SeaBIOS using ``kernel_path`` /
+        ``initrd_path`` / ``kernel_args`` (the historical default;
+        ``boot_order`` is ignored).
+
+    bios
+        Legacy BIOS (SeaBIOS) boot driven by ``boot_order``.
+
+    uefi
+        UEFI/OVMF boot driven by ``boot_order``. The instance gains a small,
+        per-instance *firmware disk* (role ``firmware``, shown by
+        ``gnt-instance info``) that stores the OVMF code and the writable
+        NVRAM (vars). This disk uses the same disk template as the data disks
+        and is treated as precious: it is never wiped, recreated as empty, or
+        silently dropped, and it cannot be grown or removed while ``boot_type``
+        is ``uefi`` or ``direct_kernel_efi``. Because the firmware disk must be
+        created and seeded by Ganeti, disk adoption (``--disk N:adopt=...``)
+        is not supported for OVMF instances. Due to limitations in QEMU,
+        firmware disks are restricted to kernelspace access and are silently
+        set to it, even when userspace access is configured (affects RBD and
+        Gluster storage backends).
+
+    direct_kernel_efi
+        Direct kernel boot through UEFI/OVMF firmware: the hybrid of
+        ``direct_kernel`` and ``uefi``. QEMU passes ``kernel_path`` /
+        ``initrd_path`` / ``kernel_args`` to the firmware via fw_cfg and
+        OVMF loads the kernel through its EFI stub, so the guest sees a
+        genuine EFI environment (``/sys/firmware/efi`` present) while
+        still booting the injected kernel. ``boot_order`` is ignored, as
+        under ``direct_kernel``; the per-instance firmware disk is
+        required, exactly as under ``uefi``.
+
+    ``boot_type`` is the single source of truth for the boot mode. Setting
+    ``kernel_path`` to toggle disk boot is **deprecated**; set ``boot_type``
+    explicitly instead. ``kernel_path`` is kept non-empty by default and is
+    simply ignored unless ``boot_type`` is ``direct_kernel`` or
+    ``direct_kernel_efi``.
+
+    Only an explicit ``gnt-instance modify -H boot_type=uefi`` or
+    ``-H boot_type=direct_kernel_efi`` (instance stopped) creates and
+    seeds the firmware disk; a modify that leaves the resolved
+    ``boot_type`` unchanged is a no-op. Switching away from ``uefi`` or
+    ``direct_kernel_efi`` keeps the disk in place but inert; it can be
+    removed explicitly later.
+
+    **start**, **failover** and **move** refuse to run for an instance
+    that resolves to ``uefi`` or ``direct_kernel_efi`` (instance setting
+    or start-time override) but has no firmware disk; while stopped, run
+    ``gnt-instance modify -H boot_type=<mode> <instance>`` to create it.
+
+    Because the firmware disk counts towards the ``MAX_DISKS`` (16) limit, a
+    UEFI instance supports at most 15 data disks. The firmware disk occupies
+    no PCI slot (it is attached as pflash, a machine property).
+
+    The cluster-level default is a creation-time seed: it is pinned into
+    every new instance at ``gnt-instance add`` (the default for new
+    clusters is ``direct_kernel``) and later cluster-level changes do not
+    affect existing instances. On cluster upgrade, each instance is pinned
+    from its effective ``kernel_path`` (non-empty -> ``direct_kernel``,
+    empty -> ``bios``).
+
+ovmf\_code
+    Valid for the KVM hypervisor.
+
+    Path (on the node) to the OVMF firmware *code* template used to seed an
+    UEFI instance's firmware disk at creation or when ``boot_type`` is
+    changed from a non-UEFI boot type to a UEFI boot type. Defaults to the
+    configure-time ``--with-ovmf-code-template`` value
+    (``/usr/share/OVMF/OVMF_CODE.fd``).
+    Override it on an individual instance to pin an alternative OVMF build.
+    
+    Currently there is no way to update/change an instace's firmware code
+    once the firmware disk has been seeded. Ganeti will include maintenance
+    commands for that in a future release.
+
+    **RBD caveat:** the firmware disk is always forced to local
+    (kernelspace) access so its regions can be exposed as pflash backing.
+    On RBD this means UEFI requires krbd-capable nodes even when the data
+    disks use userspace RBD, and the firmware volume may fail to map if it
+    carries image features krbd does not support.
+
+ovmf\_vars
+    Valid for the KVM hypervisor.
+
+    Path (on the node) to the OVMF firmware *vars* (NVRAM) template used to
+    seed an UEFI instance's firmware disk at creation or when ``boot_type``
+    is changed from a non-UEFI boot type to a UEFI boot type. Defaults to
+    the configure-time ``--with-ovmf-vars-template`` value
+    (``/usr/share/OVMF/OVMF_VARS.fd``).
+    Override it on an individual instance to pin an alternative OVMF build.
+    
+    Currently there is no way to update/change an instace's NVRAM once the
+    firmware disk has been seeded. Ganeti will include maintenance commands
+    for that in a future release.
+
+    **RBD caveat:** the firmware disk is always forced to local
+    (kernelspace) access so its regions can be exposed as pflash backing.
+    On RBD this means UEFI requires krbd-capable nodes even when the data
+    disks use userspace RBD, and the firmware volume may fail to map if it
+    carries image features krbd does not support.
 
 blockdev\_prefix
     Valid for the Xen HVM and PVM hypervisors.
@@ -599,10 +707,14 @@ kernel\_path
     Valid for the Xen PVM and KVM hypervisors.
 
     This option specifies the path (on the node) to the kernel to boot
-    the instance with. Xen PVM instances always require this, while for
-    KVM if this option is empty, it will cause the machine to load the
-    kernel from its disks (and the boot will be done accordingly to
-    ``boot_order``).
+    the instance with. Xen PVM instances always require this.
+
+    For KVM, ``kernel_path`` is honored under ``direct_kernel`` and
+    ``direct_kernel_efi``. Using an empty ``kernel_path`` to switch a KVM
+    instance to disk/firmware boot is **deprecated**: set ``boot_type``
+    (``bios`` or ``uefi``) explicitly instead. For backwards compatibility
+    the boot mode of pre-4.0 instances is derived from ``kernel_path`` on
+    upgrade (see ``boot_type``).
 
 kernel\_args
     Valid for the Xen PVM and KVM hypervisors.

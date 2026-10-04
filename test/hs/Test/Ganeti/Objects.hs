@@ -112,6 +112,8 @@ $(genArbitrary ''BlockDriver)
 
 $(genArbitrary ''DiskMode)
 
+$(genArbitrary ''DiskRole)
+
 instance Arbitrary LogicalVolume where
   arbitrary = LogicalVolume <$> validName <*> validName
     where
@@ -137,13 +139,13 @@ instance Arbitrary Disk where
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary)
+                   <*> arbitrary <*> arbitrary)
              , (1, liftM ForthcomingDisk $ ForthcomingDiskData <$> arbitrary
                    <*> pure [] <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary)
+                   <*> arbitrary <*> arbitrary)
              ]
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
@@ -288,12 +290,13 @@ genDiskWithChildren num_children = do
   name <- genMaybe genName
   spindles <- arbitrary
   params <- arbitrary
+  role <- arbitrary
   uuid <- fmap UTF8.fromString genUUID
   serial <- arbitrary
   time <- arbitrary
   return . RealDisk $
     RealDiskData logicalid children nodes ivname size mode name
-      spindles params uuid serial time time
+      spindles params role uuid serial time time
 
 genDisk :: Gen Disk
 genDisk = genDiskWithChildren 3
@@ -743,7 +746,8 @@ caseIncludeLogicalIdPlain =
       d = RealDisk $
         RealDiskData (LIDPlain lv) [] ["node1.example.com"] "diskname"
           1000 DiskRdWr
-          Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+          Nothing Nothing Nothing DiskRoleData
+          "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
@@ -761,14 +765,16 @@ caseIncludeLogicalIdDrbd =
            (Private "secret"))
           [ RealDisk $ RealDiskData (mkLIDPlain "onevg" "onelv") []
               ["node1.example.com", "node2.example.com"] "disk1" 1000 DiskRdWr
-              Nothing Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
+              Nothing Nothing Nothing DiskRoleData
+              "145145-asdf-sdf2-2134-asfd-534g2x"
               0 time time
           , RealDisk $ RealDiskData (mkLIDPlain vg_name lv_name) []
               ["node1.example.com", "node2.example.com"] "disk2" 1000 DiskRdWr
-              Nothing Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
+              Nothing Nothing Nothing DiskRoleData
+              "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
               0 time time
           ] ["node1.example.com", "node2.example.com"] "diskname" 1000 DiskRdWr
-          Nothing Nothing Nothing
+          Nothing Nothing Nothing DiskRoleData
           "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
@@ -782,7 +788,7 @@ caseNotIncludeLogicalIdPlain =
       time = TOD 0 0
       d = RealDisk $
         RealDiskData (mkLIDPlain "othervg" "otherlv") [] ["node1.example.com"]
-          "diskname" 1000 DiskRdWr Nothing Nothing Nothing
+          "diskname" 1000 DiskRdWr Nothing Nothing Nothing DiskRoleData
           "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in

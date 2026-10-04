@@ -93,6 +93,13 @@ parseNic n a = do
   network <- maybeFromObj a "network"
   return (Nic.create mac ip mode link bridge network)
 
+-- | Parse the optional disk role from a disk object, defaulting to the data
+-- role for backwards compatibility with requests that omit the field.
+parseDiskRole :: String -> [(String, JSValue)] -> Result DiskRole
+parseDiskRole owner d = do
+  mrole <- annotateResult owner (maybeFromObj d "role")
+  maybe (Ok DiskRoleData) diskRoleFromRaw mrole
+
 -- | Parse the basic specifications of an instance.
 --
 -- Instances in the cluster instance list and the instance in an
@@ -109,7 +116,9 @@ parseBaseInstance n a = do
   dsizes <- mapM (flip (tryFromObj errorMessage) "size" . fromJSObject) jsdisks
   dspindles <- mapM (annotateResult errorMessage .
                      flip maybeFromObj "spindles" . fromJSObject) jsdisks
-  let disks = zipWith Instance.Disk dsizes dspindles
+  -- The disk 'role' is optional (older requests omit it); default to data.
+  droles <- mapM (parseDiskRole errorMessage . fromJSObject) jsdisks
+  let disks = zipWith3 Instance.Disk dsizes dspindles droles
   mem   <- extract "memory"
   vcpus <- extract "vcpus"
   tags  <- extract "tags"
