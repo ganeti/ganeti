@@ -34,6 +34,7 @@
 import calendar
 import datetime
 import errno
+import functools
 import logging
 import re
 import time
@@ -65,6 +66,47 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
 
 # Map constants to actual hash digests
 _SIGN_DIGESTS = {"SHA256": hashes.SHA256}
+
+# Old Python Cryptography needs valid backend, newer versions handle this.
+try:
+  # pylint: disable=E0611
+  from cryptography.hazmat.backends import default_backend
+  _backend = default_backend()
+
+  def _with_backend(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+      if 'backend' in kwargs:
+        return func(*args, **kwargs)
+
+      try:
+        patched_kwargs = kwargs.copy()
+        patched_kwargs['backend'] = _backend
+        return func(*args, **patched_kwargs)
+      except TypeError:
+        # Fallback for internal cryptography calls
+        return func(*args, **kwargs)
+
+    return wrapper
+
+  # functions to patch
+  rsa.generate_private_key = _with_backend(rsa.generate_private_key)
+  serialization.load_pem_private_key = _with_backend(
+    serialization.load_pem_private_key
+  )
+  serialization.load_pem_public_key = _with_backend(
+    serialization.load_pem_public_key
+  )
+  cryptography_x509.load_pem_x509_certificate = _with_backend(
+    cryptography_x509.load_pem_x509_certificate
+  )
+  cryptography_x509.CertificateBuilder.sign = _with_backend(
+    cryptography_x509.CertificateBuilder.sign
+  )
+  hashes.Hash = _with_backend(hashes.Hash)
+except ImportError:
+  pass
+
 def _GenerateRsaKey():
   return rsa.generate_private_key(public_exponent=65537,
                                   key_size=constants.RSA_KEY_BITS)
