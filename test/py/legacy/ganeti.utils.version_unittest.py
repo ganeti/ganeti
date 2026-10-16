@@ -57,10 +57,10 @@ class UpgradeRangeTest(unittest.TestCase):
                           None)
         self.assertEqual(version.UpgradeRange((3,0,0), current=(2,12,0)),
                          "major version up- or downgrades are only supported"
-                         " between 2.16 and 3.0")
+                         " between 2.16 and 3.0, and between 3.1 and 4.0")
         self.assertEqual(version.UpgradeRange((2,12,0), current=(3,0,0)),
                          "major version up- or downgrades are only supported"
-                         " between 2.16 and 3.0")
+                         " between 2.16 and 3.0, and between 3.1 and 4.0")
         self.assertEqual(version.UpgradeRange((2,10,0), current=(2,12,0)),
                           "can only downgrade one minor version at a time")
         self.assertEqual(version.UpgradeRange((2,9,0), current=(2,10,0)),
@@ -70,6 +70,10 @@ class UpgradeRangeTest(unittest.TestCase):
         self.assertEqual(version.UpgradeRange((3,0,0), current=(2,16,1)),
                           None)
         self.assertEqual(version.UpgradeRange((2,16,1), current=(3,0,0)),
+                          None)
+        self.assertEqual(version.UpgradeRange((4,0,0), current=(3,1,0)),
+                          None)
+        self.assertEqual(version.UpgradeRange((3,1,0), current=(4,0,0)),
                           None)
 
 class ShouldCfgdowngradeTest(unittest.TestCase):
