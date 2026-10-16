@@ -128,10 +128,16 @@ def UpgradeRange(target, current=CURRENT_VERSION):
     # allow major downgrade from 3.0 to 2.16
     if current[0:2] == (3,0) and target[0:2] == (2,16):
       return None
+    # allow major upgrade from 3.1 to 4.0
+    if current[0:2] == (3,1) and target[0:2] == (4,0):
+      return None
+    # allow major downgrade from 4.0 to 3.1
+    if current[0:2] == (4,0) and target[0:2] == (3,1):
+      return None
 
     # forbid any other major version up-/downgrades
     return "major version up- or downgrades are only supported between " \
-      "2.16 and 3.0"
+      "2.16 and 3.0, and between 3.1 and 4.0"
 
   if target[1] < current[1] - 1:
     return "can only downgrade one minor version at a time"
