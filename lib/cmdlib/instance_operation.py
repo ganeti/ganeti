@@ -50,7 +50,8 @@ from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks, ImageDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
-  CheckInstanceBridgesExist, CheckNodeFreeMemory, UpdateMetadata
+  CheckFirmwareDiskPresent, CheckInstanceBridgesExist, \
+  CheckNodeFreeMemory, UpdateMetadata
 from ganeti.hypervisor import hv_base
 
 
@@ -129,6 +130,7 @@ class LUInstanceStartup(LogicalUnit):
       hv_type.CheckParameterSyntax(filled_hvp)
       CheckHVParams(self, self.cfg.GetInstanceNodes(self.instance.uuid),
                     self.instance.hypervisor, filled_hvp)
+    CheckFirmwareDiskPresent(self, self.instance, self.op.hvparams)
 
     CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
 

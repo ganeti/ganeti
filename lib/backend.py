@@ -87,6 +87,7 @@ from ganeti import ht
 from ganeti.storage.base import BlockDev
 from ganeti.storage.drbd import DRBD8
 from ganeti import hooksmaster
+from ganeti.hypervisor.hv_kvm import firmware as kvm_firmware
 import ganeti.metad as metad
 
 
@@ -3531,6 +3532,66 @@ def BlockdevImage(disk, image, size):
     _DownloadAndDumpDevice(image, rdev.dev_path, size)
   else:
     _DumpDevice(image, rdev.dev_path, 0, size, False)
+
+
+def BlockdevSeedFirmware(disk, code_path, vars_path):
+  """Seed an instance's UEFI firmware disk with OVMF code and vars.
+
+  Writes a self-describing superblock plus the read-only OVMF code and the
+  writable OVMF vars templates into their respective regions of the freshly
+  created firmware disk. This pins the instance's exact firmware at creation;
+  the vars region is never rewritten afterwards (it holds precious NVRAM).
+
+  @type disk: L{objects.Disk}
+  @param disk: the firmware disk to seed (already created on this node)
+  @type code_path: string
+  @param code_path: path to the OVMF code template on this node
+  @type vars_path: string
+  @param vars_path: path to the OVMF vars template on this node
+  @rtype: NoneType
+  @return: None
+  @raise RPCFail: in case of failure
+
+  """
+  # The OVMF templates must exist on the node that seeds the disk; this is the
+  # create/recreate-time existence check (it cannot be done master-side).
+  for path in (code_path, vars_path):
+    if not os.path.isfile(path):
+      _Fail("OVMF firmware template '%s' not found on this node", path)
+
+  try:
+    rdev = _RecursiveFindBD(disk)
+  except errors.BlockDeviceError:
+    rdev = None
+
+  if not rdev:
+    _Fail("Cannot seed firmware device %s: device not found", disk.iv_name)
+
+  code_size = os.path.getsize(code_path)
+  vars_size = os.path.getsize(vars_path)
+  layout = kvm_firmware.ComputeLayout(code_size, vars_size)
+  required = kvm_firmware.RequiredDiskSize(layout)
+  device_size = rdev.size * 1024 * 1024
+  if device_size < required:
+    _Fail("Firmware disk %s is too small: need %d bytes, have %d",
+          disk.iv_name, required, device_size)
+
+  superblock = kvm_firmware.PackSuperblock(layout)
+  (code_off, _) = layout[kvm_firmware.REGION_CODE]
+  (vars_off, _) = layout[kvm_firmware.REGION_VARS]
+
+  try:
+    with open(rdev.dev_path, "r+b") as target:
+      target.seek(0)
+      target.write(superblock)
+      for (offset, path) in ((code_off, code_path), (vars_off, vars_path)):
+        target.seek(offset)
+        with open(path, "rb") as src:
+          shutil.copyfileobj(src, target)
+      target.flush()
+      os.fsync(target.fileno())
+  except EnvironmentError as err:
+    _Fail("Failed to seed firmware disk %s: %s", disk.iv_name, err)
 
 
 def BlockdevPauseResumeSync(disks, pause):
