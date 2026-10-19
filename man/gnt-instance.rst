@@ -873,6 +873,18 @@ soundhw
     ``ac97`` are supported; any other value is rejected. Switch to a
     ``pc-i440fx-*`` machine version if you need a different sound model.
 
+pvh\_mode
+    Valid for the Xen hypervisor. 
+
+    When this option is set to ``true``, the Xen instance will be run in 
+    PVH mode. When the option is set to ``false``, the Xen instance will 
+    run in PV mode. With PVH mode enabled, the Xen hypervisor will be 
+    capable of running domains with modern compressed kernels. 
+
+    When enabled, this option requires Xen version 4.10 or greater.
+
+    It is set to ``false`` by default.
+
 cpuid
     Valid for the XEN hypervisor.
 
