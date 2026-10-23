@@ -2883,9 +2883,10 @@ class TLReplaceDisks(Tasklet):
     self.lu.LogInfo("Updating instance configuration")
     for dev, _, new_logical_id in iv_names.values():
       dev.logical_id = new_logical_id
+      # Update writes the whole disk, so it persists nodes with logical_id;
+      # SetDiskNodes would lock and round-trip the whole config per disk.
+      dev.nodes = [self.instance.primary_node, self.new_node_uuid]
       self.cfg.Update(dev, feedback_fn)
-      self.cfg.SetDiskNodes(dev.uuid, [self.instance.primary_node,
-                                       self.new_node_uuid])
 
     self.cfg.Update(self.instance, feedback_fn)
 
