@@ -68,7 +68,7 @@ import Ganeti.Locking.Locks (ClientId, ciIdentifier)
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
 import Ganeti.Objects.Lens
-import Ganeti.Types (AdminState, AdminStateSource)
+import Ganeti.Types (AdminState, AdminStateSource, DiskRole(..))
 import Ganeti.WConfd.ConfigState (ConfigState, csConfigData, csConfigDataL)
 import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock
                            , modifyConfigAndReturnWithLock)
@@ -304,6 +304,17 @@ attachInstanceDiskChecks uuidInst uuidDisk idx' cs = do
   forM_ insts (\inst' -> when (uuidDisk `elem` instDisks inst') . Bad
     . ReservationError $ printf "Disk %s already attached to instance %s"
         uuidDisk (show . fromMaybe "" $ instName inst'))
+
+  -- One firmware disk per instance: attaching a second one would fork the
+  -- OVMF NVRAM state (the hypervisor only ever reads the first).
+  let disks = fromContainer . configDisks . csConfigData $ cs
+      diskRoleOf dUuid = maybe DiskRoleData diskRole
+                         $ M.lookup (UTF8.fromString dUuid) disks
+  when (diskRoleOf uuidDisk == DiskRoleFirmware
+        && DiskRoleFirmware `elem` map diskRoleOf (instDisks inst)) . Bad
+    . ReservationError $ printf
+      "Instance %s already has a firmware disk; refusing to attach %s"
+      (show . fromMaybe "" $ instName inst) uuidDisk
 
 -- * Pure config modifications functions
 
