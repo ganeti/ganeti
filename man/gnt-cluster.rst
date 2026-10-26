@@ -384,7 +384,7 @@ comma-separated list of key=value pairs with the following supported
 keys:
 
 mode
-    The default NIC mode, one of ``routed``, ``bridged`` or
+    The default NIC mode, one of ``routed``, ``bridged``, ``ext`` or
     ``openvswitch``.
 
 link
@@ -485,6 +485,18 @@ pool
     When a new RADOS cluster is deployed, the default pool to put rbd
     volumes (Images in RADOS terminology) is 'rbd'.
 
+namespace
+    The RBD namespace this cluster should use. By default no namespace
+    is used.
+
+    Useful for separating RBD consumers and their permissions in
+    combination with 'user-id' below. For example multiple Ganeti
+    clusters sharing a single Ceph cluster.
+
+    Be aware that setting or changing the namespace renders disks from
+    existing instances inaccessible, e.g., by rebooting the instances.
+    The effect is like changing the RBD pool.
+
 access
     If 'userspace', instances will access their disks directly without
     going through a block device, avoiding expensive context switches
@@ -497,6 +509,11 @@ access
 
     Attempts to use this feature without rbd support compiled in KVM
     result in a "no such file or directory" error messages.
+
+user-id
+    The user id is used by ceph to determine the keyring to use for
+    authentication. By default the admin keyring is used.
+
 
 .. _deadlocks: http://tracker.ceph.com/issues/3076
 
@@ -973,7 +990,8 @@ upgrade was in progress.
 VERIFY
 ~~~~~~
 
-| **verify** [\--no-nplus1-mem] [\--node-group *nodegroup*]
+| **verify** [\--no-nplus1-mem] [\--no-hv-param-assessment]
+| [\--node-group *nodegroup*]
 | [\--error-codes] [{-I|\--ignore-errors} *errorcode*]
 | [{-I|\--ignore-errors} *errorcode*...]
 | [--verify-ssh-clutter]
@@ -985,6 +1003,12 @@ instances.
 If the ``--no-nplus1-mem`` option is given, Ganeti won't check
 whether if it loses a node it can restart all the instances on
 their secondaries (and report an error otherwise).
+
+The ``--no-hv-param-assessment`` option disables the evaluation of
+hypervisor parameters set on the cluster-level. By default Ganeti will
+warn about suboptimal settings, if implemented by the enabled hypervisors.
+This will only generate warnings and never influence the return code
+of the verify run.
 
 With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group. This will not verify global
@@ -1038,13 +1062,18 @@ List of error codes:
 VERIFY-DISKS
 ~~~~~~~~~~~~
 
-**verify-disks** [\--node-group *nodegroup*]
+**verify-disks** [\--node-group *nodegroup*] [\--no-strict]
 
 The command checks which instances have degraded DRBD disks and
 activates the disks of those instances.
 
 With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group.
+
+The ``--no-strict`` option runs the group verify disks job in a
+non-strict mode. This only verifies those disks whose node locks could
+be acquired in a best-effort attempt and will skip nodes that are
+recognized as busy with other jobs.
 
 This command is run from the **ganeti-watcher** tool, which also
 has a different, complementary algorithm for doing this check.

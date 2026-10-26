@@ -1,0 +1,25 @@
+{
+    "name": "Ganeti Dev Container",
+    "image": "docker.io/ganeti/ci:trixie-py3",
+    "init": true,
+    "runArgs": [
+      "--ulimit", "nofile=1024:4096"
+    ],
+    "customizations":{
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.debugpy",
+                "ms-python.vscode-pylance",
+                "ms-python.isort",
+                "ms-python.pylint",
+
+                "haskell.haskell"
+            ],
+            "settings": {
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true
+            }
+        }
+    }
+}

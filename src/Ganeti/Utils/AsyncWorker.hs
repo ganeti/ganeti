@@ -83,7 +83,7 @@ import Control.Monad.Trans.Control
 import Control.Concurrent (ThreadId)
 import Control.Concurrent.Lifted (fork, yield)
 import Control.Concurrent.MVar.Lifted
-import Data.Monoid
+import Data.Monoid (Monoid, (<>))
 import qualified Data.Traversable as T
 import Data.IORef.Lifted
 

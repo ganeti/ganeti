@@ -111,7 +111,7 @@ class WatcherState(object):
     self._orig_data = serializer.Dump(self._data)
 
   def Save(self, filename):
-    """Save state to file, then unlock and close it.
+    """Save state to file.
 
     """
     assert self.statefile

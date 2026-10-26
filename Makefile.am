@@ -32,7 +32,7 @@ EXTRA_DIST=
 SHELLTESTARGS = "-c"
 
 # Use C.UTF-8 for tests/checks when available, fall back to en_US.UTF-8 else
-UTF8_LOCALE := $(shell locale -a | grep -m 1 -xF "C.UTF-8" || echo "en_US.UTF-8")
+UTF8_LOCALE := $(shell locale -a | grep -m 1 -xF -e C.UTF-8 -e C.utf8 || echo en_US.UTF-8)
 
 ACLOCAL_AMFLAGS = -I autotools
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
@@ -113,6 +113,15 @@ iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 ifupdir = $(sysconfdir)/ganeti
+NET_MODES = bridged openvswitch routed
+
+NET_SCRIPT_LIST = \
+	tools/net-bridged-down \
+	tools/net-bridged-up \
+	tools/net-openvswitch-down \
+	tools/net-openvswitch-up \
+	tools/net-routed-down \
+	tools/net-routed-up
 
 if USE_BACKUP_DIR
 backup_dir = $(BACKUP_DIR)
@@ -123,6 +132,9 @@ endif
 SYMLINK_TARGET_DIRS = \
 	$(sysconfdir)/ganeti \
 	$(libdir)/ganeti/iallocators \
+	$(libdir)/ganeti/network/bridged \
+	$(libdir)/ganeti/network/openvswitch \
+	$(libdir)/ganeti/network/routed \
 	$(libdir)/ganeti/tools \
 	$(prefix)/share/ganeti \
 	$(BINDIR) \
@@ -167,6 +179,16 @@ HS_DIRS = \
 	src/Ganeti/THH \
 	src/Ganeti/Utils \
 	src/Ganeti/WConfd \
+	regex \
+	regex/tdfa \
+	regex/tdfa/Ganeti \
+	regex/tdfa/Ganeti/Query \
+	regex/pcre \
+	regex/pcre/Ganeti \
+	regex/pcre/Ganeti/Query \
+	regex/pcre2 \
+	regex/pcre2/Ganeti \
+	regex/pcre2/Ganeti/Query \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
@@ -185,15 +207,16 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/Query \
 	test/hs/Test/Ganeti/THH \
 	test/hs/Test/Ganeti/Utils \
-	test/hs/Test/Ganeti/WConfd
+	test/hs/Test/Ganeti/WConfd \
+	app
 
 # Haskell directories without the roots (src, test/hs)
 HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
 
 DIRS = \
 	$(HS_DIRS) \
+	$(PYTHON_TEST_DIRS) \
 	autotools \
-	cabal \
 	daemons \
 	devel \
 	devel/data \
@@ -250,10 +273,27 @@ DIRS = \
 	test/data/cgroup_root/devices/some_group/lxc \
 	test/data/cgroup_root/devices/some_group/lxc/instance1 \
 	test/py \
-	test/py/testutils \
-	test/py/cmdlib \
-	test/py/cmdlib/testsupport \
+	test/py/legacy \
+	test/py/legacy/testutils \
+	test/py/legacy/cmdlib \
+	test/py/legacy/cmdlib/testsupport \
 	tools
+
+PYTHON_TEST_DIRS = \
+	test/py/unit \
+	test/py/unit/cmdlib \
+	test/py/unit/cmdlib/cluster \
+	test/py/unit/confd \
+	test/py/unit/config \
+	test/py/unit/rpc \
+	test/py/unit/http \
+	test/py/unit/hypervisor \
+	test/py/unit/hypervisor/hv_kvm \
+	test/py/unit/utils \
+	test/py/unit/server \
+	test/py/unit/storage \
+	test/py/unit/test_data \
+	test/py/integration
 
 ALL_APIDOC_HS_DIRS = \
 	$(APIDOC_HS_DIR) \
@@ -269,11 +309,114 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(COVERAGE_PY_DIR) \
 	.hpc
 
+# ToDo: I think all these subdirectories of dist/build
+# are an implementation detail of Cabal.
+# But Automake seems to require it this way.
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
-	apps \
+	exe \
 	dist \
 	dist/build \
+	dist/build/Ganeti \
+	dist/build/Ganeti/Confd \
+	dist/build/Ganeti/Cpu \
+	dist/build/Ganeti/Curl \
+	dist/build/Ganeti/Daemon \
+	dist/build/Ganeti/DataCollectors \
+	dist/build/Ganeti/HTools \
+	dist/build/Ganeti/HTools/Backend \
+	dist/build/Ganeti/HTools/Cluster \
+	dist/build/Ganeti/HTools/Program \
+	dist/build/Ganeti/HTools/Tags \
+	dist/build/Ganeti/Hs2Py \
+	dist/build/Ganeti/Hypervisor \
+	dist/build/Ganeti/Hypervisor/Xen \
+	dist/build/Ganeti/JQScheduler \
+	dist/build/Ganeti/JQueue \
+	dist/build/Ganeti/Locking \
+	dist/build/Ganeti/Logging \
+	dist/build/Ganeti/Metad \
+	dist/build/Ganeti/Monitoring \
+	dist/build/Ganeti/Objects \
+	dist/build/Ganeti/OpCodes \
+	dist/build/Ganeti/Query \
+	dist/build/Ganeti/Storage \
+	dist/build/Ganeti/Storage/Diskstats \
+	dist/build/Ganeti/Storage/Drbd \
+	dist/build/Ganeti/Storage/Lvm \
+	dist/build/Ganeti/THH \
+	dist/build/Ganeti/Utils \
+	dist/build/Ganeti/WConfd \
+	dist/build/autogen \
+	dist/build/ganeti-confd \
+	dist/build/ganeti-confd/autogen \
+	dist/build/ganeti-confd/ganeti-confd-tmp \
+	dist/build/ganeti-kvmd \
+	dist/build/ganeti-kvmd/autogen \
+	dist/build/ganeti-kvmd/ganeti-kvmd-tmp \
+	dist/build/ganeti-luxid \
+	dist/build/ganeti-luxid/autogen \
+	dist/build/ganeti-luxid/ganeti-luxid-tmp \
+	dist/build/ganeti-metad \
+	dist/build/ganeti-metad/autogen \
+	dist/build/ganeti-metad/ganeti-metad-tmp \
+	dist/build/ganeti-mond \
+	dist/build/ganeti-mond/autogen \
+	dist/build/ganeti-mond/ganeti-mond-tmp \
+	dist/build/ganeti-wconfd \
+	dist/build/ganeti-wconfd/autogen \
+	dist/build/ganeti-wconfd/ganeti-wconfd-tmp \
+	dist/build/htools \
+	dist/build/htools/autogen \
+	dist/build/htools/htools-tmp \
+	dist/build/mon-collector \
+	dist/build/mon-collector/autogen \
+	dist/build/mon-collector/mon-collector-tmp \
+	dist/build/hs2py \
+	dist/build/hs2py/autogen \
+	dist/build/hs2py/hs2py-tmp \
+	dist/build/htest \
+	dist/build/htest/autogen \
+	dist/build/htest/htest-tmp \
+	dist/build/htest/htest-tmp/Test \
+	dist/build/htest/htest-tmp/Test/Ganeti \
+	dist/build/htest/htest-tmp/Test/Ganeti/Confd \
+	dist/build/htest/htest-tmp/Test/Ganeti/HTools \
+	dist/build/htest/htest-tmp/Test/Ganeti/HTools/Backend \
+	dist/build/htest/htest-tmp/Test/Ganeti/Hypervisor \
+	dist/build/htest/htest-tmp/Test/Ganeti/Hypervisor/Xen \
+	dist/build/htest/htest-tmp/Test/Ganeti/JQueue \
+	dist/build/htest/htest-tmp/Test/Ganeti/Locking \
+	dist/build/htest/htest-tmp/Test/Ganeti/Objects \
+	dist/build/htest/htest-tmp/Test/Ganeti/Query \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage/Diskstats \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage/Drbd \
+	dist/build/htest/htest-tmp/Test/Ganeti/Storage/Lvm \
+	dist/build/htest/htest-tmp/Test/Ganeti/THH \
+	dist/build/htest/htest-tmp/Test/Ganeti/Utils \
+	dist/build/htest/htest-tmp/Test/Ganeti/WConfd \
+	dist/build/rpc-test \
+	dist/build/rpc-test/autogen \
+	dist/build/rpc-test/rpc-test-tmp \
+	dist/build/src \
+	dist/build/src/Ganeti \
+	dist/build/src/Ganeti/Confd \
+	dist/build/src/Ganeti/Cpu \
+	dist/build/src/Ganeti/DataCollectors \
+	dist/build/src/Ganeti/HTools \
+	dist/build/src/Ganeti/Hs2Py \
+	dist/build/src/Ganeti/JQScheduler \
+	dist/build/src/Ganeti/JQueue \
+	dist/build/src/Ganeti/Metad \
+	dist/build/src/Ganeti/Objects \
+	dist/build/src/Ganeti/OpCodes \
+	dist/build/src/Ganeti/Query \
+	dist/build/src/Ganeti/Storage \
+	dist/build/src/Ganeti/Storage/Diskstats \
+	dist/build/src/Ganeti/Storage/Lvm \
+	dist/build/src/Ganeti/WConfd \
+	dist/package.conf.inplace \
 	doc/html \
 	doc/man-html
 
@@ -283,7 +426,7 @@ DIRCHECK_EXCLUDE = \
 	doc/html/_* \
 	doc/man-html/_* \
 	tools/shebang \
-	autom4te.cache
+	autom4te.cache 
 
 # some helper vars
 COVERAGE_DIR = doc/coverage
@@ -294,7 +437,6 @@ APIDOC_PY_DIR = $(APIDOC_DIR)/py
 APIDOC_HS_DIR = $(APIDOC_DIR)/hs
 
 MAINTAINERCLEANFILES = \
-	doc/install-quick.rst \
 	doc/news.rst \
 	doc/upgrade.rst \
 	vcs-version
@@ -311,9 +453,7 @@ CLEANFILES = \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
-	$(CABAL_EXECUTABLES_APPS_STAMPS) \
 	empty-cabal-config \
-	ganeti.cabal \
 	$(HASKELL_PACKAGE_IDS_FILE) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	Makefile.ghc \
@@ -335,8 +475,8 @@ CLEANFILES = \
 	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
-	tools/kvm-ifup \
-	tools/kvm-ifup-os \
+	tools/kvm-nic-setup \
+	$(NET_SCRIPT_LIST) \
 	tools/xen-ifup-os \
 	tools/vif-ganeti \
 	tools/vif-ganeti-metad \
@@ -354,12 +494,13 @@ CLEANFILES = \
 	$(gnt_scripts) \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
-	src/ganeti-confd \
-	src/ganeti-wconfd \
-	src/ganeti-luxid \
-	src/ganeti-metad \
-	src/ganeti-mond \
-	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
+	exe/ganeti-confd \
+	exe/ganeti-wconfd \
+	exe/ganeti-luxid \
+	exe/ganeti-metad \
+	exe/ganeti-mond \
+	exe/htest \
+	.hpc/*.mix exe/*.tix test/hs/*.tix *.tix \
 	doc/hs-lint.html
 
 GENERATED_FILES = \
@@ -370,17 +511,15 @@ GENERATED_FILES = \
 
 clean-local:
 	rm -rf tools/shebang
-	rm -rf apps
 	rm -rf dist
 	find -D exec . -type d -name __pycache__ -exec rm -rf {} +
 
-HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
-	src/hconfd src/ganeti-confd
+HS_GENERATED_FILES = $(HS_PROGS) exe/ganeti-luxid exe/ganeti-confd
 if ENABLE_MOND
-HS_GENERATED_FILES += src/ganeti-mond
+HS_GENERATED_FILES += exe/ganeti-mond
 endif
 if ENABLE_METADATA
-HS_GENERATED_FILES += src/ganeti-metad
+HS_GENERATED_FILES += exe/ganeti-metad
 endif
 
 built_base_sources = \
@@ -422,7 +561,6 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-wconfd.service
 
 nodist_ifup_SCRIPTS = \
-	tools/kvm-ifup-os \
 	tools/xen-ifup-os
 
 nodist_pkgpython_PYTHON = \
@@ -449,7 +587,6 @@ noinst_PYTHON = \
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
-	lib/asyncnotifier.py \
 	lib/backend.py \
 	lib/bootstrap.py \
 	lib/cli.py \
@@ -544,7 +681,10 @@ hypervisor_hv_kvm_PYTHON = \
 	lib/hypervisor/hv_kvm/__init__.py \
 	lib/hypervisor/hv_kvm/monitor.py \
 	lib/hypervisor/hv_kvm/netdev.py \
-	lib/hypervisor/hv_kvm/validation.py
+	lib/hypervisor/hv_kvm/validation.py \
+	lib/hypervisor/hv_kvm/kvm_utils.py \
+	lib/hypervisor/hv_kvm/kvm_runtime.py \
+	lib/hypervisor/hv_kvm/bus_manager.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -625,6 +765,7 @@ pytools_PYTHON = \
 utils_PYTHON = \
 	lib/utils/__init__.py \
 	lib/utils/algo.py \
+	lib/utils/bitarray_compat.py \
 	lib/utils/filelock.py \
 	lib/utils/hash.py \
 	lib/utils/io.py \
@@ -667,6 +808,8 @@ docinput = \
 	doc/design-2.15.rst \
 	doc/design-2.16.rst \
 	doc/design-3.0.rst \
+	doc/design-3.1.rst \
+	doc/design-3.2.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -719,8 +862,11 @@ docinput = \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \
+	doc/design-q35.rst \
+	doc/design-qemu-blockdev.rst \
 	doc/design-reason-trail.rst \
 	doc/design-repaird.rst \
+	doc/design-replace-asyncore.rst \
 	doc/design-reservations.rst \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
@@ -735,12 +881,11 @@ docinput = \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
 	doc/dev-codestyle.rst \
-	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
+	doc/network.rst \
 	doc/iallocator.rst \
 	doc/index.rst \
-	doc/install-quick.rst \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/manpages-disabled.rst \
@@ -751,36 +896,39 @@ docinput = \
 	doc/rapi.rst \
 	doc/security.rst \
 	doc/upgrade.rst \
-	doc/virtual-cluster.rst \
-	doc/walkthrough.rst
+	doc/virtual-cluster.rst
 
 # Generates file names such as "doc/man-gnt-instance.rst"
 mandocrst = $(addprefix doc/man-,$(notdir $(manrst)))
 
 # Haskell programs to be installed in $PREFIX/bin
-HS_BIN_PROGS=src/htools
+HS_BIN_PROGS=exe/htools
 
 # Haskell programs to be installed in the MYEXECLIB dir
 if ENABLE_MOND
-HS_MYEXECLIB_PROGS=src/mon-collector
+HS_MYEXECLIB_PROGS=exe/mon-collector
 else
 HS_MYEXECLIB_PROGS=
 endif
 
+HS2PY_PROG = exe/hs2py
+
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS = \
-	src/ganeti-kvmd \
-	src/ganeti-wconfd \
-	src/hconfd \
-	src/hluxid \
-	src/hs2py \
-	src/rpc-test
+	exe/ganeti-kvmd \
+	exe/ganeti-wconfd \
+	exe/ganeti-confd \
+	exe/ganeti-luxid \
+	$(HS2PY_PROG) \
+	exe/rpc-test
 if ENABLE_MOND
-HS_COMPILE_PROGS += src/ganeti-mond
+HS_COMPILE_PROGS += exe/ganeti-mond
 endif
 if ENABLE_METADATA
-HS_COMPILE_PROGS += src/ganeti-metad
+HS_COMPILE_PROGS += exe/ganeti-metad
 endif
+
+CABAL_SETUP = runhaskell $(top_srcdir)/Setup
 
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
@@ -797,22 +945,31 @@ HS_DEFAULT_PROGS = \
 	$(HS_COMPILE_PROGS)
 
 if HTEST
-HS_DEFAULT_PROGS += test/hs/htest
-else
-EXTRA_DIST += test/hs/htest.hs
+HS_DEFAULT_PROGS += exe/htest
 endif
+EXTRA_DIST += test/hs/htest.hs
 
 HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
 
 HS_TEST_PROGS = $(filter test/%,$(HS_ALL_PROGS))
 HS_SRC_PROGS = $(filter-out test/%,$(HS_ALL_PROGS))
 
-HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_DEFAULT_PROGS)) src/mon-collector.hs
+HS_PROG_SRCS = \
+	app/ganeti-confd.hs \
+	app/ganeti-kvmd.hs \
+	app/ganeti-luxid.hs \
+	app/ganeti-metad.hs \
+	app/ganeti-mond.hs \
+	app/ganeti-wconfd.hs \
+	app/hs2py.hs \
+	app/htools.hs \
+	app/mon-collector.hs \
+	app/rpc-test.hs
+
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
 	-O -Wall -isrc \
-	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	-hide-all-packages \
@@ -856,7 +1013,7 @@ HEXTRA =
 # combination of HEXTRA and HEXTRA_CONFIGURE
 HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
 
-# extra flags used for test/hs/htest
+# extra flags used for htest
 # Only use the threaded runtime and run tests in parallel for GHC > 7.6. A bug
 # in base that wasn't fixed until 4.7.0.0 in GHC 7.8 causes random file lock
 # errors in the JQueue tests with the threaded runtime.
@@ -874,7 +1031,7 @@ HPCEXCL = --exclude Main \
 	--exclude Test.Ganeti.TestHTools \
 	--exclude Test.Ganeti.TestHelper \
 	--exclude Test.Ganeti.TestImports \
-	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
+	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(HS_LIB_STEMS)))
 
 HS_LIB_SRCS = \
 	src/Ganeti/BasicTypes.hs \
@@ -892,6 +1049,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/ConstantUtils.hs \
 	src/Ganeti/Cpu/LoadParser.hs \
 	src/Ganeti/Cpu/Types.hs \
+	src/Ganeti/Curl/Internal.hsc \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
 	src/Ganeti/Daemon/Utils.hs \
@@ -1034,6 +1192,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/MVarLock.hs \
 	src/Ganeti/Utils/Random.hs \
 	src/Ganeti/Utils/Statistics.hs \
+	src/Ganeti/Utils/Time.hs \
 	src/Ganeti/Utils/UniStd.hs \
 	src/Ganeti/Utils/Validate.hs \
 	src/Ganeti/VCluster.hs \
@@ -1074,6 +1233,11 @@ EXTRA_DIST += \
 	src/Ganeti/Metad/Types.hs \
 	src/Ganeti/Metad/WebServer.hs
 endif
+
+HS_REGEX_SRCS = \
+	regex/tdfa/Ganeti/Query/RegEx.hs \
+	regex/pcre/Ganeti/Query/RegEx.hs \
+	regex/pcre2/Ganeti/Query/RegEx.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
@@ -1137,21 +1301,22 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Utils.hs \
 	test/hs/Test/Ganeti/Utils/MultiMap.hs \
 	test/hs/Test/Ganeti/Utils/Statistics.hs \
+	test/hs/Test/Ganeti/Utils/Time.hs \
 	test/hs/Test/Ganeti/WConfd/Ssconf.hs \
 	test/hs/Test/Ganeti/WConfd/TempRes.hs
 
 
-HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_TEST_SRCS)
+HS_LIB_STEMS = $(patsubst %.hsc,%, $(patsubst %.hs,%, $(HS_LIB_SRCS)))
+
+HS_LIBTEST_SRCS = $(HS_LIB_SRCS) $(HS_REGEX_SRCS) $(HS_TEST_SRCS)
 
 HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
 	src/AutoConf.hs \
 	src/Ganeti/Hs2Py/ListConstants.hs \
-	src/Ganeti/Curl/Internal.hs \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = \
-	$(patsubst %,%.in,$(filter-out src/Ganeti/Curl/Internal.hs,$(HS_BUILT_SRCS))) \
-	src/Ganeti/Curl/Internal.hsc \
+	$(patsubst %,%.in,$(HS_BUILT_SRCS)) \
 	lib/_constants.py.in \
 	lib/opcodes.py.in_after \
 	lib/opcodes.py.in_before
@@ -1205,11 +1370,10 @@ doc/html: doc/html/index.html
 
 doc/man-html: doc/man-html/index.html
 
-doc/install-quick.rst: INSTALL
 doc/news.rst: NEWS
 doc/upgrade.rst: UPGRADE
 
-doc/install-quick.rst doc/news.rst doc/upgrade.rst:
+doc/news.rst doc/upgrade.rst:
 	set -e; \
 	{ echo '.. This file is automatically updated at build time from $<.'; \
 	  echo '.. Do not edit.'; \
@@ -1343,163 +1507,40 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
-if WANT_HSTESTS
-HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
-endif
-Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) \
-              | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		-itest/hs \
-		$(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
-# Since ghc -M does not generate dependency line for object files, dependencies
-# from a target executable seed object (e.g. src/hluxid.o) to objects which
-# finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
-# missing in Makefile.ghc.
-# see: https://www.haskell.org/ghc/docs/7.6.2/html/users_guide/separate-compilation.html#makefile-dependencies
-# Following substitutions will add dependencies between object files which
-# corresponds to the interface file already there as a dependency for each
-# object listed in Makefile.ghc.
-# e.g. src/hluxid.o : src/Ganeti/Daemon.hi
-#        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
-	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
+$(HS_SRC_PROGS) exe/htest: dist/app.stamp
 
-@include_makefile_ghc@
-
-# Contains the package-id flags for the current build: "-package-id" followed
-# by the name and hash of the package, one for each dependency.
-# Obtained from the setup-config using the Cabal API
-# (CabalDependenciesMacros.hs) after `cabal configure`.
-# This file is created along with HASKELL_PACKAGE_VERSIONS_FILE; if you want
-# to depend on it in a rule, depend on HASKELL_PACKAGE_VERSIONS_FILE instead.
-HASKELL_PACKAGE_IDS_FILE = ganeti.depsflags
-
-# Defines the MIN_VERSION_* macros for all Haskell packages used in this
-# compilation.
-# The versions are determined using `cabal configure`, which takes them from
-# the ghc-pkg database.
-# At the moment, we don't support cabal sandboxes, so we use cabal configure
-# with the --user flag.
-# Note: `cabal configure` and CabalDependenciesMacros.hs perform no
-# downloading (only `cabal install` can do that).
-HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
-
-$(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
-                                  cabal/CabalDependenciesMacros.hs
-	touch empty-cabal-config
-	$(CABAL) --config-file=empty-cabal-config \
-	  $(CABAL_CONFIGURE_CMD) --user \
-	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
-	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
-	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
-	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"`
-	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
-	  ganeti.cabal \
-	  $(HASKELL_PACKAGE_IDS_FILE) \
-	  $(HASKELL_PACKAGE_VERSIONS_FILE)
-
-# Like the %.o rule, but allows access to the test/hs directory.
-# This uses HFLAGS instead of HTEST_FLAGS because it's only for generating
-# object files (.o for GHC <= 7.6, .o/.so for newer GHCs) that are loaded
-# in GHCI when evaluating TH. The actual test-with-coverage .hpc_o files
-# are created in the `%.$(HTEST_SUFFIX)_o` rule.
-test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
-	@echo '[GHC|test]: $@ <- test/hs/$^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.o=%.hs) | \
-		sed '/^Loading package /d'
-
-%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
-	@echo '[GHC]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
-		sed '/^Loading package /d'
-
-# For TH+profiling we need to compile twice: Once without profiling,
-# and then once with profiling. See
-# http://www.haskell.org/ghc/docs/7.0.4/html/users_guide/template-haskell.html#id636646
-if HPROFILE
-%.$(HPROF_SUFFIX)_o: %.o
-	@echo '[GHC|prof]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HFLAGS) \
-	  $(HPROFFLAGS) \
-		$(HEXTRA_COMBINED) \
-		$(@:%.$(HPROF_SUFFIX)_o=%.hs) | \
-		sed '/^Loading package /d'
-endif
-
-# We depend on the non-test .o file here because we need the corresponding .so
-# file for GHC > 7.6 ghci dynamic loading for TH, and creating the .o file
-# will create the .so file since we use -dynamic-too (using the `test/hs/%.o`
-# rule).
-%.$(HTEST_SUFFIX)_o: %.o
-	@echo '[GHC|test]: $@ <- $^'
-	@set -o pipefail ; \
-	$(GHC) -c $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
-		sed '/^Loading package /d'
-
-%.hi: %.o ;
-%.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
-%.$(HPROF_SUFFIX)_hi: %.$(HPROF_SUFFIX)_o ;
-
-if HPROFILE
-$(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
-	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
-else
-$(HS_SRC_PROGS): %: %.o | stamp-directories
-	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
-endif
-	@rm -f $(notdir $@).tix
+dist/app.stamp: exe/ dist/setup-config
+	$(CABAL_SETUP) build
+	-(cd exe; \
+	 for name in ganeti-kvmd ganeti-wconfd ganeti-confd ganeti-luxid \
+		rpc-test ganeti-mond ganeti-metad \
+		htools mon-collector hs2py htest ; do \
+	   $(LN_S) ../dist/build/$$name/$$name; \
+	 done)
 	@touch "$@"
 
-$(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
-			   | stamp-directories $(built_python_sources)
-	@if [ "$(HS_NODEV)" ]; then \
-	  echo "Error: cannot run unittests without the development" \
-	       " libraries (see devnotes.rst)" 1>&2; \
-	  exit 1; \
-	fi
-	@echo '[GHC-link|test]: $@'
-	$(GHC) $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(HEXTRA_TEST) --make $(@:%=%.hs)
-	@rm -f $(notdir $@).tix
-	@touch "$@"
+exe/:
+	@mkdir_p@ exe
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
-	src/ganeti-kvmd \
-	src/ganeti-luxid \
-	src/ganeti-confd \
-	src/ganeti-wconfd
-
-src/ganeti-luxid: src/hluxid
-	cp -pf $< $@
+	exe/ganeti-kvmd \
+	exe/ganeti-luxid \
+	exe/ganeti-confd \
+	exe/ganeti-wconfd
 
 # strip path prefixes off the sbin scripts
-all_sbin_scripts = \
-	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst scripts/%,%,\
-	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
-
-src/ganeti-confd: src/hconfd
-	cp -pf $< $@
+all_sbin_scripts = $(notdir $(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS))
 
 if ENABLE_MOND
-nodist_sbin_SCRIPTS += src/ganeti-mond
+nodist_sbin_SCRIPTS += exe/ganeti-mond
 endif
 
 if ENABLE_METADATA
-nodist_sbin_SCRIPTS += src/ganeti-metad
+nodist_sbin_SCRIPTS += exe/ganeti-metad
 endif
 
 python_scripts = \
@@ -1565,17 +1606,17 @@ pkglib_python_basenames = \
 
 myexeclib_SCRIPTS = \
 	daemons/daemon-util \
-	tools/kvm-ifup \
-	tools/kvm-ifup-os \
+	tools/kvm-nic-setup \
 	tools/xen-ifup-os \
 	tools/vif-ganeti \
 	tools/vif-ganeti-metad \
 	tools/net-common \
 	$(HS_MYEXECLIB_PROGS)
 
+nodist_noinst_SCRIPTS = $(NET_SCRIPT_LIST)
+
 # compute the basenames of the myexeclib_scripts
-myexeclib_scripts_basenames = \
-	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst src/%,%,$(myexeclib_SCRIPTS))))
+myexeclib_scripts_basenames = $(notdir $(myexeclib_SCRIPTS))
 
 EXTRA_DIST += \
 	NEWS \
@@ -1600,7 +1641,6 @@ EXTRA_DIST += \
 	autotools/sphinx-wrapper \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
-	cabal/cabal-from-modules.py \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -1608,8 +1648,8 @@ EXTRA_DIST += \
 	devel/build_chroot \
 	devel/upload \
 	devel/webserver \
-	tools/kvm-ifup.in \
-	tools/ifup-os.in \
+	tools/kvm-nic-setup.in \
+	$(NET_SCRIPT_LIST:=.in) \
 	tools/vif-ganeti.in \
 	tools/vif-ganeti-metad.in \
 	tools/net-common.in \
@@ -1632,8 +1672,7 @@ EXTRA_DIST += \
 	doc/users/groups.in \
 	doc/users/users.in \
 	ganeti.cabal \
-	cabal/ganeti.template.cabal \
-	cabal/CabalDependenciesMacros.hs \
+	Setup.lhs \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	$(python_test_support) \
@@ -1646,8 +1685,7 @@ EXTRA_DIST += \
 	$(HS_PROG_SRCS) \
 	src/lint-hints.hs \
 	test/hs/cli-tests-defs.sh \
-	test/hs/offline-test.sh \
-	.ghci
+	test/hs/offline-test.sh
 
 man_MANS = \
 	man/ganeti-cleaner.8 \
@@ -1826,6 +1864,7 @@ TEST_FILES = \
 	test/data/cluster_config_2.15.json \
 	test/data/cluster_config_2.16.json \
 	test/data/cluster_config_3.0.json \
+	test/data/cluster_config_3.1.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/instance-disks.txt \
 	test/data/ip-addr-show-dummy0.txt \
@@ -1844,6 +1883,8 @@ TEST_FILES = \
 	test/data/kvm_5.2.0_help.txt \
 	test/data/kvm_current_help.txt \
 	test/data/kvm_6.0.0_machine.txt \
+	test/data/kvm_10.2_help.txt \
+	test/data/kvm_10.2_machine.txt \
 	test/data/kvm_runtime.json \
 	test/data/lvs_lv.txt \
 	test/data/NEWS_OK.txt \
@@ -1900,143 +1941,160 @@ TEST_FILES = \
 	test/data/xen-xl-list-4.0.1-four-instances.txt \
 	test/data/xen-xl-list-long-4.0.1.txt \
 	test/data/xen-xl-uptime-4.0.1.txt \
-	test/py/ganeti-cli.test \
-	test/py/gnt-cli.test \
-	test/py/import-export_unittest-helper
+	test/py/legacy/ganeti-cli.test \
+	test/py/legacy/gnt-cli.test \
+	test/py/legacy/import-export_unittest-helper \
+	test/py/unit/test_data/serialized_disks.json \
+	test/py/unit/test_data/serialized_nics.json
 
+python_tests_integration = \
+	test/py/integration/test_dummy.py
 
-python_tests = \
+python_tests_legacy = \
 	doc/examples/rapi_testutils.py \
-	test/py/cmdlib/backup_unittest.py \
-	test/py/cmdlib/cluster_unittest.py \
-	test/py/cmdlib/cmdlib_unittest.py \
-	test/py/cmdlib/group_unittest.py \
-	test/py/cmdlib/instance_unittest.py \
-	test/py/cmdlib/instance_migration_unittest.py \
-	test/py/cmdlib/instance_query_unittest.py \
-	test/py/cmdlib/instance_storage_unittest.py \
-	test/py/cmdlib/node_unittest.py \
-	test/py/cmdlib/test_unittest.py \
-	test/py/cfgupgrade_unittest.py \
-	test/py/docs_unittest.py \
-	test/py/ganeti.asyncnotifier_unittest.py \
-	test/py/ganeti.backend_unittest-runasroot.py \
-	test/py/ganeti.backend_unittest.py \
-	test/py/ganeti.bootstrap_unittest.py \
-	test/py/ganeti.cli_unittest.py \
-	test/py/ganeti.cli_opts_unittest.py \
-	test/py/ganeti.client.gnt_cluster_unittest.py \
-	test/py/ganeti.client.gnt_instance_unittest.py \
-	test/py/ganeti.client.gnt_job_unittest.py \
-	test/py/ganeti.compat_unittest.py \
-	test/py/ganeti.confd.client_unittest.py \
-	test/py/ganeti.config_unittest.py \
-	test/py/ganeti.constants_unittest.py \
-	test/py/ganeti.daemon_unittest.py \
-	test/py/ganeti.errors_unittest.py \
-	test/py/ganeti.hooks_unittest.py \
-	test/py/ganeti.ht_unittest.py \
-	test/py/ganeti.http_unittest.py \
-	test/py/ganeti.hypervisor.hv_chroot_unittest.py \
-	test/py/ganeti.hypervisor.hv_fake_unittest.py \
-	test/py/ganeti.hypervisor.hv_kvm_unittest.py \
-	test/py/ganeti.hypervisor.hv_lxc_unittest.py \
-	test/py/ganeti.hypervisor.hv_xen_unittest.py \
-	test/py/ganeti.hypervisor_unittest.py \
-	test/py/ganeti.impexpd_unittest.py \
-	test/py/ganeti.jqueue_unittest.py \
-	test/py/ganeti.jstore_unittest.py \
-	test/py/ganeti.locking_unittest.py \
-	test/py/ganeti.luxi_unittest.py \
-	test/py/ganeti.masterd.iallocator_unittest.py \
-	test/py/ganeti.masterd.instance_unittest.py \
-	test/py/ganeti.mcpu_unittest.py \
-	test/py/ganeti.netutils_unittest.py \
-	test/py/ganeti.objects_unittest.py \
-	test/py/ganeti.opcodes_unittest.py \
-	test/py/ganeti.outils_unittest.py \
-	test/py/ganeti.ovf_unittest.py \
-	test/py/ganeti.qlang_unittest.py \
-	test/py/ganeti.query_unittest.py \
-	test/py/ganeti.rapi.baserlib_unittest.py \
-	test/py/ganeti.rapi.client_unittest.py \
-	test/py/ganeti.rapi.resources_unittest.py \
-	test/py/ganeti.rapi.rlib2_unittest.py \
-	test/py/ganeti.rapi.testutils_unittest.py \
-	test/py/ganeti.rpc_unittest.py \
-	test/py/ganeti.rpc.client_unittest.py \
-	test/py/ganeti.runtime_unittest.py \
-	test/py/ganeti.serializer_unittest.py \
-	test/py/ganeti.server.rapi_unittest.py \
-	test/py/ganeti.ssconf_unittest.py \
-	test/py/ganeti.ssh_unittest.py \
-	test/py/ganeti.storage.bdev_unittest.py \
-	test/py/ganeti.storage.container_unittest.py \
-	test/py/ganeti.storage.drbd_unittest.py \
-	test/py/ganeti.storage.filestorage_unittest.py \
-	test/py/ganeti.storage.gluster_unittest.py \
-	test/py/ganeti.tools.burnin_unittest.py \
-	test/py/ganeti.tools.ensure_dirs_unittest.py \
-	test/py/ganeti.tools.node_daemon_setup_unittest.py \
-	test/py/ganeti.tools.prepare_node_join_unittest.py \
-	test/py/ganeti.uidpool_unittest.py \
-	test/py/ganeti.utils.algo_unittest.py \
-	test/py/ganeti.utils.filelock_unittest.py \
-	test/py/ganeti.utils.hash_unittest.py \
-	test/py/ganeti.utils.io_unittest-runasroot.py \
-	test/py/ganeti.utils.io_unittest.py \
-	test/py/ganeti.utils.log_unittest.py \
-	test/py/ganeti.utils.livelock_unittest.py \
-	test/py/ganeti.utils.lvm_unittest.py \
-	test/py/ganeti.utils.mlock_unittest.py \
-	test/py/ganeti.utils.nodesetup_unittest.py \
-	test/py/ganeti.utils.process_unittest.py \
-	test/py/ganeti.utils.retry_unittest.py \
-	test/py/ganeti.utils.security_unittest.py \
-	test/py/ganeti.utils.storage_unittest.py \
-	test/py/ganeti.utils.text_unittest.py \
-	test/py/ganeti.utils.version_unittest.py \
-	test/py/ganeti.utils.wrapper_unittest.py \
-	test/py/ganeti.utils.x509_unittest.py \
-	test/py/ganeti.utils.bitarrays_unittest.py \
-	test/py/ganeti.utils_unittest.py \
-	test/py/ganeti.vcluster_unittest.py \
-	test/py/ganeti.workerpool_unittest.py \
-	test/py/pycurl_reset_unittest.py \
-	test/py/qa.qa_config_unittest.py \
-	test/py/tempfile_fork_unittest.py
+	test/py/legacy/cmdlib/backup_unittest.py \
+	test/py/legacy/cmdlib/cluster_unittest.py \
+	test/py/legacy/cmdlib/cmdlib_unittest.py \
+	test/py/legacy/cmdlib/group_unittest.py \
+	test/py/legacy/cmdlib/instance_unittest.py \
+	test/py/legacy/cmdlib/instance_migration_unittest.py \
+	test/py/legacy/cmdlib/instance_storage_unittest.py \
+	test/py/legacy/cmdlib/node_unittest.py \
+	test/py/legacy/cmdlib/test_unittest.py \
+	test/py/legacy/cfgupgrade_unittest.py \
+	test/py/legacy/docs_unittest.py \
+	test/py/legacy/ganeti.backend_unittest-runasroot.py \
+	test/py/legacy/ganeti.backend_unittest.py \
+	test/py/legacy/ganeti.bootstrap_unittest.py \
+	test/py/legacy/ganeti.cli_unittest.py \
+	test/py/legacy/ganeti.cli_opts_unittest.py \
+	test/py/legacy/ganeti.client.gnt_cluster_unittest.py \
+	test/py/legacy/ganeti.client.gnt_instance_unittest.py \
+	test/py/legacy/ganeti.client.gnt_job_unittest.py \
+	test/py/legacy/ganeti.compat_unittest.py \
+	test/py/legacy/ganeti.config_unittest.py \
+	test/py/legacy/ganeti.constants_unittest.py \
+	test/py/legacy/ganeti.errors_unittest.py \
+	test/py/legacy/ganeti.hooks_unittest.py \
+	test/py/legacy/ganeti.ht_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_chroot_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_fake_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_kvm_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_lxc_unittest.py \
+	test/py/legacy/ganeti.hypervisor.hv_xen_unittest.py \
+	test/py/legacy/ganeti.hypervisor_unittest.py \
+	test/py/legacy/ganeti.impexpd_unittest.py \
+	test/py/legacy/ganeti.jqueue_unittest.py \
+	test/py/legacy/ganeti.jstore_unittest.py \
+	test/py/legacy/ganeti.locking_unittest.py \
+	test/py/legacy/ganeti.luxi_unittest.py \
+	test/py/legacy/ganeti.masterd.iallocator_unittest.py \
+	test/py/legacy/ganeti.masterd.instance_unittest.py \
+	test/py/legacy/ganeti.mcpu_unittest.py \
+	test/py/legacy/ganeti.netutils_unittest.py \
+	test/py/legacy/ganeti.objects_unittest.py \
+	test/py/legacy/ganeti.opcodes_unittest.py \
+	test/py/legacy/ganeti.outils_unittest.py \
+	test/py/legacy/ganeti.ovf_unittest.py \
+	test/py/legacy/ganeti.qlang_unittest.py \
+	test/py/legacy/ganeti.query_unittest.py \
+	test/py/legacy/ganeti.rapi.baserlib_unittest.py \
+	test/py/legacy/ganeti.rapi.client_unittest.py \
+	test/py/legacy/ganeti.rapi.resources_unittest.py \
+	test/py/legacy/ganeti.rapi.rlib2_unittest.py \
+	test/py/legacy/ganeti.rapi.testutils_unittest.py \
+	test/py/legacy/ganeti.rpc_unittest.py \
+	test/py/legacy/ganeti.rpc.client_unittest.py \
+	test/py/legacy/ganeti.runtime_unittest.py \
+	test/py/legacy/ganeti.serializer_unittest.py \
+	test/py/legacy/ganeti.server.rapi_unittest.py \
+	test/py/legacy/ganeti.ssconf_unittest.py \
+	test/py/legacy/ganeti.ssh_unittest.py \
+	test/py/legacy/ganeti.storage.bdev_unittest.py \
+	test/py/legacy/ganeti.storage.container_unittest.py \
+	test/py/legacy/ganeti.storage.drbd_unittest.py \
+	test/py/legacy/ganeti.storage.filestorage_unittest.py \
+	test/py/legacy/ganeti.storage.gluster_unittest.py \
+	test/py/legacy/ganeti.tools.burnin_unittest.py \
+	test/py/legacy/ganeti.tools.ensure_dirs_unittest.py \
+	test/py/legacy/ganeti.tools.node_daemon_setup_unittest.py \
+	test/py/legacy/ganeti.tools.prepare_node_join_unittest.py \
+	test/py/legacy/ganeti.uidpool_unittest.py \
+	test/py/legacy/ganeti.utils.algo_unittest.py \
+	test/py/legacy/ganeti.utils.filelock_unittest.py \
+	test/py/legacy/ganeti.utils.hash_unittest.py \
+	test/py/legacy/ganeti.utils.io_unittest-runasroot.py \
+	test/py/legacy/ganeti.utils.io_unittest.py \
+	test/py/legacy/ganeti.utils.log_unittest.py \
+	test/py/legacy/ganeti.utils.livelock_unittest.py \
+	test/py/legacy/ganeti.utils.lvm_unittest.py \
+	test/py/legacy/ganeti.utils.mlock_unittest.py \
+	test/py/legacy/ganeti.utils.nodesetup_unittest.py \
+	test/py/legacy/ganeti.utils.process_unittest.py \
+	test/py/legacy/ganeti.utils.retry_unittest.py \
+	test/py/legacy/ganeti.utils.security_unittest.py \
+	test/py/legacy/ganeti.utils.storage_unittest.py \
+	test/py/legacy/ganeti.utils.text_unittest.py \
+	test/py/legacy/ganeti.utils.version_unittest.py \
+	test/py/legacy/ganeti.utils.wrapper_unittest.py \
+	test/py/legacy/ganeti.utils.x509_unittest.py \
+	test/py/legacy/ganeti.utils.bitarrays_unittest.py \
+	test/py/legacy/ganeti.utils_unittest.py \
+	test/py/legacy/ganeti.vcluster_unittest.py \
+	test/py/legacy/ganeti.workerpool_unittest.py \
+	test/py/legacy/qa.qa_config_unittest.py \
+	test/py/legacy/tempfile_fork_unittest.py
+
+python_tests_unit = \
+	test/py/unit/cmdlib/test_instance_storage_drbd_wait.py \
+	test/py/unit/confd/test_client.py \
+	test/py/unit/test_daemon.py \
+	test/py/unit/hypervisor/hv_kvm/test_monitor.py \
+	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
+	test/py/unit/hypervisor/hv_kvm/test_instance_info.py \
+	test/py/unit/hypervisor/hv_kvm/test_q35.py \
+	test/py/unit/http/test_auth.py \
+	test/py/unit/http/test_server.py \
+	test/py/unit/http/test_ssl.py \
+	test/py/unit/server/test_rapi.py \
+	test/py/unit/storage/test_drbd_grow.py \
+	test/py/unit/rpc/test_transport.py \
+	test/py/unit/config/test_config_lock_retry.py \
+	test/py/unit/utils/test_x509.py
+
+python_tests = $(python_tests_integration) $(python_tests_legacy) $(python_tests_unit)
 
 python_test_support = \
-	test/py/__init__.py \
-	test/py/lockperf.py \
-	test/py/testutils_ssh.py \
-	test/py/mocks.py \
-	test/py/testutils/__init__.py \
-	test/py/testutils/config_mock.py \
-	test/py/cmdlib/__init__.py \
-	test/py/cmdlib/testsupport/__init__.py \
-	test/py/cmdlib/testsupport/cmdlib_testcase.py \
-	test/py/cmdlib/testsupport/iallocator_mock.py \
-	test/py/cmdlib/testsupport/livelock_mock.py \
-	test/py/cmdlib/testsupport/netutils_mock.py \
-	test/py/cmdlib/testsupport/pathutils_mock.py \
-	test/py/cmdlib/testsupport/processor_mock.py \
-	test/py/cmdlib/testsupport/rpc_runner_mock.py \
-	test/py/cmdlib/testsupport/ssh_mock.py \
-	test/py/cmdlib/testsupport/utils_mock.py \
-	test/py/cmdlib/testsupport/util.py \
-	test/py/cmdlib/testsupport/wconfd_mock.py
+	test/py/legacy/__init__.py \
+	test/py/legacy/lockperf.py \
+	test/py/legacy/testutils_ssh.py \
+	test/py/legacy/mocks.py \
+	test/py/legacy/testutils/__init__.py \
+	test/py/legacy/testutils/config_mock.py \
+	test/py/legacy/cmdlib/__init__.py \
+	test/py/legacy/cmdlib/testsupport/__init__.py \
+	test/py/legacy/cmdlib/testsupport/cmdlib_testcase.py \
+	test/py/legacy/cmdlib/testsupport/iallocator_mock.py \
+	test/py/legacy/cmdlib/testsupport/livelock_mock.py \
+	test/py/legacy/cmdlib/testsupport/netutils_mock.py \
+	test/py/legacy/cmdlib/testsupport/pathutils_mock.py \
+	test/py/legacy/cmdlib/testsupport/processor_mock.py \
+	test/py/legacy/cmdlib/testsupport/rpc_runner_mock.py \
+	test/py/legacy/cmdlib/testsupport/ssh_mock.py \
+	test/py/legacy/cmdlib/testsupport/utils_mock.py \
+	test/py/legacy/cmdlib/testsupport/util.py \
+	test/py/legacy/cmdlib/testsupport/wconfd_mock.py
 
-haskell_tests = test/hs/htest
+haskell_tests = exe/htest
 
 dist_TESTS = \
-	test/py/check-cert-expired_unittest.bash \
-	test/py/daemon-util_unittest.bash \
-	test/py/systemd_unittest.bash \
-	test/py/ganeti-cleaner_unittest.bash \
-	test/py/import-export_unittest.bash \
-	test/py/cli-test.bash \
-	test/py/bash_completion.bash
+	test/py/legacy/check-cert-expired_unittest.bash \
+	test/py/legacy/daemon-util_unittest.bash \
+	test/py/legacy/systemd_unittest.bash \
+	test/py/legacy/ganeti-cleaner_unittest.bash \
+	test/py/legacy/import-export_unittest.bash \
+	test/py/legacy/cli-test.bash \
+	test/py/legacy/bash_completion.bash
 
 if PY_UNIT
 dist_TESTS += $(python_tests)
@@ -2056,11 +2114,17 @@ check_SCRIPTS += \
 	$(HS_BUILT_TEST_HELPERS)
 endif
 
+test/hs/hpc-htools:	exe/htools
+	$(LN_S) ../../$< $@
+
+test/hs/hpc-mon-collector:	exe/mon-collector
+	$(LN_S) ../../$< $@
+
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 # Environment for all tests
 PLAIN_TESTS_ENVIRONMENT = \
-	PYTHONPATH=.:./test/py \
+	PYTHONPATH=.:./test/py/legacy \
 	TOP_SRCDIR=$(abs_top_srcdir) TOP_BUILDDIR=$(abs_top_builddir) \
 	PYTHON=$(PYTHON) FAKEROOT=$(FAKEROOT_PATH) \
 	$(RUN_IN_TEMPDIR)
@@ -2106,13 +2170,14 @@ endif
 
 srclink_files = \
 	man/footer.rst \
-	test/py/check-cert-expired_unittest.bash \
-	test/py/daemon-util_unittest.bash \
-	test/py/systemd_unittest.bash \
-	test/py/ganeti-cleaner_unittest.bash \
-	test/py/import-export_unittest.bash \
-	test/py/cli-test.bash \
-	test/py/bash_completion.bash \
+	test/py/legacy/check-cert-expired_unittest.bash \
+	test/py/legacy/daemon-util_unittest.bash \
+	test/py/legacy/systemd_unittest.bash \
+	test/py/legacy/ganeti-cleaner_unittest.bash \
+	test/py/legacy/import-export_unittest.bash \
+	test/py/legacy/cli-test.bash \
+	test/py/legacy/bash_completion.bash \
+	test/hs/htest.hs \
 	test/hs/offline-test.sh \
 	test/hs/cli-tests-defs.sh \
 	$(all_python_code) \
@@ -2166,12 +2231,12 @@ test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 
 test/py/bash_completion.bash: doc/examples/bash_completion-debug
 
-tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
+tools/kvm-nic-setup: tools/kvm-nic-setup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-tools/kvm-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) -e "s/ifup-os:/kvm-ifup-os:/" < $< > $@
+$(NET_SCRIPT_LIST): tools/%: tools/%.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
 tools/xen-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
@@ -2312,22 +2377,20 @@ src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 	m4 -DPY_CONSTANT_NAMES="$$NAMES" \
 		$(abs_top_srcdir)/src/Ganeti/Hs2Py/ListConstants.hs.in > $@
 
-src/Ganeti/Curl/Internal.hs: src/Ganeti/Curl/Internal.hsc | stamp-directories
-	hsc2hs -o $@ $<
-
 test/hs/Test/Ganeti/TestImports.hs: test/hs/Test/Ganeti/TestImports.hs.in \
 	$(built_base_sources)
 	set -e; \
 	{ cat $< ; \
 	  echo ; \
-	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst %.hs,%,$(patsubst src/%,%,$(HS_LIB_SRCS))))) ; do \
+	  for name in $(filter-out Ganeti.THH,$(subst /,.,$(patsubst src/%,%,$(HS_LIB_STEMS)))) ; do \
 	    echo "import $$name ()" ; \
 	  done ; \
+	  echo "import Ganeti.Query.RegEx ()" ; \
 	} > $@
 
-lib/_constants.py: Makefile src/hs2py lib/_constants.py.in | stamp-directories
+lib/_constants.py: Makefile $(HS2PY_PROG) lib/_constants.py.in | stamp-directories
 	cat $(abs_top_srcdir)/lib/_constants.py.in > $@
-	src/hs2py --constants >> $@
+	$(HS2PY_PROG) --constants >> $@
 
 lib/constants.py: lib/_constants.py
 
@@ -2431,10 +2494,10 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
-lib/opcodes.py: Makefile src/hs2py lib/opcodes.py.in_before \
+lib/opcodes.py: Makefile $(HS2PY_PROG) lib/opcodes.py.in_before \
 		lib/opcodes.py.in_after | stamp-directories
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_before > $@
-	src/hs2py --opcodes >> $@
+	$(HS2PY_PROG) --opcodes >> $@
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_after >> $@
 
 # Generating the RPC wrappers depends on many things, so make sure
@@ -2443,12 +2506,12 @@ lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC) | $(built_base_sources) $(bu
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
 
 if ENABLE_METADATA
-lib/rpc/stub/metad.py: Makefile src/hs2py | stamp-directories
-	src/hs2py --metad-rpc > $@
+lib/rpc/stub/metad.py: Makefile $(HS2PY_PROG) | stamp-directories
+	$(HS2PY_PROG) --metad-rpc > $@
 endif
 
-lib/rpc/stub/wconfd.py: Makefile src/hs2py | stamp-directories
-	src/hs2py --wconfd-rpc > $@
+lib/rpc/stub/wconfd.py: Makefile $(HS2PY_PROG) | stamp-directories
+	$(HS2PY_PROG) --wconfd-rpc > $@
 
 $(SHELL_ENV_INIT): Makefile stamp-directories
 	set -e; \
@@ -2583,7 +2646,7 @@ ganeti:
 .PHONY: check-dirs
 check-dirs: $(GENERATED_FILES)
 	@set -e; \
-	find . -type d \( -name . -o -name .git -prune -o -print \) | { \
+	find . -type d -not -path '*/.*' -a -not -path '.' -a -not -path '*/__pycache__' -print | { \
 	  error=; \
 	  while read dir; do \
 	    case "$$dir" in \
@@ -2614,8 +2677,8 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	error= ; \
 	if [ "x`echo $(VERSION_SUFFIX)|grep 'alpha'`" == "x" ]; then \
 	  expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
-	  if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
-	    echo "Incorrect version in README, expected $$expver" >&2; \
+	  if test "`head -n 1 $(top_srcdir)/README.md`" != "# Ganeti $$expver"; then \
+	    echo "Incorrect version in README.md, expected $$expver" >&2; \
 	    error=1; \
 	  fi; \
 	  for file in doc/iallocator.rst doc/hooks.rst doc/virtual-cluster.rst \
@@ -2645,27 +2708,35 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-test-%
-hs-test-%: test/hs/htest
+hs-test-%: exe/htest
 	@rm -f htest.tix
-	test/hs/htest -t $*
+	$< -t $*
 
 .PHONY: hs-tests
-hs-tests: test/hs/htest
+hs-tests: exe/htest
 	@rm -f htest.tix
-	./test/hs/htest
+	$<
 
-.PHONY: py-tests
-py-tests: $(python_tests) ganeti $(built_python_sources)
+.PHONY: py-tests-legacy
+py-tests-legacy: $(python_tests_legacy) ganeti $(built_python_sources)
 	@if [ "$(PY_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
 	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
 	error=; \
-	for file in $(python_tests); \
+	for file in $(python_tests_legacy); \
 	  do if ! $(TESTS_ENVIRONMENT) $$file; then error=1; fi; \
 	done; \
 	test -z "$$error"
+
+.PHONY: py-tests-unit
+py-tests-unit: ganeti $(built_python_sources)
+	PYTHONPATH=: $(RUN_IN_TEMPDIR) pytest-3 ./test/py/unit/
+
+.PHONY: py-tests-integration
+py-tests-integration: ganeti $(built_python_sources)
+	PYTHONPATH=: $(RUN_IN_TEMPDIR) pytest-3 ./test/py/integration/
 
 .PHONY: hs-shell-%
 hs-shell-%: test/hs/hpc-htools test/hs/hpc-mon-collector \
@@ -2877,6 +2948,15 @@ install-exec-local:
 	for prog in $(myexeclib_scripts_basenames); do \
 	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
 	done
+	for mode in $(NET_MODES); do \
+	  @mkdir_p@ "$(DESTDIR)$(pkglibdir)/network/$$mode"; \
+	  $(INSTALL_SCRIPT) tools/net-$$mode-down "$(DESTDIR)$(pkglibdir)/network/$$mode/down"; \
+	  $(INSTALL_SCRIPT) tools/net-$$mode-up "$(DESTDIR)$(pkglibdir)/network/$$mode/up"; \
+	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/network/$$mode/down $(DESTDIR)$(libdir)/ganeti/network/$$mode/down; \
+	  $(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/network/$$mode/up $(DESTDIR)$(libdir)/ganeti/network/$$mode/up; \
+	  @mkdir_p@ "$(DESTDIR)$(sysconfdir)/ganeti/network/$$mode"; \
+	done
+	@mkdir_p@ "$(DESTDIR)$(sysconfdir)/ganeti/network/ext"
 if INSTALL_SYMLINKS
 	$(LN_S) -f $(versionedsharedir) $(DESTDIR)$(sysconfdir)/ganeti/share
 	$(LN_S) -f $(versiondir) $(DESTDIR)$(sysconfdir)/ganeti/lib
@@ -2904,27 +2984,11 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	    { echo 'HsColour' not found during configure; exit 1; }
 	@test -n "$(HADDOCK)" || \
 	    { echo 'haddock' not found during configure; exit 1; }
-	rm -rf $(APIDOC_HS_DIR)/*
-	for i in $(ALL_APIDOC_HS_DIRS); do \
-	  @mkdir_p@ $$i; \
-	  $(HSCOLOUR) -print-css > $$i/hscolour.css; \
-	done
-	set -e ; \
+	rm -rf $(APIDOC_HS_DIR)
 	export LC_ALL=$(UTF8_LOCALE); \
-	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
-	OPTGHC="$$OPTGHC --optghc=-optP-include --optghc=-optP$(HASKELL_PACKAGE_VERSIONS_FILE)"; \
-	for file in $(HS_LIBTESTBUILT_SRCS); do \
-	  f_nosrc=$${file##src/}; \
-	  f_notst=$${f_nosrc##test/hs/}; \
-	  f_html=$${f_notst%%.hs}.html; \
-	  $(HSCOLOUR) -css -anchor $$file > $(APIDOC_HS_DIR)/$$f_html ; \
-	done ; \
-	$(HADDOCK) --odir $(APIDOC_HS_DIR) --html --hoogle --ignore-all-exports -w \
-	  -t ganeti -p src/haddock-prologue \
-	  --source-module="%{MODULE/.//}.html" \
-	  --source-entity="%{MODULE/.//}.html#%{NAME}" \
-	  $$OPTGHC \
-	  $(HS_LIBTESTBUILT_SRCS)
+	  $(CABAL_SETUP) haddock
+	mv dist/doc/html/ganeti $(APIDOC_HS_DIR)
+	rm -r dist/doc
 
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
@@ -2952,7 +3016,7 @@ endif
 
 coverage: $(COVERAGE_TESTS)
 
-test/py/docs_unittest.py: $(gnt_scripts)
+test/py/legacy/docs_unittest.py: $(gnt_scripts)
 
 .PHONY: py-coverage
 py-coverage: $(GENERATED_FILES) $(python_tests)
@@ -2987,7 +3051,7 @@ live-test: all
 	rm -f .hpc; $(LN_S) ../.hpc .hpc; \
 	rm -f *.tix *.mix; \
 	./live-test.sh; \
-	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:src/%=%)) \
+	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:exe/%=%)) \
 	  --output=live-test.tix ; \
 	@mkdir_p@ ../$(COVERAGE_HS_DIR) ; \
 	hpc markup --destdir=../$(COVERAGE_HS_DIR) live-test \
@@ -3013,38 +3077,17 @@ gitignore-check:
 .PHONY: man
 man: $(man_MANS) $(manhtml)
 
-CABAL_EXECUTABLES = $(HS_DEFAULT_PROGS)
-CABAL_EXECUTABLES_HS = $(patsubst %,%.hs,$(CABAL_EXECUTABLES))
-CABAL_EXECUTABLES_APPS_STAMPS = $(patsubst src/%,apps/%.hs.stamp,$(patsubst test/hs/%,apps/%.hs.stamp,$(CABAL_EXECUTABLES)))
+dist/setup-config: ganeti.cabal $(HS_BUILT_SRCS)
+	$(CABAL_SETUP) configure --user \
+	  --cabal-file=$(top_srcdir)/ganeti.cabal \
+	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
+	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
+	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"` \
+	  -f`test $(ENABLE_NETWORK_BSD) == True && echo "network_bsd" || echo "-network_bsd"` \
+	  -f`test $(HS_PCRE_BACKEND) == pcre-builtin && echo "regex-pcre-builtin" || echo "-regex-pcre-builtin"` \
+	  -f`test $(HS_PCRE_BACKEND) == tdfa && echo "regex-tdfa" || echo "-regex-tdfa"` \
+	  -f`test $(HS_PCRE_BACKEND) == pcre2 && echo "regex-pcre2" || echo "-regex-pcre2"`
 
-# Executable symlinks
-apps/%.hs.stamp: Makefile
-	mkdir -p apps
-	rm -f $(basename $@)
-	ln -s ../$(filter %/$(basename $(notdir $@)),$(CABAL_EXECUTABLES_HS)) $(basename $@)
-	touch $@
-
-# Builds the cabal file
-ganeti.cabal: cabal/ganeti.template.cabal Makefile cabal/cabal-from-modules.py $(CABAL_EXECUTABLES_APPS_STAMPS)
-	@echo $(subst /,.,$(patsubst %.hs,%,$(patsubst test/hs/%,%,$(patsubst src/%,%,$(HS_SRCS))))) \
-	  | $(PYTHON) $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
-
-	for p in $(CABAL_EXECUTABLES); do \
-	  echo                                   >> $@; \
-	  echo "executable `basename $$p`"       >> $@; \
-	  echo "  hs-source-dirs: apps"          >> $@; \
-	  echo "  main-is: `basename $$p`.hs"    >> $@; \
-	  echo "  default-language: Haskell2010" >> $@; \
-	  echo "  build-depends:"                >> $@; \
-	  echo "      base"                      >> $@; \
-	  echo "    , ganeti"                    >> $@; \
-	  if [ $$p == test/hs/htest ]; then \
-	    echo "    , hslogger"                  >> $@; \
-	    echo "    , test-framework"            >> $@; \
-	  elif [ $$p == src/rpc-test ]; then \
-	    echo "    , json"                      >> $@; \
-	  fi \
-	done
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)

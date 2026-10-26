@@ -39,14 +39,8 @@ backend (currently json).
 # function and not a constant
 
 import re
+import json
 from copy import deepcopy
-
-# Python 2.6 and above contain a JSON module based on simplejson. Unfortunately
-# the standard library version is significantly slower than the external
-# module. While it should be better from at least Python 3.2 on (see Python
-# issue 7451), for now Ganeti needs to work well with older Python versions
-# too.
-import simplejson
 
 from ganeti import errors
 from ganeti import utils
@@ -65,10 +59,11 @@ def DumpJson(data, private_encoder=None):
                           parameters. Otherwise, they will encode to null.
 
   """
+
   if private_encoder is None:
     # Do not leak private fields by default.
     private_encoder = EncodeWithoutPrivateFields
-  encoded = simplejson.dumps(data, default=private_encoder)
+  encoded = json.dumps(data, cls=private_encoder)
 
   txt = _RE_EOLSP.sub("", encoded)
   if not txt.endswith("\n"):
@@ -86,7 +81,12 @@ def LoadJson(data):
   @raise JSONDecodeError: if L{txt} is not a valid JSON document
 
   """
-  values = simplejson.loads(data)
+
+  # convert data to string if data is a byte array
+  if isinstance(data, bytes):
+    data = data.decode('utf-8')
+
+  values = json.loads(data)
 
   # Hunt and seek for Private fields and wrap them.
   WrapPrivateValues(values)
@@ -94,15 +94,15 @@ def LoadJson(data):
   return values
 
 
-def WrapPrivateValues(json):
+def WrapPrivateValues(json_data):
   """Crawl a JSON decoded structure for private values and wrap them.
 
-  @param json: the json-decoded value to protect.
+  @param json_data: the json-decoded value to protect.
 
   """
   # This function used to be recursive. I use this list to avoid actual
   # recursion, however, since this is a very high-traffic area.
-  todo = [json]
+  todo = [json_data]
 
   while todo:
     data = todo.pop()
@@ -392,13 +392,24 @@ class PrivateDict(dict):
     return returndict
 
 
-def EncodeWithoutPrivateFields(obj):
-  if isinstance(obj, Private):
-    return None
-  raise TypeError(repr(obj) + " is not JSON serializable")
+# This class extends the default JsonEncoder to serialize byte arrays.
+# Unlike simplejson, python build-in json cannot encode byte arrays.
+class ByteEncoder(json.JSONEncoder):
+  def default(self, o):
+    if isinstance(o, bytes):
+      return str(o, encoding="ascii")
+    return super().default(o)
 
 
-def EncodeWithPrivateFields(obj):
-  if isinstance(obj, Private):
-    return obj.Get()
-  raise TypeError(repr(obj) + " is not JSON serializable")
+class EncodeWithoutPrivateFields(ByteEncoder):
+  def default(self, o):
+    if isinstance(o, Private):
+      return None
+    return super().default(o)
+
+
+class EncodeWithPrivateFields(ByteEncoder):
+  def default(self, o):
+    if isinstance(o, Private):
+      return o.Get()
+    return super().default(o)

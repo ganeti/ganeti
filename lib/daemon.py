@@ -32,16 +32,11 @@
 
 from __future__  import print_function
 
-import asyncore
-import asynchat
-import collections
 import os
+import selectors
 import signal
 import logging
-import sched
-import time
 import socket
-import select
 import sys
 
 from ganeti import utils
@@ -51,370 +46,6 @@ from ganeti import netutils
 from ganeti import ssconf
 from ganeti import runtime
 from ganeti import compat
-
-
-class SchedulerBreakout(Exception):
-  """Exception used to get out of the scheduler loop
-
-  """
-
-
-def AsyncoreDelayFunction(timeout):
-  """Asyncore-compatible scheduler delay function.
-
-  This is a delay function for sched that, rather than actually sleeping,
-  executes asyncore events happening in the meantime.
-
-  After an event has occurred, rather than returning, it raises a
-  SchedulerBreakout exception, which will force the current scheduler.run()
-  invocation to terminate, so that we can also check for signals. The main loop
-  will then call the scheduler run again, which will allow it to actually
-  process any due events.
-
-  This is needed because scheduler.run() doesn't support a count=..., as
-  asyncore loop, and the scheduler module documents throwing exceptions from
-  inside the delay function as an allowed usage model.
-
-  """
-  asyncore.loop(timeout=timeout, count=1, use_poll=True)
-  raise SchedulerBreakout()
-
-
-class AsyncoreScheduler(sched.scheduler):
-  """Event scheduler integrated with asyncore
-
-  """
-  def __init__(self, timefunc):
-    """Initializes this class.
-
-    """
-    sched.scheduler.__init__(self, timefunc, self._LimitedDelay)
-    self._max_delay = None
-
-  def run(self, max_delay=None): # pylint: disable=W0221
-    """Run any pending events.
-
-    @type max_delay: None or number
-    @param max_delay: Maximum delay (useful if caller has timeouts running)
-
-    """
-    assert self._max_delay is None
-
-    # The delay function used by the scheduler can't be different on each run,
-    # hence an instance variable must be used.
-    if max_delay is None:
-      self._max_delay = None
-    else:
-      self._max_delay = utils.RunningTimeout(max_delay, False)
-
-    try:
-      return sched.scheduler.run(self)
-    finally:
-      self._max_delay = None
-
-  def _LimitedDelay(self, duration):
-    """Custom delay function for C{sched.scheduler}.
-
-    """
-    if self._max_delay is None:
-      timeout = duration
-    else:
-      timeout = min(duration, self._max_delay.Remaining())
-
-    return AsyncoreDelayFunction(timeout)
-
-
-class GanetiBaseAsyncoreDispatcher(asyncore.dispatcher):
-  """Base Ganeti Asyncore Dispacher
-
-  """
-  # this method is overriding an asyncore.dispatcher method
-  def handle_error(self):
-    """Log an error in handling any request, and proceed.
-
-    """
-    logging.exception("Error while handling asyncore request")
-
-  # this method is overriding an asyncore.dispatcher method
-  def writable(self):
-    """Most of the time we don't want to check for writability.
-
-    """
-    return False
-
-
-class AsyncTerminatedMessageStream(asynchat.async_chat):
-  """A terminator separated message stream asyncore module.
-
-  Handles a stream connection receiving messages terminated by a defined
-  separator. For each complete message handle_message is called.
-
-  """
-  def __init__(self, connected_socket, peer_address, terminator, family,
-               unhandled_limit):
-    """AsyncTerminatedMessageStream constructor.
-
-    @type connected_socket: socket.socket
-    @param connected_socket: connected stream socket to receive messages from
-    @param peer_address: family-specific peer address
-    @type terminator: string
-    @param terminator: terminator separating messages in the stream
-    @type family: integer
-    @param family: socket family
-    @type unhandled_limit: integer or None
-    @param unhandled_limit: maximum unanswered messages
-
-    """
-    # python 2.4/2.5 uses conn=... while 2.6 has sock=... we have to cheat by
-    # using a positional argument rather than a keyword one.
-    asynchat.async_chat.__init__(self, connected_socket)
-    self.connected_socket = connected_socket
-    # on python 2.4 there is no "family" attribute for the socket class
-    # FIXME: when we move to python 2.5 or above remove the family parameter
-    #self.family = self.connected_socket.family
-    self.family = family
-    self.peer_address = peer_address
-    self.terminator = terminator
-    self.unhandled_limit = unhandled_limit
-    self.set_terminator(terminator)
-    self.ibuffer = []
-    self.receive_count = 0
-    self.send_count = 0
-    self.oqueue = collections.deque()
-    self.iqueue = collections.deque()
-
-  # this method is overriding an asynchat.async_chat method
-  def collect_incoming_data(self, data):
-    self.ibuffer.append(data)
-
-  def _can_handle_message(self):
-    return (self.unhandled_limit is None or
-            (self.receive_count < self.send_count + self.unhandled_limit) and
-             not self.iqueue)
-
-  # this method is overriding an asynchat.async_chat method
-  def found_terminator(self):
-    message = "".join(self.ibuffer)
-    self.ibuffer = []
-    message_id = self.receive_count
-    # We need to increase the receive_count after checking if the message can
-    # be handled, but before calling handle_message
-    can_handle = self._can_handle_message()
-    self.receive_count += 1
-    if can_handle:
-      self.handle_message(message, message_id)
-    else:
-      self.iqueue.append((message, message_id))
-
-  def handle_message(self, message, message_id):
-    """Handle a terminated message.
-
-    @type message: string
-    @param message: message to handle
-    @type message_id: integer
-    @param message_id: stream's message sequence number
-
-    """
-    pass
-    # TODO: move this method to raise NotImplementedError
-    # raise NotImplementedError
-
-  def send_message(self, message):
-    """Send a message to the remote peer. This function is thread-safe.
-
-    @type message: string
-    @param message: message to send, without the terminator
-
-    @warning: If calling this function from a thread different than the one
-    performing the main asyncore loop, remember that you have to wake that one
-    up.
-
-    """
-    # If we just append the message we received to the output queue, this
-    # function can be safely called by multiple threads at the same time, and
-    # we don't need locking, since deques are thread safe. handle_write in the
-    # asyncore thread will handle the next input message if there are any
-    # enqueued.
-    self.oqueue.append(message)
-
-  # this method is overriding an asyncore.dispatcher method
-  def readable(self):
-    # read from the socket if we can handle the next requests
-    return self._can_handle_message() and asynchat.async_chat.readable(self)
-
-  # this method is overriding an asyncore.dispatcher method
-  def writable(self):
-    # the output queue may become full just after we called writable. This only
-    # works if we know we'll have something else waking us up from the select,
-    # in such case, anyway.
-    return asynchat.async_chat.writable(self) or self.oqueue
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_write(self):
-    if self.oqueue:
-      # if we have data in the output queue, then send_message was called.
-      # this means we can process one more message from the input queue, if
-      # there are any.
-      data = self.oqueue.popleft()
-      self.push(data + self.terminator)
-      self.send_count += 1
-      if self.iqueue:
-        self.handle_message(*self.iqueue.popleft())
-    self.initiate_send()
-
-  def close_log(self):
-    logging.info("Closing connection from %s",
-                 netutils.FormatAddress(self.peer_address, family=self.family))
-    self.close()
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_expt(self):
-    self.close_log()
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_error(self):
-    """Log an error in handling any request, and proceed.
-
-    """
-    logging.exception("Error while handling asyncore request")
-    self.close_log()
-
-
-class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
-  """An improved asyncore udp socket.
-
-  """
-  def __init__(self, family):
-    """Constructor for AsyncUDPSocket
-
-    """
-    GanetiBaseAsyncoreDispatcher.__init__(self)
-    self._out_queue = []
-    self._family = family
-    self.create_socket(family, socket.SOCK_DGRAM)
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_connect(self):
-    # Python thinks that the first udp message from a source qualifies as a
-    # "connect" and further ones are part of the same connection. We beg to
-    # differ and treat all messages equally.
-    pass
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_read(self):
-    recv_result = utils.IgnoreSignals(self.socket.recvfrom,
-                                      constants.MAX_UDP_DATA_SIZE)
-    if recv_result is not None:
-      payload, address = recv_result
-      if self._family == socket.AF_INET6:
-        # we ignore 'flow info' and 'scope id' as we don't need them
-        ip, port, _, _ = address
-      else:
-        ip, port = address
-
-      self.handle_datagram(payload, ip, port)
-
-  def handle_datagram(self, payload, ip, port):
-    """Handle an already read udp datagram
-
-    """
-    raise NotImplementedError
-
-  # this method is overriding an asyncore.dispatcher method
-  def writable(self):
-    # We should check whether we can write to the socket only if we have
-    # something scheduled to be written
-    return bool(self._out_queue)
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_write(self):
-    if not self._out_queue:
-      logging.error("handle_write called with empty output queue")
-      return
-    (ip, port, payload) = self._out_queue[0]
-    utils.IgnoreSignals(self.socket.sendto, payload, 0, (ip, port))
-    self._out_queue.pop(0)
-
-  def enqueue_send(self, ip, port, payload):
-    """Enqueue a datagram to be sent when possible
-
-    """
-    if isinstance(payload, str):
-      payload = payload.encode("utf-8")
-    if len(payload) > constants.MAX_UDP_DATA_SIZE:
-      raise errors.UdpDataSizeError("Packet too big: %s > %s" % (len(payload),
-                                    constants.MAX_UDP_DATA_SIZE))
-    self._out_queue.append((ip, port, payload))
-
-  def process_next_packet(self, timeout=0):
-    """Process the next datagram, waiting for it if necessary.
-
-    @type timeout: float
-    @param timeout: how long to wait for data
-    @rtype: boolean
-    @return: True if some data has been handled, False otherwise
-
-    """
-    result = utils.WaitForFdCondition(self.socket, select.POLLIN, timeout)
-    if result is not None and result & select.POLLIN:
-      self.handle_read()
-      return True
-    else:
-      return False
-
-
-class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
-  """A way to notify the asyncore loop that something is going on.
-
-  If an asyncore daemon is multithreaded when a thread tries to push some data
-  to a socket, the main loop handling asynchronous requests might be sleeping
-  waiting on a select(). To avoid this it can create an instance of the
-  AsyncAwaker, which other threads can use to wake it up.
-
-  """
-  def __init__(self, signal_fn=None):
-    """Constructor for AsyncAwaker
-
-    @type signal_fn: function
-    @param signal_fn: function to call when awaken
-
-    """
-    GanetiBaseAsyncoreDispatcher.__init__(self)
-    assert signal_fn is None or callable(signal_fn)
-    (self.in_socket, self.out_socket) = socket.socketpair(socket.AF_UNIX,
-                                                          socket.SOCK_STREAM)
-    self.in_socket.setblocking(0)
-    self.in_socket.shutdown(socket.SHUT_WR)
-    self.out_socket.shutdown(socket.SHUT_RD)
-    self.set_socket(self.in_socket)
-    self.need_signal = True
-    self.signal_fn = signal_fn
-    self.connected = True
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_read(self):
-    utils.IgnoreSignals(self.recv, 4096)
-    if self.signal_fn:
-      self.signal_fn()
-    self.need_signal = True
-
-  # this method is overriding an asyncore.dispatcher method
-  def close(self):
-    asyncore.dispatcher.close(self)
-    self.out_socket.close()
-
-  def signal(self):
-    """Signal the asyncore main loop.
-
-    Any data we send here will be ignored, but it will cause the select() call
-    to return.
-
-    """
-    # Yes, there is a race condition here. No, we don't care, at worst we're
-    # sending more than one wakeup token, which doesn't harm at all.
-    if self.need_signal:
-      self.need_signal = False
-      self.out_socket.send(b"\x00")
 
 
 class _ShutdownCheck(object):
@@ -461,8 +92,8 @@ class _ShutdownCheck(object):
 class Mainloop(object):
   """Generic mainloop for daemons
 
-  @ivar scheduler: A sched.scheduler object, which can be used to register
-    timed events
+  Uses a selector-based event loop monitoring a socketpair to receive
+  wakeup notifications from signal handlers.
 
   """
   _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxsize - 1)
@@ -471,12 +102,39 @@ class Mainloop(object):
     """Constructs a new Mainloop instance.
 
     """
-    self._signal_wait = []
-    self.scheduler = AsyncoreScheduler(time.time)
-    self.awaker = AsyncAwaker()
+    self._sel = selectors.DefaultSelector()
+    (self._awaker_in, self._awaker_out) = socket.socketpair(
+        socket.AF_UNIX, socket.SOCK_STREAM)
+    self._awaker_in.setblocking(False)
+    self._awaker_in.shutdown(socket.SHUT_WR)
+    self._awaker_out.shutdown(socket.SHUT_RD)
+    self._sel.register(self._awaker_in, selectors.EVENT_READ)
+    self._need_signal = True
+    self.sighup_callbacks = []
 
     # Resolve uid/gids used
     runtime.GetEnts()
+
+  def _wakeup(self):
+    """Wake up the main loop from a signal handler.
+
+    Any data sent is ignored; the write merely causes select() to return.
+
+    """
+    # There is a benign race condition here: at worst we send more than one
+    # wakeup token, which does not cause any harm.
+    if self._need_signal:
+      self._need_signal = False
+      self._awaker_out.send(b"\x00")
+
+  def close(self):
+    """Release selector and socket resources.
+
+    """
+    self._sel.unregister(self._awaker_in)
+    self._sel.close()
+    self._awaker_in.close()
+    self._awaker_out.close()
 
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
@@ -496,7 +154,8 @@ class Mainloop(object):
            len(signal_handlers) > 0, \
            "Broken SignalHandled decorator"
 
-    _sig_notify = lambda _, __: self.awaker.signal()
+    def _sig_notify(_, __):
+      self._wakeup()
 
     for handler in signal_handlers.values():
       handler.SetHandlerFn(_sig_notify)
@@ -529,43 +188,30 @@ class Mainloop(object):
         # Wait forever on I/O events
         timeout = None
 
-      if self.scheduler.empty():
-        asyncore.loop(count=1, timeout=timeout, use_poll=True)
-      else:
-        try:
-          self.scheduler.run(max_delay=timeout)
-        except SchedulerBreakout:
-          pass
+      events = self._sel.select(timeout=timeout)
+      for _key, _mask in events:
+        utils.IgnoreSignals(self._awaker_in.recv, 4096)
+        self._need_signal = True
 
       # Check whether a signal was raised
       for (sig, handler) in signal_handlers.items():
         if handler.called:
-          self._CallSignalWaiters(sig)
           if sig in (signal.SIGTERM, signal.SIGINT):
             logging.info("Received signal %s asking for shutdown", sig)
             shutdown_signals += 1
           handler.Clear()
 
-  def _CallSignalWaiters(self, signum):
-    """Calls all signal waiters for a certain signal.
+  def RegisterSighupCallback(self, fn):
+    """Registers a callback to be invoked on SIGHUP.
 
-    @type signum: int
-    @param signum: Signal number
+    The callback is called after log files are reopened. Exceptions in the
+    callback are logged but do not prevent other callbacks from running.
 
-    """
-    for owner in self._signal_wait:
-      owner.OnSignal(signum)
-
-  def RegisterSignal(self, owner):
-    """Registers a receiver for signal notifications
-
-    The receiver must support a "OnSignal(self, signum)" function.
-
-    @type owner: instance
-    @param owner: Receiver
+    @type fn: callable
+    @param fn: Callback function (no arguments)
 
     """
-    self._signal_wait.append(owner)
+    self.sighup_callbacks.append(fn)
 
 
 def _VerifyDaemonUser(daemon_name):
@@ -620,10 +266,11 @@ def _BeautifyError(err):
     return "%s" % str(err)
 
 
-def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable=W0613
+def _HandleSigHup(reopen_fn, reload_fn, signum, frame): # pylint: disable=W0613
   """Handler for SIGHUP.
 
   @param reopen_fn: List of callback functions for reopening log files
+  @param reload_fn: List of callback functions for reloading configuration
 
   """
   logging.info("Reopening log files after receiving SIGHUP")
@@ -631,6 +278,13 @@ def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable=W0613
   for fn in reopen_fn:
     if fn:
       fn()
+
+  for fn in reload_fn:
+    if fn:
+      try:
+        fn()
+      except Exception: # pylint: disable=W0703
+        logging.exception("Error in SIGHUP reload callback")
 
 
 def GenericMain(daemon_name, optionparser,
@@ -805,9 +459,11 @@ def GenericMain(daemon_name, optionparser,
                        syslog=options.syslog,
                        console_logging=console_logging)
 
-  # Reopen log file(s) on SIGHUP
+  # Reopen log file(s) on SIGHUP; reload callbacks are added after prepare_fn
   signal.signal(signal.SIGHUP,
-                compat.partial(_HandleSigHup, [log_reopen_fn, stdio_reopen_fn]))
+                compat.partial(_HandleSigHup,
+                               [log_reopen_fn, stdio_reopen_fn],
+                               []))
 
   try:
     utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
@@ -830,6 +486,18 @@ def GenericMain(daemon_name, optionparser,
       # we're done with the preparation phase, we close the pipe to
       # let the parent know it's safe to exit
       os.close(wpipe)
+
+    # Update SIGHUP handler with reload callbacks registered by prepare_fn.
+    # By convention, prepare_fn returns (mainloop, ...) when it uses a Mainloop.
+    sighup_reload_callbacks = (
+        prep_results[0].sighup_callbacks
+        if isinstance(prep_results, tuple) and prep_results and
+        isinstance(prep_results[0], Mainloop)
+        else [])
+    signal.signal(signal.SIGHUP,
+                  compat.partial(_HandleSigHup,
+                                 [log_reopen_fn, stdio_reopen_fn],
+                                 sighup_reload_callbacks))
 
     exec_fn(options, args, prep_results)
   finally:

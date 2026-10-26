@@ -31,7 +31,7 @@ ADD
 | {\--disk=*N*: {size=*VAL*[,spindles=*VAL*] \| adopt=*LV*}[,options...]
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
-| [\--no-ip-check] [\--no-name-check] [\--no-conflicts-check]
+| [\--ip-check] [\--name-check] [\--no-conflicts-check]
 | [\--no-start] [\--no-install] [{\--forthcoming \| \--commit}]
 | [\--net=*N* [:options...] \| \--no-nics]
 | [{-B|\--backend-parameters} *BEPARAMS*]
@@ -118,14 +118,15 @@ The minimum information needed to specify an ExtStorage disk are the
 ``size`` and the ``provider``. For example:
 ``--disk 0:size=20G,provider=pvdr1``.
 
-The ``--no-ip-check`` skips the checks that are done to see if the
-instance's IP is not already alive (i.e. reachable from the master
-node).
+The ``--ip-check`` option checks that the instance's IP is not already
+alive (i.e. reachable from the master node). If you pass this option you
+must also pass the ``--name-check`` option, because the name check is
+used to compute the IP address via the resolver (e.g. in DNS or
+/etc/hosts, depending on your setup).
 
-The ``--no-name-check`` skips the check for the instance name via
-the resolver (e.g. in DNS or /etc/hosts, depending on your setup).
-Since the name check is used to compute the IP address, if you pass
-this option you must also pass the ``--no-ip-check`` option.
+The ``--name-check`` checks for the instance name via the resolver (e.g.
+in DNS or /etc/hosts, depending on your setup). The name check can be
+used to compute the IP address (when set to ``auto``).
 
 If you don't want the instance to automatically start after
 creation, this is possible via the ``--no-start`` option. This will
@@ -150,12 +151,13 @@ ip
     connected to the said network. ``--no-conflicts-check`` can be used
     to override this check. The special value **pool** causes Ganeti to
     select an IP from the network the NIC is or will be connected to.
-    One can pick an externally reserved IP of a network along with
-    ``--no-conflict-check``. Note that this IP cannot be assigned to
-    any other instance until it gets released.
+    The special value **auto** must be combined with ``--name-check``
+    and will use the resolved IP. One can pick an externally reserved IP
+    of a network along with ``--no-conflict-check``. Note that this IP
+    cannot be assigned to any other instance until it gets released.
 
 mode
-    specifies the connection mode for this NIC: routed, bridged or
+    specifies the connection mode for this NIC: routed, bridged, ext or
     openvswitch.
 
 link
@@ -181,11 +183,13 @@ name
 vlan
    in bridged and openvswitch mode specifies the VLANs that the NIC
    will be connected to. To connect as an access port use ``n`` or 
-   ``.n`` with **n** being the VLAN ID. To connect as an trunk port
+   ``.n`` with **n** being the VLAN ID. To connect as a trunk port
    use ``:n[:n]``. A hybrid port can be created with ``.n:n[:n]``. For
    bridged mode, the bridge needs VLAN filtering enabled. Assuming a
    bridge named **gnt-br**, this is accomplished by running ``ip link
-   set dev gnt-br type bridge vlan_filtering 1``.
+   set dev gnt-br type bridge vlan_filtering 1``. Please make sure to
+   only use VLAN IDs accepted by your network equipment (e.g. do not
+   set the PVID) as this will break traffic flow otherwise.
 
 Of these "mode" and "link" are NIC parameters, and inherit their
 default at cluster level.  Alternatively, if no network is desired for
@@ -208,9 +212,8 @@ an instance with that name has already been added to the configuration
 as a forthcoming instance and the request is to replace this instance
 by the newly created real one.
 Note that if the reason for reserving an instance is that DNS names
-still need to be propagated, the reservation has to be done with
-``--no-name-check`` and ``--no-ip-check`` as these options are not
-implied by ``--forthcoming``.
+still need to be propagated, the reservation has to be done without
+``--name-check`` and ``--ip-check``.
 
 The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
@@ -317,7 +320,7 @@ nic\_type
     to the instance. The possible options are:
 
     - rtl8139 (default for Xen HVM) (HVM & KVM)
-    - ne2k\_isa (HVM & KVM)
+    - ne2k\_isa (HVM & KVM) (rejected on ``q35``)
     - ne2k\_pci (HVM & KVM)
     - i82551 (KVM)
     - i82557b (KVM)
@@ -346,15 +349,18 @@ scsi\_controller\_type
     - lsi [default]
     - megasas
     - virtio-scsi-pci
+    - dc390
 
 kvm\_pci\_reservations
-    Valid for the KVM hypervisor.
+    Valid for the KVM hypervisor on ``pc`` machines.
 
     The number of PCI slots that QEMU will manage implicitly. By default Ganeti
     will let QEMU use the first 12 slots (i.e. PCI slots 0-11) on its own and
     will start adding disks and NICs from the 13rd slot (i.e. PCI slot 12)
     onwards. So by default one can add 20 PCI devices (32 - 12). To support more
     than that, this hypervisor parameter should be set accordingly (e.g. to 8).
+
+    This parameter has no effect on ``q35`` machines.
 
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
@@ -365,7 +371,7 @@ disk\_type
     - ioemu [default] (HVM & KVM)
     - paravirtual (HVM & KVM)
     - ide (KVM)
-    - scsi (KVM)
+    - scsi-hd (KVM)
     - sd (KVM)
     - mtd (KVM)
     - pflash (KVM)
@@ -376,14 +382,23 @@ cdrom\_disk\_type
 
     This parameter determines the way the cdroms disks are presented
     to the instance. The default behavior is to get the same value of
-    the earlier parameter (disk_type). The possible options are:
+    the earlier parameter (disk_type), except on the ``q35`` machine
+    type where the default is forced to ``ide`` (paravirtual cdroms
+    are not supported there). The possible options are:
 
-    - paravirtual
+    - paravirtual (rejected on ``q35``)
     - ide
+    - scsi-cd
     - scsi
     - sd
     - mtd
     - pflash
+
+    On ``q35``, ``cdrom_disk_type=ide`` does **not** mean the legacy
+    ICH9 IDE controller (which q35 in QEMU does not implement). The
+    ``ide-cd`` device frontend attaches transparently to the chipset
+    ``ich9-ahci`` (SATA) controller's ATAPI bus, and SeaBIOS can boot
+    from it. cdrom1 lands on ``ide.0`` and cdrom2 on ``ide.1``.
 
 
 vnc\_bind\_address
@@ -513,26 +528,33 @@ spice\_use\_vdagent
 
     Enables or disables passing mouse events via SPICE vdagent.
 
-debug\_threads
-    Valid for the KVM hypervisor.
-
-    Enables or disables the debug_threads option for QEMU. Enabling this
-    will give the threads of a QEMU process more meaningful names (e.g.
-    for observation using the `top` tool). This setting does not imply
-    performance penalties.
-
 cpu\_type
     Valid for the KVM hypervisor.
 
     This parameter determines the emulated cpu for the instance. If this
     parameter is empty (which is the default configuration), it will not
-    be passed to KVM.
+    be passed to KVM which defaults to the emulated 'qemu64' type.
 
     Be aware of setting this parameter to ``"host"`` if you have nodes
-    with different CPUs from each other. Live migration may stop working
-    in this situation.
+    with mixed CPU models. Live migration may stop working or crash the
+    instance in this situation.
 
-    For more information please refer to the KVM manual.
+    If you leave this parameter unset or use one of the generic types (e.g.
+    ``"qemu32"``, ``"qemu64"``, ``"kvm32"`` or ``"kvm64"``) your instances
+    will not be able to benefit from advanced CPU instructions such as AES-NI
+    or RDRAND. Please be aware these generic CPU types also lack security
+    features such as mitigations to the Meltdown and Spectre family of processor
+    vulnerabilities.
+
+    You can query for supported CPU types by running the QEMU/KVM binary with
+    the following parameter:
+
+    .. code-block:: bash
+
+      qemu-system-x86_64 -cpu ?
+
+    More information can be found in the Qemu / KVM CPU model configuration
+    documentation. Please check there for the recommended settings.
 
 acpi
     Valid for the Xen HVM and KVM hypervisors.
@@ -643,32 +665,34 @@ serial\_speed
 disk\_cache
     Valid for the KVM hypervisor.
 
-    The disk cache mode. It can be either default to not pass any
-    cache option to KVM, or one of the KVM cache modes: none (for
-    direct I/O), writethrough (to use the host cache but report
-    completion to the guest only when the host has committed the
-    changes to disk) or writeback (to use the host cache and report
-    completion as soon as the data is in the host cache). Note that
-    there are special considerations for the cache mode depending on
-    version of KVM used and disk type (always raw file under Ganeti),
-    please refer to the KVM documentation for more details.
+    The disk cache mode. It controls QEMUs internal 'cache.writeback',
+    'cache.direct' and 'cache.no-flush' settings, based on the table
+    found in man **qemu-system-x86_64**\(1).
+    It supports three cache modes: *none* (for direct I/O), *writethrough*
+    (to use the host cache but report completion to the guest only
+    when the host has committed the changes to disk) or *writeback* (to
+    use the host cache and report completion as soon as the data is in
+    the host cache). The value 'default' has been kept in Ganeti for
+    backwards compatibility and corresponds to *writeback*.
+    Note that certain disk templates in Ganeti may override the cache
+    mode to allow for safe live migrations.
 
 disk\_aio
     Valid for the KVM hypervisor.
 
-    This is an optional parameter that specifies the aio mode
-    for the disks. KVM default is to use the 'threads' mode,
-    so if not explicitly specified, the native mode will not
-    be used. Possible values are: threads or native.
+    This parameter controls the way in which KVM interactions with
+    the kernel I/O subsystem. It defaults to *threads* for backwards
+    compatibility, but on recent installations *native* or *io\_uring*
+    would be the recommended way.
+    For *io\_uring* to work, QEMU 5.0 and Linux kernel 5.1 are the
+    minimum requirements.
 
 disk\_discard
     Valid for the KVM hypervisor.
 
-    discard is one of "ignore", "unmap" or "default" and controls whether
+    discard is one of *ignore* or *unmap* and controls whether
     discard (also known as trim or unmap) requests are ignored or passed
     to the filesystem. Some machine types may not support discard requests.
-    For compatibility with older qemu versions "default" will not pass any
-    discard option to KVM.
 
 security\_model
     Valid for the KVM hypervisor.
@@ -695,9 +719,9 @@ security\_domain
 kvm\_flag
     Valid for the KVM hypervisor.
 
-    If *enabled* the -enable-kvm flag is passed to kvm. If *disabled*
-    -disable-kvm is passed. If unset no flag is passed, and the
-    default running mode for your kvm binary will be used.
+    If *enabled* accel=kvm is appended to the -machine parameter
+    *Disabling* (or not setting this flag at all) currently does
+    nothing.
 
 mem\_path
     Valid for the KVM hypervisor.
@@ -841,9 +865,25 @@ cpu\_sockets
 soundhw
     Valid for Xen PVM, Xen HVM and KVM hypervisors.
 
-    Comma separated list of emulated sounds cards, or "all" to enable
-    all the available ones. See the **qemu**\(1) manpage for valid options and
-    additional details.
+    The soundcard to emulate inside your instance. Please consult
+    Qemu (``-audio model=help``) for a list of valid soundcard
+    models. ``hda`` or ``ac97`` are probably the most useful ones.
+
+    On KVM with a ``pc-q35-*`` ``machine_version``, only ``hda`` and
+    ``ac97`` are supported; any other value is rejected. Switch to a
+    ``pc-i440fx-*`` machine version if you need a different sound model.
+
+pvh\_mode
+    Valid for the Xen hypervisor. 
+
+    When this option is set to ``true``, the Xen instance will be run in 
+    PVH mode. When the option is set to ``false``, the Xen instance will 
+    run in PV mode. With PVH mode enabled, the Xen hypervisor will be 
+    capable of running domains with modern compressed kernels. 
+
+    When enabled, this option requires Xen version 4.10 or greater.
+
+    It is set to ``false`` by default.
 
 cpuid
     Valid for the XEN hypervisor.
@@ -878,9 +918,8 @@ kvm\_extra
     Valid for the KVM hypervisor.
 
     Any other option to the KVM hypervisor, useful tweaking anything
-    that Ganeti doesn't support. Note that values set with this
-    parameter are split on a space character and currently don't support
-    quoting.
+    that Ganeti doesn't support. Values with a space in the parameter must be
+    be double quoted.
 
 machine\_version
     Valid for the KVM hypervisor.
@@ -888,6 +927,47 @@ machine\_version
     Use in case an instance must be booted with an exact type of
     machine version (due to e.g. outdated drivers). In case it's not set
     the default version supported by your version of kvm is used.
+
+    Ganeti supports both the legacy ``pc`` (i440FX) and the modern
+    ``pc-q35-*`` (Q35 + ICH9, PCIe-based) machine types. ``pc-q35-*``
+    is the recommended choice for new instances: it enables predictable
+    ``eno<N>`` interface naming in systemd guests (see
+    ``acpi-index`` discussion in :doc:`/design-q35`) and it is the
+    upstream-recommended chipset for new x86 guests.
+
+    You should not set this to the unversioned ``pc`` or ``q35`` aliases
+    but rather to a specific version, e.g. ``pc-i440fx-9.2`` or
+    ``pc-q35-9.2``, if you plan to use live migration. You can obtain
+    the default machine version by running:
+
+    .. code-block:: bash
+
+      kvm -M ?
+
+    Look for the line containing (default). Setting it just to ``pc``
+    or ``q35`` will cause problems during rolling cluster upgrades,
+    because your instance will live-migrate into a different kvm
+    version which has a different understanding of what exactly "pc" or
+    "q35" is.
+
+    On q35, the following hvparams are rejected outright or emit a
+    cluster-verify warning:
+
+    - ``scsi_controller_type=lsi`` (warning) - prefer ``virtio-scsi-pci``.
+    - ``disk_type=ide`` (rejected) - prefer ``paravirtual`` or ``scsi``.
+    - ``cdrom_disk_type=paravirtual`` (rejected) - virtio-blk-pci
+      CD-ROMs are not bootable from SeaBIOS. Use ``ide`` (lands on the
+      chipset SATA controller) or ``scsi-cd``.
+    - ``floppy_image_path`` (rejected) - floppy drives are not
+      supported on q35.
+    - ``vga`` set to ``cirrus`` or empty (warning) - prefer ``std``,
+      ``qxl`` or ``virtio``.
+
+    Live migration between ``pc`` and ``q35`` instances is not supported
+    by QEMU and is not attempted by Ganeti. Migration between two
+    instances of the same chipset (``pc`` ↔ ``pc`` or ``q35`` ↔ ``q35``)
+    works via the same paths.
+
 
 migration\_caps
     Valid for the KVM hypervisor.
@@ -944,17 +1024,48 @@ virtio\_net\_queues
     parallelize packets sending or receiving. Tap devices will be
     created with MULTI_QUEUE (IFF_MULTI_QUEUE) support. This only
     works with KVM paravirtual nics (virtio-net) and the maximum
-    number of queues is limited to ``8``. Technically this is an
+    number of queues is limited to ``32``. Technically this is an
     extension of ``vnet_hdr`` which must be enabled for multiqueue
     support.
 
     If set to ``1`` queue, it effectively disables multiqueue support
     on the tap and virio-net devices.
 
-    For instances it is necessary to manually set number of queues (on
-    Linux using: ``ethtool -L ethX combined $queues``).
+    For instances check if it is necessary to manually set number of
+    queues (on Linux using: ``ethtool -L ethX combined $queues``). Modern
+    OSs automatically use multiple queues.
+
+    Make sure to set the number of queues not greater than the
+    instance's ``vcpus``. For convenience the special value ``auto`` will
+    follow the number of ``vcpus`` up to the limit of ``8`` queues per
+    instance NIC.
 
     It is set to ``1`` by default.
+
+virtio\_disk\_iothreads
+    Valid for the KVM hypervisor.
+
+    Set a number of IOThreads shared among *all* instance's disks. Qemu
+    by default emulates devices in vCPU threads or the main event loop. This
+    can become a scalability bottleneck. IOThreads allow device emulation
+    and I/O to run on other host CPUs. This only works with paravirtual
+    disks (virtio-blk, virtio-scsi) and *not* with ``aio=threads``.
+
+    Ganeti silently adjusts the number of IOThreads if requirements are
+    not satisfied. It disables IOThreads for unsupported ``disk_type`` /
+    ``scsi_controller_type`` and unsupported ``aio``. It also checks Qemu
+    version for supporting mapping between IOThreads and virtqueues. If
+    virtqueue-mapping is supported, values greater than ``1`` are possible
+    (Qemu-9.0 for virtio-blk and 10.0 for virtio-scsi). In this case
+    IOThreads are assigned round robin to every instance's disk-queues.
+    Ganeti sets the number of disk queues equal to the number of vCPUs, hence
+    IOThreads can not be larger than number of disk queues/vCPUs.
+
+    The default is set to ``1`` IOThread and should be enough for most
+    workloads. An appropriate number of vCPUs is necessary to exploit
+    multiple IOThreads. Adding IOThreads beyond saturation does not increase
+    performance and may harm it. The maximum number of IOThreads is limited
+    to ``8``.
 
 startup\_timeout
     Valid for the LXC hypervisor.
@@ -1306,7 +1417,7 @@ even in the presence of errors during the removal of the instance
 given, the command will stop at the first error.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (e.g. ``xl destroy`` in
+seconds) to wait before forcing the shutdown (e.g. ``xl destroy`` in
 Xen, killing the kvm process for KVM, etc.). By default two minutes
 are given to each instance to stop.
 
@@ -1432,8 +1543,7 @@ MODIFY
 | [\--offline \| \--online]
 | [\--submit] [\--print-jobid]
 | [\--ignore-ipolicy]
-| [\--hotplug]
-| [\--hotplug-if-possible]
+| [\--no-hotplug]
 | {*instance-name*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
@@ -1535,20 +1645,14 @@ immediately.
 If ``--ignore-ipolicy`` is given any instance policy violations occurring
 during this operation are ignored.
 
-If ``--hotplug`` is given any disk and NIC modifications will take
-effect without the need of actual reboot. Please note that this feature
-is currently supported only for KVM hypervisor and there are some
-restrictions: a) NIC/Disk hot-remove should work for QEMU versions >= 1.0
-b) instances with chroot or pool/user security model support disk
-hot-add only for QEMU version > 1.7 where add-fd QMP command exists c)
-if hotplug fails (for any reason) a warning is printed but execution is
-continued d) for existing NIC modification interactive verification is
-needed unless ``--force`` option is passed.
+If ``--no-hotplug`` is given any disk and NIC modifications will not be
+hot-plugged. The change will take place after the reboot.
 
-If ``--hotplug-if-possible`` is given then ganeti won't abort in case
-hotplug is not supported. It will continue execution and modification
-will take place after reboot. This covers use cases where instances are
-not running or hypervisor is not KVM.
+Without the ``--no-hotplug`` parameter, Ganeti attempts to perform the operation
+hot if possible. Hotplug is currently supported only for disk and NIC
+modifications in the KVM hypervisor. If hotplug fails (for any reason) a warning
+is printed but execution is continued. For existing NIC modification interactive
+verification is needed unless ``--force`` option is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -1590,29 +1694,21 @@ options.
 
 RENAME
 ^^^^^^
-| **rename** [\--no-ip-check] [\--no-name-check] [\--force]
+| **rename** [\--ip-check] [\--name-check]
 | [\--submit] [\--print-jobid]
 | {*instance*} {*new_name*}
 
 Renames the given instance. The instance must be stopped when running
-this command. The requirements for the new name are the same as for
-adding an instance: the new name must be resolvable and the IP it
-resolves to must not be reachable (in order to prevent duplicate IPs
-the next time the instance is started). The IP test can be skipped if
-the ``--no-ip-check`` option is passed.
+this command. The ``--name-check`` checks for the new instance name via
+the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
+that the resolved name matches the new name. In addition the
+``--ip-check`` can be used to prevent duplicate IPs, by checking that
+the new name's IP is not already alive (i.e. reachable from the master
+node).
 
 Note that you can rename an instance to its same name, to force
 re-executing the os-specific rename script for that instance, if
 needed.
-
-The ``--no-name-check`` skips the check for the new instance name via
-the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
-that the resolved name matches the provided name. Since the name check
-is used to compute the IP address, if you pass this option you must also
-pass the ``--no-ip-check`` option.
-
-The ``--force`` option is used to skip the interactive confirmation
-when ``--no-name-check`` is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -1736,7 +1832,7 @@ during a hardcoded interval (currently 2 minutes), it will forcibly
 stop the instance (equivalent to switching off the power on a physical
 machine).
 
-The ``--timeout`` is used to specify how much time (in minutes) to
+The ``--timeout`` is used to specify how much time (in seconds) to
 wait before forcing the shutdown (e.g. ``xl destroy`` in Xen, killing
 the kvm process for KVM, etc.). By default two minutes are given to
 each instance to stop.
@@ -1801,7 +1897,7 @@ The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 and they influence the actual instances being rebooted.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (xl destroy in xen,
+seconds) to wait before forcing the shutdown (xl destroy in xen,
 killing the kvm process, for kvm). By default two minutes are given
 to each instance to stop.
 
@@ -2102,7 +2198,7 @@ disconnected DRBD drives). This flag requires the source node to be
 marked offline first to succeed.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (xl destroy in xen,
+seconds) to wait before forcing the shutdown (xl destroy in xen,
 killing the kvm process, for kvm). By default two minutes are given
 to each instance to stop.
 
@@ -2245,7 +2341,7 @@ is used during the move. Valid values are 'none' (the default) and any
 values specified in the 'compression_tools' cluster parameter.
 
 The ``--shutdown-timeout`` is used to specify how much time (in
-minutes) to wait before forcing the shutdown (e.g. ``xl destroy`` in
+seconds) to wait before forcing the shutdown (e.g. ``xl destroy`` in
 XEN, killing the kvm process for KVM, etc.). By default two minutes
 are given to each instance to stop.
 

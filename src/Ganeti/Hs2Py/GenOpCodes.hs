@@ -72,6 +72,11 @@ showPyClass (OpCodeDescriptor name typ doc fields dsc) =
     opDscField
       | null dsc = ""
       | otherwise = "  OP_DSC_FIELD = " ++ show dsc ++ "\n"
+    opDscFormatter
+      | name == "OpTestDelay" =
+          "  def OP_DSC_FORMATTER(self, value):\n" ++
+          "    return FormatDuration(value)\n"
+      | otherwise = ""
     withLU
       | name == "OpTestDummy" = "\n  WITH_LU = False"
       | otherwise = ""
@@ -82,6 +87,7 @@ showPyClass (OpCodeDescriptor name typ doc fields dsc) =
    "  OP_PARAMS = [" ++
    intercalateIndent (map pyClassField fields) ++
    "\n    ]" ++ "\n" ++
+   opDscFormatter ++
    "  OP_RESULT = " ++ showValue typ ++
    withLU ++ "\n\n"
 

@@ -94,6 +94,7 @@ import Test.Ganeti.THH
 import Test.Ganeti.THH.Types
 import Test.Ganeti.Types
 import Test.Ganeti.Utils
+import Test.Ganeti.Utils.Time
 import Test.Ganeti.Utils.MultiMap
 import Test.Ganeti.Utils.Statistics
 import Test.Ganeti.WConfd.Ssconf
@@ -168,6 +169,7 @@ allTests =
   , testTHH_Types
   , testTypes
   , testUtils
+  , testUtils_Time
   , testUtils_MultiMap
   , testUtils_Statistics
   , testWConfd_Ssconf

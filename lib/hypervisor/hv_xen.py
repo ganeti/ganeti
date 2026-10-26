@@ -724,6 +724,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
       nic_args = {}
       nic_args["mac"] = "%s%s" % (nic.mac, nic_type_str)
 
+      if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_EXT:
+        raise errors.HypervisorError("Network mode %s not supported for XEN"
+                                      " hypervisor" % (constants.NIC_MODE_EXT))
+
       if nic.name and \
             nic.name.startswith(constants.INSTANCE_COMMUNICATION_NIC_PREFIX):
         tap = hv_base.GenerateTapName()
@@ -1430,6 +1434,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_VIF_SCRIPT: hv_base.OPT_FILE_CHECK,
     constants.HV_XEN_CPUID: hv_base.NO_CHECK,
     constants.HV_SOUNDHW: hv_base.NO_CHECK,
+    constants.HV_PVH_MODE: hv_base.NO_CHECK,
     }
 
   def _GetConfig(self, instance, startup_memory, block_devices):
@@ -1479,6 +1484,10 @@ class XenPvmHypervisor(XenHypervisor):
       config.write("cpu_weight=%d\n" % cpu_weight)
 
     config.write("name = '%s'\n" % instance.name)
+
+    pvh_mode = hvp[constants.HV_PVH_MODE]
+    if pvh_mode:
+      config.write("type = 'pvh'\n")
 
     self._WriteNicConfig(config, instance, hvp)
 

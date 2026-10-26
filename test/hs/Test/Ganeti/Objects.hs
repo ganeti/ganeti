@@ -59,7 +59,6 @@ import Data.Char
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
-import qualified Data.Set as Set
 import Data.Word (Word32)
 import GHC.Exts (IsString(..))
 import System.Time (ClockTime(..))
@@ -93,7 +92,13 @@ instance Arbitrary (Container DataCollectorConfig) where
 instance Arbitrary BS.ByteString where
   arbitrary = genPrintableByteString
 
+instance Arbitrary a => Arbitrary (Private a) where
+  arbitrary = Private <$> arbitrary
+
 $(genArbitrary ''PartialNDParams)
+
+instance Arbitrary (Container J.JSValue) where
+  arbitrary = return $ GenericContainer Map.empty
 
 instance Arbitrary Node where
   arbitrary = Node <$> genFQDN <*> genFQDN <*> genFQDN
@@ -297,10 +302,6 @@ genDisk = genDiskWithChildren 3
 -- validation rules.
 $(genArbitrary ''PartialISpecParams)
 
--- | FIXME: This generates completely random data, without normal
--- validation rules.
-$(genArbitrary ''PartialIPolicy)
-
 $(genArbitrary ''FilledISpecParams)
 $(genArbitrary ''MinMaxISpecs)
 $(genArbitrary ''FilledIPolicy)
@@ -308,6 +309,10 @@ $(genArbitrary ''IpFamily)
 $(genArbitrary ''FilledNDParams)
 $(genArbitrary ''FilledNicParams)
 $(genArbitrary ''FilledBeParams)
+
+-- | FIXME: This generates completely random data, without normal
+-- validation rules.
+$(genArbitrary ''PartialIPolicy)
 
 -- | No real arbitrary instance for 'ClusterHvParams' yet.
 instance Arbitrary ClusterHvParams where
@@ -331,17 +336,11 @@ instance Arbitrary OsParams where
 instance Arbitrary Objects.ClusterOsParamsPrivate where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
-instance Arbitrary a => Arbitrary (Private a) where
-  arbitrary = Private <$> arbitrary
-
 instance Arbitrary ClusterOsParams where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
 
 instance Arbitrary ClusterBeParams where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
-
-instance Arbitrary IAllocatorParams where
-  arbitrary = return $ GenericContainer Map.empty
 
 $(genArbitrary ''Cluster)
 

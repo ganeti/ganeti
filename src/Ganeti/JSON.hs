@@ -85,8 +85,9 @@ module Ganeti.JSON
 
 import Control.Applicative
 import Control.DeepSeq
-import Control.Monad.Error.Class
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Fail (MonadFail)
+import Control.Monad (liftM, (<=<))
 import Control.Monad.Writer
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
@@ -109,7 +110,7 @@ import Text.JSON.Pretty (pp_value)
 -- itself to build many other modules.
 
 import Ganeti.BasicTypes
-import Ganeti.Compat
+import Ganeti.Compat ()
 
 -- Remove after we require >= 1.8.58
 -- See: https://github.com/ndmitchell/hlint/issues/24

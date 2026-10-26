@@ -681,7 +681,7 @@ class _QaConfig(object):
       of the public key, file path of the 'authorized_keys' file
 
     """
-    key_type = "dsa"
+    key_type = "rsa"
     if self.get("ssh_key_type") is not None:
       key_type = self.get("ssh_key_type")
 

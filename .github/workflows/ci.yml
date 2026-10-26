@@ -10,17 +10,19 @@ on:
   schedule:
     - cron: '42 3 * * *'
 
+permissions: read-all
+
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build on ${{ matrix.os }}-${{ matrix.regex }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [bullseye, focal, jammy, debian-testing]
+        os: [bookworm, trixie, testing, jammy, noble, resolute, leap16.0]
     container:
       image: ganeti/ci:${{ matrix.os }}-py3
-      options: "--init"
+      options: "--init --cap-add=SYS_NICE"
     steps:
       - uses: actions/checkout@v1
 
@@ -28,18 +30,25 @@ jobs:
         run: ./autogen.sh
 
       - name: configure
-        run: ./configure --enable-haskell-tests
+        run: ./configure --enable-haskell-tests --with-haskell-pcre=tdfa
+
+      - name: pimp cabal parallelism
+        run: sed -e "s/\t\$(CABAL_SETUP) build/\t\$(CABAL_SETUP) build -j$(nproc)/" -i Makefile.am
 
       - name: Build
-        run: make -j 2
+        run: make -j $(nproc)
 
       - name: Check Local
-        run: mv .github/ /tmp/
-             && LC_ALL=C make check-local
-             && mv /tmp/.github/ .
+        run: LC_ALL=C make check-local
 
-      - name: Python tests
-        run: make py-tests
+      - name: Python unit tests
+        run: make py-tests-unit
+
+      - name: Python integration tests
+        run: make py-tests-integration
+
+      - name: Python legacy tests
+        run: make py-tests-legacy
 
       - name: Haskell tests
         run: make -j 2 hs-tests

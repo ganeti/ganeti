@@ -109,6 +109,7 @@ module Ganeti.Objects
 import Control.Arrow (first)
 import Control.Monad.State
 import Control.Monad.Fail (MonadFail)
+import Control.Monad (liftM)
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (foldl', intercalate)
 import Data.Maybe

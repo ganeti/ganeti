@@ -37,7 +37,7 @@ module Ganeti.HTools.Backend.Luxi
   , parseData
   ) where
 
-import qualified Control.Exception as E
+import Control.Exception (bracket)
 import Control.Monad (liftM)
 import Control.Monad.Fail (MonadFail)
 import Text.JSON.Types
@@ -297,7 +297,7 @@ parseGroup v = fail ("Invalid group query result: " ++ show v)
 readData :: String -- ^ Unix socket to use as source
          -> IO (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
 readData master =
-  E.bracket
+  bracket
        (L.getLuxiClient master)
        L.closeClient
        (\s -> do

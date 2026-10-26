@@ -81,12 +81,14 @@ module Ganeti.HTools.Types
   , ISpec(..)
   , defMinISpec
   , defStdISpec
+  , nullISpec
   , maxDisks
   , maxNics
   , defMaxISpec
   , MinMaxISpecs(..)
   , IPolicy(..)
   , defIPolicy
+  , nullIPolicy
   , rspecFromISpec
   , AutoRepairType(..)
   , autoRepairTypeToRaw
@@ -276,6 +278,45 @@ defIPolicy =
           , iPolicyVcpuRatio = ConstantUtils.ipolicyDefaultsVcpuRatio
           , iPolicySpindleRatio = ConstantUtils.ipolicyDefaultsSpindleRatio
           }
+
+-- | A completely empty iSpec where all minimum bounds are zero.
+nullISpec :: ISpec
+nullISpec = ISpec
+  { iSpecMemorySize = 0
+  , iSpecCpuCount   = 0
+  , iSpecDiskSize   = 0
+  , iSpecDiskCount  = 0
+  , iSpecNicCount   = 0
+  , iSpecSpindleUse = 0
+  }
+
+-- | A completely liberal iPolicy that accepts any instance size.
+-- Useful for simulations like global N+1 checks where policy constraints
+-- should be ignored in favor of pure resource availability.
+nullIPolicy :: IPolicy
+nullIPolicy = IPolicy
+  { iPolicyMinMaxISpecs = [MinMaxISpecs
+    { minMaxISpecsMinSpec = nullISpec
+    , minMaxISpecsMaxSpec = ISpec
+      { iSpecMemorySize = maxBound
+      , iSpecCpuCount   = maxBound
+      , iSpecDiskSize   = maxBound
+      , iSpecDiskCount  = maxBound
+      , iSpecNicCount   = maxBound
+      , iSpecSpindleUse = maxBound
+      }
+    }]
+  , iPolicyStdSpec = ISpec { iSpecMemorySize = unitMem
+                           , iSpecCpuCount   = unitCpu
+                           , iSpecDiskSize = unitDsk
+                           , iSpecDiskCount = 1
+                           , iSpecNicCount = 1
+                           , iSpecSpindleUse = 1
+                           }
+  , iPolicyDiskTemplates = [minBound..maxBound]
+  , iPolicyVcpuRatio = 9999.0
+  , iPolicySpindleRatio = 9999.0
+  }
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).

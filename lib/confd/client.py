@@ -31,8 +31,8 @@
 """Ganeti confd client
 
 Clients can use the confd client library to send requests to a group of master
-candidates running confd. The expected usage is through the asyncore framework,
-by sending queries, and asynchronously receiving replies through a callback.
+candidates running confd, sending queries and receiving replies through a
+callback.
 
 This way the client library doesn't ever need to "wait" on a particular answer,
 and can proceed even if some udp packets are lost. It's up to the user to
@@ -43,10 +43,7 @@ Example usage::
   client = ConfdClient(...) # includes callback specification
   req = confd_client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
   client.SendRequest(req)
-  # then make sure your client calls asyncore.loop() or daemon.Mainloop.Run()
-  # ... wait ...
-  # And your callback will be called by asyncore, when your query gets a
-  # response, or when it expires.
+  timed_out, _, _ = client.WaitForReply(req.rsalt)
 
 You can use the provided ConfdFilterCallback to act as a filter, only passing
 "newer" answer to your callback, and filtering out outdated ones, or ones
@@ -59,6 +56,8 @@ confirming what you already got.
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitly initialise its members
 
+import select
+import socket
 import time
 import random
 
@@ -66,7 +65,6 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import objects
 from ganeti import serializer
-from ganeti import daemon # contains AsyncUDPSocket
 from ganeti import errors
 from ganeti import confd
 from ganeti import ssconf
@@ -75,26 +73,105 @@ from ganeti import netutils
 from ganeti import pathutils
 
 
-class ConfdAsyncUDPClient(daemon.AsyncUDPSocket):
-  """Confd udp asyncore client
+class UDPClient(object):
+  """UDP socket client for confd queries.
 
-  This is kept separate from the main ConfdClient to make sure it's easy to
-  implement a non-asyncore based client library.
+  Provides send queueing and poll-based receive on a plain UDP socket,
+  replacing the former asyncore-based implementation.
 
   """
   def __init__(self, client, family):
-    """Constructor for ConfdAsyncUDPClient
+    """Constructor for UDPClient
 
     @type client: L{ConfdClient}
     @param client: client library, to pass the datagrams to
+    @type family: int
+    @param family: socket address family (AF_INET or AF_INET6)
 
     """
-    daemon.AsyncUDPSocket.__init__(self, family)
-    self.client = client
+    self._client = client
+    self._family = family
+    self._out_queue = []
+    self.socket = socket.socket(family, socket.SOCK_DGRAM)
 
-  # this method is overriding a daemon.AsyncUDPSocket method
-  def handle_datagram(self, payload, ip, port):
-    self.client.HandleResponse(payload, ip, port)
+  def enqueue_send(self, ip, port, payload):
+    """Enqueue a datagram to be sent when possible.
+
+    @type ip: str
+    @param ip: target IP address
+    @type port: int
+    @param port: target port
+    @type payload: str or bytes
+    @param payload: data to send
+
+    """
+    if isinstance(payload, str):
+      payload = payload.encode("utf-8")
+    if len(payload) > constants.MAX_UDP_DATA_SIZE:
+      raise errors.UdpDataSizeError(
+        "Packet too big: %s > %s" % (len(payload), constants.MAX_UDP_DATA_SIZE))
+    self._out_queue.append((ip, port, payload))
+
+  def flush_send_queue(self):
+    """Send all queued datagrams immediately.
+
+    """
+    while self._out_queue:
+      ip, port, payload = self._out_queue.pop(0)
+      utils.IgnoreSignals(self.socket.sendto, payload, 0, (ip, port))
+
+  def writable(self):
+    """Whether there are queued datagrams waiting to be sent.
+
+    @rtype: bool
+
+    """
+    return bool(self._out_queue)
+
+  def handle_write(self):
+    """Send the next queued datagram.
+
+    """
+    if not self._out_queue:
+      return
+    ip, port, payload = self._out_queue.pop(0)
+    utils.IgnoreSignals(self.socket.sendto, payload, 0, (ip, port))
+
+  def process_next_packet(self, timeout=0):
+    """Wait for and process the next incoming datagram.
+
+    @type timeout: float
+    @param timeout: how long to wait for data (seconds)
+    @rtype: bool
+    @return: True if a datagram was received, False otherwise
+
+    """
+    result = utils.WaitForFdCondition(self.socket, select.POLLIN, timeout)
+    if result is not None and result & select.POLLIN:
+      self._handle_read()
+      return True
+    else:
+      return False
+
+  def _handle_read(self):
+    """Read one datagram and dispatch it to the client.
+
+    """
+    recv_result = utils.IgnoreSignals(self.socket.recvfrom,
+                                      constants.MAX_UDP_DATA_SIZE)
+    if recv_result is not None:
+      payload, address = recv_result
+      if self._family == socket.AF_INET6:
+        ip, port, _, _ = address
+      else:
+        ip, port = address
+      self._client.HandleResponse(payload, ip, port)
+
+  def close(self):
+    """Close the underlying socket.
+
+    """
+    self.socket.close()
 
 
 class _Request(object):
@@ -149,7 +226,7 @@ class ConfdClient(object):
     self.UpdatePeerList(peers)
     self._SetPeersAddressFamily()
     self._hmac_key = hmac_key
-    self._socket = ConfdAsyncUDPClient(self, self._family)
+    self._socket = UDPClient(self, self._family)
     self._callback = callback
     self._confd_port = port
     self._logger = logger
@@ -207,7 +284,7 @@ class ConfdClient(object):
                                           )
         self._callback(client_reply)
 
-  def SendRequest(self, request, args=None, coverage=0, async_=True):
+  def SendRequest(self, request, args=None, coverage=0):
     """Send a confd request to some MCs
 
     @type request: L{objects.ConfdRequest}
@@ -220,8 +297,6 @@ class ConfdClient(object):
         (L{ganeti.constants.CONFD_DEFAULT_REQ_COVERAGE}), if -1 is
         passed, it will use the maximum number of peers, otherwise the
         number passed in will be used
-    @type async_: boolean
-    @param async_: handle the write asynchronously
 
     """
     if coverage == 0:
@@ -259,8 +334,7 @@ class ConfdClient(object):
     self._requests[request.rsalt] = _Request(request, args, expire_time,
                                              targets)
 
-    if not async_:
-      self.FlushSendQueue()
+    self.FlushSendQueue()
 
   def HandleResponse(self, payload, ip, port):
     """Asynchronous handler for a confd reply
@@ -305,8 +379,7 @@ class ConfdClient(object):
     Can be used for synchronous client use.
 
     """
-    while self._socket.writable():
-      self._socket.handle_write()
+    self._socket.flush_send_queue()
 
   def ReceiveReply(self, timeout=1):
     """Receive one reply.

@@ -46,6 +46,7 @@ import Test.QuickCheck as QuickCheck
 import Control.Monad
 import Data.Char
 import Data.List
+import Data.Ratio ((%))
 import qualified Data.Map as Map
 import qualified Text.JSON as J
 import Text.Printf (printf)
@@ -137,12 +138,30 @@ arbitraryDataCollectorInterval = do
   intervals <- vector $ length els
   genMaybe . return . containerFromList $ zip els intervals
 
+{- |
+Choose numbers across orders of magnitudes
+in order to detect inconsistencies
+in the choice between fix point and scientific formatting.
+Also choose equally between finite and periodic decimal fractions.
+-}
+arbitraryDuration :: Gen Double
+arbitraryDuration =
+  oneof $
+    (do mantissa <- choose (0, 1000)
+        expon <- choose (0,12::Int)
+        return $ fromRational $ mantissa % 10^expon) :
+    (do numerator <- choose (0, 1000)
+        denominator <- choose (1, 1000)
+        expon <- choose (-40,4::Int)
+        return $ fromRational (numerator % denominator) * 2^^expon) :
+    []
+
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
     op_id <- elements OpCodes.allOpIDs
     case op_id of
       "OP_TEST_DELAY" ->
-        OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
+        OpCodes.OpTestDelay <$> arbitraryDuration <*> arbitrary <*>
           genNodeNamesNE <*> return Nothing <*> arbitrary <*> arbitrary <*>
           arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
@@ -188,9 +207,9 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
           arbitrary <*> arbitrary
       "OP_CLUSTER_VERIFY_DISKS" ->
-        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE
+        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE <*> arbitrary
       "OP_GROUP_VERIFY_DISKS" ->
-        OpCodes.OpGroupVerifyDisks <$> genNameNE
+        OpCodes.OpGroupVerifyDisks <$> genNameNE <*> arbitrary
       "OP_CLUSTER_REPAIR_DISK_SIZES" ->
         OpCodes.OpClusterRepairDiskSizes <$> genNodeNamesNE
       "OP_CLUSTER_CONFIG_QUERY" ->
@@ -426,7 +445,6 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- offline
           <*> arbitrary                       -- conflicts_check
           <*> arbitrary                       -- hotplug
-          <*> arbitrary                       -- hotplug_if_possible
           <*> arbitrary                       -- instance_communication
       "OP_INSTANCE_GROW_DISK" ->
         OpCodes.OpInstanceGrowDisk <$> genFQDN <*> return Nothing <*>

@@ -852,12 +852,16 @@ B).
 Network Management
 ------------------
 
+See :doc:`network` for the full reference on NIC modes, the ``up``/``down``
+dispatcher scripts, user overrides under ``@SYSCONFDIR@/ganeti/network/``,
+and the environment passed to network scripts.
+
 Ganeti used to describe NICs of an Instance with an IP, a MAC, a connectivity
 link and mode. This had three major shortcomings:
 
   * there was no easy way to assign a unique IP to an instance
   * network info (subnet, gateway, domain, etc.) was not available on target
-    node (kvm-ifup, hooks, etc)
+    node (network scripts, hooks, etc; see :doc:`network`)
   * one should explicitly pass L2 info (mode, and link) to every NIC
 
 Plus there was no easy way to get the current networking overview (which
@@ -883,8 +887,8 @@ pass `ip=pool,network=test` and will:
 2. Inherit the connectivity mode and link of the network's netparams
 3. NIC will obtain the MAC prefix of the network
 4. All network related info will be available as environment variables in
-   kvm-ifup scripts and hooks, so that they can dynamically manage all
-   networking-related setup on the host.
+   custom network scripts (see :doc:`network`) and hooks, so that they can
+   dynamically manage all networking-related setup on the host.
 
 Hands on with gnt-network
 +++++++++++++++++++++++++
@@ -948,67 +952,8 @@ external services are needed:
 4. A dynamic DNS server
 
 These components must be configured dynamically and on a per NIC basis.
-The way to do this is by using custom kvm-ifup scripts and hooks.
-
-snf-network
-~~~~~~~~~~~
-
-The snf-network package [1,3] includes custom scripts that will provide the
-aforementioned functionality. `kvm-vif-bridge` and `vif-custom` is an
-alternative to `kvm-ifup` and `vif-ganeti` that take into account all network
-info being exported. Their actions depend on network tags. Specifically:
-
-`dns`: will update an external DDNS server (nsupdate on a bind server)
-
-`ip-less-routed`: will setup routes, rules and proxy ARP
-This setup assumes a pre-existing routing table along with some local
-configuration and provides connectivity to instances via an external
-gateway/router without requiring nodes to have an IP inside this network.
-
-`private-filtered`: will setup ebtables rules to ensure L2 isolation on a
-common bridge. Only packets with the same MAC prefix will be forwarded to the
-corresponding virtual interface.
-
-`nfdhcpd`: will update an external DHCP server
-
-nfdhcpd
-~~~~~~~
-
-snf-network works with nfdhcpd [2,3]: a custom user space DHCP
-server based on NFQUEUE. Currently, nfdhcpd replies on BOOTP/DHCP requests
-originating from a tap or a bridge. Additionally in case of a routed setup it
-provides a ra-stateless configuration by responding to router and neighbour
-solicitations along with DHCPv6 requests for DNS options.  Its db is
-dynamically updated using text files inside a local dir with inotify
-(snf-network just adds a per NIC binding file with all relevant info if the
-corresponding network tag is found). Still we need to mangle all these
-packets and send them to the corresponding NFQUEUE.
-
-Known shortcomings
-++++++++++++++++++
-
-Currently the following things are some know weak points of the gnt-network
-design and implementation:
-
- * Cannot define a network without an IP pool
- * The pool defines the size of the network
- * Reserved IPs must be defined explicitly (inconvenient for a big range)
- * Cannot define an IPv6 only network
-
-Future work
-+++++++++++
-
-Any upcoming patches should target:
-
- * Separate L2, L3, IPv6, IP pool info
- * Support a set of IP pools per network
- * Make IP/network in NIC object take a list of entries
- * Introduce external scripts for node configuration
-   (dynamically create/destroy bridges/routes upon network connect/disconnect)
-
-[1] https://code.grnet.gr/git/snf-network
-[2] https://code.grnet.gr/git/snf-nfdhcpd
-[3] deb http:/apt.dev.grnet.gr/ wheezy/
+The way to do this is by using custom network scripts (see :doc:`network`)
+and hooks.
 
 Node operations
 ---------------
@@ -1542,6 +1487,280 @@ Ganeti uses both SSL and SSH keys, and actively modifies the SSH keys on
 the nodes.  As result, in order to replace these keys, a few extra steps
 need to be followed: :doc:`cluster-keys-replacement`
 
+Hypervisor Configuration
+------------------------
+
+Ganeti comes with a comprehensive list of hypervisor parameters (called
+``hvparams`` internally) which can be set at cluster or instance level.
+
+For now, this section will only cover KVM and only the most important ones.
+Please refer to the :manpage:`ganeti-instance(8)` man page for a complete
+documentation.
+
+KVM Hypervisor
+++++++++++++++
+
+On cluster level, parameters can be changed using the ``gnt-cluster`` command:
+
+  $ gnt-cluster modify -H kvm:param1=value,param2=value
+
+On instance level, please use ``gnt-instance``:abbr:
+
+  $ gnt-instance modify -H param1=value,param2=value
+
+Choosing the right CPU type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default KVM will emulate the ``qemu64`` CPU type. This CPU lacks many 
+features/flags of modern CPUs and recent Linux versions or Windows guests
+might even refuse/fail to boot.
+
+However, this will ensure maximum compatibilty for live migration between
+nodes with different CPU types. In general you should aim to have a homogenous
+cluster with matching CPU types. If that is the case, you can simply pass
+through the node's CPU type/model and provide your instances with all
+features of your hardware.
+
+  $ gnt-cluster modify -H kvm:cpu_type=host
+
+If you have CPUs of different generations in your cluster, you need to find
+the oldest one and configure this as the common denominator.
+
+You can query your qemu version which CPU types it knows:
+
+  $ qemu-system-x86_64 -cpu help
+
+You can then use ``gnt-cluster command`` to test the CPU types against all
+your nodes and choose one that works on all of them (replace ``$CPU_TYPE``
+with e.g. ``EPYC-v3`` or ``Cooperlake``).
+
+  $ gnt-cluster command 'qemu-system-x86_64 -cpu $CPU_TYPE,+pcid,+ssbd,+md-clear,enforce -machine accel=kvm -nographic -nodefaults -boot c,reboot-timeout=1 -no-reboot' 
+
+You can then proceed and set ``cpu_type`` accordingly:
+
+  $ gnt-cluster modify -H kvm:cpu_type=Cooperlake
+
+Serial vs VNC vs Spice console
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ganeti offers multiple options to access your instance. If your Instance
+supports it, you can enable the serial console with the ``serial_console``
+parameter. You can access your console from the master node using
+
+  $ gnt-instance console %INSTANCE%
+
+When you use direct kernel boot (e.g. ``kernel_path`` points to a kernel on
+your node) Ganeti will automatically append serial options to the ``kernel_args``
+parameter. If you use a fully virtualized KVM boot, make sure to configure
+serial parameters inside your instance (e.g. through GRUB).
+
+If you would like to use a graphical console, you can either enable VNC
+or Spice. While the latter has improved performance, the first has a wider
+range of clients available.
+
+To enable Spice, you need to configure ``spice_bind`` and set it either to
+a valid listening IPv4/IPv6 address (including 0.0.0.0 or 127.0.0.1) or the
+name of a network interface. Please check out all other ``spice_*`` parameters
+in the :manpage:`gnt-instance(8)` man pageto configure TLS, set compression
+etc.
+
+To enable VNC, you need to configure ``vnc_bind_address``. This parameter only
+allows IPv4 addresses to be specified. Please check out all other ``vnc_*``
+parameters in the :manpage:`gnt-instance(8)` man page.
+
+Please keep in mind that you can always configure the serial console but VNC
+and Spice only work exclusively. Configuring both will result in an error from
+``gnt-instance`` or ``gnt-cluster``.
+
+Disk I/O
+~~~~~~~~
+
+Ganeti supports both disk I/O modes ``threads`` and ``native`` and they can be
+controlled through the ``disk_aio`` parameter. In most cases ``native`` seems
+to perforem better, however ``threads`` is still Ganeti's default.
+
+If you care about reliable storage, we recommend setting ``disk_cache`` to
+``none``, but depending on your usecase you should also look into the other
+possible values listed and explained in :manpage:`gnt-instance(8)`.
+
+Live Migration Settings
+~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are using a storage backend that permits live migration (e.g. ``drbd``,
+``rbd`` or ``sharedfile``) you may want to look at the relevant parameters.
+``migration_bandwidth`` sets the amount of bandwidth QEMU is allowed to use
+for memory transfers (in megabyte/second) and ``migration_downtime`` sets
+the amount of time an instance is allowed to be frozen to transfer the remainding
+memory (in milliseconds). Keep in mind if your instance's memory changes fast
+and the migration downtime window is too small a live migration might run endlessly.
+At the same time, setting the migration downtime window to a larger value might
+break or at least confuse the software running in your instance.
+
+If you have configured your cluster to use a separate network for replication
+traffic, live migration traffic will use that network as well.
+
+You may also use ``postcopy-ram`` migration which means that an instance will
+migrate early over to the secondary node and fetch the remaining memory from
+the source afterwards. Keep in mind that regular migration will copy memory first
+and only migrate the instance over if that succeeds. If the destination node
+dies in the process, the instance will not be touched by this and keep running
+on the source node. With the postcopy method both nodes need to stay alive
+until everything has been transferred, otherwise the instance will die.
+
+Virtual Disk and Network Devices
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ganeti defaults to using VirtIO devices for disks and networking. If an instance
+requires it, you may also switch the disk type to IDE or SCSI or emulate certain
+NIC types like ``e1000``. Please check the :manpage:`gnt-instance(8)` man page for
+the parameters ``disk_type`` and ``nic_type`` for all possible values. The setting
+always applies to *all* disks and NICs for a given instance.
+
+KVM machine type and guest network interface naming
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ganeti supports two QEMU machine types for KVM instances, selectable via
+``machine_version``:
+
+- ``pc-i440fx-*`` (the legacy PCI-based ``pc`` family).
+- ``pc-q35-*`` (the modern PCIe-based Q35 + ICH9 chipset).
+
+For new instances we recommend ``pc-q35-*``. It is the upstream-recommended
+chipset for new x86 guests and it enables predictable
+``eno<N>`` interface naming in systemd guests, which makes it much easier
+to write stable in-guest network configuration.
+
+Predictable interface naming
+............................
+
+On q35, Ganeti tags each NIC's PCIe slot with an ACPI ``acpi-index``
+attribute. systemd-udev uses that attribute via the ``net_id`` builtin to
+assign an ``eno<N>`` name. The mapping is:
+
+  NIC enumeration position (0-based) + 1 → ``eno<N>``
+
+So a freshly created q35 instance with three NICs gets ``eno1``, ``eno2``
+and ``eno3`` inside the guest, mirroring the order Ganeti lists them in.
+
+On ``pc-i440fx-*``, this method has no effect, so systemd falls back to its
+PCI-slot-based ``ens<slot>`` form. The exact name therefore depends on
+the PCI slot Ganeti allocated, and may shift across machine versions.
+
+Setting ``net.ifnames=0`` on the guest kernel command line disables
+predictable naming entirely; the guest then gets ``eth0``, ``eth1`` ...
+regardless of chipset. This is most often useful for legacy images.
+
+Custom QEMU options on q35 (``kvm_extra``)
+..........................................
+
+PCI devices that Ganeti adds itself (NICs, disks, balloon, USB controller,
+SCSI controller, virtio-serial channels) live at known addresses on q35's
+PCIe root complex so they don't collide with each other:
+cold-boot fixed devices share slot ``0x02`` as functions of one
+multifunction group, and Ganeti pre-allocates a pool of empty
+``pcie-root-port``\ s at slots ``0x03..0x1a`` to host NICs and disks
+(the per-instance hard cap is 24 leaf devices, one per pool slot).
+Ganeti has no visibility into devices added via the ``kvm_extra`` hvparam,
+so on q35 a user-supplied ``-device`` line that lacks an explicit ``bus=``
+and ``addr=`` may be auto-placed by QEMU onto a slot Ganeti has already
+reserved, and the instance will fail to start with a ``slot N function 0
+not available`` error.
+
+When passing ``-device`` lines via ``kvm_extra`` on a q35 instance, attach
+the device to a Ganeti-managed bus that doesn't share slots with
+``pcie.0``: ``bus=usb.0`` for USB devices, ``bus=scsi.0`` for SCSI
+devices, or ``bus=rp<N>`` for an unused root-port from Ganeti's pool
+(any slot the instance hasn't already filled with a NIC or disk).
+Hot-add via ``gnt-instance modify`` is preferred for NICs/disks since
+Ganeti tracks pool occupancy and won't hand out a slot that you've
+manually claimed.
+
+This caveat does not apply to ``pc-i440fx-*``: QEMU's auto-placement on
+the flat ``pci.0`` bus does not collide with Ganeti's allocations there.
+
+Sound cards (``soundhw``)
+.........................
+
+On q35, only ``soundhw=ac97`` and ``soundhw=hda`` are supported; both
+are pinned into Ganeti's static-device multifunction group on
+``pcie.0``. Any other value (``es1370``, ``sb16``, ``adlib``, ``gus``,
+``cs4231a``, ``pcspk``, ...) is rejected at validation time. Use a
+``pc-i440fx-*`` ``machine_version`` if you need one of those models.
+
+Configuring Storage
+-------------------
+
+While setting up the details of the storage options is generally out of scope
+for this document, there are some tips that we can share with you
+
+Optimizing DRBD for faster networks
++++++++++++++++++++++++++++++++++++
+
+If you run your DRBD replication across 10Gbe links or faster, the default
+settings will usually prevent you from saturating those links. The following
+settings have proven to speed up things. Please keep in mind that any changes
+to these parameters will not affect running instances.
+
+  $ gnt-cluster modify --disk-parameters drbd:disk-barriers=n,protocol=C
+  $ gnt-cluster modify --disk-parameters drbd:dynamic-resync=true,c-plan-ahead=20,c-min-rate=104857600,c-max-rate=1073741824
+  $ gnt-cluster modify --disk-parameters drbd:net-custom='--max-buffers=16000 --max-epoch-size=16000'
+
+Overriding DRBD split-brain resolution
+++++++++++++++++++++++++++++++++++++++
+
+Ganeti's DRBD backend ships with automatic split-brain resolution enabled:
+``--after-sb-0pri discard-zero-changes`` and ``--after-sb-1pri consensus``.
+The ``consensus`` policy can silently discard one side of a split-brain in
+the one-primary case, which in some failure scenarios amounts to silent
+data loss (see GitHub issue #846).
+
+Operators who prefer manual intervention can override either policy via
+the existing ``net-custom`` disk parameter. Because Ganeti appends
+``net-custom`` at the end of the generated ``drbdsetup`` command line,
+the last occurrence of each flag wins, so an override simply replaces
+the default::
+
+  $ gnt-cluster modify --disk-parameters drbd:net-custom='--after-sb-1pri disconnect'
+
+The override takes effect the next time the DRBD network layer is
+(re-)established for a given disk - e.g. on instance restart, secondary
+re-add, or migration.
+
+DRBD handshake check on disk assembly
++++++++++++++++++++++++++++++++++++++
+
+When activating disks for a DRBD-backed instance (for example during
+``gnt-instance startup``, ``gnt-instance reboot``, ``gnt-instance
+activate-disks``, or ``gnt-instance grow-disk``), Ganeti waits for the
+DRBD handshake to complete on every reachable secondary before
+promoting the primary. If the handshake does not complete on an online
+secondary, the operation fails instead of silently promoting a primary
+in ``WFConnection`` state - this avoids a potential data-loss scenario
+after an instance ran in DRBD diskless mode on its primary node (e.g.
+after a failure in the storage subsystem).
+
+To override the check - accepting the risk of split-brain / data loss:
+
+* ``gnt-instance startup --force``
+* ``gnt-instance reboot --ignore-secondaries``
+* Mark a persistently unreachable secondary as offline with
+  ``gnt-node modify --offline=yes <node>`` - offline secondaries are
+  always skipped (with a warning), independent of the flags above.
+
+``gnt-instance failover``, ``gnt-instance migrate`` and
+``gnt-instance move`` already treat secondary handshake failures as
+non-fatal, matching their existing semantics.
+
+Userspace vs. Kernelspace
++++++++++++++++++++++++++
+
+With GlusterFS or RBD in combination with KVM you have the option to either use
+kernelspace access (through blockdevices) or through userspace implementations
+provided by QEMU. The latter will possibly speed things up. You can switch the
+access mode through ``gnt-cluster`` (default is ``kernelspace``):
+
+  $ gnt-cluster modify --disk-parameters rbd:access=userspace
+
 Monitoring the cluster
 ----------------------
 
@@ -2019,18 +2238,6 @@ separate, virtual network from the nodes, and in an environment where
 nodes are not guaranteed to be able to reach each other via multicasting
 or broadcasting. For more information see the README in the source
 archive.
-
-ganeti-htools
-+++++++++++++
-
-Before Ganeti version 2.5, this was a standalone project; since that
-version it is integrated into the Ganeti codebase (see
-:doc:`install-quick` for instructions on how to enable it). If you run
-an older Ganeti version, you will have to download and build it
-separately.
-
-For more information and installation instructions, see the README file
-in the source archive.
 
 .. vim: set textwidth=72 :
 .. Local Variables:

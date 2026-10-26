@@ -147,7 +147,6 @@ def PrepareHvParameterSets():
   if default_hv == constants.HT_KVM:
     toggle_bool_params = [
       "acpi",
-      "debug_threads",
       "use_chroot",
       "use_guest_agent",
       "use_localtime",
@@ -160,7 +159,10 @@ def PrepareHvParameterSets():
       "disk_aio": constants.HT_KVM_VALID_AIO_TYPES,
       "disk_cache": constants.HT_VALID_CACHE_TYPES,
       "usb_mouse": constants.HT_KVM_VALID_MOUSE_TYPES,
-      "disk_type": ["ide", "paravirtual"],
+      "disk_type": ["ide", "paravirtual", "scsi-hd"],
+      "soundhw": ["ac97", "hda"],
+      "machine_version": ["", "pc", "q35"],
+      "virtio_disk_iothreads": [0, 1, 2],
     }
 
   assembled_tests = {}
@@ -172,6 +174,9 @@ def PrepareHvParameterSets():
       "reset_value": hv_params[param],
     }
 
+  machine_version = hv_params.get(constants.HV_KVM_MACHINE_VERSION) or ""
+  is_q35 = "q35" in machine_version
+
   for param, values in toggle_value_params.items():
     list_values = list(values)
     if hv_params[param] in list_values:
@@ -181,6 +186,9 @@ def PrepareHvParameterSets():
       # if the current value of the HVParam is part of the list of
       # allowed values, remove it to avoid unnecessary test cycles
       list_values.remove(hv_params[param])
+    if param == "disk_type" and is_q35:
+      list_values = [v for v in list_values
+                     if v != constants.HT_DISK_IDE]
     if hv_params[param] is None:
       reset_value = ""
     else:
@@ -1397,8 +1405,15 @@ def TestClusterRenewCrypto():
     _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
 
-    # Comprehensively test various types of SSH key changes
-    _TestSSHKeyChanges(master)
+    # Comprehensively test various types of SSH key changes;
+    # skipped if the cluster runs without Ganeti-managed SSH keys
+    # (gnt-cluster init --no-ssh-init), as the tests expect the keys
+    # to be present and rotatable.
+    if qa_config.GetModifySshSetup():
+      _TestSSHKeyChanges(master)
+    else:
+      print("Skipping SSH key replacement checks: "
+            "cluster was initialized with --no-ssh-init")
 
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
@@ -1529,8 +1544,12 @@ def TestUpgrade():
   # regardless of cluster defaults.
   if constants.VERSION_MINOR != 16:
     raise qa_error.Error("Please remove the key type downgrade code in 2.17")
-  AssertCommand(["gnt-cluster", "renew-crypto", "--no-ssh-key-check", "-f",
-                 "--new-ssh-keys", "--ssh-key-type=dsa"])
+  if qa_config.GetModifySshSetup():
+    AssertCommand(["gnt-cluster", "renew-crypto", "--no-ssh-key-check", "-f",
+                   "--new-ssh-keys", "--ssh-key-type=dsa"])
+  else:
+    print(qa_utils.FormatInfo("Skipping SSH key switch to DSA as the cluster"
+                              " was initialized without SSH key management"))
 
   AssertRedirectedCommand(["gnt-cluster", "upgrade", "--to", other_version])
   AssertRedirectedCommand(["gnt-cluster", "verify"])

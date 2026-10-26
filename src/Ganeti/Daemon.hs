@@ -60,10 +60,9 @@ module Ganeti.Daemon
   , getFQDN
   ) where
 
-import Control.Concurrent
-import Control.Exception
+import Control.Concurrent (ThreadId, myThreadId, throwTo)
+import Control.Exception (catchJust, finally)
 import Control.Monad
-import Control.Monad.Fail (MonadFail)
 import Data.Maybe (fromMaybe, listToMaybe)
 import Text.Printf
 import Data.Word
@@ -76,15 +75,17 @@ import System.Directory
 import System.Exit
 import System.Environment
 import System.IO
-import System.IO.Error (isDoesNotExistError, modifyIOError, annotateIOError)
+import System.IO.Error
+        (catchIOError, isDoesNotExistError, modifyIOError, annotateIOError)
+import qualified System.Posix as Posix
 import System.Posix.Directory
 import System.Posix.Files
-import System.Posix.IO
 import System.Posix.Process
 import System.Posix.Types
 import System.Posix.Signals
 
 import Ganeti.Common as Common
+import Ganeti.Compat (openFd, closeFd)
 import Ganeti.Logging
 import Ganeti.Runtime
 import Ganeti.BasicTypes
@@ -252,19 +253,20 @@ parseArgs cmd options = do
 
 -- | PID file mode.
 pidFileMode :: FileMode
-pidFileMode = unionFileModes ownerReadMode ownerWriteMode
+pidFileMode = Posix.unionFileModes Posix.ownerReadMode Posix.ownerWriteMode
 
 -- | PID file open flags.
-pidFileFlags :: OpenFileFlags
-pidFileFlags = defaultFileFlags { noctty = True, trunc = False }
+pidFileFlags :: Posix.OpenFileFlags
+pidFileFlags =
+  Posix.defaultFileFlags { Posix.noctty = True, Posix.trunc = False }
 
 -- | Writes a PID file and locks it.
 writePidFile :: FilePath -> IO Fd
 writePidFile path = do
-  fd <- openFd path ReadWrite (Just pidFileMode) pidFileFlags
-  setLock fd (WriteLock, AbsoluteSeek, 0, 0)
+  fd <- openFd path Posix.ReadWrite (Just pidFileMode) pidFileFlags
+  Posix.setLock fd (Posix.WriteLock, AbsoluteSeek, 0, 0)
   my_pid <- getProcessID
-  _ <- fdWrite fd (show my_pid ++ "\n")
+  _ <- Posix.fdWrite fd (show my_pid ++ "\n")
   return fd
 
 -- | Helper function to ensure a socket doesn't exist. Should only be
@@ -293,7 +295,7 @@ handleSigTerm mainTID =
   -- Throw termination exception to the main thread, so that the daemon is
   -- actually stopped in the proper way, executing all the functions waiting on
   -- "finally" statement.
-  Control.Exception.throwTo mainTID ExitSuccess
+  throwTo mainTID ExitSuccess
 
 -- | Signal handler for reopening log files.
 handleSigHup :: FilePath -> IO ()
@@ -347,7 +349,7 @@ parseAddress opts defport = do
   def_family <- Ssconf.getPrimaryIPFamily Nothing
   case optBindAddress opts of
     Nothing -> defaultBindAddr port def_family
-    Just saddr -> Control.Exception.catch
+    Just saddr -> catchIOError
                     (resolveAddr port saddr)
                     (ioErrorToResult $ "Invalid address " ++ saddr)
 
@@ -374,7 +376,7 @@ getFQDNwithHints :: Maybe Socket.AddrInfo -> IO String
 getFQDNwithHints hints = do
   let ioErrorToNothing :: IOError -> IO (Maybe String)
       ioErrorToNothing _ = return Nothing
-  vcluster_node <- Control.Exception.catch
+  vcluster_node <- catchIOError
                      (liftM Just (getEnv vClusterHostNameEnvVar))
                      ioErrorToNothing
   case vcluster_node of
@@ -423,21 +425,21 @@ describeError descr hndl fpath =
 -- only one OS thread, i.e. -N1).
 daemonize :: FilePath -> (Maybe Fd -> IO ()) -> IO ()
 daemonize logfile action = do
-  (rpipe, wpipe) <- createPipe
+  (rpipe, wpipe) <- Posix.createPipe
   -- first fork
   _ <- forkProcess $ do
     -- in the child
     closeFd rpipe
     let wpipe' = Just wpipe
-    setupDaemonEnv "/" (unionFileModes groupModes otherModes)
-    setupDaemonFDs (Just logfile) `Control.Exception.catch`
+    setupDaemonEnv "/" (Posix.unionFileModes Posix.groupModes Posix.otherModes)
+    setupDaemonFDs (Just logfile) `catchIOError`
       handlePrepErr False wpipe'
     -- second fork, launches the actual child code; standard
     -- double-fork technique
     _ <- forkProcess (action wpipe')
     exitImmediately ExitSuccess
   closeFd wpipe
-  hndl <- fdToHandle rpipe
+  hndl <- Posix.fdToHandle rpipe
   errors <- hGetContents hndl
   ecode <- if null errors
              then return ExitSuccess
@@ -529,7 +531,7 @@ innerMain :: GanetiDaemon  -- ^ The daemon we're running
           -> IO ()
 innerMain daemon opts syslog check_result prep_fn exec_fn fd = do
   (pidFile, prep_result) <- fullPrep daemon opts syslog check_result prep_fn
-                 `Control.Exception.catch` handlePrepErr True fd
+                 `catchIOError` handlePrepErr True fd
   -- no error reported, we should now close the fd
   maybeCloseFd fd
   finally (exec_fn opts check_result prep_result)
@@ -543,7 +545,7 @@ handlePrepErr logging_setup fd err = do
   case fd of
     -- explicitly writing to the fd directly, since when forking it's
     -- better (safer) than trying to convert this into a full handle
-    Just fd' -> fdWrite fd' msg >> return ()
+    Just fd' -> Posix.fdWrite fd' msg >> return ()
     Nothing  -> hPutStrLn stderr (daemonStartupErr msg)
   when logging_setup $ logError msg
   exitWith $ ExitFailure 1

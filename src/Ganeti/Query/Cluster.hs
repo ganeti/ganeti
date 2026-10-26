@@ -37,7 +37,7 @@ module Ganeti.Query.Cluster
   , isWatcherPaused
   ) where
 
-import Control.Exception (try)
+import System.IO.Error (tryIOError)
 import Control.Monad (liftM)
 import Data.Char (isSpace)
 import Numeric (readDec)
@@ -47,7 +47,7 @@ import Ganeti.Errors
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Path
-import Ganeti.Utils (getCurrentTime)
+import Ganeti.Utils.Time (getCurrentTime)
 
 -- | Get master node name.
 clusterMasterNodeName :: ConfigData -> ErrorResult String
@@ -60,7 +60,7 @@ isWatcherPaused :: IO (Maybe Integer)
 isWatcherPaused = do
   logDebug "Checking if the watcher is paused"
   wfile <- watcherPauseFile
-  contents <- try $ readFile wfile :: IO (Either IOError String)
+  contents <- tryIOError $ readFile wfile
   case contents of
     Left _ -> return Nothing
     Right s -> case readDec (dropWhile isSpace s) of

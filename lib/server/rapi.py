@@ -40,16 +40,8 @@ from __future__ import print_function
 import logging
 import optparse
 import sys
-import os
-import os.path
 import errno
 
-try:
-  from pyinotify import pyinotify # pylint: disable=E0611
-except ImportError:
-  import pyinotify
-
-from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import http
 from ganeti import daemon
@@ -61,6 +53,7 @@ from ganeti import utils
 from ganeti import pathutils
 from ganeti.rapi import connector
 from ganeti.rapi import baserlib
+from ganeti import rapi
 
 import ganeti.http.auth   # pylint: disable=W0611
 import ganeti.http.server # pylint: disable=W0611
@@ -74,6 +67,7 @@ class RemoteApiRequestContext(object):
     self.handler = None
     self.handler_fn = None
     self.handler_access = None
+    self.handler_auth_required = True
     self.body_data = None
 
 
@@ -136,10 +130,15 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
                                       (method, req.request_path))
 
       ctx.handler_access = baserlib.GetHandlerAccess(ctx.handler, method)
-
       # Require permissions definition (usually in the base class)
-      if ctx.handler_access is None:
+      if ctx.handler_access is rapi.RAPI_ACCESS_NOT_DEFINED:
         raise AssertionError("Permissions definition missing")
+
+      ctx.handler_auth_required = baserlib.GetHandlerAuthRequired(
+        ctx.handler, method)
+      # Require auth required definition
+      if ctx.handler_auth_required is None:
+        raise AssertionError("Authentication requirement definition missing")
 
       # This is only made available in HandleRequest
       ctx.body_data = None
@@ -149,7 +148,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     # Check for expected attributes
     assert req.private.handler
     assert req.private.handler_fn
-    assert req.private.handler_access is not None
+    # handler_access can be None for public endpoints
 
     return req.private
 
@@ -157,7 +156,8 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     """Determine whether authentication is required.
 
     """
-    return self._reqauth or bool(self._GetRequestContext(req).handler_access)
+    ctx = self._GetRequestContext(req)
+    return self._reqauth or ctx.handler_auth_required
 
   def Authenticate(self, req, username, password):
     """Checks whether a user can access a resource.
@@ -172,12 +172,13 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
       # Unknown user or password wrong
       return False
 
-    if (not ctx.handler_access or
-        set(user.options).intersection(ctx.handler_access)):
-      # Allow access
+    # check permissions
+    if ctx.handler_access is None or user.has_permission(ctx.handler_access):
       return True
 
-    # Access forbidden
+    logging.warning("User '%s' lacks permission '%s' for %s %s",
+                    username, ctx.handler_access,
+                    req.request_method, req.request_path)
     raise http.HttpForbidden()
 
   def HandleRequest(self, req):
@@ -263,54 +264,6 @@ class RapiUsers(object):
     return True
 
 
-class FileEventHandler(asyncnotifier.FileEventHandlerBase):
-  def __init__(self, wm, path, cb):
-    """Initializes this class.
-
-    @param wm: Inotify watch manager
-    @type path: string
-    @param path: File path
-    @type cb: callable
-    @param cb: Function called on file change
-
-    """
-    asyncnotifier.FileEventHandlerBase.__init__(self, wm)
-
-    self._cb = cb
-    self._filename = os.path.basename(path)
-
-    # Different Pyinotify versions have the flag constants at different places,
-    # hence not accessing them directly
-    mask = (pyinotify.EventsCodes.ALL_FLAGS["IN_CLOSE_WRITE"] |
-            pyinotify.EventsCodes.ALL_FLAGS["IN_DELETE"] |
-            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_FROM"] |
-            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_TO"])
-
-    self._handle = self.AddWatch(os.path.dirname(path), mask)
-
-  def process_default(self, event):
-    """Called upon inotify event.
-
-    """
-    if event.name == self._filename:
-      logging.debug("Received inotify event %s", event)
-      self._cb()
-
-
-def SetupFileWatcher(filename, cb):
-  """Configures an inotify watcher for a file.
-
-  @type filename: string
-  @param filename: File to watch
-  @type cb: callable
-  @param cb: Function called on file change
-
-  """
-  wm = pyinotify.WatchManager()
-  handler = FileEventHandler(wm, filename, cb)
-  asyncnotifier.AsyncNotifier(wm, default_proc_fun=handler)
-
-
 def CheckRapi(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -346,15 +299,16 @@ def PrepRapi(options, _):
 
   handler = RemoteApiHandler(users.Get, options.reqauth)
 
-  # Setup file watcher (it'll be driven by asyncore)
-  SetupFileWatcher(pathutils.RAPI_USERS_FILE,
-                   compat.partial(users.Load, pathutils.RAPI_USERS_FILE))
-
   users.Load(pathutils.RAPI_USERS_FILE)
 
+  # Reload users file on SIGHUP
+  mainloop.RegisterSighupCallback(
+      compat.partial(users.Load, pathutils.RAPI_USERS_FILE))
+
   server = http.server.HttpServer(
-      mainloop, options.bind_address, options.port, options.max_clients,
-      handler, ssl_params=options.ssl_params, ssl_verify_peer=False)
+      options.bind_address, options.port, handler,
+      ssl_params=options.ssl_params, ssl_verify_peer=False,
+      max_clients=options.max_clients)
   server.Start()
 
   return (mainloop, server)

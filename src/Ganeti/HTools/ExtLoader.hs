@@ -44,11 +44,11 @@ module Ganeti.HTools.ExtLoader
 
 import Control.Monad
 import Control.Monad.Writer (runWriterT)
-import Control.Exception
 import Data.Maybe (isJust, fromJust)
 import Data.Monoid (getAll)
 import System.FilePath
-import System.IO
+import System.IO.Error (catchIOError)
+import System.IO (stderr)
 import System.Time (getClockTime)
 import Text.Printf (hPrintf)
 
@@ -67,7 +67,7 @@ import Ganeti.Utils (sepSplit, tryRead, exitIfBad, exitWhen)
 
 -- | Error beautifier.
 wrapIO :: IO (Result a) -> IO (Result a)
-wrapIO = handle (\e -> return . Bad . show $ (e::IOException))
+wrapIO = flip catchIOError (return . Bad . show)
 
 -- | Parses a user-supplied utilisation string.
 parseUtilisation :: String -> Result (String, DynUtil)

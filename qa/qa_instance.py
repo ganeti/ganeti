@@ -126,14 +126,16 @@ def GetInstanceInfo(instance):
   storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
 
   hvparams = {}
-  for param, value in info["Hypervisor parameters"].items():
-    if type(value) == str and value.startswith("default ("):
-        result = re.search(r'^default \((.*)\)$', value)
-        try:
-            value = yaml.load(result.group(1), Loader=yaml.SafeLoader)
-        except yaml.YAMLError:
-            value = ''
-    hvparams[param] = value
+  # make sure to not iterate on hypervisors w/o parameters (e.g. fake HV)
+  if isinstance(info["Hypervisor parameters"], dict):
+    for param, value in info["Hypervisor parameters"].items():
+      if type(value) == str and value.startswith("default ("):
+          result = re.search(r'^default \((.*)\)$', value)
+          try:
+              value = yaml.load(result.group(1), Loader=yaml.SafeLoader)
+          except yaml.YAMLError:
+              value = ''
+      hvparams[param] = value
 
   assert nodes
   assert len(nodes) < 2 or vols
@@ -465,8 +467,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
   # first do a rename to a different actual name, expecting it to fail
   qa_utils.AddToEtcHosts(["meeeeh-not-exists", rename_target])
   try:
-    AssertCommand(["gnt-instance", "rename", rename_source, rename_target],
-                  fail=True)
+    AssertCommand(["gnt-instance", "rename", "--name-check",
+                  rename_source, rename_target], fail=True)
     CheckSsconfInstanceList(rename_source)
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
@@ -489,7 +491,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
     tags_cmd = "false"
 
   # and now rename instance to rename_target...
-  AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
+  AssertCommand(["gnt-instance", "rename", "--name-check", rename_source,
+                rename_target])
   CheckSsconfInstanceList(rename_target)
   qa_utils.RunInstanceCheck(rename_source, False)
   qa_utils.RunInstanceCheck(rename_target, False)
@@ -503,7 +506,8 @@ def TestInstanceRenameAndBack(rename_source, rename_target):
       AssertCommand(tags_cmd + rename_target, node=node, fail=False)
 
   # and back
-  AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
+  AssertCommand(["gnt-instance", "rename", "--name-check", rename_target,
+                rename_source])
   CheckSsconfInstanceList(rename_source)
   qa_utils.RunInstanceCheck(rename_target, False)
 
@@ -601,16 +605,25 @@ def _TestKVMHotplug(instance, instance_info):
   """Tests hotplug modification commands, noting that they
 
   """
+  # Hotplugging requires a booted, settled guest: this test usually runs
+  # shortly after an instance start or reboot (TestInstanceStartup,
+  # TestInstanceReboot), and hot-adding a device while the guest kernel
+  # is still enumerating its PCI bus might corrupt the guest's ACPI hotplug
+  # state (acpiphp enable_slot sysfs errors), which then wedges the
+  # following hot-unplug until Ganeti's DEVICE_DELETED timeout. We'll add an
+  # extra 5 seconds here to let the guest settle.
+  time.sleep(5)
+
   args_to_try = [
-    ["--net", "-1:add", "--hotplug"],
-    ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
-    ["--net", "-1:remove", "--hotplug"]
+    ["--net", "-1:add"],
+    ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--force"],
+    ["--net", "-1:remove"]
   ]
   if instance_info["hypervisor-parameters"]["disk_type"] != \
           constants.HT_DISK_IDE:
     # hotplugging disks is not supported for IDE-type disks
-    args_to_try.append(["--disk", "-1:add,size=1G", "--hotplug"])
-    args_to_try.append(["--disk", "-1:remove", "--hotplug"])
+    args_to_try.append(["--disk", "-1:add,size=1G"])
+    args_to_try.append(["--disk", "-1:remove"])
 
   for alist in args_to_try:
     _, stdout, stderr = \
@@ -822,7 +835,6 @@ def TestInstanceModifyDisks(instance):
   disk_conf = qa_config.GetDiskOptions()[-1]
   size = disk_conf.get("size")
   name = instance.name
-  build_cmd = lambda arg: ["gnt-instance", "modify", "--disk", arg, name]
   if qa_config.AreSpindlesSupported():
     spindles = disk_conf.get("spindles")
     spindles_supported = True
@@ -830,12 +842,26 @@ def TestInstanceModifyDisks(instance):
     # Any number is good for spindles in this case
     spindles = 1
     spindles_supported = False
-  AssertCommand(build_cmd("add:size=%s,spindles=%s" % (size, spindles)),
+  AssertCommand(["gnt-instance", "modify",
+                 "--disk",
+                 "add:size=%s,spindles=%s" % (size, spindles),
+                 "--no-hotplug",
+                 name],
                 fail=not spindles_supported)
-  AssertCommand(build_cmd("add:size=%s" % size),
+
+  AssertCommand(["gnt-instance", "modify",
+                 "--disk",
+                 "add:size=%s,spindles=%s" % (size, spindles),
+                 "--no-hotplug",
+                 name],
                 fail=spindles_supported)
+
   # Exactly one of the above commands has succeded, so we need one remove
-  AssertCommand(build_cmd("remove"))
+  AssertCommand(["gnt-instance", "modify",
+                 "--disk",
+                 "remove",
+                 "--no-hotplug",
+                 name])
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
@@ -885,19 +911,23 @@ def TestInstanceDeviceNames(instance):
     # succeed in adding a device named 'test_device'
     AssertCommand(["gnt-instance", "modify",
                    "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   "--no-hotplug",
                    name])
     # succeed in removing the 'test_device'
     AssertCommand(["gnt-instance", "modify",
                    "--%s=test_device:remove" % dev_type,
+                   "--no-hotplug",
                    name])
     # fail to add two devices with the same name
     AssertCommand(["gnt-instance", "modify",
                    "--%s=-1:add,name=test_device%s" % (dev_type, options),
                    "--%s=-1:add,name=test_device%s" % (dev_type, options),
+                   "--no-hotplug",
                    name], fail=True)
     # fail to add a device with invalid name
     AssertCommand(["gnt-instance", "modify",
                    "--%s=-1:add,name=2%s" % (dev_type, options),
+                   "--no-hotplug",
                    name], fail=True)
   # Rename disks
   disks = qa_config.GetDiskOptions()

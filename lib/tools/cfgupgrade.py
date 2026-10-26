@@ -358,6 +358,12 @@ class CfgUpgrade(object):
         if variant in cluster["hvparams"]:
           cluster["hvparams"][variant].pop("xen_cmd", None)
 
+      # HT_DISCARD_DEFAULT removed with 3.1.0
+      if constants.HV_DISK_DISCARD in cluster["hvparams"][constants.HT_KVM] \
+         and cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] \
+              == "default":
+        cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] = \
+          constants.HT_DISCARD_IGNORE
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
@@ -474,6 +480,13 @@ class CfgUpgrade(object):
         missing_spindles = True
       if "admin_state_source" not in iobj:
         iobj["admin_state_source"] = constants.ADMIN_SOURCE
+
+      if "hvparams" in iobj and constants.HV_DISK_DISCARD in iobj["hvparams"]:
+        if iobj["hvparams"][constants.HV_DISK_DISCARD] == "default":
+          iobj["hvparams"][constants.HV_DISK_DISCARD] = \
+            constants.HT_DISCARD_IGNORE
+          logging.info("disk_discard was explicitly set to 'default' on "
+                       "instance '%s': migrated to 'ignore'" % iobj["name"])
 
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have
@@ -749,11 +762,63 @@ class CfgUpgrade(object):
       if variant in hvparams:
         hvparams[variant]["xen_cmd"] = "xl"
 
+  @OrFail("Removing the rbd/user-id and namespace parameter")
+  def DowngradeRbdSettings(self):
+    """Remove rbd/user-id and namespace parameters if set
+
+    """
+    def _removeRbdSetting(data, setting):
+      diskparams = data.get("diskparams", None)
+      if diskparams is None:
+        return
+
+      rbdparams = diskparams.get("rbd", None)
+      if rbdparams is None:
+        return
+
+      if setting in rbdparams:
+        rbdparams.pop(setting)
+
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    for setting in ["user-id", "namespace"]:
+      _removeRbdSetting(cluster, setting)
+
+    nodegroups = self.config_data.get("nodegroups", None)
+    if nodegroups is None:
+      raise Error("Can't find the cluster entry in the configuration")
+    for setting in ["user-id", "namespace"]:
+      _removeRbdSetting(nodegroups, setting)
+
+  @OrFail("Removing the virtio_disk_iothreads parameter")
+  def DowngradeIothreadSettings(self):
+    """Remove the virtio_disk_iothreads parameter
+
+    """
+    cluster = self.config_data.get("cluster", None)
+    hvparams = cluster.get("hvparams", None)
+    if hvparams is not None:
+      kvm_params = hvparams.get("kvm", None)
+      if kvm_params is not None and "virtio_disk_iothreads" in kvm_params:
+        kvm_params.pop("virtio_disk_iothreads")
+
+    instances = self.config_data.get("instances", None)
+    for inst in instances:
+      inst_hvparams = instances[inst].get("hvparams", None)
+      if hvparams is not None and "virtio_disk_iothreads" in inst_hvparams:
+        inst_hvparams.pop("virtio_disk_iothreads")
+
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
 
     self.DowngradeXenSettings()
+    self.DowngradeRbdSettings()
+    self.DowngradeIothreadSettings()
     return not self.errors
 
   def _ComposePaths(self):

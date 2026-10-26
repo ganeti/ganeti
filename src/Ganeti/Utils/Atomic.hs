@@ -43,17 +43,18 @@ module Ganeti.Utils.Atomic
 import qualified Control.Exception.Lifted as L
 import Control.Monad
 import Control.Monad.Base (MonadBase(..))
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Trans.Control
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 import System.IO
 import System.Directory (renameFile)
-import System.Posix.IO
+import qualified System.Posix.IO as Posix
 import System.Posix.Types
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Logging (logAlert)
+import Ganeti.Compat (openFd, closeFd)
 import Ganeti.Utils
 import Ganeti.Utils.UniStd (fsyncFile)
 
@@ -105,8 +106,8 @@ withLockedFile path =
     openAndLock :: (MonadError e m, Error e, MonadBaseControl IO m)
                 => FilePath -> m Fd
     openAndLock p = liftBase $ do
-      fd <- openFd p ReadWrite Nothing defaultFileFlags
-      waitToSetLock fd (WriteLock, AbsoluteSeek, 0, 0)
+      fd <- openFd p Posix.ReadWrite Nothing Posix.defaultFileFlags
+      Posix.waitToSetLock fd (Posix.WriteLock, AbsoluteSeek, 0, 0)
       return fd
 
 -- | Just as 'atomicUpdateFile', but in addition locks the file during the

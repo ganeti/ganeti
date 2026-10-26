@@ -44,7 +44,7 @@ module Ganeti.THH.RPC
 
 import Control.Arrow ((&&&))
 import Control.Monad
-import Control.Monad.Error.Class
+import Control.Monad.Except (MonadError, throwError)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Language.Haskell.TH

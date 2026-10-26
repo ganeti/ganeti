@@ -65,6 +65,6 @@ case "$1" in
     xenstore_write "hotplug-status" "connected"
     ;;
   offline)
-    ifconfig "$vif" down || true
+    ip link set dev "$vif" down || true
     ;;
 esac

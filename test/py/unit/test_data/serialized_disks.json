@@ -1,0 +1,95 @@
+[
+  [
+    {
+      "dev_type": "drbd",
+      "logical_id": [
+        "3e9d956e-2db0-4d7a-80fb-543d25bb1840",
+        "6f34bb1a-baba-4a69-b5b2-1804694adcd0",
+        11004,
+        0,
+        1,
+        null
+      ],
+      "children": [
+        {
+          "dev_type": "plain",
+          "logical_id": [
+            "ganeti",
+            "25f537bb-03bd-406e-b64a-9a9712bfcfa5.disk0_data"
+          ],
+          "children": [],
+          "nodes": [
+            "3e9d956e-2db0-4d7a-80fb-543d25bb1840",
+            "6f34bb1a-baba-4a69-b5b2-1804694adcd0"
+          ],
+          "iv_name": "",
+          "size": 10240,
+          "mode": "rw",
+          "params": {
+            "stripes": 1
+          },
+          "serial_no": 1,
+          "uuid": "ee2c4570-165b-4abb-9f1b-62f19c4b405e",
+          "ctime": 1721112669.1474214,
+          "mtime": 1721112669.1474178
+        },
+        {
+          "dev_type": "plain",
+          "logical_id": [
+            "ganeti",
+            "25f537bb-03bd-406e-b64a-9a9712bfcfa5.disk0_meta"
+          ],
+          "children": [],
+          "nodes": [
+            "3e9d956e-2db0-4d7a-80fb-543d25bb1840",
+            "6f34bb1a-baba-4a69-b5b2-1804694adcd0"
+          ],
+          "iv_name": "",
+          "size": 128,
+          "mode": "rw",
+          "params": {
+            "stripes": 1
+          },
+          "serial_no": 1,
+          "uuid": "a2ceea83-6e4a-4976-9073-8551250cbce6",
+          "ctime": 1721112669.147439,
+          "mtime": 1721112669.1474364
+        }
+      ],
+      "nodes": [
+        "3e9d956e-2db0-4d7a-80fb-543d25bb1840",
+        "6f34bb1a-baba-4a69-b5b2-1804694adcd0"
+      ],
+      "iv_name": "disk/0",
+      "size": 10240,
+      "mode": "rw",
+      "params": {
+        "c-delay-target": 1,
+        "c-fill-target": 0,
+        "c-max-rate": 100000,
+        "c-min-rate": 100000,
+        "c-plan-ahead": 0,
+        "default-metavg": "ganeti",
+        "disable-meta-flush": true,
+        "disabled-barriers": "bf",
+        "disk-custom": "--c-plan-ahead 0",
+        "dynamic-resync": false,
+        "net-custom": "--max-buffers 32000 --max-epoch-size 8000 --verify-alg crc32c",
+        "protocol": "C",
+        "resync-rate": 100000
+      },
+      "hvinfo": {
+        "driver": "virtio-blk-pci",
+        "id": "disk-8db0f07a-f486-481e",
+        "bus": "pci.0",
+        "addr": "0xc"
+      },
+      "serial_no": 1,
+      "uuid": "8db0f07a-f486-481e-b254-4c90123f61f9",
+      "ctime": 1721112669.1474493,
+      "mtime": 1721112669.1474466
+    },
+    "/var/run/ganeti/instance-disks/test2:0",
+    null
+  ]
+]

@@ -48,5 +48,5 @@ unpause() {
   echo "c" | "$SOCAT" STDIO "UNIX-CONNECT:$MONITOR" &>/dev/null
 }
 
-unpause &
+(unpause &)
 exec "$SOCAT" "$PARAMS" "$CONSOLE"

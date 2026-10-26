@@ -121,7 +121,7 @@ NIC\_%N_IP
     instance.
 
 NIC\_%N_MODE
-    The NIC mode, routed, bridged or openvswitch
+    The NIC mode, routed, bridged, ext or openvswitch
 
 NIC\_%N_BRIDGE
     The bridge to which this NIC will be attached. This variable is

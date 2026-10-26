@@ -59,6 +59,9 @@ import Ganeti.Query.Language
 instance Arbitrary (Filter FilterField) where
   arbitrary = genFilter
 
+instance Arbitrary FilterRegex where
+  arbitrary = genName >>= mkRegex -- a name should be a good regex
+
 -- | Custom 'Filter' generator (top-level), which enforces a
 -- (sane) limit on the depth of the generated filters.
 genFilter :: Gen (Filter FilterField)
@@ -96,9 +99,6 @@ $(genArbitrary ''QueryTypeOp)
 $(genArbitrary ''QueryTypeLuxi)
 
 $(genArbitrary ''ItemType)
-
-instance Arbitrary FilterRegex where
-  arbitrary = genName >>= mkRegex -- a name should be a good regex
 
 $(genArbitrary ''ResultStatus)
 

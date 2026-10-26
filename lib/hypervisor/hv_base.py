@@ -119,8 +119,13 @@ _NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
                    None, None)
 
 # Check if number of queues is in safe range
-_VIRTIO_NET_QUEUES_CHECK = (lambda x: 0 < x < 9, "invalid number of queues",
-                            None, None)
+_VIRTIO_NET_QUEUES_CHECK = (lambda x: x == "auto" or (isinstance(x, int) and
+                            0 < x <= constants.MAX_VIRTIO_NET_QUEUES),
+                            "invalid number of queues", None, None)
+
+_VIRTIO_DISK_IOTHREADS_CHECK = (lambda x:
+                                0 <= x <= constants.MAX_VIRTIO_DISK_IOTHREADS,
+                                "invalid number of iothreads", None, None)
 
 # Check that an integer is non negative
 _NONNEGATIVE_INT_CHECK = (lambda x: x >= 0, "cannot be negative", None, None)
@@ -136,6 +141,8 @@ REQ_NET_PORT_CHECK = (True, ) + _NET_PORT_CHECK
 OPT_NET_PORT_CHECK = (False, ) + _NET_PORT_CHECK
 REQ_VIRTIO_NET_QUEUES_CHECK = (True, ) + _VIRTIO_NET_QUEUES_CHECK
 OPT_VIRTIO_NET_QUEUES_CHECK = (False, ) + _VIRTIO_NET_QUEUES_CHECK
+REQ_VIRTIO_DISK_IOTHREADS_CHECK = (True, ) + _VIRTIO_DISK_IOTHREADS_CHECK
+OPT_VIRTIO_DISK_IOTHREADS_CHECK = (False, ) + _VIRTIO_DISK_IOTHREADS_CHECK
 REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
 REQ_MULTI_CPU_MASK_CHECK = (True, ) + _MULTI_CPU_MASK_CHECK
@@ -209,8 +216,65 @@ def GenerateTapName():
   return "gnt.com.%d" % idx
 
 
-def ConfigureNIC(cmd, instance, seq, nic, tap):
+def ConfigureNIC(cmd, instance, seq, nic, tap, extra_env=None):
   """Run the network configuration script for a specified NIC
+
+  @type cmd: string
+  @param cmd: command to run
+  @type instance: instance object
+  @param instance: instance we're acting on
+  @type seq: int
+  @param seq: nic sequence number
+  @type nic: nic object
+  @param nic: nic we're acting on
+  @type tap: str
+  @param tap: the host's tap interface this NIC corresponds to
+  @type extra_env: dict or None
+  @param extra_env: optional extra environment variables to pass to the script
+
+  """
+  env = {
+    "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
+    "INSTANCE": instance.name,
+    "MAC": nic.mac,
+    "MODE": nic.nicparams[constants.NIC_MODE],
+    "INTERFACE": tap,
+    "INTERFACE_INDEX": str(seq),
+    "INTERFACE_UUID": nic.uuid,
+    "TAGS": " ".join(instance.GetTags()),
+    "ACTION": constants.NIC_ACTION_UP,
+  }
+
+  if nic.ip:
+    env["IP"] = nic.ip
+
+  if nic.name:
+    env["INTERFACE_NAME"] = nic.name
+
+  if nic.nicparams[constants.NIC_LINK]:
+    env["LINK"] = nic.nicparams[constants.NIC_LINK]
+
+  if constants.NIC_VLAN in nic.nicparams:
+    env["VLAN"] = nic.nicparams[constants.NIC_VLAN]
+
+  if nic.network:
+    n = objects.Network.FromDict(nic.netinfo)
+    env.update(n.HooksDict())
+
+  if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+    env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]
+
+  if extra_env:
+    env.update(extra_env)
+
+  result = utils.RunCmd(cmd, env=env)
+  if result.failed:
+    raise errors.HypervisorError("Failed to configure interface %s: %s;"
+                                 " network configuration script output: %s" %
+                                 (tap, result.fail_reason, result.output))
+
+def DeConfigureNIC(cmd, instance, seq, nic, tap):
+  """Run the network de-configuration script for a specified NIC
 
   @type cmd: string
   @param cmd: command to run
@@ -233,6 +297,7 @@ def ConfigureNIC(cmd, instance, seq, nic, tap):
     "INTERFACE_INDEX": str(seq),
     "INTERFACE_UUID": nic.uuid,
     "TAGS": " ".join(instance.GetTags()),
+    "ACTION": constants.NIC_ACTION_DOWN,
   }
 
   if nic.ip:
@@ -256,10 +321,9 @@ def ConfigureNIC(cmd, instance, seq, nic, tap):
 
   result = utils.RunCmd(cmd, env=env)
   if result.failed:
-    raise errors.HypervisorError("Failed to configure interface %s: %s;"
-                                 " network configuration script output: %s" %
-                                 (tap, result.fail_reason, result.output))
-
+    logging.error("Failed to call NIC de-configuration script for "
+                  "interface %s: %s %s" %
+                   (tap, result.fail_reason, result.output))
 
 class HvInstanceState(object):
   RUNNING = 0
@@ -651,6 +715,19 @@ class BaseHypervisor(object):
                                      (name, errstr, value))
 
   @classmethod
+  def AssessParameters(cls, hvparams):
+    """Check the given parameters for uncommon/suboptimal values
+
+    This should check the passed set of parameters for suboptimal
+    values.
+
+    @type hvparams: dict
+    @param hvparams: dictionary with parameter names/value
+
+    """
+    return []
+
+  @classmethod
   def PowercycleNode(cls, hvparams=None):
     """Hard powercycle a node using hypervisor specific methods.
 
@@ -704,14 +781,12 @@ class BaseHypervisor(object):
           val = splitfields[1].strip()
           if key == "MemTotal":
             result["memory_total"] = int(val.split()[0]) // 1024
-          elif key in ("MemFree", "Buffers", "Cached"):
-            sum_free += int(val.split()[0]) // 1024
-          elif key == "Active":
-            result["memory_dom0"] = int(val.split()[0]) // 1024
+          elif key == "MemAvailable":
+            result["memory_free"] = int(val.split()[0]) // 1024
     except (ValueError, TypeError) as err:
       raise errors.HypervisorError("Failed to compute memory usage: %s" %
                                    (err,))
-    result["memory_free"] = sum_free
+    result["memory_dom0"] = result["memory_total"] - result["memory_free"]
 
     cpu_total = 0
     try:
@@ -762,6 +837,19 @@ class BaseHypervisor(object):
       return "; ".join(msgs)
     else:
       return None
+
+  def ResizeDisk(self, instance, disk, new_size):
+    """Notify the hypervisor about a disk change.
+
+    @type disk: L{objects.Disk}
+    @param disk: the disk to be changed
+    @type new_size: int
+    @param new_size: the new size in bytes
+    @raise errors.HotplugError: if disk resize is not supported
+    """
+
+    raise errors.HotplugError("Disk resize is not supported by this hypervisor")
+
 
   # pylint: disable=R0201,W0613
   def HotAddDevice(self, instance, dev_type, device, extra, seq):

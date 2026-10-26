@@ -50,7 +50,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   ComputeIPolicyDiskSizesViolation, \
   CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
   IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes, \
-  CheckDiskTemplateEnabled
+  CheckDiskTemplateEnabled, IsInstanceRunning
 from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
   CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
@@ -1266,11 +1266,14 @@ def WipeDisks(lu, instance, disks=None):
 
   try:
     for (idx, device, offset) in disks:
-      # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
-      # MAX_WIPE_CHUNK at max. Truncating to integer to avoid rounding errors.
+      # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk, at
+      # least 1 MiB but MAX_WIPE_CHUNK at max. Truncating to integer to avoid
+      # rounding errors.
       wipe_chunk_size = \
-        int(min(constants.MAX_WIPE_CHUNK,
-                device.size / 100.0 * constants.MIN_WIPE_CHUNK_PERCENT))
+        max(1,
+            int(min(constants.MAX_WIPE_CHUNK,
+                    device.size / 100.0 *
+                    constants.MIN_WIPE_CHUNK_PERCENT)))
 
       size = device.size
       last_output = 0
@@ -1596,12 +1599,13 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
 
   # With the two passes mechanism we try to reduce the window of
   # opportunity for the race condition of switching DRBD to primary
-  # before handshaking occured, but we do not eliminate it
-
-  # The proper fix would be to wait (with some limits) until the
-  # connection has been made and drbd transitions from WFConnection
-  # into any other network-connected state (Connected, SyncTarget,
-  # SyncSource, etc.)
+  # before handshaking occured. For DRBD instances with reachable
+  # secondaries we additionally poll the secondaries after pass 1 to
+  # confirm the DRBD handshake transitioned out of WFConnection before
+  # we promote the primary. On handshake failure we abort pass 2
+  # unless the caller has opted into the risk via ignore_secondaries
+  # (mapped from the CLI '--force' / '--ignore-secondaries' flags) or
+  # the secondary is administratively offline.
 
   # 1st pass, assemble on all nodes in secondary mode
   for idx, inst_disk in enumerate(disks):
@@ -1623,7 +1627,65 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
         if not (ignore_secondaries or is_offline_secondary):
           disks_ok = False
 
-  # FIXME: race condition on drbd migration to primary
+  # Wait for the DRBD handshake on the secondaries before promoting the
+  # primary, closing the WFConnection race that the two-pass scheme
+  # alone only narrows. Short-circuits for non-DRBD templates and for
+  # instances without secondaries (single-node / diskless).
+  if any(d.dev_type == constants.DT_DRBD8 for d in disks):
+    secondary_nodes = lu.cfg.GetInstanceSecondaryNodes(instance.uuid)
+    if secondary_nodes:
+      wait_result = lu.rpc.call_drbd_wait_sync(secondary_nodes,
+                                               (disks, instance))
+      fatal_failures = []
+      offline_skipped = []
+      for node_uuid, nres in wait_result.items():
+        node_name = lu.cfg.GetNodeName(node_uuid)
+        if not nres.fail_msg:
+          _, node_percent = nres.payload
+          if node_percent is not None and node_percent < 100:
+            lu.LogInfo("DRBD resync on secondary %s at %.1f%%",
+                       node_name, node_percent)
+        elif nres.offline:
+          offline_skipped.append(node_name)
+          lu.LogWarning("DRBD handshake wait skipped on secondary %s:"
+                        " node is administratively offline",
+                        node_name)
+        elif ignore_secondaries:
+          lu.LogWarning("DRBD handshake wait failed on secondary %s: %s;"
+                        " proceeding because ignore_secondaries is set",
+                        node_name, nres.fail_msg)
+        else:
+          fatal_failures.append((node_name, nres.fail_msg))
+
+      if fatal_failures:
+        # backend.DrbdWaitSync _Fail's with "is not in sync" on handshake
+        # timeout; any other fail_msg is an RPC or node-level error.
+        def _classify(msg):
+          if "is not in sync" in msg:
+            return "timeout waiting for handshake"
+          return f"RPC error: {msg}"
+
+        lines = [
+          f"DRBD handshake did not complete on {len(fatal_failures)}"
+          f" secondary node(s); refusing to promote the primary to"
+          f" guard against split-brain / data loss:",
+        ]
+        lines.extend(f"  - {name}: {_classify(msg)}"
+                     for name, msg in fatal_failures)
+        if offline_skipped:
+          lines.append(
+            f"Skipped as offline: {', '.join(offline_skipped)}.")
+        lines.append(
+          "To investigate: check network connectivity and /proc/drbd"
+          " on the listed secondaries. To force the operation anyway"
+          " (accepting the data-loss risk), re-run with the appropriate"
+          " opt-out: 'gnt-instance startup --force', 'gnt-instance"
+          " reboot --ignore-secondaries', or mark persistently"
+          " unreachable nodes offline with 'gnt-node modify"
+          " --offline=yes <node>'.")
+
+        lu.cfg.MarkInstanceDisksInactive(instance.uuid)
+        raise errors.OpExecError("\n".join(lines))
 
   # 2nd pass, do only the primary node
   for idx, inst_disk in enumerate(disks):
@@ -1903,6 +1965,20 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     assert self.owned_locks(locking.LEVEL_NODE_RES)
     assert set([self.instance.name]) == self.owned_locks(locking.LEVEL_INSTANCE)
+
+    # Notifify the hv about the change if the instance is running
+    if IsInstanceRunning(self, self.instance):
+      feedback_fn("Try to notify the Hypervisor about the disk change")
+
+      new_size = self.target * (1024 ** 2)
+
+      result = self.rpc.call_resize_disk(self.instance.primary_node,
+                                         self.instance,
+                                         self.disk.ToDict(), new_size)
+
+      if result.fail_msg:
+        self.LogWarning(f"Disk resize in hypervisor failed: {result.fail_msg}")
+
 
 
 class LUInstanceReplaceDisks(LogicalUnit):

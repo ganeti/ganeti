@@ -70,7 +70,8 @@ import Ganeti.Objects (DataCollectorConfig(..))
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Runtime
-import Ganeti.Utils (getCurrentTimeUSec, withDefaultOnIOError)
+import Ganeti.Utils.Time (getCurrentTimeUSec)
+import Ganeti.Utils (withDefaultOnIOError)
 
 -- * Types and constants definitions
 

@@ -1,0 +1,10 @@
+=================
+Ganeti 3.2 design
+=================
+
+The following designs have been implemented in Ganeti 3.2
+
+- :doc:`design-replace-asyncore`
+- :doc:`design-q35`
+- :doc:`design-vcpu-hotplug`
+- :doc:`design-memory-hotplug`

@@ -41,13 +41,6 @@ import itertools
 import operator
 import os
 
-try:
-  # pylint: disable=E0611
-  from pyinotify import pyinotify
-except ImportError:
-  import pyinotify
-
-from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import serializer
 from ganeti import locking
@@ -677,7 +670,7 @@ def _EncodeOpError(err):
   if isinstance(err, errors.GenericError):
     to_encode = err
   else:
-    to_encode = errors.OpExecError(str(err))
+    to_encode = errors.OpExecError(str(err) or err.__class__.__name__)
 
   return errors.EncodeException(to_encode)
 

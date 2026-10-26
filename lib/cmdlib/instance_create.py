@@ -32,8 +32,6 @@
 import logging
 import os
 
-import OpenSSL
-
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
@@ -309,7 +307,7 @@ class LUInstanceCreate(LogicalUnit):
       try:
         (cert, _) = utils.LoadSignedX509Certificate(self.source_x509_ca_pem,
                                                     self._cds)
-      except OpenSSL.crypto.Error as err:
+      except (errors.GenericError, ValueError) as err:
         raise errors.OpPrereqError("Unable to load source X509 CA (%s)" %
                                    (err, ), errors.ECODE_INVAL)
 
@@ -325,8 +323,7 @@ class LUInstanceCreate(LogicalUnit):
         raise errors.OpPrereqError("Missing source instance name",
                                    errors.ECODE_INVAL)
 
-      self.source_instance_name = \
-        netutils.GetHostname(name=src_instance_name).name
+      self.source_instance_name = src_instance_name
 
     else:
       raise errors.OpPrereqError("Invalid instance creation mode %r" %

@@ -47,8 +47,8 @@ module Test.Ganeti.HTools.Instance
 import Control.Arrow ((&&&))
 import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
+import Ganeti.HTools.Types (nullISpec)
 
-import Test.Ganeti.TestHTools (nullISpec)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.HTools.Types ()

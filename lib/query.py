@@ -165,6 +165,7 @@ _VTToQFT = {
   constants.VTYPE_SIZE: QFT_UNIT,
   constants.VTYPE_INT: QFT_NUMBER,
   constants.VTYPE_FLOAT: QFT_NUMBER_FLOAT,
+  constants.VTYPE_INT_OR_AUTO: QFT_OTHER,
   }
 
 _SERIAL_NO_DOC = "%s object serial number, incremented on each modification"

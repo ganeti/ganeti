@@ -42,6 +42,7 @@ from hashlib import md5
 from ganeti import compat
 from ganeti import http
 from ganeti import utils
+from ganeti import rapi
 
 # Digest types from RFC2617
 HTTP_BASIC_AUTH = "Basic"
@@ -287,14 +288,123 @@ class HttpServerRequestAuthentication(object):
     return False
 
 
+_DEPRECATED_PERM_MAPPING = {
+  "read": "readonly",
+  "write": "admin",
+  "all": "admin",
+}
+
+
+def _resolve_permissions(options, roles, _warned=None):
+  """Resolve a list of user options into a set of effective permissions.
+
+  Tokens are processed in a fixed order regardless of their position in
+  the input list:
+
+    1. role references (``@role``) — seed with the role's permission set
+    2. legacy aliases (``read``/``write``/``all``) — map to a role
+    3. explicit permissions (``foo.bar``) — added
+    4. additions (``+foo.bar``) — added
+    5. removals (``-foo.bar``) — removed
+
+  The fixed order means ``@admin,-jobs.cancel`` and ``-jobs.cancel,@admin``
+  produce the same result, eliminating a footgun where a misordered users
+  file silently grants more access than expected.
+
+  @type options: list of str
+  @param options: per-user option tokens from the password file
+  @type roles: dict
+  @param roles: mapping from role name to its frozen permission set
+  @type _warned: set or None
+  @param _warned: optional set used to dedupe deprecation warnings across
+                  multiple calls within one file load
+  @rtype: frozenset
+  @return: effective permissions
+
+  """
+  if _warned is None:
+    _warned = set()
+
+  role_tokens = []
+  legacy_tokens = []
+  explicit_tokens = []
+  add_tokens = []
+  remove_tokens = []
+
+  for option in options:
+    if option.startswith("@"):
+      role_tokens.append(option[1:])
+    elif option.startswith("+"):
+      add_tokens.append(option[1:])
+    elif option.startswith("-"):
+      remove_tokens.append(option[1:])
+    elif option in _DEPRECATED_PERM_MAPPING:
+      legacy_tokens.append(option)
+    else:
+      explicit_tokens.append(option)
+
+  permissions = set()
+
+  for role_name in role_tokens:
+    if role_name in roles:
+      permissions.update(roles[role_name])
+    else:
+      logging.warning("Unknown role '@%s' in user options; ignored."
+                      " Known roles: %s",
+                      role_name, ", ".join(sorted(roles)))
+
+  for option in legacy_tokens:
+    role_name = _DEPRECATED_PERM_MAPPING[option]
+    if option not in _warned:
+      logging.warning("Deprecated permission '%s' found and"
+                      " automatically mapped to '@%s'."
+                      " Please update to use roles (@readonly or @admin)"
+                      " instead.", option, role_name)
+      _warned.add(option)
+    if role_name in roles:
+      permissions.update(roles[role_name])
+
+  permissions.update(explicit_tokens)
+  permissions.update(add_tokens)
+  permissions.difference_update(remove_tokens)
+
+  return frozenset(permissions)
+
+
 class PasswordFileUser(object):
   """Data structure for users from password file.
 
   """
-  def __init__(self, name, password, options):
+  def __init__(self, name, password, options, _warned=None):
+    """Initializes the user.
+
+    @type name: str
+    @param name: user name
+    @type password: str
+    @param password: password (cleartext or hashed)
+    @type options: list of str
+    @param options: per-user option tokens (roles, permissions, modifiers)
+    @type _warned: set or None
+    @param _warned: optional set used by L{ParsePasswordFile} to dedupe
+                    deprecation warnings across all users in one load
+
+    """
     self.name = name
     self.password = password
     self.options = options
+
+    self.permissions = _resolve_permissions(options, rapi.RAPI_ROLES,
+                                            _warned=_warned)
+
+  def has_permission(self, permission):
+    """Returns True if the user has the specified permission.
+
+    @type permission: str
+    @param permission: permission string (e.g. "jobs.list")
+    @rtype: bool
+
+    """
+    return permission in self.permissions
 
 
 def ParsePasswordFile(contents):
@@ -315,13 +425,14 @@ def ParsePasswordFile(contents):
 
   """
   users = {}
+  warned = set()
 
   for line in utils.FilterEmptyLinesAndComments(contents):
     parts = line.split(None, 2)
     if len(parts) < 2:
       # Invalid line
-      # TODO: Return line number from FilterEmptyLinesAndComments
-      logging.warning("Ignoring non-comment line with less than two fields")
+      logging.warning("Ignoring non-comment line with less than two fields."
+                      " Line: '%s'", line)
       continue
 
     name = parts[0]
@@ -335,6 +446,6 @@ def ParsePasswordFile(contents):
     else:
       logging.warning("Ignoring values for user '%s': %s", name, parts[3:])
 
-    users[name] = PasswordFileUser(name, password, options)
+    users[name] = PasswordFileUser(name, password, options, _warned=warned)
 
   return users

@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2026 the Ganeti project
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+source @PKGLIBDIR@/net-common
+
+ip link set $INTERFACE up
+
+if [ -z "$IP" ]; then
+    echo "Routed NIC but no IP address specified"
+    exit 1
+fi
+
+# Route traffic targeted at the IP to the interface
+if [ -n "$LINK" ]; then
+    while ip rule del dev $INTERFACE; do :; done
+    ip rule add dev $INTERFACE table $LINK
+    ip route replace $IP table $LINK proto static dev $INTERFACE
+
+else
+    ip route replace $IP proto static dev $INTERFACE
+fi
+
+# Allow routing and arp proxying, or ndp proxying (IPv6)
+if [ -d "/proc/sys/net/ipv4/conf/$INTERFACE" ]; then
+    echo 1 > /proc/sys/net/ipv4/conf/$INTERFACE/proxy_arp
+    echo 1 > /proc/sys/net/ipv4/conf/$INTERFACE/forwarding
+fi
+
+if [ -d "/proc/sys/net/ipv6/conf/$INTERFACE" ]; then
+    echo 1 > /proc/sys/net/ipv6/conf/$INTERFACE/proxy_ndp
+    echo 1 > /proc/sys/net/ipv6/conf/$INTERFACE/forwarding
+fi

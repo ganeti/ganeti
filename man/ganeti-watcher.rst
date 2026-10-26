@@ -10,7 +10,7 @@ Synopsis
 --------
 
 **ganeti-watcher** [\--debug] [\--job-age=*age* ] [\--ignore-pause]
-[\--rapi-ip=*IP*] [\--no-verify-disks]
+[\--rapi-ip=*IP*] [\--no-verify-disks] [\--no-strict]
 
 DESCRIPTION
 -----------
@@ -29,6 +29,11 @@ wants to run it just once.
 
 The ``--debug`` option will increase the verbosity of the watcher
 and also activate logging to the standard error.
+
+The ``--no-strict`` option runs the group verify disks job in a
+non-strict mode. This only verifies those disks whose node locks could
+be acquired in a best-effort attempt and will skip nodes that are
+recognized as busy with other jobs.
 
 The ``--rapi-ip`` option needs to be set if the RAPI daemon was
 started with a particular IP (using the ``-b`` option). The two

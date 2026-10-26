@@ -42,6 +42,7 @@ import Control.Monad
 import Data.Char (toUpper, toLower)
 import Data.Function (on)
 import qualified Data.IntMap as IntMap
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
@@ -251,17 +252,16 @@ printResults False ini_nl fin_nl _ allocs sreason = do
 printFinalHTS :: Bool -> IO ()
 printFinalHTS = printFinal htsPrefix
 
-{-# ANN tieredSpecMap "HLint: ignore Use alternative" #-}
--- | Compute the tiered spec counts from a list of allocated
--- instances.
+-- | Compute the tiered spec counts from a list of allocated instances.
 tieredSpecMap :: [Instance.Instance]
               -> [(RSpec, Int)]
 tieredSpecMap trl_ixes =
   let fin_trl_ixes = reverse trl_ixes
-      ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
-      -- head is "safe" here, as groupBy returns list of non-empty lists
-      spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
-                 ix_byspec
+      ix_byspec = NonEmpty.groupBy ((==) `on` Instance.specOf) fin_trl_ixes
+      spec_map =
+        map
+          (\ixs -> (Instance.specOf $ NonEmpty.head ixs, NonEmpty.length ixs))
+          ix_byspec
   in spec_map
 
 -- | Formats a spec map to strings.

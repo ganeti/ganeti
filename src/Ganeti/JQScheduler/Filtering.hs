@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, NamedFieldPuns, ScopedTypeVariables, RankNTypes,
+{-# LANGUAGE TupleSections, NamedFieldPuns, ScopedTypeVariables, Rank2Types,
              GADTs #-}
 {-| Filtering of jobs for the Ganeti job queue.
 

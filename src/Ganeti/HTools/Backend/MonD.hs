@@ -49,6 +49,7 @@ import qualified Data.List as L
 import qualified Data.IntMap as IntMap
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
+import Data.Monoid (All(All))
 import qualified Data.Set as Set
 import Network.Curl
 import qualified Text.JSON as J

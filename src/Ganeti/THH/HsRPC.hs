@@ -45,7 +45,7 @@ module Ganeti.THH.HsRPC
 
 import Control.Monad
 import Control.Monad.Base
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Fail (MonadFail)
 import Control.Monad.Reader
 import Control.Monad.Trans.Control

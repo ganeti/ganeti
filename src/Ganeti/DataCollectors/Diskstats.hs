@@ -45,7 +45,7 @@ module Ganeti.DataCollectors.Diskstats
   ) where
 
 
-import qualified Control.Exception as E
+import System.IO.Error (tryIOError)
 import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
 import Data.Maybe
@@ -113,7 +113,7 @@ arguments = [ArgCompletion OptComplFile 0 (Just 0)]
 buildJsonReport :: FilePath -> IO J.JSValue
 buildJsonReport inputFile = do
   contents <-
-    ((E.try $ readFile inputFile) :: IO (Either IOError String)) >>=
+    tryIOError (readFile inputFile) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   diskstatsData <-
     case A.parse diskstatsParser $ pack contents of

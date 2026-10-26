@@ -42,7 +42,6 @@ module Test.Ganeti.HTools.Types
   , Types.FailMode(..)
   , Types.ISpec(..)
   , Types.IPolicy(..)
-  , nullIPolicy
   ) where
 
 import Test.QuickCheck hiding (Result)

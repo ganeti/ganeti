@@ -42,6 +42,7 @@
 # No Ganeti-specific modules should be imported. The RAPI client is supposed to
 # be standalone.
 
+import json
 import logging
 import socket
 import threading
@@ -53,7 +54,6 @@ except ImportError:
     from urllib.parse import urlencode
 
 import pycurl
-import simplejson
 
 from io import StringIO, BytesIO
 
@@ -417,7 +417,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
   """
   USER_AGENT = "Ganeti RAPI Client"
-  _json_encoder = simplejson.JSONEncoder(sort_keys=True)
+  _json_encoder = json.JSONEncoder(sort_keys=True)
 
   def __init__(self, host, port=GANETI_RAPI_PORT,
                username=None, password=None, logger=logging,
@@ -596,7 +596,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     # Was anything written to the response buffer?
     if encoded_resp_body.tell():
       encoded_resp_body.seek(0)
-      response_content = simplejson.load(encoded_resp_body)
+      response_content = json.load(encoded_resp_body)
     else:
       response_content = None
 

@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2026 the Ganeti project
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+source @PKGLIBDIR@/net-common
+
+check
+
+# If we are dealing with an instance communication interface, we need to branch
+# out to the kvm-ifup-os script (this is kept for compatibility reasons for now)
+if is_instance_communication_tap && [ -x "${CONF_DIR}/kvm-ifup-os" ]; then
+  exec ${CONF_DIR}/kvm-ifup-os
+fi
+
+
+# This is only a wrapper script which will call the relevant action
+# script for the given network mode.
+#
+# Built-in modes (bridged, routed, openvswitch) check for a user override
+# in ${CONF_DIR}/network/${MODE}/ first, then fall back to the versioned
+# built-in in ${PKGLIBDIR}/network/${MODE}/.
+#
+# The ext mode is fully user-defined: only ${CONF_DIR}/network/ext/ is
+# searched, and a missing script is a hard error.
+if [ "${MODE}" = "ext" ]; then
+  if [ -x "${CONF_DIR}/network/${MODE}/${ACTION}" ]; then
+    exec ${CONF_DIR}/network/${MODE}/${ACTION}
+  else
+    echo "Error: no ${ACTION} script for network type ${MODE}" \
+         "found in ${CONF_DIR}/network/${MODE}/" >&2
+    exit 1
+  fi
+fi
+
+if [ -x "${CONF_DIR}/network/${MODE}/${ACTION}" ]; then
+  exec ${CONF_DIR}/network/${MODE}/${ACTION}
+elif [ -x "${PKGLIBDIR}/network/${MODE}/${ACTION}" ]; then
+  exec ${PKGLIBDIR}/network/${MODE}/${ACTION}
+else
+  echo "Error: no ${ACTION} script for network type ${MODE} found" >&2
+  exit 1
+fi

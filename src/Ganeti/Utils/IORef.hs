@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, Rank2Types #-}
 
 {-| Utility functions for working with IORefs. -}
 

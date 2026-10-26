@@ -43,7 +43,7 @@ import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.Exit
 import System.IO
 import System.FilePath
-import System.Time
+import System.Time (ClockTime, getClockTime)
 
 import Text.Printf (printf)
 
@@ -124,16 +124,15 @@ writeData nlen name opts (Ok cdata) = do
   case fixdata of
     Bad err -> printf "\nError for %s: failed to process data. Details:\n%s\n"
                name err >> return False
-    Ok processed -> writeDataInner nlen name opts cdata processed
+    Ok processed -> writeDataInner nlen name opts processed
 
 -- | Inner function for writing cluster data to disk.
 writeDataInner :: Int
                -> String
                -> Options
                -> ClusterData
-               -> ClusterData
                -> IO Bool
-writeDataInner nlen name opts cdata fixdata = do
+writeDataInner nlen name opts fixdata = do
   let (ClusterData _ nl il _ _) = fixdata
   printf "%-*s " nlen name :: IO ()
   hFlush stdout
@@ -144,7 +143,7 @@ writeDataInner nlen name opts cdata fixdata = do
   hFlush stdout
   when (isJust shownodes) .
        putStr $ Cluster.printNodes nl (fromJust shownodes)
-  writeFile (oname <.> "data") (serializeCluster cdata)
+  writeFile (oname <.> "data") (serializeCluster fixdata)
   return True
 
 -- | Main function.

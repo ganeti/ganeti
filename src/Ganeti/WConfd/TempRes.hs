@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RankNTypes, FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell, Rank2Types, FlexibleContexts #-}
 
 {-| Pure functions for manipulating reservations of temporary objects
 
@@ -74,16 +74,17 @@ module Ganeti.WConfd.TempRes
   ) where
 
 import Control.Lens.At
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
+import Control.Monad (liftM, when, unless, mfilter, forM, forM_, (>=>))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Monoid
+import Data.Monoid (Monoid(mempty, mappend), (<>))
 import qualified Data.Semigroup as Sem
 import qualified Data.Set as S
 import System.Random
@@ -249,7 +250,7 @@ computeDRBDMap cfg trs = do
   let dups = filterNested ((>= 2) . length) m
   unless (M.null dups) . resError
     $ "Duplicate DRBD ports detected: " ++ show (M.toList $ fmap M.toList dups)
-  return $ fmap (fmap head . M.filter ((== 1) . length)) m
+  return $ fmap (M.mapMaybe listToMaybe) m
            `M.union` (fmap (const mempty) . J.fromContainer . configNodes $ cfg)
 
 -- Allocate a drbd minor.

@@ -34,7 +34,9 @@ import re
 
 from optparse import (Option, OptionValueError)
 
-import simplejson
+import json
+import sys
+import textwrap
 
 from ganeti import utils
 from ganeti import errors
@@ -105,8 +107,7 @@ __all__ = [
   "HELPER_SHUTDOWN_TIMEOUT_OPT",
   "HELPER_STARTUP_TIMEOUT_OPT",
   "HID_OS_OPT",
-  "HOTPLUG_IF_POSSIBLE_OPT",
-  "HOTPLUG_OPT",
+  "NOHOTPLUG_OPT",
   "HV_STATE_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
@@ -168,10 +169,13 @@ __all__ = [
   "NODEGROUP_OPT",
   "NODEGROUP_OPT_NAME",
   "NOHDR_OPT",
+  "NOHVPARAMASSESS_OPT",
+  "IPCHECK_OPT",
   "NOIPCHECK_OPT",
+  "NAMECHECK_OPT",
+  "NONAMECHECK_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
   "NOMODIFY_SSH_SETUP_OPT",
-  "NONAMECHECK_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NONPLUS1_OPT",
@@ -474,7 +478,7 @@ def check_json(option, opt, value): # pylint: disable=W0613
   Takes a string containing JSON, returns a Python object.
 
   """
-  return simplejson.loads(value)
+  return json.loads(value)
 
 
 def check_filteraction(option, opt, value): # pylint: disable=W0613
@@ -818,15 +822,33 @@ HVLIST_OPT = cli_option("-H", "--hypervisor-parameters", dest="hvparams",
                         " format hypervisor:option=value,option=value,...",
                         default=[], action="append", type="identkeyval")
 
-NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
-                           action="store_false",
-                           help="Don't check that the instance's IP"
-                           " is alive")
+IPCHECK_OPT = cli_option("--ip-check", dest="ip_check", default=False,
+                           action="store_true",
+                           help="Check that the instance's IP is alive (ping)")
 
-NONAMECHECK_OPT = cli_option("--no-name-check", dest="name_check",
-                             default=True, action="store_false",
-                             help="Don't check that the instance's name"
-                             " is resolvable")
+def WarnDeprecatedOption(option, opt_str, value, parser):
+  """Callback for processing deprecated options.
+
+  """
+  msg = textwrap.fill(option.help, subsequent_indent="    ")
+  print("Warning: %s: %s" % (opt_str, msg), file=sys.stderr)
+
+NOIPCHECK_OPT = cli_option("--no-ip-check",
+                           action="callback", callback=WarnDeprecatedOption,
+                           help="This option is deprecated/without any"
+                           " effect. IP check is now disabled by default."
+                           " Use --ip-check for connection test.")
+
+NAMECHECK_OPT = cli_option("--name-check", dest="name_check",
+                             default=False, action="store_true",
+                             help="Check that the instance's name is"
+                             " resolvable")
+
+NONAMECHECK_OPT = cli_option("--no-name-check",
+                             action="callback", callback=WarnDeprecatedOption,
+                             help="This option is deprecated/without any"
+                             " effect. Name check is now disabled by default."
+                             " Use --name-check for resolving names.")
 
 NET_OPT = cli_option("--net",
                      help="NIC parameters", default=[],
@@ -1187,6 +1209,11 @@ NONPLUS1_OPT = cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
                           help="Skip N+1 memory redundancy tests",
                           action="store_true", default=False)
 
+NOHVPARAMASSESS_OPT = cli_option("--no-hv-param-assessment",
+                                 dest="skip_hvparam_assessment",
+                                 help="Skip hypervisor parameter assessment",
+                                 action="store_true", default=False)
+
 REBOOT_TYPE_OPT = cli_option("-t", "--type", dest="reboot_type",
                              help="Type of reboot: soft/hard/full",
                              default=constants.INSTANCE_REBOOT_HARD,
@@ -1204,7 +1231,7 @@ NOSHUTDOWN_OPT = cli_option("--noshutdown", dest="shutdown",
 
 TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                         help="Maximum time (in minutes) to wait")
+                         help="Maximum time (in seconds) to wait")
 
 COMPRESS_OPT = cli_option("--compress", dest="compress",
                           type="string", default=constants.IEC_NONE,
@@ -1218,7 +1245,7 @@ TRANSPORT_COMPRESSION_OPT = \
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                                   dest="shutdown_timeout", type="int",
                                   default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                                  help="Maximum time (in minutes) to wait for"
+                                  help="Maximum time (in seconds) to wait for"
                                   " instance shutdown")
 
 INTERVAL_OPT = cli_option("--interval", dest="interval", type="int",
@@ -1518,15 +1545,9 @@ INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
                                  default=False, action="store_true",
                                  help="Include default values")
 
-HOTPLUG_OPT = cli_option("--hotplug", dest="hotplug",
-                         action="store_true", default=False,
+NOHOTPLUG_OPT = cli_option("--no-hotplug", dest="hotplug",
+                         action="store_false", default=True,
                          help="Hotplug supported devices (NICs and Disks)")
-
-HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
-                                     dest="hotplug_if_possible",
-                                     action="store_true", default=False,
-                                     help="Hotplug devices in case"
-                                          " hotplug is supported")
 
 INSTALL_IMAGE_OPT = \
     cli_option("--install-image",
@@ -1632,9 +1653,11 @@ COMMON_CREATE_OPTS = [
   NET_OPT,
   NODE_PLACEMENT_OPT,
   NODEGROUP_OPT,
+  IPCHECK_OPT,
   NOIPCHECK_OPT,
-  NOCONFLICTSCHECK_OPT,
+  NAMECHECK_OPT,
   NONAMECHECK_OPT,
+  NOCONFLICTSCHECK_OPT,
   NONICS_OPT,
   NWSYNC_OPT,
   OSPARAMS_OPT,

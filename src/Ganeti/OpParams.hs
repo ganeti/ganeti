@@ -111,7 +111,6 @@ module Ganeti.OpParams
   , pDiskState
   , pIgnoreIpolicy
   , pHotplug
-  , pHotplugIfPossible
   , pAllowRuntimeChgs
   , pInstDisks
   , pDiskTemplate
@@ -305,6 +304,7 @@ module Ganeti.OpParams
   , pNodeSetup
   , pVerifyClutter
   , pLongSleep
+  , pIsStrict
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -593,10 +593,7 @@ pGroupName =
 
 -- | Whether to hotplug device.
 pHotplug :: Field
-pHotplug = defaultFalse "hotplug"
-
-pHotplugIfPossible :: Field
-pHotplugIfPossible = defaultFalse "hotplug_if_possible"
+pHotplug = defaultTrue "hotplug"
 
 pInstances :: Field
 pInstances =
@@ -1128,7 +1125,7 @@ pWaitForSync =
 pNameCheck :: Field
 pNameCheck =
   withDoc "Whether to check name" $
-  defaultTrue "name_check"
+  defaultFalse "name_check"
 
 pInstBeParams :: Field
 pInstBeParams =
@@ -1185,7 +1182,7 @@ pResetDefaults =
 pIpCheck :: Field
 pIpCheck =
   withDoc "Whether to ensure instance's IP address is inactive" $
-  defaultTrue "ip_check"
+  defaultFalse "ip_check"
 
 pIpConflictsCheck :: Field
 pIpConflictsCheck =
@@ -1526,7 +1523,7 @@ pDiskIndex =
 
 pDiskChgAmount :: Field
 pDiskChgAmount =
-  withDoc "Disk amount to add or grow to" .
+  withDoc "Disk amount in MiB to add or grow to" .
   renameField "DiskChgAmount" $ simpleField "amount" [t| NonNegative Int |]
 
 pDiskChgAbsolute :: Field
@@ -1931,3 +1928,9 @@ pLongSleep =
   withDoc "Whether to allow long instance shutdowns during exports" .
   defaultField [| False |] $
   simpleField "long_sleep" [t| Bool |]
+
+pIsStrict :: Field
+pIsStrict =
+  withDoc "Whether the operation is in strict mode or not." .
+  defaultField [| True |] $
+  simpleField "is_strict" [t| Bool |]

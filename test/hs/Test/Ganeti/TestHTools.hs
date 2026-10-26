@@ -35,9 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Test.Ganeti.TestHTools
-  ( nullIPolicy
-  , nullISpec
-  , defGroup
+  (  defGroup
   , defGroupList
   , defGroupAssoc
   , createInstance
@@ -57,50 +55,12 @@ import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as Types
 
--- * Helpers
-
--- | An ISpec with 0 resources.
-nullISpec :: Types.ISpec
-nullISpec = Types.ISpec { Types.iSpecMemorySize = 0
-                        , Types.iSpecCpuCount   = 0
-                        , Types.iSpecDiskSize   = 0
-                        , Types.iSpecDiskCount  = 0
-                        , Types.iSpecNicCount   = 0
-                        , Types.iSpecSpindleUse = 0
-                        }
-
--- | Null iPolicy, and by null we mean very liberal.
-nullIPolicy :: Types.IPolicy
-nullIPolicy = Types.IPolicy
-  { Types.iPolicyMinMaxISpecs = [Types.MinMaxISpecs
-    { Types.minMaxISpecsMinSpec = nullISpec
-    , Types.minMaxISpecsMaxSpec = Types.ISpec
-      { Types.iSpecMemorySize = maxBound
-      , Types.iSpecCpuCount   = maxBound
-      , Types.iSpecDiskSize   = maxBound
-      , Types.iSpecDiskCount  = C.maxDisks
-      , Types.iSpecNicCount   = C.maxNics
-      , Types.iSpecSpindleUse = maxBound
-      }
-    }]
-  , Types.iPolicyStdSpec = Types.ISpec { Types.iSpecMemorySize = Types.unitMem
-                                       , Types.iSpecCpuCount   = Types.unitCpu
-                                       , Types.iSpecDiskSize   = Types.unitDsk
-                                       , Types.iSpecDiskCount  = 1
-                                       , Types.iSpecNicCount   = 1
-                                       , Types.iSpecSpindleUse = 1
-                                       }
-  , Types.iPolicyDiskTemplates = [minBound..maxBound]
-  , Types.iPolicyVcpuRatio = maxVcpuRatio -- somewhat random value, high
-                                          -- enough to not impact us
-  , Types.iPolicySpindleRatio = maxSpindleRatio
-  }
 
 -- | Default group definition.
 defGroup :: Group.Group
 defGroup = flip Group.setIdx 0 $
              Group.create "default" Types.defaultGroupID Types.AllocPreferred
-                  [] nullIPolicy []
+                  [] Types.nullIPolicy []
 
 -- | Default group, as a (singleton) 'Group.List'.
 defGroupList :: Group.List

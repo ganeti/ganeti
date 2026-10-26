@@ -43,7 +43,7 @@ module Ganeti.HTools.Cluster.Evacuate
 
 import Control.Monad.Fail (MonadFail)
 import qualified Data.IntSet as IntSet
-import Data.List (foldl')
+import qualified Data.List as List
 import Data.Maybe (fromJust)
 
 import Ganeti.BasicTypes
@@ -162,7 +162,7 @@ evacOneNodeOnly opts nl il inst gdx avail_nodes = do
              MirrorExternal -> Ok FailoverToAny
   (nl', inst', _, ndx) <- annotateResult "Can't find any good node" .
                           eitherToResult $
-                          foldl' (evacOneNodeInner opts nl inst gdx op_fn)
+                          List.foldl' (evacOneNodeInner opts nl inst gdx op_fn)
                           (Left "") avail_nodes
   let idx = Instance.idx inst
       il' = Container.add idx inst' il
@@ -322,8 +322,9 @@ nodeEvacInstance opts nl il ChangeAll
     (nl', il', ops, _) <-
         annotateResult "Can't find any good nodes for relocation" .
         eitherToResult $
-        foldl'
-        (\accu nodes -> case evacDrbdAllInner opts nl il inst gdx nodes of
+        List.foldl'
+            (\accu nodes ->
+                      case evacDrbdAllInner opts nl il inst gdx nodes of
                           Bad msg ->
                               case accu of
                                 Right _ -> accu
@@ -369,7 +370,8 @@ nodesToEvacuate :: Instance.List -- ^ The cluster-wide instance list
                 -> IntSet.IntSet -- ^ Set of node indices
 nodesToEvacuate il mode =
   IntSet.delete Node.noSecondary .
-  foldl' (\ns idx ->
+  List.foldl'
+      (\ns idx ->
             let i = Container.find idx il
                 pdx = Instance.pNode i
                 sdx = Instance.sNode i
@@ -394,12 +396,13 @@ tryNodeEvac :: AlgorithmOptions
 tryNodeEvac opts _ ini_nl ini_il mode idxs =
   let evac_ndx = nodesToEvacuate ini_il mode idxs
       offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
-      excl_ndx = foldl' (flip IntSet.insert) evac_ndx offline
+      excl_ndx = List.foldl' (flip IntSet.insert) evac_ndx offline
       group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
                                            (Container.elems nl))) $
                   splitCluster ini_nl ini_il
       (fin_nl, fin_il, esol) =
-        foldl' (\state@(nl, il, _) inst ->
+        List.foldl'
+            (\state@(nl, il, _) inst ->
                   let gdx = instancePriGroup nl inst
                       pdx = Instance.pNode inst in
                   updateEvacSolution state (Instance.idx inst) $

@@ -19,6 +19,7 @@ on:
         description: "Which Debian version to use"
         required: true
         default: "bullseye"
+permissions: read-all
 defaults:
   run:
     working-directory: /home/rbott/ganeti-cluster-testing

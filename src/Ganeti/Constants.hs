@@ -50,11 +50,10 @@ import qualified Data.ByteString.Char8 as BC
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
-import Data.Monoid
+import Data.Monoid ((<>))
 
 import qualified AutoConf
-import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
-                             buildVersion)
+import Ganeti.ConstantUtils (FrozenSet, Protocol(..), buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import qualified Ganeti.HTools.Types as Types
 import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
@@ -1408,6 +1407,14 @@ rpcTmo_1day = Types.rpcTimeoutToRaw OneDay
 rpcConnectTimeout :: Int
 rpcConnectTimeout = 5
 
+-- | Maximum number of simultaneous outbound RPC connections from the
+-- master. Limits concurrent TLS handshakes when fanning out to many
+-- nodes, preventing connect timeouts due to CPU and network contention.
+-- Libcurl queues excess connections internally and starts them as
+-- running ones complete.
+rpcMaxConcurrentConnections :: Int
+rpcMaxConcurrentConnections = 30
+
 -- OS
 
 osScriptCreate :: String
@@ -1571,6 +1578,9 @@ vtypeSize = VTypeSize
 vtypeString :: VType
 vtypeString = VTypeString
 
+vtypeIntOrAuto :: VType
+vtypeIntOrAuto = VTypeIntOrAuto
+
 enforceableTypes :: FrozenSet VType
 enforceableTypes = ConstantUtils.mkSet [minBound..]
 
@@ -1615,6 +1625,9 @@ hvBootloaderPath = "bootloader_path"
 
 hvBootOrder :: String
 hvBootOrder = "boot_order"
+
+hvPvhMode :: String
+hvPvhMode = "pvh_mode"
 
 hvCdromImagePath :: String
 hvCdromImagePath = "cdrom_image_path"
@@ -1733,9 +1746,6 @@ hvKvmSpiceUseVdagent = "spice_use_vdagent"
 hvKvmSpiceZlibGlzImgCompr :: String
 hvKvmSpiceZlibGlzImgCompr = "spice_zlib_glz_wan_compression"
 
-hvKvmDebugThreads :: String
-hvKvmDebugThreads = "debug_threads"
-
 hvKvmUseChroot :: String
 hvKvmUseChroot = "use_chroot"
 
@@ -1829,6 +1839,18 @@ hvVhostNet = "vhost_net"
 hvVirtioNetQueues :: String
 hvVirtioNetQueues = "virtio_net_queues"
 
+maxVirtioNetQueues :: Int
+maxVirtioNetQueues = 32
+
+maxVirtioNetQueuesAuto :: Int
+maxVirtioNetQueuesAuto = 8
+
+hvVirtioDiskIothreads :: String
+hvVirtioDiskIothreads = "virtio_disk_iothreads"
+
+maxVirtioDiskIothreads :: Int
+maxVirtioDiskIothreads = 8
+
 hvVifScript :: String
 hvVifScript = "vif_script"
 
@@ -1864,6 +1886,7 @@ hvsParameterTitles =
   Map.fromList
   [(hvAcpi, "ACPI"),
    (hvBootOrder, "Boot_order"),
+   (hvPvhMode, "Pvh_mode"),
    (hvCdromImagePath, "CDROM_image_path"),
    (hvCpuType, "cpu_type"),
    (hvDiskType, "Disk_type"),
@@ -1923,7 +1946,6 @@ hvsParameterTypes = Map.fromList
   , (hvKvmSpiceUseTls,                  VTypeBool)
   , (hvKvmSpiceUseVdagent,              VTypeBool)
   , (hvKvmSpiceZlibGlzImgCompr,         VTypeString)
-  , (hvKvmDebugThreads,                 VTypeBool)
   , (hvKvmUseChroot,                    VTypeBool)
   , (hvKvmUserShutdown,                 VTypeBool)
   , (hvLxcDevices,                      VTypeString)
@@ -1954,7 +1976,8 @@ hvsParameterTypes = Map.fromList
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
-  , (hvVirtioNetQueues,                 VTypeInt)
+  , (hvVirtioNetQueues,                 VTypeIntOrAuto)
+  , (hvVirtioDiskIothreads,             VTypeInt)
   , (hvVifScript,                       VTypeString)
   , (hvVifType,                         VTypeString)
   , (hvViridian,                        VTypeBool)
@@ -1965,6 +1988,7 @@ hvsParameterTypes = Map.fromList
   , (hvVncX509Verify,                   VTypeBool)
   , (hvVnetHdr,                         VTypeBool)
   , (hvXenCpuid,                        VTypeString)
+  , (hvPvhMode, 						VTypeBool)
   ]
 
 -- * Migration statuses
@@ -2304,6 +2328,12 @@ ldpPlanAhead = "c-plan-ahead"
 ldpPool :: String
 ldpPool = "pool"
 
+ldpUserId :: String
+ldpUserId = "user-id"
+
+ldpNamespace :: String
+ldpNamespace = "namespace"
+
 ldpProtocol :: String
 ldpProtocol = "protocol"
 
@@ -2331,7 +2361,9 @@ diskLdTypes =
    (ldpDelayTarget, VTypeInt),
    (ldpMaxRate, VTypeInt),
    (ldpMinRate, VTypeInt),
-   (ldpPool, VTypeString)]
+   (ldpPool, VTypeString),
+   (ldpUserId, VTypeString),
+   (ldpNamespace, VTypeString)]
 
 diskLdParameters :: FrozenSet String
 diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
@@ -2395,6 +2427,12 @@ rbdAccess = "access"
 rbdPool :: String
 rbdPool = "pool"
 
+rbdUserId :: String
+rbdUserId = "user-id"
+
+rbdNamespace :: String
+rbdNamespace = "namespace"
+
 diskDtTypes :: Map String VType
 diskDtTypes =
   Map.fromList [(drbdResyncRate, VTypeInt),
@@ -2415,6 +2453,8 @@ diskDtTypes =
                 (lvStripes, VTypeInt),
                 (rbdAccess, VTypeString),
                 (rbdPool, VTypeString),
+                (rbdUserId, VTypeString),
+                (rbdNamespace, VTypeString),
                 (glusterHost, VTypeString),
                 (glusterVolume, VTypeString),
                 (glusterPort, VTypeInt)
@@ -2490,6 +2530,14 @@ oobStatuses = ConstantUtils.mkSet $ map Types.oobStatusToRaw [minBound..]
 ppDefault :: String
 ppDefault = "default"
 
+-- * nicAction* constants are used as script names
+
+nicActionUp :: String
+nicActionUp = "up"
+
+nicActionDown :: String
+nicActionDown = "down"
+
 -- * nic* constants are used inside the ganeti config
 
 nicLink :: String
@@ -2521,6 +2569,9 @@ nicModeOvs = Types.nICModeToRaw NMOvs
 
 nicIpPool :: String
 nicIpPool = Types.nICModeToRaw NMPool
+
+nicModeExt :: String
+nicModeExt = Types.nICModeToRaw NMExt
 
 nicValidModes :: FrozenSet String
 nicValidModes = ConstantUtils.mkSet $ map Types.nICModeToRaw [minBound..]
@@ -2797,11 +2848,15 @@ htScsiControllerVirtio = "virtio-scsi-pci"
 htScsiControllerMegasas :: String
 htScsiControllerMegasas = "megasas"
 
+htScsiControllerTekram :: String
+htScsiControllerTekram = "dc390"
+
 htKvmValidScsiControllerTypes :: FrozenSet String
 htKvmValidScsiControllerTypes =
   ConstantUtils.mkSet [htScsiControllerLsi,
                        htScsiControllerVirtio,
-                       htScsiControllerMegasas]
+                       htScsiControllerMegasas,
+                       htScsiControllerTekram]
 
 htCacheDefault :: String
 htCacheDefault = "default"
@@ -2822,9 +2877,6 @@ htValidCacheTypes =
                        htCacheWback,
                        htCacheWthrough]
 
-htDiscardDefault :: String
-htDiscardDefault = "default"
-
 htDiscardIgnore :: String
 htDiscardIgnore = "ignore"
 
@@ -2833,8 +2885,7 @@ htDiscardUnmap = "unmap"
 
 htValidDiscardTypes :: FrozenSet String
 htValidDiscardTypes =
-  ConstantUtils.mkSet [htDiscardDefault,
-                       htDiscardIgnore,
+  ConstantUtils.mkSet [htDiscardIgnore,
                        htDiscardUnmap]
 
 htKvmAioThreads :: String
@@ -2843,10 +2894,14 @@ htKvmAioThreads = "threads"
 htKvmAioNative :: String
 htKvmAioNative = "native"
 
+htKvmAioIoUring :: String
+htKvmAioIoUring = "io_uring"
+
 htKvmValidAioTypes :: FrozenSet String
 htKvmValidAioTypes =
   ConstantUtils.mkSet [htKvmAioThreads,
-                       htKvmAioNative]
+                       htKvmAioNative,
+                       htKvmAioIoUring]
 
 -- * Mouse types
 
@@ -2979,6 +3034,10 @@ htMigrationModes =
 
 verifyNplusoneMem :: String
 verifyNplusoneMem = Types.verifyOptionalChecksToRaw VerifyNPlusOneMem
+
+verifyHvparamAssessment:: String
+verifyHvparamAssessment =
+  Types.verifyOptionalChecksToRaw VerifyHVParamAssessment
 
 verifyOptionalChecks :: FrozenSet String
 verifyOptionalChecks =
@@ -4055,6 +4114,7 @@ hvcDefaults =
              , (hvVifScript,      PyValueEx "")
              , (hvXenCpuid,       PyValueEx "")
              , (hvSoundhw,        PyValueEx "")
+			 , (hvPvhMode,  	  PyValueEx False)
              ])
   , (XenHvm, Map.fromList
              [ (hvBootOrder,      PyValueEx "cd")
@@ -4108,7 +4168,6 @@ hvcDefaults =
           , (hvKvmSpiceUseTls,                  PyValueEx False)
           , (hvKvmSpiceTlsCiphers,              PyValueEx opensslCiphers)
           , (hvKvmSpiceUseVdagent,              PyValueEx True)
-          , (hvKvmDebugThreads,                 PyValueEx False)
           , (hvKvmFloppyImagePath,              PyValueEx "")
           , (hvCdromImagePath,                  PyValueEx "")
           , (hvKvmCdrom2ImagePath,              PyValueEx "")
@@ -4126,12 +4185,13 @@ hvcDefaults =
           , (hvUseGuestAgent,                   PyValueEx False)
           , (hvUseLocaltime,                    PyValueEx False)
           , (hvDiskCache,                       PyValueEx htCacheDefault)
-          , (hvDiskDiscard,                     PyValueEx htDiscardDefault)
+          , (hvDiskDiscard,                     PyValueEx htDiscardIgnore)
           , (hvSecurityModel,                   PyValueEx htSmNone)
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
           , (hvVhostNet,                        PyValueEx True)
           , (hvVirtioNetQueues,                 PyValueEx (1 :: Int))
+          , (hvVirtioDiskIothreads,             PyValueEx (1 :: Int))
           , (hvKvmUseChroot,                    PyValueEx False)
           , (hvKvmUserShutdown,                 PyValueEx False)
           , (hvMemPath,                         PyValueEx "")
@@ -4228,6 +4288,12 @@ defaultPlanAhead = 20
 defaultRbdPool :: String
 defaultRbdPool = "rbd"
 
+defaultRbdUserId :: String
+defaultRbdUserId = ""
+
+defaultRbdNamespace :: String
+defaultRbdNamespace = ""
+
 diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
 diskLdDefaults =
   Map.fromList
@@ -4255,6 +4321,8 @@ diskLdDefaults =
   , (DTRbd, Map.fromList
             [ (ldpPool, PyValueEx defaultRbdPool)
             , (ldpAccess, PyValueEx diskKernelspace)
+            , (ldpUserId, PyValueEx defaultRbdUserId)
+            , (ldpNamespace, PyValueEx defaultRbdNamespace)
             ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
@@ -4295,6 +4363,8 @@ diskDtDefaults =
   , (DTRbd,        Map.fromList
                    [ (rbdPool, PyValueEx defaultRbdPool)
                    , (rbdAccess, PyValueEx diskKernelspace)
+                   , (rbdUserId, PyValueEx defaultRbdUserId)
+                   , (rbdNamespace, PyValueEx defaultRbdNamespace)
                    ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList

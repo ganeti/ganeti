@@ -41,9 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Server where
 
 import Control.Concurrent (forkIO)
-import Control.Exception
+import Control.Exception (finally)
 import Control.Monad
-import Control.Monad.Error
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C

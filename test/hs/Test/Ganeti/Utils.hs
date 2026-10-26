@@ -1,5 +1,4 @@
 {-# LANGUAGE TemplateHaskell, CPP, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
 
@@ -42,14 +41,13 @@ import Test.HUnit
 
 import Data.Char (isSpace)
 import qualified Data.Either as Either
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty((:|)), nonEmpty)
 import Data.List
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
-import System.Time
 import qualified Text.JSON as J
-#ifdef VERSION_regex_pcre
-import Text.Regex.PCRE
-#endif
+import Ganeti.Query.RegEx ((=~))
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
@@ -57,7 +55,7 @@ import Test.Ganeti.TestCommon
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as JSON
-import Ganeti.Utils
+import Ganeti.Utils as Utils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -67,6 +65,9 @@ genNonCommaString :: Gen String
 genNonCommaString = do
   size <- choose (0, 20) -- arbitrary max size
   vectorOf size (arbitrary `suchThat` (/=) ',')
+
+genNonEmpty :: (Arbitrary a) => Gen (NonEmpty a)
+genNonEmpty = fmap (uncurry (:|)) arbitrary
 
 -- | If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idempotent.
@@ -122,30 +123,32 @@ prop_select def lst1 lst2 =
           flist = zip (repeat False) lst1
           tlist = zip (repeat True)  lst2
 
-{-# ANN prop_select_undefd "HLint: ignore Use alternative" #-}
 -- | Test basic select functionality with undefined default
-prop_select_undefd :: [Int]            -- ^ List of False values
-                   -> NonEmptyList Int -- ^ List of True values
+prop_select_undefd_plain
+                   :: [Int]            -- ^ List of False values
+                   -> NonEmpty Int     -- ^ List of True values
                    -> Property         -- ^ Test result
-prop_select_undefd lst1 (NonEmpty lst2) =
-  -- head is fine as NonEmpty "guarantees" a non-empty list, but not
-  -- via types
-  select undefined (flist ++ tlist) ==? head lst2
+prop_select_undefd_plain lst1 lst2 =
+  select undefined (flist ++ tlist) ==? NonEmpty.head lst2
     where flist = zip (repeat False) lst1
-          tlist = zip (repeat True)  lst2
+          tlist = zip (repeat True)  (NonEmpty.toList lst2)
 
-{-# ANN prop_select_undefv "HLint: ignore Use alternative" #-}
+prop_select_undefd :: [Int] -> Property
+prop_select_undefd lst1 = forAll genNonEmpty $ prop_select_undefd_plain lst1
+
 -- | Test basic select functionality with undefined list values
-prop_select_undefv :: [Int]            -- ^ List of False values
-                   -> NonEmptyList Int -- ^ List of True values
+prop_select_undefv_plain
+                   :: [Int]            -- ^ List of False values
+                   -> NonEmpty Int     -- ^ List of True values
                    -> Property         -- ^ Test result
-prop_select_undefv lst1 (NonEmpty lst2) =
-  -- head is fine as NonEmpty "guarantees" a non-empty list, but not
-  -- via types
-  select undefined cndlist ==? head lst2
+prop_select_undefv_plain lst1 lst2 =
+  select undefined cndlist ==? NonEmpty.head lst2
     where flist = zip (repeat False) lst1
-          tlist = zip (repeat True)  lst2
+          tlist = zip (repeat True)  (NonEmpty.toList lst2)
           cndlist = flist ++ tlist ++ [undefined]
+
+prop_select_undefv :: [Int] -> Property
+prop_select_undefv lst1 = forAll genNonEmpty $ prop_select_undefv_plain lst1
 
 prop_parseUnit :: NonNegative Int -> Property
 prop_parseUnit (NonNegative n) =
@@ -252,9 +255,9 @@ prop_rStripSpace :: NonEmptyList Char -> Property
 prop_rStripSpace (NonEmpty str) =
   forAll (resize 50 $ listOf1 (arbitrary `suchThat` isSpace)) $ \whitespace ->
   conjoin [ counterexample "arb. string last char is not space" $
-              case rStripSpace str of
-                [] -> True
-                xs -> not . isSpace $ last xs
+              case nonEmpty $ rStripSpace str of
+                Nothing -> True
+                Just xs -> not . isSpace $ NonEmpty.last xs
           , counterexample "whitespace suffix is stripped" $
               rStripSpace str ==? rStripSpace (str ++ whitespace)
           , counterexample "whitespace reduced to null" $
@@ -269,7 +272,6 @@ case_new_uuid = do
   uuid <- newUUID
   assertBool "newUUID" $ isUUID uuid
 
-#ifdef VERSION_regex_pcre
 {-# ANN case_new_uuid_regex "HLint: ignore Use camelCase" #-}
 
 -- | Tests that the newUUID function produces valid UUIDs.
@@ -277,22 +279,7 @@ case_new_uuid_regex :: Assertion
 case_new_uuid_regex = do
   uuid <- newUUID
   assertBool "newUUID" $ uuid =~ C.uuidRegex
-#endif
 
-prop_clockTimeToString :: Integer -> Integer -> Property
-prop_clockTimeToString ts pico =
-  clockTimeToString (TOD ts pico) ==? show ts
-
-instance Arbitrary ClockTime where
-  arbitrary = TOD <$> choose (946681200, 2082754800) <*> choose (0, 99999999999)
-
--- | Verify our work-around for ghc bug #2519. Taking `diffClockTimes` form
--- `System.Time`, this test fails with an exception.
-prop_timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
-prop_timediffAdd a b c =
-  let fwd = Ganeti.Utils.diffClockTimes a b
-      back = Ganeti.Utils.diffClockTimes b a
-  in addToClockTime fwd (addToClockTime back c) ==? c
 
 -- | Test normal operation for 'chompPrefix'.
 --
@@ -336,9 +323,12 @@ prop_trim (NonEmpty str) =
   forAll (choose (0, length whitespace)) $ \n ->
   let (preWS, postWS) = splitAt n whitespace in
   conjoin [ counterexample "arb. string first and last char are not space" $
-              case trim str of
-                [] -> True
-                xs -> (not . isSpace . head) xs && (not . isSpace . last) xs
+              case nonEmpty $ trim str of
+                Nothing -> True
+                Just xs ->
+                    (not . isSpace . NonEmpty.head) xs
+                    &&
+                    (not . isSpace . NonEmpty.last) xs
           , counterexample "whitespace is striped" $
               trim str ==? trim (preWS ++ str ++ postWS)
           , counterexample "whitespace reduced to null" $
@@ -388,11 +378,7 @@ testSuite "Utils"
             , 'prop_rStripSpace
             , 'prop_trim
             , 'case_new_uuid
-#ifdef VERSION_regex_pcre
             , 'case_new_uuid_regex
-#endif
-            , 'prop_clockTimeToString
-            , 'prop_timediffAdd
             , 'prop_chompPrefix_normal
             , 'prop_chompPrefix_last
             , 'prop_chompPrefix_empty_string

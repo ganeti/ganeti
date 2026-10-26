@@ -22,8 +22,8 @@ Users and passwords
 -------------------
 
 ``ganeti-rapi`` reads users and passwords from a file (usually
-``/var/lib/ganeti/rapi/users``) on startup. Changes to the file will be
-read automatically.
+``/var/lib/ganeti/rapi/users``) on startup. Send a SIGHUP signal to the
+``ganeti-rapi`` process to trigger a reload of the users file.
 
 Lines starting with the hash sign (``#``) are treated as comments. Each
 line consists of two or three fields separated by whitespace. The first
@@ -43,53 +43,65 @@ Options control a user's access permissions. The section
 :ref:`rapi-access-permissions` lists the permissions required for each
 resource. If the ``--require-authentication`` command line option is
 given to the ``ganeti-rapi`` daemon, all requests require
-authentication. Available options:
+authentication.
 
-.. pyassert::
+Permissions can be specified in three formats:
 
-  rapi.RAPI_ACCESS_ALL == set([
-    rapi.RAPI_ACCESS_WRITE,
-    rapi.RAPI_ACCESS_READ,
-    ])
+Role-based access
+  Use ``@rolename`` to assign a predefined role. Available roles:
 
-.. pyassert::
+  ``@admin``
+    Full access to all RAPI resources (all permissions).
+  ``@readonly``
+    Read-only access to query information (e.g. ``jobs.list``,
+    ``instances.query``, ``nodes.list``, ``cluster.info``, etc.).
+  ``@operator``
+    Everything in ``@readonly`` plus instance operations that do not
+    change instance configuration: start/shutdown/reboot, migrate and
+    fail-over, replace disks, prepare/create/remove exports, and
+    console access. Cannot create, modify, remove or rename instances,
+    and cannot change cluster, node, network or group configuration.
 
-  rlib2.R_2_nodes_name_storage.GET_ACCESS == [rapi.RAPI_ACCESS_WRITE]
+Explicit permissions
+  Specify individual permissions separated by commas, e.g.
+  ``jobs.list,instances.create,nodes.query``. See
+  :ref:`rapi-access-permissions` for the full list of available
+  permissions.
 
-.. pyassert::
+Role with modifications
+  Start with a role and add/remove specific permissions using ``+`` and
+  ``-`` prefixes, e.g. ``@admin,-instances.remove`` (admin without
+  instance deletion) or ``@readonly,+jobs.cancel`` (readonly plus job
+  cancellation).
 
-  rlib2.R_2_jobs_id_wait.GET_ACCESS == [rapi.RAPI_ACCESS_WRITE]
+Order of tokens within a single options field does not affect the
+resulting permission set: ``@admin,-instances.remove`` and
+``-instances.remove,@admin`` produce the same permissions.
 
-:pyeval:`rapi.RAPI_ACCESS_WRITE`
-  Enables the user to execute operations modifying the cluster. Implies
-  :pyeval:`rapi.RAPI_ACCESS_READ` access. Resources blocking other
-  operations for read-only access, such as
-  :ref:`/2/nodes/[node_name]/storage <rapi-res-nodes-node_name-storage+get>`
-  or blocking server-side processes, such as
-  :ref:`/2/jobs/[job_id]/wait <rapi-res-jobs-job_id-wait+get>`, use
-  :pyeval:`rapi.RAPI_ACCESS_WRITE` to control access to their
-  :pyeval:`http.HTTP_GET` method.
-:pyeval:`rapi.RAPI_ACCESS_READ`
-  Allow access to operations querying for information.
+For backward compatibility, the legacy options ``read``, ``write`` and
+``all`` are still accepted and map to ``@readonly``, ``@admin`` and
+``@admin`` respectively. A deprecation warning is logged once per
+users file load; please migrate to roles or explicit permissions.
 
 Example::
 
-  # Give Jack and Fred read-only access
-  jack abc123
-  fred {cleartext}foo555
+  # Admin with full access (role-based)
+  admin_user {HA1}7046452df2cbb530877058712cf17bd4 @admin
 
-  # Give write access to an imaginary instance creation script
-  autocreator xyz789 write
+  # Read-only access for monitoring (role-based)
+  monitoring {cleartext}foo555 @readonly
 
-  # Hashed password for Jessica
-  jessica {HA1}7046452df2cbb530877058712cf17bd4 write
+  # Operator can start/stop/reboot instances but not modify config
+  on_call {HA1}7046452df2cbb530877058712cf17bd4 @operator
 
-  # Monitoring can query for values
-  monitoring {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read
+  # Explicit permissions for a specific use case
+  vm_creator {HA1}7046452df2cbb530877058712cf17bd4 instances.create,instances.list
 
-  # A user who can read and write (the former is implied by granting
-  # write access)
-  superuser {HA1}ec018ffe72b8e75bb4d508ed5b6d079c read,write
+  # Admin without permission to remove instances
+  restricted_admin {HA1}ec018ffe72b8e75bb4d508ed5b6d079c @admin,-instances.remove
+
+  # Read-only with additional permission to cancel jobs
+  monitoring_plus {HA1}7046452df2cbb530877058712cf17bd4 @readonly,+jobs.cancel
 
 When using the RAPI, username and password can be sent to the server
 by using the standard HTTP basic access authentication. This means that
@@ -1389,6 +1401,9 @@ instance even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
 
+.. opcode_params:: OP_INSTANCE_REBOOT
+   :exclude: instance_name, dry_run
+
 Job result:
 
 .. opcode_result:: OP_INSTANCE_REBOOT
@@ -1635,7 +1650,7 @@ Job result:
 ``/2/instances/[instance_name]/export``
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-Exports an instance.
+Manages exports.
 
 .. rapi_resource_details:: /2/instances/[instance_name]/export
 
@@ -1644,6 +1659,8 @@ Exports an instance.
 
 ``PUT``
 ~~~~~~~
+
+Create an export of an instance.
 
 Returns a job ID.
 
@@ -1656,6 +1673,25 @@ Body parameters:
 Job result:
 
 .. opcode_result:: OP_BACKUP_EXPORT
+
+
+.. _rapi-res-instances-instance_name-export+delete:
+
+``DELETE``
+~~~~~~~~~~
+
+Delete an export.
+
+Returns: Id of created job
+
+Body parameters:
+
+.. opcode_params:: OP_BACKUP_REMOVE
+   :exclude: instance_name
+
+Job result:
+
+.. opcode_result:: OP_BACKUP_REMOVE
 
 
 .. _rapi-res-instances-instance_name-migrate:
@@ -2422,8 +2458,8 @@ It supports the ``dry-run`` argument.
 
 Requests resource information. Available fields can be found in man
 pages and using ``/2/query/[resource]/fields``. The resource is one of
-:pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the :doc:`query2
-design document <design-query2>` for more details.
+:pyeval:`utils.CommaJoin(sorted(constants.QR_VIA_RAPI))`. See the
+:doc:`query2 design document <design-query2>` for more details.
 
 .. rapi_resource_details:: /2/query/[resource]
 
@@ -2456,7 +2492,7 @@ operators.
 ++++++++++++++++++++++++++++++
 
 Request list of available fields for a resource. The resource is one of
-:pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the
+:pyeval:`utils.CommaJoin(sorted(constants.QR_VIA_RAPI))`. See the
 :doc:`query2 design document <design-query2>` for more details.
 
 .. rapi_resource_details:: /2/query/[resource]/fields
@@ -2495,6 +2531,39 @@ operation for Ganeti 2.0, it is not recommended to execute it too often.
 Example::
 
     ["debian-etch"]
+
+
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about the os-interfaces
+as a list.
+
+Example::
+
+    [
+      {
+        "name": "instance-guestfish",
+        "valid": true,
+        "variants": [
+          "debian-bookworm",
+          "debian-bullseye",
+          "debian-buster"
+        ],
+        "parameters": [
+          {
+            "name": "root_pw_hash",
+            "description": "Hash of the root password"
+          },
+          {
+            "name": "root_ssh_auth_key",
+            "description": "SSH public key for root login"
+          }
+        ],
+        "api_versions": [20],
+        "blacklisted": false,
+        "hidden": false,
+        "trusted": true
+      }
+    ]
 
 
 .. _rapi-res-tags:

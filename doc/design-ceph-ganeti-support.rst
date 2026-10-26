@@ -65,10 +65,9 @@ This approach ensures that no disk template specific changes are
 required in hv_kvm.py allowing easy integration of other distributed
 storage systems (like Gluster).
 
-Note that the RBD volume is mapped as a local block device as before.
-The local mapping won't be used during instance operation in the
-``userspace`` access mode, but can be used by administrators and OS
-scripts.
+Note that the RBD volume is not mapped as a local block device as before
+in the ``userspace`` access mode. Administrators and OS scripts should
+adopt using userspace URIs only.
 
 Updated commands
 ----------------
@@ -76,7 +75,21 @@ Updated commands
   $ gnt-instance info
 
 ``access:userspace/kernelspace`` will be added to Disks category. This
-output applies to KVM based instances only.
+output applies to KVM based instances only::
+
+  $ gnt-cluster modify -D rbd:user-id=foobar
+
+The user id for ceph authentication is an optional setting. If it is not
+provided, then no special option is passed to ceph. If it is provided,
+then all ceph commands are run with the ``--id`` option and the
+configured username.::
+
+  $ gnt-cluster modify -D rbd:namespace=foobar
+
+The namespace for RBD is an optional setting. If it is not provided, the
+default/empty namespace is used. If it is provided, then all ceph
+commands are run with the ``--namespace`` option and the configured
+namespace.
 
 Ceph configuration on Ganeti nodes
 ==================================
@@ -124,17 +137,17 @@ appropriate services on the newly assigned node.
 Updated Commands
 ----------------
 
-Following are the affected commands.::
+Following are the affected commands::
 
   $ gnt-cluster init -S ceph:disk=/dev/sdb,option=value...
 
 During cluster initialization, ceph specific options are provided which
-apply at cluster-level.::
+apply at cluster-level::
 
   $ gnt-cluster modify -S ceph:option=value2...
 
 For now, cluster modification will be allowed when there is no
-initialized storage cluster.::
+initialized storage cluster::
 
   $ gnt-storage init-distributed-storage -s{--storage-type} ceph \
     <node-group>
@@ -142,18 +155,18 @@ initialized storage cluster.::
 Ensure that no other node-group is configured as distributed storage
 cluster and configure ceph on the specified node-group. If there is no
 node in the node-group, it'll only be marked as distributed storage
-enabled and no action will be taken.::
+enabled and no action will be taken::
 
   $ gnt-group assign-nodes <group> <node>
 
 It ensures that the node is offline if the node-group specified is
 distributed storage capable. Ceph configuration on the newly assigned
-node is not performed at this step.::
+node is not performed at this step::
 
   $ gnt-node --offline
 
 If the node is part of storage node-group, an offline call will stop/remove
-ceph daemons.::
+ceph daemons::
 
   $ gnt-node add --readd
 

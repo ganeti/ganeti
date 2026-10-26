@@ -183,7 +183,7 @@ def _CreateRapiUser(rapi_user):
 
   fh = tempfile.NamedTemporaryFile(mode="w")
   try:
-    fh.write("%s %s write\n" % (rapi_user, rapi_secret))
+    fh.write("%s %s @admin\n" % (rapi_user, rapi_secret))
     fh.flush()
 
     tmpru = qa_utils.UploadFile(master.primary, fh.name)
@@ -199,6 +199,92 @@ def _CreateRapiUser(rapi_user):
   AssertCommand(["service", "ganeti", "restart"])
 
   return rapi_secret
+
+
+def _UploadRapiUsersFile(content):
+  """Replaces the RAPI users file on the master with C{content}.
+
+  @type content: str
+  @param content: full file content to write
+
+  """
+  master = qa_config.GetMasterNode()
+  rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
+  rapi_dir = os.path.dirname(rapi_users_path)
+
+  fh = tempfile.NamedTemporaryFile(mode="w")
+  try:
+    fh.write(content)
+    fh.flush()
+    tmpru = qa_utils.UploadFile(master.primary, fh.name)
+    try:
+      AssertCommand(["mkdir", "-p", rapi_dir])
+      AssertCommand(["mv", tmpru, rapi_users_path])
+    finally:
+      AssertCommand(["rm", "-f", tmpru])
+  finally:
+    fh.close()
+
+
+def _ReloadRapiUsers():
+  """Sends SIGHUP to the RAPI daemon to reload the users file in place.
+
+  """
+  pidfile = utils.PathJoin(pathutils.RUN_DIR, f"{constants.RAPI}.pid")
+  AssertCommand(f"kill -HUP $(cat {utils.ShellQuote(pidfile)})")
+
+
+def _AddRapiUsers(extra_users):
+  """Appends extra users to the RAPI users file and SIGHUP-reloads.
+
+  @type extra_users: list of tuple
+  @param extra_users: list of C{(username, password, options)} triples
+    where C{options} is a string such as C{"@readonly"} or
+    C{"@operator,+jobs.cancel"}
+  @rtype: str
+  @return: the original file content; pass to L{_RestoreRapiUsersFile}
+    to revert all changes
+
+  """
+  master = qa_config.GetMasterNode()
+  rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
+
+  original = qa_utils.GetCommandOutput(
+    master.primary, utils.ShellQuoteArgs(["cat", rapi_users_path]))
+
+  # GetCommandOutput may drop a trailing newline; make sure the appended
+  # lines start on a fresh line.
+  separator = "" if not original or original.endswith("\n") else "\n"
+  appended = "".join(f"{u} {p} {o}\n" for (u, p, o) in extra_users)
+  _UploadRapiUsersFile(original + separator + appended)
+  _ReloadRapiUsers()
+  return original
+
+
+def _RestoreRapiUsersFile(original_content):
+  """Restores the RAPI users file from a snapshot taken by L{_AddRapiUsers}.
+
+  """
+  _UploadRapiUsersFile(original_content)
+  _ReloadRapiUsers()
+
+
+def _BuildRapiClient(username, password):
+  """Constructs a L{GanetiRapiClient} for the given credentials.
+
+  Reuses the CA file already loaded by L{ReloadCertificates}.
+
+  @type username: str
+  @type password: str
+  @rtype: L{rapi.client.GanetiRapiClient}
+
+  """
+  master = qa_config.GetMasterNode()
+  port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
+  cfg_curl = rapi.client.GenericCurlConfig(cafile=_rapi_ca.name, proxy="")
+  return rapi.client.GanetiRapiClient(master.primary, port=port,
+                                      username=username, password=password,
+                                      curl_config_fn=cfg_curl)
 
 
 def _LookupRapiSecret(rapi_user):
@@ -529,6 +615,98 @@ def TestEmptyCluster():
   _DoGetPutTests("/2/info", "/2/modify", opcodes.OpClusterSetParams.OP_PARAMS,
                  exceptions=(LEGITIMATELY_MISSING + NOT_EXPOSED_YET),
                  set_exceptions=DEFAULT_ISSUES + FORBIDDEN_PARAMS)
+
+
+def _AssertRapiCode(client, method, uri, body, expected_code):
+  """Send a request and assert that it fails with C{expected_code}.
+
+  """
+  # pylint: disable=W0212
+  try:
+    client._SendRequest(method, uri, None, body)
+  except rapi.client.GanetiApiError as err:
+    AssertEqual(err.code, expected_code)
+    return
+  raise qa_error.Error(f"Expected HTTP {expected_code} for {method} {uri},"
+                       " got success")
+
+
+def _AssertAuthPasses(client, method, uri, body):
+  """Send a request and assert that authentication/authorization succeeded.
+
+  Any HTTP status other than 401/403 is acceptable: the goal is to prove
+  that the user was authorized, not that the underlying handler succeeded.
+
+  """
+  # pylint: disable=W0212
+  try:
+    client._SendRequest(method, uri, None, body)
+  except rapi.client.GanetiApiError as err:
+    if err.code in (401, 403):
+      raise qa_error.Error(f"Expected auth pass for {method} {uri},"
+                           f" got HTTP {err.code}")
+
+
+def TestRapiUserPermissions():
+  """Verify the role-based access control enforces correctly.
+
+  Adds temporary @readonly and @operator users via SIGHUP reload, then
+  asserts:
+
+    - @readonly cannot perform modifications (403 on write endpoints)
+    - @operator cannot reconfigure cluster (403 on /2/modify)
+    - @operator IS allowed to call instance lifecycle endpoints
+      (a non-existent target name yields 404 from the handler, proving
+      authorization passed)
+    - both can call /2/info (granted by @readonly)
+    - wrong password / unknown user => 401
+
+  Restores the original users file at the end regardless of outcome.
+
+  """
+  if _rapi_ca is None:
+    # Virtual cluster: ReloadCertificates() never set things up
+    return
+
+  ro_user = "qa-rbac-readonly"
+  ro_pass = utils.GenerateSecret()
+  op_user = "qa-rbac-operator"
+  op_pass = utils.GenerateSecret()
+
+  original = _AddRapiUsers([
+    (ro_user, ro_pass, "@readonly"),
+    (op_user, op_pass, "@operator"),
+    ])
+  try:
+    ro_client = _BuildRapiClient(ro_user, ro_pass)
+    op_client = _BuildRapiClient(op_user, op_pass)
+
+    # Both roles can read cluster info.
+    ro_client.GetInfo()
+    op_client.GetInfo()
+
+    # @readonly: every modification endpoint returns 403.
+    _AssertRapiCode(ro_client, "PUT", "/2/redistribute-config", None, 403)
+    _AssertRapiCode(ro_client, "PUT", "/2/modify", {}, 403)
+    _AssertRapiCode(ro_client, "POST", "/2/groups",
+                    {"group_name": "qa-rbac-fake"}, 403)
+
+    # @operator: cluster reconfiguration is forbidden ...
+    _AssertRapiCode(op_client, "PUT", "/2/redistribute-config", None, 403)
+    _AssertRapiCode(op_client, "PUT", "/2/modify", {}, 403)
+
+    # ... but instance lifecycle is permitted: targeting a nonexistent
+    # instance gets past the auth layer and hits the resource handler.
+    _AssertAuthPasses(op_client, "PUT",
+                      "/2/instances/qa-rbac-nonexistent/shutdown", {})
+
+    # Wrong password and unknown users both get 401.
+    _AssertRapiCode(_BuildRapiClient(ro_user, "wrongpassword"),
+                    "GET", "/2/info", None, 401)
+    _AssertRapiCode(_BuildRapiClient("qa-rbac-no-such-user", "anything"),
+                    "GET", "/2/info", None, 401)
+  finally:
+    _RestoreRapiUsersFile(original)
 
 
 def TestRapiQuery():

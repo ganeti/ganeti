@@ -86,7 +86,6 @@ module Ganeti.JQueue
 import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Exception
 import Control.Lens (over)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
@@ -101,11 +100,13 @@ import Data.Ord (comparing)
 import Prelude hiding (id, log)
 import System.Directory
 import System.FilePath
-import System.IO.Error (isDoesNotExistError)
+import System.IO.Error (isDoesNotExistError, tryIOError, catchIOError)
 import System.Posix.Files
 import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, sigKILL, signalProcess)
 import System.Posix.Types (ProcessID)
-import System.Time
+import System.Time (ClockTime(TOD), getClockTime)
+import Ganeti.Utils.Time (TimeDiff(..), addToClockTime, noTimeDiff)
+import qualified System.Time as Time
 import qualified Text.JSON
 import Text.JSON.Types
 
@@ -394,13 +395,13 @@ ignoreIOError a ignore_noent msg e = do
 allArchiveDirs :: FilePath -> IO [FilePath]
 allArchiveDirs rootdir = do
   let adir = rootdir </> jobQueueArchiveSubDir
-  contents <- getDirectoryContents adir `Control.Exception.catch`
+  contents <- getDirectoryContents adir `catchIOError`
                ignoreIOError [] False
                  ("Failed to list queue directory " ++ adir)
   let fpaths = map (adir </>) $ filter (not . ("." `isPrefixOf`)) contents
   filterM (\path ->
              liftM isDirectory (getFileStatus (adir </> path))
-               `Control.Exception.catch`
+               `catchIOError`
                ignoreIOError False True
                  ("Failed to stat archive path " ++ path)) fpaths
 
@@ -438,7 +439,7 @@ readJobDataFromDisk rootdir archived jid = do
                     else [(live_path, False)]
   foldM (\state (path, isarchived) ->
            liftM (\r -> Just (r, isarchived)) (readFile path)
-             `Control.Exception.catch`
+             `catchIOError`
              ignoreIOError state True
                ("Failed to read job file " ++ path)) Nothing all_paths
 
@@ -517,8 +518,7 @@ allocateJobIds mastercandidates lock n =
           let current = fromJobId jid
               serial_content = show (current + n) ++  "\n"
           serial <- jobQueueSerialFile
-          write_result <- try $ atomicWriteFile serial serial_content
-                          :: IO (Either IOError ())
+          write_result <- tryIOError $ atomicWriteFile serial serial_content
           case write_result of
             Left e -> do
               let msg = "Failed to write serial file: " ++ show e
@@ -586,8 +586,7 @@ waitUntilJobExited ownlivelock job tmout = do
     dead <- maybe (fail $ jName ++ " has not yet started up")
       (liftIO . isDead) . mfilter (/= ownlivelock) . qjLivelock $ job
     curtime <- getClockTime
-    let elapsed = timeDiffToString $ System.Time.diffClockTimes
-                  curtime start
+    let elapsed = Time.timeDiffToString $ Time.diffClockTimes curtime start
     case dead of
       True -> return (True, jName ++ " process exited after " ++ elapsed)
       _ | curtime < deadline -> threadDelay (sleepDelay * 1000) >> loop
@@ -750,7 +749,7 @@ archiveJobs :: ConfigData -- ^ cluster configuration
 archiveJobs cfg age timeout jids = do
   now <- getClockTime
   qDir <- queueDir
-  let endtime = addToClockTime (noTimeDiff { tdSec = timeout }) now
+  let endtime = addToClockTime (noTimeDiff { tdSec = fromIntegral timeout }) now
       cuttime = if age < 0 then noTimestamp
                            else advanceTimestamp (- age) (fromClockTime now)
       mcs = Config.getMasterCandidates cfg

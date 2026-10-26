@@ -40,9 +40,19 @@ import tempfile
 import time
 import logging
 import pwd
+import shlex
 import shutil
+import json
 import urllib.request, urllib.error, urllib.parse
 from bitarray import bitarray
+
+from ganeti.hypervisor.hv_kvm.bus_manager import BusAllocatorManager, \
+  BusAllocation, PCIAllocator, PCIeNicAllocator, PCIeDiskAllocator, \
+  SCSIAllocator, \
+  Q35_STATIC_SLOT as _Q35_STATIC_SLOT, \
+  Q35_NIC_POOL_SLOTS as _Q35_NIC_POOL_SLOTS, \
+  Q35_DISK_POOL_SLOTS as _Q35_DISK_POOL_SLOTS
+
 try:
   import psutil   # pylint: disable=F0401
   if psutil.version_info < (2, 0, 0):
@@ -59,7 +69,6 @@ except ImportError:
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
-from ganeti import serializer
 from ganeti import objects
 from ganeti import uidpool
 from ganeti import ssconf
@@ -68,9 +77,10 @@ from ganeti import pathutils
 from ganeti.hypervisor import hv_base
 from ganeti.utils import wrapper as utils_wrapper
 
-from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage, \
-                                             MonitorSocket
+from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage
 from ganeti.hypervisor.hv_kvm.netdev import OpenTap
+
+from ganeti.hypervisor.hv_kvm.kvm_runtime import KVMRuntime
 
 from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 check_console_parameters, \
@@ -79,9 +89,14 @@ from ganeti.hypervisor.hv_kvm.validation import check_boot_parameters, \
                                                 check_spice_parameters, \
                                                 check_vnc_parameters, \
                                                 validate_machine_version, \
+                                                validate_q35_capability, \
                                                 validate_security_model, \
                                                 validate_spice_parameters, \
-                                                validate_vnc_parameters
+                                                validate_vnc_parameters, \
+                                                validate_disk_parameters, \
+                                                is_q35
+
+from ganeti.hypervisor.hv_kvm import kvm_utils
 
 _KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
@@ -124,6 +139,39 @@ _DEVICE_DRIVER = {
     lambda ht: "virtio-blk-pci" if ht == constants.HT_DISK_PARAVIRTUAL else ht,
   }
 
+_CHIPSET_Q35 = "q35"
+_CHIPSET_I440FX = "i440fx"
+
+
+# Function numbers within the q35 static-device multifunction group.
+# fn=0 (balloon) must be unconditional: it carries multifunction=on.
+# CD-ROMs do not consume a function here on q35: they attach to the
+# chipset ich9-ahci controller (slot 0x1f.2) via bus=ide.<N>, not pcie.0.
+_Q35_FN_BALLOON       = 0
+_Q35_FN_SCSI_CTRL     = 1
+_Q35_FN_USB_XHCI      = 2
+_Q35_FN_SPICE_VSERIAL = 3
+_Q35_FN_QGA_VSERIAL   = 4
+_Q35_FN_SOUND         = 5
+# fn=6 is intentionally free for future cold-boot fixed devices.
+# fn=7 is intentionally free for future cold-boot fixed devices.
+# Beyond fn=7 a second multifunction slot is needed.
+
+
+def _Q35StaticAddr(function):
+  """Return the C{,bus=pcie.0,addr=<slot>.<fn>} suffix for a cold-boot
+  fixed device in the q35 multifunction group. Adds C{,multifunction=on}
+  on fn=0 so QEMU recognises the slot as multifunction.
+
+  @type function: int
+  @param function: one of the C{_Q35_FN_*} constants
+  @rtype: str
+
+  """
+  suffix = f",bus=pcie.0,addr={hex(_Q35_STATIC_SLOT)}.{function}"
+  if function == 0:
+    suffix += ",multifunction=on"
+  return suffix
 
 # NICs and paravirtual disks
 # show up as devices on the PCI bus (one slot per device).
@@ -181,8 +229,9 @@ def _with_qmp(fn):
     return fn(self, *args, **kwargs)
   return wrapper
 
+
 def _GetDriveURI(disk, link, uri):
-  """Helper function to get the drive uri to be used in --drive kvm option
+  """Helper function to get the drive uri to be used in -blockdev kvm option
 
   Invoked during startup and disk hot-add. In latter case and if no userspace
   access mode is used it will be overriden with /dev/fdset/<fdset-id> (see
@@ -252,7 +301,8 @@ def _GenerateDeviceHVInfoStr(hvinfo):
   return hvinfo_str
 
 
-def _GenerateDeviceHVInfo(dev_type, kvm_devid, hv_dev_type, bus_slots):
+def _GenerateDeviceHVInfo(dev_type, kvm_devid, hv_dev_type,
+                          allocation: BusAllocation):
   """Helper function to generate hvinfo of a device (disk, NIC)
 
   hvinfo will hold all necessary info for generating the -device QEMU option.
@@ -269,8 +319,7 @@ def _GenerateDeviceHVInfo(dev_type, kvm_devid, hv_dev_type, bus_slots):
   @param kvm_devid: the id of the device
   @type hv_dev_type: string
   @param hv_dev_type: either disk_type or nic_type hvparam
-  @type bus_slots: dict
-  @param bus_slots: the current slots of the first PCI and SCSI buses
+  @param allocation: device allocation by the BusAllocationManager
 
   @rtype: dict
   @return: dict including all necessary info (driver, id, bus and bus location)
@@ -278,26 +327,14 @@ def _GenerateDeviceHVInfo(dev_type, kvm_devid, hv_dev_type, bus_slots):
 
   """
   driver = _DEVICE_DRIVER[dev_type](hv_dev_type)
-  bus = _DEVICE_BUS[dev_type](hv_dev_type)
-  slots = bus_slots[bus]
-  slot = utils.GetFreeSlot(slots, reserve=True)
 
   hvinfo = {
     "driver": driver,
     "id": kvm_devid,
-    "bus": bus,
     }
 
-  if bus == _PCI_BUS:
-    hvinfo.update({
-      "addr": hex(slot),
-      })
-  elif bus == _SCSI_BUS:
-    hvinfo.update({
-      "channel": 0,
-      "scsi-id": slot,
-      "lun": 0,
-      })
+  # add allocation
+  hvinfo.update(allocation.to_kvm_info())
 
   return hvinfo
 
@@ -325,138 +362,6 @@ def _GetExistingDeviceInfo(dev_type, device, runtime):
                               (dev_type, device.uuid))
 
   return found[0]
-
-
-def _UpgradeSerializedRuntime(serialized_runtime):
-  """Upgrade runtime data
-
-  Remove any deprecated fields or change the format of the data.
-  The runtime files are not upgraded when Ganeti is upgraded, so the required
-  modification have to be performed here.
-
-  @type serialized_runtime: string
-  @param serialized_runtime: raw text data read from actual runtime file
-  @return: (cmd, nic dicts, hvparams, bdev dicts)
-  @rtype: tuple
-
-  """
-  loaded_runtime = serializer.Load(serialized_runtime)
-  kvm_cmd, serialized_nics, hvparams = loaded_runtime[:3]
-  if len(loaded_runtime) >= 4:
-    serialized_disks = loaded_runtime[3]
-  else:
-    serialized_disks = []
-
-  def update_hvinfo(dev, dev_type):
-    """ Remove deprecated pci slot and substitute it with hvinfo """
-    if "hvinfo" not in dev:
-      dev["hvinfo"] = {}
-      uuid = dev["uuid"]
-      # Ganeti used to save the PCI slot of paravirtual devices
-      # (virtio-blk-pci, virtio-net-pci) in runtime files during
-      # _GenerateKVMRuntime() and HotAddDevice().
-      # In this case we had a -device QEMU option in the command line with id,
-      # drive|netdev, bus, and addr params. All other devices did not have an
-      # id nor placed explicitly on a bus.
-      # hot- prefix is removed in 2.16. Here we add it explicitly to
-      # handle old instances in the cluster properly.
-      if "pci" in dev:
-        # This is practically the old _GenerateDeviceKVMId()
-        hv_dev_type = _DEVICE_TYPE[dev_type](hvparams)
-        dev["hvinfo"]["driver"] = _DEVICE_DRIVER[dev_type](hv_dev_type)
-        dev["hvinfo"]["id"] = "hot%s-%s-%s-%s" % (dev_type.lower(),
-                                                  uuid.split("-")[0],
-                                                  "pci",
-                                                  dev["pci"])
-        dev["hvinfo"]["addr"] = hex(dev["pci"])
-        dev["hvinfo"]["bus"] = _PCI_BUS
-        del dev["pci"]
-
-  for nic in serialized_nics:
-    # Add a dummy uuid slot if an pre-2.8 NIC is found
-    if "uuid" not in nic:
-      nic["uuid"] = utils.NewUUID()
-    update_hvinfo(nic, constants.HOTPLUG_TARGET_NIC)
-
-  for disk_entry in serialized_disks:
-    # We have a (Disk, link, uri) tuple
-    update_hvinfo(disk_entry[0], constants.HOTPLUG_TARGET_DISK)
-
-  # Handle KVM command line argument changes
-  try:
-    idx = kvm_cmd.index("-localtime")
-  except ValueError:
-    pass
-  else:
-    kvm_cmd[idx:idx+1] = ["-rtc", "base=localtime"]
-
-  try:
-    idx = kvm_cmd.index("-balloon")
-  except ValueError:
-    pass
-  else:
-    balloon_args = kvm_cmd[idx+1].split(",")[1:]
-    balloon_str = "virtio-balloon"
-    if balloon_args:
-      balloon_str += ",%s" % ",".join(balloon_args)
-
-    kvm_cmd[idx:idx+2] = ["-device", balloon_str]
-
-  try:
-    idx = kvm_cmd.index("-vnc")
-  except ValueError:
-    pass
-  else:
-    # Check to see if TLS is enabled
-    orig_vnc_args = kvm_cmd[idx+1].split(",")
-    vnc_args = []
-    tls_obj = None
-    tls_obj_args = ["id=vnctls0", "endpoint=server"]
-    for arg in orig_vnc_args:
-      if arg == "tls":
-        tls_obj = "tls-creds-anon"
-        vnc_args.append("tls-creds=vnctls0")
-        continue
-
-      elif arg.startswith("x509verify=") or arg.startswith("x509="):
-        pki_path = arg.split("=", 1)[-1]
-        tls_obj = "tls-creds-x509"
-        tls_obj_args.append("dir=%s" % pki_path)
-        if arg.startswith("x509verify="):
-          tls_obj_args.append("verify-peer=yes")
-        else:
-          tls_obj_args.append("verify-peer=no")
-        continue
-
-      vnc_args.append(arg)
-
-    if tls_obj is not None:
-      vnc_cmd = ["-vnc", ",".join(vnc_args)]
-      tls_obj_cmd = ["-object",
-                     "%s,%s" % (tls_obj, ",".join(tls_obj_args))]
-
-      # Replace the original vnc argument with the new ones
-      kvm_cmd[idx:idx+2] = tls_obj_cmd + vnc_cmd
-
-  return kvm_cmd, serialized_nics, hvparams, serialized_disks
-
-
-def _AnalyzeSerializedRuntime(serialized_runtime):
-  """Return runtime entries for a serialized runtime file
-
-  @type serialized_runtime: string
-  @param serialized_runtime: raw text data read from actual runtime file
-  @return: (cmd, nics, hvparams, bdevs)
-  @rtype: tuple
-
-  """
-  kvm_cmd, serialized_nics, hvparams, serialized_disks = \
-    _UpgradeSerializedRuntime(serialized_runtime)
-  kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
-  kvm_disks = [(objects.Disk.FromDict(sdisk), link, uri)
-               for sdisk, link, uri in serialized_disks]
-
-  return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
 
 
 class HeadRequest(urllib.request.Request):
@@ -535,7 +440,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_SPICE_USE_TLS: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_TLS_CIPHERS: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_USE_VDAGENT: hv_base.NO_CHECK,
-    constants.HV_KVM_DEBUG_THREADS: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
@@ -571,6 +475,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
     constants.HV_VHOST_NET: hv_base.NO_CHECK,
     constants.HV_VIRTIO_NET_QUEUES: hv_base.OPT_VIRTIO_NET_QUEUES_CHECK,
+    constants.HV_VIRTIO_DISK_IOTHREADS: hv_base.OPT_VIRTIO_DISK_IOTHREADS_CHECK,
     constants.HV_KVM_USE_CHROOT: hv_base.NO_CHECK,
     constants.HV_KVM_USER_SHUTDOWN: hv_base.NO_CHECK,
     constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
@@ -598,6 +503,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _VIRTIO = "virtio"
   _VIRTIO_NET_PCI = "virtio-net-pci"
   _VIRTIO_BLK_PCI = "virtio-blk-pci"
+  _VIRTIO_SCSI_PCI = "virtio-scsi-pci"
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -610,6 +516,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _VHOST_RE = re.compile(r"^-netdev\stap.*,vhost=on\|off", re.M | re.S)
   _VIRTIO_NET_QUEUES_RE = re.compile(r"^-netdev\stap.*,fds=x:y:...:z", re.M)
+  _VIRTIO_BLK_IOTHREAD_VQ_MAPPING_RE = re.compile(
+        f"^{_VIRTIO_BLK_PCI} options:.*iothread-vq-mapping="
+        r"<IOThreadVirtQueueMappingList>",
+        re.M | re.S)
+  _VIRTIO_SCSI_IOTHREAD_VQ_MAPPING_RE = re.compile(
+        f"^{_VIRTIO_SCSI_PCI} options:.*iothread-vq-mapping="
+        r"<IOThreadVirtQueueMappingList>",
+        re.M | re.S)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
@@ -621,25 +535,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # match  -drive.*boot=on|off on different lines, but in between accept only
   # dashes not preceeded by a new line (which would mean another option
   # different than -drive is starting)
-  _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
+  _BOOT_RE = re.compile(r"^-(drive|blockdev)\s([^-]|(?<!^)-)*,boot=on\|off",
+                        re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
   # The auto-read-only option is on the -blockdev, Ganeti uses this at -drive
   _AUTO_RO_RE = \
     re.compile(r"^-blockdev\s([^-]|(?<!^)-)*,auto-read-only=on\|off",
                re.M | re.S)
+  _RUNWITH_RE = \
+    re.compile(r"^-run-with\s([^-]|(?<!^)-)*chroot=([^-]|(?<!^)-)*user=",
+               re.M | re.S)
+  _ACPI_RE = re.compile(r"^-no-acpi\s", re.M)
+  _SOUND_RE = re.compile(r"^-soundhw\s", re.M)
 
   # Slot 0 for Host bridge, Slot 1 for ISA bridge, Slot 2 for VGA controller
   # and the rest up to slot 11 will be used by QEMU implicitly.
   # Ganeti will add disks and NICs from slot 12 onwards.
   # NOTE: This maps to the default PCI bus created by pc machine type
   # by default (pci.0). The q35 creates a PCIe bus that is not hotpluggable
-  # and should be handled differently (pcie.0).
-  # NOTE: This bitarray here is defined for more fine-grained control.
-  # Currently the number of slots is QEMU_PCI_SLOTS and the reserved
-  # ones are the first QEMU_DEFAULT_PCI_RESERVATIONS.
-  # If the above constants change without updating _DEFAULT_PCI_RESERVATIONS
-  # properly, TestGenerateDeviceHVInfo() will probably break.
-  _DEFAULT_PCI_RESERVATIONS = "11111111111100000000000000000000"
+  # and is handled separately (see PCIeAllocator and the q35 pools).
+  _DEFAULT_PCI_RESERVED_SLOTS = 12
   # The SCSI bus is created on demand or automatically and is empty.
   # For simplicity we decide to use a different target (scsi-id)
   # for each SCSI disk. Here we support 16 SCSI disks which is
@@ -647,7 +562,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # NOTE: Max device counts depend on the SCSI controller type;
   # Just for the record, lsi supports up to 7, megasas 64,
   # and virtio-scsi-pci 255.
-  _DEFAULT_SCSI_RESERVATIONS = "0000000000000000"
+  _DEFAULT_SCSI_SLOTS = 16
 
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
@@ -660,6 +575,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _KVMOPT_HELP = "help"
   _KVMOPT_MLIST = "mlist"
   _KVMOPT_DEVICELIST = "devicelist"
+  _KVMOPT_DEVICEHELP_VIRTIO_BLK = "devicehelpvirtioblk"
+  _KVMOPT_DEVICEHELP_VIRTIO_SCSI = "devicehelpvirtioscsi"
 
   # Command to execute to get the output from kvm, and whether to
   # accept the output even on failure.
@@ -667,6 +584,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     _KVMOPT_HELP: (["--help"], False),
     _KVMOPT_MLIST: (["-machine", "?"], False),
     _KVMOPT_DEVICELIST: (["-device", "?"], True),
+    _KVMOPT_DEVICEHELP_VIRTIO_BLK: (["-device", f"{_VIRTIO_BLK_PCI},?"], False),
+    _KVMOPT_DEVICEHELP_VIRTIO_SCSI: (["-device", f"{_VIRTIO_SCSI_PCI},?"],
+                                     False),
   }
 
   def __init__(self):
@@ -734,6 +654,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     while arg_list:
       arg = arg_list.pop(0)
       if arg == "-name":
+        # Qemu supports additional parameters which are appended
+        # comma-separated to the -name parameter. While Ganeti
+        # does not use this _now_, we need to be aware of future
+        # Ganeti versions which might (see #1820 for the whole story)
         instance = arg_list.pop(0).split(",")[0]
       elif arg == "-m":
         memory = int(arg_list.pop(0))
@@ -916,8 +840,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         raise
 
+  def _DeConfigureAllNICs(self, instance):
+    """Run the network de-configuration script for all NICs"""
+
+    kvm_runtime = self._LoadKVMRuntime(instance)
+    kvm_nics = kvm_runtime[1]
+    for nic_seq, nic in enumerate(kvm_nics):
+      try:
+        tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
+      except EnvironmentError as err:
+        logging.warning("Failed to find host interface for %s NIC #%d: %s",
+                        instance.name, nic_seq, str(err))
+        continue
+      hv_base.DeConfigureNIC([pathutils.KVM_NIC_SETUP, tap], instance,
+                              nic_seq, nic, tap)
+
   @staticmethod
-  def _ConfigureNIC(instance, seq, nic, tap):
+  def _ConfigureNIC(instance, seq, nic, tap, extra_env=None):
     """Run the network configuration script for a specified NIC
 
     See L{hv_base.ConfigureNIC}.
@@ -930,9 +869,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type nic: nic object
     @param tap: the host's tap interface this NIC corresponds to
     @type tap: str
+    @type extra_env: dict or None
+    @param extra_env: optional extra environment variables to pass to the script
 
     """
-    hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
+    hv_base.ConfigureNIC([pathutils.KVM_NIC_SETUP, tap], instance, seq,
+                         nic, tap, extra_env=extra_env)
 
   @classmethod
   def _SetProcessAffinity(cls, process_id, cpus):
@@ -1093,15 +1035,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     times = 0
 
     try:
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name))
+      socket_path = self._InstanceQmpMonitor(instance_name)
+      qmp = QmpConnection(socket_path)
       qmp.connect()
-      vcpus = len(qmp.Execute("query-cpus"))
+      vcpus = len(qmp.execute_qmp("query-cpus-fast"))
       # Will fail if ballooning is not enabled, but we can then just resort to
       # the value above.
-      mem_bytes = qmp.Execute("query-balloon")[qmp.ACTUAL_KEY]
+      mem_bytes = qmp.execute_qmp("query-balloon")[qmp.ACTUAL_KEY]
       memory = mem_bytes // 1048576
+      qmp.close()
     except errors.HypervisorError:
       pass
+    # QMP may be transiently unavailable while the instance is starting up or
+    # shutting down (socket missing, refused, or broken pipe). Harmless here:
+    # fall back to the pid-derived values above.
+    except OSError as err:
+      logging.debug(f"Ignoring transient QMP error on socket {socket_path}:"
+                    f" {err}")
 
     return (instance_name, pid, memory, vcpus, istat, times)
 
@@ -1121,46 +1071,44 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       except errors.HypervisorError:
         # Ignore exceptions due to instances being shut down
         continue
+      except OSError as err:
+        # One instance in flux must not abort info gathering for the rest.
+        logging.debug(f"Skipping instance {name} while collecting info: {err}")
+        continue
       if info:
         data.append(info)
     return data
 
   @staticmethod
-  def _GenerateDiskAioCacheParameters(disk_aio, disk_cache, dev_type):
-    """Generate appropriate aio/cache parameters for QEMU
+  def _GenerateKVMBlockDevice(target, disk_info, hvp, kvm_devid):
+    _, direct, no_flush = kvm_utils.GetCacheSettings(
+      hvp[constants.HV_DISK_CACHE], disk_info.dev_type)
+    access_mode = disk_info.params.get(constants.LDP_ACCESS,
+                                       constants.DISK_KERNELSPACE)
 
-    @type disk_aio: string
-    @param disk_aio: the instance's AIO parameter
-    @type disk_cache: string
-    @param disk_cache: the instance's disk cache parameter
-    @type dev_type: string
-    @param dev_type: the disk type in use
-    @rtype: string
-    @return: parameter string suitable for QEMU drive parameters
-
-    """
-
-    if (dev_type in constants.DTS_EXT_MIRROR
-            and dev_type != constants.DT_RBD):
-      logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                      " to prevent shared storage corruption on migration",
-                      disk_cache)
-      disk_cache = constants.HT_CACHE_NONE
-
-    if not disk_aio:
-      # QEMU defaults to 'threads', so do we
-      disk_aio = constants.HT_KVM_AIO_THREADS
-
-    if disk_aio == constants.HT_KVM_AIO_NATIVE:
-      return ",aio=native,cache=none"
+    if access_mode == constants.DISK_USERSPACE:
+      driver = kvm_utils.ParseStorageUriToBlockdevParam(target)
     else:
-      if disk_cache == constants.HT_CACHE_DEFAULT:
-        return ",aio=threads"
-      else:
-        return ",aio=threads,cache=%s" % disk_cache
+      driver = {
+        "driver": "file" if disk_info.dev_type in constants.DTS_FILEBASED
+          else "host_device",
+        "filename": target,
+        "aio": hvp[constants.HV_KVM_DISK_AIO]
+      }
+
+    return {
+      "driver": "raw",
+      "node-name": kvm_devid,
+      "discard": hvp[constants.HV_DISK_DISCARD],
+      "cache": {
+        "direct": direct,
+        "no-flush": no_flush
+      },
+      "file": driver
+    }
 
   def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
-                                      kvmhelp, devlist):
+                                      kvmhelp, devlist, vcpus):
     """Generate KVM options regarding instance's block devices.
 
     @type up_hvp: dict
@@ -1181,106 +1129,156 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       boot_disk = up_hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
 
-    # whether this is an older KVM version that uses the boot=on flag
-    # on devices
-    needs_boot_flag = self._BOOT_RE.search(kvmhelp)
-
     dev_opts = []
     disk_type = up_hvp[constants.HV_DISK_TYPE]
-    # paravirtual implies either '-device virtio-blk-pci... -drive if=none...'
-    # for new QEMU versions or '-drive if=virtio' for old QEMU versions
+
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
       driver = self._VIRTIO_BLK_PCI
-      iface = self._VIRTIO
+    elif disk_type == constants.HT_DISK_IDE:
+      driver = "ide-hd"
     else:
-      driver = iface = disk_type
+      driver = disk_type
 
     # Check if a specific driver is supported by QEMU device model.
-    if self._DEVICE_DRIVER_SUPPORTED(driver, devlist):
-      if_val = ",if=none" # for the -drive option
-      device_driver = driver # for the -device option
-    else:
-      if_val = ",if=%s" % iface # for the -drive option
-      device_driver = None # without -device option
+    if not self._DEVICE_DRIVER_SUPPORTED(driver, devlist):
+      raise errors.HypervisorError("QEMU does not support disk driver '%s'"
+                                   % driver)
 
-    # discard mode
-    discard_mode = up_hvp[constants.HV_DISK_DISCARD]
-    if discard_mode == constants.HT_DISCARD_DEFAULT:
-      discard_val = ""
-    else:
-      discard_val = ",discard=%s" % discard_mode
-    # Cache mode
-    disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
-      aio_cache_val = self._GenerateDiskAioCacheParameters(
-        up_hvp[constants.HV_KVM_DISK_AIO], up_hvp[constants.HV_DISK_CACHE],
-        cfdev.dev_type)
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
-      # TODO: handle FD_LOOP and FD_BLKTAP (?)
-      boot_val = ""
-      if boot_disk:
-        dev_opts.extend(["-boot", "order=c"])
-        boot_disk = False
-        if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
-          boot_val = ",boot=on"
 
       drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
-      drive_val = "file=%s,format=raw%s%s%s%s" % \
-                  (drive_uri, if_val, boot_val, aio_cache_val, discard_val)
+      kvm_devid = cfdev.hvinfo["id"]
 
-      # virtio-blk-pci case
-      if device_driver is not None:
+      writeback, direct, no_flush = kvm_utils.GetCacheSettings(
+        up_hvp[constants.HV_DISK_CACHE], cfdev.dev_type)
+
+      blockdevice = self._GenerateKVMBlockDevice(drive_uri, cfdev, up_hvp,
+                                                 kvm_devid)
+
+      # for iothread to queue mapping, only json command line options are
+      # supported:
+      # https://patchew.org/QEMU/20231220134755.814917-1-stefanha@redhat.com/
+      dev_dict = {}
+
+      if disk_type == constants.HT_DISK_IDE:
+        dev_dict.update({
+          "driver": "ide-hd",
+          "drive": kvm_devid,
+          "write-cache": kvm_utils.TranslateBoolToOnOff(writeback)
+          })
+      else:
         # hvinfo will exist for paravirtual devices either due to
         # _UpgradeSerializedRuntime() for old instances or due to
         # _GenerateKVMRuntime() for new instances.
-        kvm_devid = cfdev.hvinfo["id"]
-        drive_val += ",id=%s" % kvm_devid
+
         # Add driver, id, bus, and addr or channel, scsi-id, lun if any.
-        dev_val = _GenerateDeviceHVInfoStr(cfdev.hvinfo)
-        dev_val += ",drive=%s" % kvm_devid
-        dev_opts.extend(["-device", dev_val])
+        dev_dict.update(cfdev.hvinfo)
+        dev_dict.update({
+              "drive": kvm_devid,
+              "write-cache": kvm_utils.TranslateBoolToOnOff(writeback)
+          })
+
+      # iothread
+      if disk_type == constants.HT_DISK_PARAVIRTUAL:
+        iothreads = self._CalcVirtioDiskIothreads(up_hvp, vcpus)
+        if iothreads > 0:
+          dev_dict["num-queues"] = vcpus
+          if iothreads == 1:
+            dev_dict["iothread"] = "iothread0"
+          else:
+            dev_dict["iothread-vq-mapping"] = [
+              {"iothread": f"iothread{t}"} for t in range(iothreads)
+            ]
+
+      # TODO: handle FD_LOOP and FD_BLKTAP
+      # add bootindex property to the first disk if disk boot is enabled
+      if boot_disk:
+        dev_dict["bootindex"] = 1
+        boot_disk = False
+
+      dev_opts.extend(["-device", json.dumps(dev_dict)])
 
       # QEMU 4.0 introduced dynamic auto-read-only for file-backed drives. This
       # is unhandled in Ganeti and breaks live migration with
       # security_model=user|pool, disable it here. See also
-      # HotAddDevice/drive_add_fn which solves a similar problem for hotpluged
+      # HotAddDevice/drive_add_fn which solves a similar problem for hotplugged
       # disks
       if self._AUTO_RO_RE.search(kvmhelp):
-        drive_val += ",auto-read-only=off"
+        blockdevice["auto-read-only"] = False
 
-      dev_opts.extend(["-drive", drive_val])
+      blockdev_str = kvm_utils.DictToQemuStringNotation(blockdevice)
+
+      dev_opts.extend(["-blockdev", blockdev_str])
 
     return dev_opts
 
-  @staticmethod
-  def _CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
-                   needs_boot_flag):
-    """Extends L{kvm_cmd} with the '-drive' option for a cdrom, and
-    optionally the '-boot' option.
+  def _FloppyOption(self, kvm_cmd, floppy_image, boot_floppy):
+    """Extens L{kvm_cmd} with the '-blockdev/-device' options for a floppy, and
+    optionally the '-boot' option
 
-    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide -boot order=d
-
-    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide,boot=on
-
-    Example: -drive file=http://hostname.com/cdrom.iso,media=cdrom
-
-    @type kvm_cmd: string
+    @type kvm_cmd: list of str
     @param kvm_cmd: KVM command line
 
-    @type cdrom_disk_type:
+    @type floppy_image: str
+    @param floppy_image: path to floppy image file
+
+    @type boot_floppy: bool
+    @param boot_floppy: set boot device to floppy
+
+    """
+    bdev_opts = [
+      "driver=raw",
+      "node-name=floppy1",
+      "file.driver=file",
+      "file.filename=%s" % floppy_image
+    ]
+
+    dev_opts = [
+      "floppy",
+      "drive=floppy1"
+    ]
+
+    if boot_floppy:
+      dev_opts.append("bootindex=1")
+
+    kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
+                    "-device",   ",".join(dev_opts)])
+
+  def _CdromOption(self, kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
+                   cdrom_id, chipset=_CHIPSET_I440FX, cdrom_index=0):
+    """Extends L{kvm_cmd} with the '-blockdev/-device' options for a cdrom, and
+    optionally the '-boot' option.
+
+    @type kvm_cmd: list of str
+    @param kvm_cmd: KVM command line
+
+    @type cdrom_disk_type: str
     @param cdrom_disk_type:
 
-    @type cdrom_image:
+    @type cdrom_image: str
     @param cdrom_image:
 
-    @type cdrom_boot:
+    @type cdrom_boot: bool
     @param cdrom_boot:
 
-    @type needs_boot_flag:
-    @param needs_boot_flag:
+    @type cdrom_id: str
+    @param cdrom_id:
+
+    @type chipset: str
+    @param chipset: resolved chipset (C{i440fx} or C{q35}). On q35,
+        C{ide-cd} is pinned to a deterministic channel of the chipset
+        ich9-ahci controller (C{bus=ide.<cdrom_index>}); on i440fx QEMU
+        auto-attaches to the PIIX3 IDE bus.
+
+    @type cdrom_index: int
+    @param cdrom_index: zero-based index of this CD-ROM within the
+        instance (0 for C{cdrom1}, 1 for C{cdrom2}). Used as the AHCI
+        channel number on q35 (C{bus=ide.<cdrom_index>}); ignored on
+        i440fx and for non-IDE cdrom types.
 
     """
     # Check that the ISO image is accessible
@@ -1289,36 +1287,104 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Cdrom ISO image '%s' is not accessible" %
                                    cdrom_image)
 
-    # set cdrom 'media' and 'format', if needed
+    bdev_opts = [
+      "driver=raw",
+      "cache.direct=off",
+      "cache.no-flush=on",
+      "read-only=on",
+      "node-name=%s" % cdrom_id
+    ]
     if utils.IsUrl(cdrom_image):
-      options = ",media=cdrom"
+      if cdrom_image.lower().startswith("https://"):
+        bdev_opts.append("file.driver=https")
+      else:
+        bdev_opts.append("file.driver=http")
+      bdev_opts.append("file.url=%s" % cdrom_image)
     else:
-      options = ",media=cdrom,format=raw"
+      bdev_opts.append("file.driver=file")
+      bdev_opts.append("file.filename=%s" % cdrom_image)
 
-    # set cdrom 'if' type
-    if cdrom_boot:
-      if_val = ",if=" + constants.HT_DISK_IDE
+    dev_opts = []
+    if cdrom_disk_type == constants.HT_DISK_IDE:
+      dev_opts.append("ide-cd")
+      if chipset == _CHIPSET_Q35:
+        # q35 has no legacy IDE controller; the only ATAPI host is the
+        # chipset ich9-ahci at 0x1f.2, whose AHCI ports expose ATA/ATAPI
+        # child buses named "ide.0".."ide.5" (QEMU's AHCI registers them
+        # via ide_bus_init()). Pin cdrom1 to ide.0 and cdrom2 to ide.1
+        # so the layout is deterministic and SeaBIOS can boot from it.
+        dev_opts.append(f"bus=ide.{cdrom_index}")
     elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-      if_val = ",if=virtio"
+      # Reachable only on i440fx; validate_q35_capability rejects
+      # paravirtual cdroms on q35.
+      dev_opts.append(self._VIRTIO_BLK_PCI)
+    elif cdrom_disk_type == constants.HT_DISK_SCSI_CD:
+      dev_opts.append("scsi-cd")
     else:
-      if_val = ",if=" + cdrom_disk_type
+      raise errors.HypervisorError("Unsupported cdrom disk type: %s" %
+                                   cdrom_disk_type)
 
+    dev_opts.append("drive=%s" % cdrom_id)
     # set boot flag, if needed
-    boot_val = ""
     if cdrom_boot:
-      kvm_cmd.extend(["-boot", "order=d"])
-
-      # whether this is an older KVM version that requires the 'boot=on' flag
-      # on devices
-      if needs_boot_flag:
-        boot_val = ",boot=on"
+      dev_opts.append("bootindex=1")
 
     # build '-drive' option
-    drive_val = "file=%s%s%s%s" % (cdrom_image, options, if_val, boot_val)
-    kvm_cmd.extend(["-drive", drive_val])
+    kvm_cmd.extend(["-blockdev", ",".join(bdev_opts),
+                    "-device",   ",".join(dev_opts)])
+
+  def _SoundhwOption(self, kvm_cmd, soundhw, spice_bind, chipset, kvmhelp):
+    """Append the sound-card option(s) for the given C{soundhw} model.
+
+    On q35 only C{ac97} and C{hda} are supported (enforced by
+    L{validate_q35_capability}); both are emitted as explicit C{-device}
+    options pinned to function L{_Q35_FN_SOUND} of the static
+    multifunction group so they cannot collide with cold-boot fixed
+    devices on C{pcie.0}. The C{hda} shortcut expands to an
+    C{intel-hda} controller plus an C{hda-duplex} codec.
+
+    On i440fx the model is passed straight to C{-soundhw} (QEMU < 7.1)
+    or the C{-audio} shortcut (QEMU >= 7.1) and QEMU auto-places the
+    resulting PCI device on C{pci.0}.
+
+    @type kvm_cmd: list
+    @param kvm_cmd: the KVM command line, extended in place
+    @type soundhw: str
+    @param soundhw: the sound-card model (e.g. C{ac97}, C{hda})
+    @type spice_bind: str
+    @param spice_bind: SPICE bind address; selects the C{spice} audio
+        backend when set, C{none} otherwise
+    @type chipset: str
+    @param chipset: resolved chipset (C{i440fx} or C{q35})
+    @type kvmhelp: str
+    @param kvmhelp: output of C{kvm --help}, used to detect C{-soundhw}
+        support on i440fx
+
+    """
+    # Pick a host backend: spice if configured, otherwise none (silent).
+    driver = "spice" if spice_bind else "none"
+
+    if chipset == _CHIPSET_Q35:
+      static_addr = _Q35StaticAddr(_Q35_FN_SOUND)
+      kvm_cmd.extend(["-audiodev", f"{driver},id=soundhw-dev"])
+      if soundhw == "hda":
+        kvm_cmd.extend(["-device",
+                        f"intel-hda,id=soundhw{static_addr}"])
+        kvm_cmd.extend(["-device",
+                        "hda-duplex,bus=soundhw.0,audiodev=soundhw-dev"])
+      else:  # ac97 - any other value is rejected by validate_q35_capability
+        kvm_cmd.extend(["-device",
+                        f"AC97,id=soundhw,"
+                        f"audiodev=soundhw-dev{static_addr}"])
+    elif self._SOUND_RE.search(kvmhelp):
+      kvm_cmd.extend(["-soundhw", soundhw])
+    else:
+      # Qemu versions >= 7.1 do not support -soundhw anymore.
+      kvm_cmd.extend(["-audio",
+                      f"driver={driver},model={soundhw},id=soundhw"])
 
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
-                          kvmhelp):
+                          kvmhelp) -> KVMRuntime:
     """Generate KVM information to start an instance.
 
     @type kvmhelp: string
@@ -1332,17 +1398,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     # pylint: disable=R0912,R0914,R0915
-    hvp = instance.hvparams
+    # Don't mutate instance.hvparams - we may rewrite the
+    # machine_version below.
+    hvp = dict(instance.hvparams)
     self.ValidateParameters(hvp)
 
     pidfile = self._InstancePidFile(instance.name)
     kvm = hvp[constants.HV_KVM_PATH]
     kvm_cmd = [kvm]
-    if hvp[constants.HV_KVM_DEBUG_THREADS]:
-      name_parameter = "%s,debug-threads=on" % (instance.name)
+
+    (_, kvm_major, _, _) = self._ParseKVMVersion(kvmhelp)
+    if kvm_major < 11:
+      kvm_cmd.extend(["-name", f"{instance.name},debug-threads=on"])
     else:
-      name_parameter = "%s,debug-threads=off" % (instance.name)
-    kvm_cmd.extend(["-name", name_parameter])
+      # debug-threads is implicitly enabled starting with QEMU 11
+      kvm_cmd.extend(["-name", f"{instance.name}"])
+
     kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
 
     smp_list = ["%s" % instance.beparams[constants.BE_VCPUS]]
@@ -1357,97 +1428,128 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd.extend(["-pidfile", pidfile])
 
-    bus_slots = self._GetBusSlots(hvp)
+    machine_version = hvp[constants.HV_KVM_MACHINE_VERSION]
+    if not machine_version:
+      machine_version = self._GetDefaultMachineVersion(kvm)
+      # Persist the defaulted value so hot-add reads the same token
+      # the kvm_cmd was built with
+      hvp[constants.HV_KVM_MACHINE_VERSION] = machine_version
+    resolved_chipset = _CHIPSET_Q35 if is_q35(machine_version) \
+                       else _CHIPSET_I440FX
 
-    # As requested by music lovers
-    if hvp[constants.HV_SOUNDHW]:
-      soundhw = hvp[constants.HV_SOUNDHW]
-      kvm_cmd.extend(["-soundhw", soundhw])
+    bus_manager = self._get_bus_manager(hvp, chipset=resolved_chipset)
 
-    if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES:
+    if resolved_chipset == _CHIPSET_Q35:
+      # pcie.0 is not hot-pluggable; both pools must be pre-allocated
+      # at cold boot. The NIC/disk split is enforced by the
+      # BusAllocatorManager; PCIeNicAllocator attaches acpi-index to
+      # the NIC leaf for stable eno<N> naming.
+      for slot in _Q35_NIC_POOL_SLOTS + _Q35_DISK_POOL_SLOTS:
+        kvm_cmd.extend([
+          "-device",
+          f"pcie-root-port,id=rp{slot},bus=pcie.0,addr={hex(slot)},"
+          f"chassis={slot},port={slot}",
+        ])
+
+    if resolved_chipset == _CHIPSET_Q35:
+      kvm_cmd.extend(["-device",
+                      "virtio-balloon-pci" +
+                      _Q35StaticAddr(_Q35_FN_BALLOON)])
+    else:
+      kvm_cmd.extend(["-device", "virtio-balloon"])
+
+    if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES \
+            or hvp[constants.HV_KVM_CDROM_DISK_TYPE]\
+            in constants.HT_SCSI_DEVICE_TYPES:
       # In case a SCSI disk is given, QEMU adds a SCSI contorller
       # (LSI Logic / Symbios Logic 53c895a) implicitly.
       # Here, we add the controller explicitly with the default id.
-      kvm_cmd.extend([
-        "-device",
-        "%s,id=scsi" % hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]
-        ])
+      scsi_dev = f"{hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]},id=scsi"
+      if resolved_chipset == _CHIPSET_Q35:
+        scsi_dev += _Q35StaticAddr(_Q35_FN_SCSI_CTRL)
 
-    kvm_cmd.extend(["-device", "virtio-balloon"])
+      # iothreads requires json
+      scsi_dev_parts = scsi_dev.split(",")
+      scsi_dev_dict = {}
+      scsi_dev_dict["driver"] = scsi_dev_parts[0]
+      for i in scsi_dev_parts[1:]:
+        k, v = i.split('=', 1)
+        scsi_dev_dict[k] = v
+      if scsi_dev_dict["driver"] == constants.HT_SCSI_CONTROLLER_VIRTIO:
+        vcpus = instance.beparams[constants.BE_VCPUS]
+        iothreads = self._CalcVirtioDiskIothreads(hvp, vcpus)
+        if iothreads > 0:
+          scsi_dev_dict["num_queues"] = vcpus
+          if iothreads == 1:
+            scsi_dev_dict["iothread"] = "iothread0"
+          else:
+            scsi_dev_dict["iothread-vq-mapping"] = [
+              {"iothread": f"iothread{t}"} for t in range(iothreads)
+            ]
+
+      kvm_cmd.extend(["-device", json.dumps(scsi_dev_dict)])
+
     kvm_cmd.extend(["-daemonize"])
     # logfile for qemu
     qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
                                   "%s.log" % instance.name)
     kvm_cmd.extend(["-D", qemu_logfile])
-    if not instance.hvparams[constants.HV_ACPI]:
-      kvm_cmd.extend(["-no-acpi"])
+
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
         constants.INSTANCE_REBOOT_EXIT:
       kvm_cmd.extend(["-no-reboot"])
 
-    mversion = hvp[constants.HV_KVM_MACHINE_VERSION]
-    if not mversion:
-      mversion = self._GetDefaultMachineVersion(kvm)
-    if self._MACHINE_RE.search(kvmhelp):
-      # TODO (2.8): kernel_irqchip and kvm_shadow_mem machine properties, as
-      # extra hypervisor parameters. We should also investigate whether and how
-      # shadow_mem should be considered for the resource model.
-      if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
-        specprop = ",accel=kvm"
+    machine_params = [machine_version]
+
+    if not instance.hvparams[constants.HV_ACPI]:
+      if self._ACPI_RE.search(kvmhelp):
+        # this parameter has been replaced starting with Qemu 9.0
+        kvm_cmd.extend(["-no-acpi"])
       else:
-        specprop = ""
-      machinespec = "%s%s" % (mversion, specprop)
-      kvm_cmd.extend(["-machine", machinespec])
-    else:
-      kvm_cmd.extend(["-machine", mversion])
-      if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED and
-          self._ENABLE_KVM_RE.search(kvmhelp)):
-        kvm_cmd.extend(["-enable-kvm"])
-      elif (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED and
-            self._DISABLE_KVM_RE.search(kvmhelp)):
-        kvm_cmd.extend(["-disable-kvm"])
+        machine_params.append("acpi=off")
+
+    if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
+      machine_params.append("accel=kvm")
+
+    kvm_cmd.extend(["-machine", ",".join(machine_params)])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
-      boot_cdrom = boot_floppy = boot_network = False
+      boot_cdrom = boot_floppy = False
     else:
       boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
       boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
-      boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     if startup_paused:
       kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
-
-    if boot_network:
-      kvm_cmd.extend(["-boot", "order=n"])
 
     disk_type = hvp[constants.HV_DISK_TYPE]
 
     # Now we can specify a different device type for CDROM devices.
     cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
     if not cdrom_disk_type:
-      cdrom_disk_type = disk_type
+      if resolved_chipset == _CHIPSET_Q35:
+        # The KVM default disk_type=paravirtual would otherwise inherit
+        # into cdrom_disk_type=paravirtual, which is rejected on q35.
+        # Default to ide on q35; it lands on the chipset ich9-ahci
+        # (SATA) controller and SeaBIOS can boot from it.
+        cdrom_disk_type = constants.HT_DISK_IDE
+      else:
+        cdrom_disk_type = disk_type
 
     cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
     if cdrom_image1:
-      needs_boot_flag = self._BOOT_RE.search(kvmhelp)
       self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
-                        needs_boot_flag)
+                        "cdrom1", chipset=resolved_chipset, cdrom_index=0)
 
     cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
     if cdrom_image2:
-      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, False)
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, "cdrom2",
+                        chipset=resolved_chipset, cdrom_index=1)
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:
-      options = ",format=raw,media=disk"
-      if boot_floppy:
-        kvm_cmd.extend(["-boot", "order=a"])
-        options = "%s,boot=on" % options
-      if_val = ",if=floppy"
-      options = "%s%s" % (options, if_val)
-      drive_val = "file=%s%s" % (floppy_image, options)
-      kvm_cmd.extend(["-drive", drive_val])
+      self._FloppyOption(kvm_cmd, floppy_image, boot_floppy)
 
     if kernel_path:
       kvm_cmd.extend(["-kernel", kernel_path])
@@ -1480,12 +1582,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
     spice_ip_version = None
 
-    kvm_cmd.extend(["-usb"])
+    # Pointer device: explicit usb_mouse wins, otherwise VNC implies tablet.
+    pointer = mouse_type
+    if not pointer and vnc_bind_address:
+      pointer = constants.HT_MOUSE_TABLET
+    usb_devices = hvp[constants.HV_USB_DEVICES]
 
-    if mouse_type:
-      kvm_cmd.extend(["-usbdevice", mouse_type])
-    elif vnc_bind_address:
-      kvm_cmd.extend(["-usbdevice", constants.HT_MOUSE_TABLET])
+    if resolved_chipset == _CHIPSET_Q35:
+      # q35 has no implicit UHCI; emit qemu-xhci once if any USB
+      # consumer (pointer or usb_devices) is present. -usbdevice later
+      # attaches to the only available USB bus, i.e. this xhci.
+      if pointer or usb_devices:
+        kvm_cmd.extend(["-device", "qemu-xhci,id=usb" +
+                        _Q35StaticAddr(_Q35_FN_USB_XHCI)])
+      if pointer:
+        kvm_cmd.extend(["-device", f"usb-{pointer},bus=usb.0"])
+    else:
+      kvm_cmd.extend(["-usb"])
+      if pointer:
+        kvm_cmd.extend(["-usbdevice", pointer])
 
     if vnc_bind_address:
       if netutils.IsValidInterface(vnc_bind_address):
@@ -1624,7 +1739,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # Enable the spice agent communication channel between the host and the
         # agent.
-        kvm_cmd.extend(["-device", "virtio-serial-pci,id=spice"])
+        spice_vserial = "virtio-serial-pci,id=spice"
+        if resolved_chipset == _CHIPSET_Q35:
+          spice_vserial += _Q35StaticAddr(_Q35_FN_SPICE_VSERIAL)
+        kvm_cmd.extend(["-device", spice_vserial])
         kvm_cmd.extend([
           "-device",
           "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0",
@@ -1642,11 +1760,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         kvm_cmd.extend(["-nographic"])
 
+    # As requested by music lovers
+    if hvp[constants.HV_SOUNDHW]:
+      self._SoundhwOption(kvm_cmd, hvp[constants.HV_SOUNDHW],
+                          spice_bind=spice_bind,
+                          chipset=resolved_chipset,
+                          kvmhelp=kvmhelp)
+
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-rtc", "base=localtime"])
-
-    if hvp[constants.HV_KVM_USE_CHROOT]:
-      kvm_cmd.extend(["-chroot", self._InstanceChrootDir(instance.name)])
 
     # Add qemu-KVM -cpu param
     if hvp[constants.HV_CPU_TYPE]:
@@ -1659,9 +1781,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     elif spice_bind:
       kvm_cmd.extend(["-vga", "qxl"])
 
-    # Various types of usb devices, comma separated
-    if hvp[constants.HV_USB_DEVICES]:
-      for dev in hvp[constants.HV_USB_DEVICES].split(","):
+    # Various types of usb devices, comma separated. On q35 these attach
+    # to the qemu-xhci controller emitted above; on i440fx, to the
+    # implicit UHCI created by -usb.
+    if usb_devices:
+      for dev in usb_devices.split(","):
         kvm_cmd.extend(["-usbdevice", dev])
 
     # Set system UUID to instance UUID
@@ -1674,35 +1798,42 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       logging.info("KVM: Guest Agent available at %s", qga_path)
       # The 'qga0' identified can change, but the 'org.qemu.guest_agent.0'
       # string is the default expected by the Guest Agent.
+      qga_vserial = "virtio-serial,id=qga0"
+      if resolved_chipset == _CHIPSET_Q35:
+        qga_vserial += _Q35StaticAddr(_Q35_FN_QGA_VSERIAL)
       kvm_cmd.extend([
         "-chardev", "socket,path=%s,server,nowait,id=qga0" % qga_path,
-        "-device", "virtio-serial,id=qga0",
+        "-device", qga_vserial,
         "-device", "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0",
         ])
 
     if hvp[constants.HV_KVM_EXTRA]:
-      kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
+      kvm_cmd.extend(
+        shlex.split(hvp[constants.HV_KVM_EXTRA])
+      )
 
-    def _generate_kvm_device(dev_type, dev):
+    def _generate_kvm_device(dev_type, dev, bus_manager: BusAllocatorManager):
       """Helper for generating a kvm device out of a Ganeti device."""
       kvm_devid = _GenerateDeviceKVMId(dev_type, dev)
       hv_dev_type = _DEVICE_TYPE[dev_type](hvp)
+      allocation = bus_manager.get_next_allocation(dev_type, hv_dev_type)
       dev.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,
-                                         hv_dev_type, bus_slots)
+                                         hv_dev_type, allocation)
+      bus_manager.commit(allocation)
 
     kvm_disks = []
     for disk, link_name, uri in block_devices:
-      _generate_kvm_device(constants.HOTPLUG_TARGET_DISK, disk)
+      _generate_kvm_device(constants.HOTPLUG_TARGET_DISK, disk, bus_manager)
       kvm_disks.append((disk, link_name, uri))
 
     kvm_nics = []
     for nic in instance.nics:
-      _generate_kvm_device(constants.HOTPLUG_TARGET_NIC, nic)
+      _generate_kvm_device(constants.HOTPLUG_TARGET_NIC, nic, bus_manager)
       kvm_nics.append(nic)
 
     hvparams = hvp
 
-    return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
+    return KVMRuntime([kvm_cmd, kvm_nics, hvparams, kvm_disks])
 
   def _WriteKVMRuntime(self, instance_name, data):
     """Write an instance's KVM runtime
@@ -1724,28 +1855,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
     return file_content
 
-  def _SaveKVMRuntime(self, instance, kvm_runtime):
+  def _SaveKVMRuntime(self, instance, kvm_runtime: KVMRuntime):
     """Save an instance's KVM runtime
 
     """
-    kvm_cmd, kvm_nics, hvparams, kvm_disks = kvm_runtime
 
-    serialized_nics = [nic.ToDict() for nic in kvm_nics]
-    serialized_disks = [(blk.ToDict(), link, uri)
-                        for blk, link, uri in kvm_disks]
-    serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams,
-                                      serialized_disks))
+    self._WriteKVMRuntime(instance.name, kvm_runtime.serialize())
 
-    self._WriteKVMRuntime(instance.name, serialized_form)
-
-  def _LoadKVMRuntime(self, instance, serialized_runtime=None):
+  def _LoadKVMRuntime(self, instance, serialized_runtime=None) -> KVMRuntime:
     """Load an instance's KVM runtime
 
     """
     if not serialized_runtime:
       serialized_runtime = self._ReadKVMRuntime(instance.name)
 
-    return _AnalyzeSerializedRuntime(serialized_runtime)
+    return KVMRuntime.from_serialized(serialized_runtime)
 
   def _RunKVMCmd(self, name, kvm_cmd, tap_fds=None):
     """Run the KVM cmd and check for errors
@@ -1792,7 +1916,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return hv_base.GenerateTapName()
 
-  def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp):
+  def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp, vcpus):
     """Get network device options to properly enable supported features.
 
     Return a dict of supported and enabled tap features with nic_model along
@@ -1836,7 +1960,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         else:
           raise errors.HypervisorError("vhost_net is configured"
                                        " but it is not available")
-        virtio_net_queues = up_hvp.get(constants.HV_VIRTIO_NET_QUEUES, 1)
+        _queues = up_hvp[constants.HV_VIRTIO_NET_QUEUES]
+        _queues_auto = min(vcpus, constants.MAX_VIRTIO_NET_QUEUES_AUTO)
+        virtio_net_queues = _queues_auto if _queues == "auto" else _queues
         if virtio_net_queues > 1:
           # Check for multiqueue virtio-net support.
           if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
@@ -1856,10 +1982,80 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return features, tap_extra_str, nic_extra_str
 
+  def _CalcVirtioDiskIothreads(self, up_hvp, vcpus):
+    # old running instances do not have the new iothreads parameter
+    if constants.HV_VIRTIO_DISK_IOTHREADS not in up_hvp:
+      return 0
+
+    virtio_disk_iothreads = up_hvp[constants.HV_VIRTIO_DISK_IOTHREADS]
+    if virtio_disk_iothreads == 0:
+      return 0
+
+    aio = up_hvp.get(constants.HV_KVM_DISK_AIO)
+    disk_type = up_hvp.get(constants.HV_DISK_TYPE)
+    kvmpath = up_hvp.get(constants.HV_KVM_PATH)
+    scsi_controller_type = up_hvp.get(constants.HV_KVM_SCSI_CONTROLLER_TYPE)
+
+    # iothreads are not designed to work with aio=threads
+    valid_aio_modes = [constants.HT_KVM_AIO_NATIVE,
+                       constants.HT_KVM_AIO_IO_URING]
+    if aio not in valid_aio_modes:
+      return 0
+
+    # iothreads only work with virtio
+    is_virtio_blk = (disk_type == constants.HT_DISK_PARAVIRTUAL)
+    is_virtio_scsi = (
+      disk_type == constants.HT_DISK_SCSI_HD
+      and scsi_controller_type == constants.HT_SCSI_CONTROLLER_VIRTIO
+    )
+    if not (is_virtio_blk or is_virtio_scsi):
+      return 0
+
+    if is_virtio_blk:
+      device_help = self._KVMOPT_DEVICEHELP_VIRTIO_BLK
+      regex = self._VIRTIO_BLK_IOTHREAD_VQ_MAPPING_RE
+    else:  # is_virtio_scsi
+      device_help = self._KVMOPT_DEVICEHELP_VIRTIO_SCSI
+      regex = self._VIRTIO_SCSI_IOTHREAD_VQ_MAPPING_RE
+
+    # device supports multiple iothreads
+    if virtio_disk_iothreads >= 2 and \
+       self._CheckDeviceFeature(kvmpath, device_help, regex):
+      return min(virtio_disk_iothreads, vcpus)
+    else:
+      # fallback to 1 iothread
+      return 1
+
+  def _CheckDeviceFeature(self, kvmpath, device_help, regex):
+    kvm_output = self._GetKVMOutput(kvmpath, device_help)
+    if regex.search(kvm_output):
+      return True
+
+    return False
+
+  def _GenerateRunwith(self, username=None, chroot_dir=None, kvmhelp=None):
+    args = []
+    if self._RUNWITH_RE.search(kvmhelp):
+      if username:
+        args.append("user=%s" % username)
+      if chroot_dir:
+        args.append("chroot=%s" % chroot_dir)
+      return(["-run-with", ",".join(args)])
+    else:
+      if username:
+        args.extend(["-runas", username])
+      if chroot_dir:
+        args.extend(["-chroot", chroot_dir])
+      return(args)
+
+    # nothing to do
+    return([])
+
   # too many local variables
   # pylint: disable=R0914
   @_with_qmp
-  def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
+  def _ExecuteKVMRuntime(self, instance, kvm_runtime: KVMRuntime,
+                         kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
     @type instance: L{objects.Instance} object
@@ -1891,16 +2087,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     temp_files = []
 
-    kvm_cmd, kvm_nics, up_hvp, kvm_disks = kvm_runtime
+    kvm_cmd = kvm_runtime.kvm_cmd
+    kvm_nics = kvm_runtime.kvm_nics
+    up_hvp = kvm_runtime.up_hvp
+    kvm_disks = kvm_runtime.kvm_disks
+
     # the first element of kvm_cmd is always the path to the kvm binary
     kvm_path = kvm_cmd[0]
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
-    # We know it's safe to run as a different user upon migration, so we'll use
-    # the latest conf, from conf_hvp.
-    security_model = conf_hvp[constants.HV_SECURITY_MODEL]
-    if security_model == constants.HT_SM_USER:
-      kvm_cmd.extend(["-runas", conf_hvp[constants.HV_SECURITY_DOMAIN]])
+    # iothread objects
+    vcpus = instance.beparams[constants.BE_VCPUS]
+    iothreads = self._CalcVirtioDiskIothreads(up_hvp, vcpus)
+    for t in range(iothreads):
+      kvm_cmd.extend(["-object", f"iothread,id=iothread{t}"])
 
     # the VNC keymap
     keymap = conf_hvp[constants.HV_KEYMAP]
@@ -1913,11 +2113,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     tapfds = []
     taps = []
     devlist = self._GetKVMOutput(kvm_path, self._KVMOPT_DEVICELIST)
+
+    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      boot_network = False
+    else:
+      boot_network = (up_hvp.get(constants.HV_BOOT_ORDER, '') ==
+                      constants.HT_BO_NETWORK)
+
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
       features, tap_extra, nic_extra = \
-          self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+          self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp, vcpus)
       nic_model = features["driver"]
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
       for nic_seq, nic in enumerate(kvm_nics):
@@ -1938,6 +2146,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           vhostfd = ""
 
         if kvm_supports_netdev:
+          dev_opts = []
+
           # Non paravirtual NICs hvinfo is empty
           if "id" in nic.hvinfo:
             nic_val = _GenerateDeviceHVInfoStr(nic.hvinfo)
@@ -1945,10 +2155,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           else:
             nic_val = "%s" % nic_model
             netdev = "netdev%d" % nic_seq
+
           nic_val += (",netdev=%s,mac=%s%s" % (netdev, nic.mac, nic_extra))
           tap_val = ("type=tap,id=%s,%s%s%s" %
                      (netdev, tapfd, vhostfd, tap_extra))
-          kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
+          dev_opts.append(nic_val)
+
+          # add bootindex property to the first nic if network boot is enabled
+          if boot_network:
+            dev_opts.append("bootindex=1")
+            boot_network = False
+
+          kvm_cmd.extend(["-netdev", tap_val, "-device", ','.join(dev_opts)])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
                                                          nic.mac, nic_model)
@@ -1984,19 +2202,35 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
                       self._InstanceKvmdMonitor(instance.name)])
 
-    # Configure the network now for starting instances and bridged/OVS
-    # interfaces, during FinalizeMigration for incoming instances' routed
-    # interfaces.
+    # Configure NICs
+    # If we are on the receiving end of a live migration:
+    #   - routed NICs are configured after migration finishes (post-migration
+    #     only) to avoid announcing routes before the instance has moved.
+    #   - ext NICs get a best-effort pre-migration script call here so that
+    #     custom scripts can set up resources early. The script receives
+    #     MIGRATION_PHASE=pre.
+    #     Absence of the script or a script failure is non-fatal; the
+    #     post-migration call in FinalizeMigrationDst() will still run.
     for nic_seq, nic in enumerate(kvm_nics):
-      if (incoming and
-          nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED):
-        continue
+      if incoming:
+        if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED:
+          continue
+        if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_EXT:
+          try:
+            self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq],
+                               extra_env={"MIGRATION_PHASE": "pre"})
+          except errors.HypervisorError as err:
+            logging.warning("Pre-migration ext NIC script for %s NIC #%d"
+                            " failed (non-fatal): %s",
+                            instance.name, nic_seq, err)
+          continue
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
                                                      kvm_disks,
                                                      kvmhelp,
-                                                     devlist)
+                                                     devlist,
+                                                     vcpus)
     kvm_cmd.extend(bdev_opts)
     # CPU affinity requires kvm to start paused, so we set this flag if the
     # instance is not already paused and if we are not going to accept a
@@ -2013,6 +2247,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         and up_hvp[constants.HV_CPU_MASK] != constants.CPU_PINNING_ALL:
       cpu_pinning = True
 
+    # chroot and user are combind into -runwith since qemu-9.0
+    chroot_dir = None
+    security_model = conf_hvp[constants.HV_SECURITY_MODEL]
+    if conf_hvp[constants.HV_KVM_USE_CHROOT]:
+      chroot_dir = self._InstanceChrootDir(instance.name)
+      # only chroot is set, no run user
+      if security_model == constants.HT_SM_NONE:
+        kvm_cmd.extend(
+          self._GenerateRunwith(chroot_dir=chroot_dir,
+                           kvmhelp=kvmhelp)
+        )
+
+    if security_model == constants.HT_SM_USER:
+      username = conf_hvp[constants.HV_SECURITY_DOMAIN]
+      kvm_cmd.extend(
+        self._GenerateRunwith(chroot_dir=chroot_dir,
+                         username=username,
+                         kvmhelp=kvmhelp)
+      )
+
     if security_model == constants.HT_SM_POOL:
       ss = ssconf.SimpleStore()
       uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
@@ -2020,7 +2274,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       uid = uidpool.RequestUnusedUid(all_uids)
       try:
         username = pwd.getpwuid(uid.GetUid()).pw_name
-        kvm_cmd.extend(["-runas", username])
+        kvm_cmd.extend(
+          self._GenerateRunwith(chroot_dir=chroot_dir,
+                           username=username,
+                           kvmhelp=kvmhelp)
+        )
         self._RunKVMCmd(name, kvm_cmd, tapfds)
       except:
         uidpool.ReleaseUid(uid)
@@ -2102,37 +2360,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
-  @classmethod
-  def _CallMonitorCommand(cls, instance_name, command, timeout=None):
-    """Invoke a command on the instance monitor.
-
-    """
-    if timeout is not None:
-      timeout_cmd = "timeout %s" % (timeout, )
-    else:
-      timeout_cmd = ""
-
-    # TODO: Replace monitor calls with QMP once KVM >= 0.14 is the minimum
-    # version. The monitor protocol is designed for human consumption, whereas
-    # QMP is made for programmatic usage. In the worst case QMP can also
-    # execute monitor commands. As it is, all calls to socat take at least
-    # 500ms and likely more: socat can't detect the end of the reply and waits
-    # for 500ms of no data received before exiting (500 ms is the default for
-    # the "-t" parameter).
-    socat = ("echo %s | %s %s STDIO UNIX-CONNECT:%s" %
-             (utils.ShellQuote(command),
-              timeout_cmd,
-              constants.SOCAT_PATH,
-              utils.ShellQuote(cls._InstanceMonitor(instance_name))))
-    result = utils.RunCmd(socat)
-    if result.failed:
-      msg = ("Failed to send command '%s' to instance '%s', reason '%s',"
-             " output: %s" %
-             (command, instance_name, result.fail_reason, result.output))
-      raise errors.HypervisorError(msg)
-
-    return result
-
   @_with_qmp
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
@@ -2159,6 +2386,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if action == constants.HOTPLUG_ACTION_ADD:
         self.qmp.CheckNicHotAddSupport()
 
+
+  @_with_qmp
+  def ResizeDisk(self, instance, disk, new_size):
+    """ Notify the HV about a disk change.
+    """
+
+    disk_id = _GenerateDeviceKVMId('disk', disk)
+
+    self.qmp.ResizeBlockDevice(disk_id, new_size)
+
+
   @_with_qmp
   def HotplugSupported(self, instance):
     """Checks if hotplug is generally supported.
@@ -2180,56 +2418,43 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if version < (1, 7, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
-  def _GetBusSlots(self, hvp=None, runtime=None):
-    """Helper function to get the slots of PCI and SCSI QEMU buses.
+  def _get_bus_manager(self, hvp=None, runtime: KVMRuntime=None,
+                       chipset: str = _CHIPSET_I440FX) -> BusAllocatorManager:
+    """Return a bus manager appropriate to the chipset.
 
-    This will return the status of the first PCI and SCSI buses. By default
-    QEMU boots with one PCI bus (pci.0) and occupies the first 3 PCI slots. If
-    a SCSI disk is found then a SCSI controller is added on the PCI bus and a
-    SCSI bus (scsi.0) is created.
-
-    During hotplug we could query QEMU via info qtree HMP command but parsing
-    the result is too complicated. Instead we use the info stored in runtime
-    files. We parse NIC and disk entries and based on their hvinfo we reserve
-    the corresponding slots.
-
-    The runtime argument is a tuple as returned by _LoadKVMRuntime(). Obtain
-    disks and NICs from it. In case a runtime file is not available (see
-    _GenerateKVMRuntime()) we return the bus slots that QEMU boots with by
-    default.
-
+    @param chipset: resolved chipset string ("i440fx" or "q35"). On
+        i440fx, NICs and paravirtual disks share L{PCIAllocator}'s flat
+        C{pci.0} bus. On q35, NICs use L{PCIeNicAllocator}'s 8-slot
+        pool (acpi-indexed for stable C{eno<N>} names) and paravirtual
+        disks use L{PCIeDiskAllocator}'s 16-slot pool. SCSI disks always
+        use L{SCSIAllocator}.
     """
-    # This is by default and returned during _GenerateKVMRuntime()
-    bus_slots = {
-      _PCI_BUS: bitarray(self._DEFAULT_PCI_RESERVATIONS),
-      _SCSI_BUS: bitarray(self._DEFAULT_SCSI_RESERVATIONS),
-      }
 
-    # Adjust the empty slots depending of the corresponding hvparam
-    if hvp and constants.HV_KVM_PCI_RESERVATIONS in hvp:
-      res = hvp[constants.HV_KVM_PCI_RESERVATIONS]
-      pci = bitarray(constants.QEMU_PCI_SLOTS)
-      pci.setall(False) # pylint: disable=E1101
-      pci[0:res:1] = True
-      bus_slots[_PCI_BUS] = pci
+    scsi_allocator = SCSIAllocator(max_slots=self._DEFAULT_SCSI_SLOTS,
+                                   reserved_slots=0)
 
-    # This is during hot-add
+    if chipset == _CHIPSET_Q35:
+      pcie_nic_allocator = PCIeNicAllocator()
+      pcie_disk_allocator = PCIeDiskAllocator()
+      pci_allocators = [pcie_nic_allocator, pcie_disk_allocator]
+    else:
+      reserved_pci_slots = self._DEFAULT_PCI_RESERVED_SLOTS
+      if hvp and constants.HV_KVM_PCI_RESERVATIONS in hvp:
+        reserved_pci_slots = hvp[constants.HV_KVM_PCI_RESERVATIONS]
+
+      pci_allocators = [PCIAllocator(max_slots=constants.QEMU_PCI_SLOTS,
+                                     reserved_slots=reserved_pci_slots)]
+
+    # during hot-add
     if runtime:
-      _, nics, _, disks = runtime
-      disks = [d for d, _, _ in disks]
-      for d in disks + nics:
-        if not d.hvinfo or "bus" not in d.hvinfo:
-          continue
-        bus = d.hvinfo["bus"]
-        slots = bus_slots[bus]
-        if bus == _PCI_BUS:
-          slot = d.hvinfo["addr"]
-          slots[int(slot, 16)] = True
-        elif bus == _SCSI_BUS:
-          slot = d.hvinfo["scsi-id"]
-          slots[slot] = True
+      nics = runtime.kvm_nics
+      disks = [d for d, _, _ in runtime.kvm_disks]
+      dev_infos = [info.hvinfo for info in (disks + nics)]
+      for allocator in pci_allocators:
+        allocator.initialize_from_device_info(dev_infos)
+      scsi_allocator.initialize_from_device_info(dev_infos)
 
-    return bus_slots
+    return BusAllocatorManager(pci_allocators + [scsi_allocator])
 
   @_with_qmp
   def _VerifyHotplugCommand(self, _instance, kvm_devid, should_exist):
@@ -2258,6 +2483,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       msg = "Device %s should have been added but is missing" % kvm_devid
       raise errors.HypervisorError(msg)
 
+    if should_exist:
+      # QEMU has accepted the device, but the guest still needs to
+      # claim it (assign BARs / wire IRQ) before any follow-up
+      # operation - in particular hot-unplug - is safe. On q35 the
+      # guest's pciehp driver mediates this asynchronously and the
+      # wait can take seconds; on i440fx BARs are assigned at
+      # device_add time so the wait normally returns on the first
+      # poll. Run it on both paths so the BAR/IRQ predicate is the
+      # single source of truth for "device is usable". Symmetric
+      # with the DEVICE_DELETED wait on the unplug side.
+      self.qmp.WaitForDeviceClaim(kvm_devid)
+
     logging.info("Device %s has been correctly hot-plugged", kvm_devid)
 
   @_with_qmp
@@ -2271,59 +2508,79 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
     up_hvp = runtime[2]
+    chipset = _CHIPSET_Q35 \
+              if is_q35(up_hvp.get(constants.HV_KVM_MACHINE_VERSION, "")) \
+              else _CHIPSET_I440FX
     device_type = _DEVICE_TYPE[dev_type](up_hvp)
-    bus_state = self._GetBusSlots(up_hvp, runtime)
+    bus_manager = self._get_bus_manager(up_hvp, runtime, chipset=chipset)
+
+    allocation = bus_manager.get_next_allocation(dev_type=dev_type,
+                                                 hv_dev_type=device_type)
     # in case of hot-mod this is given
     if not device.hvinfo:
       device.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,
-                                            device_type, bus_state)
+                                            device_type, allocation)
+
+    new_runtime_entry = _RUNTIME_ENTRY[dev_type](device, extra)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      uri = _GetDriveURI(device, extra[0], extra[1])
+      disk_info = new_runtime_entry[0]
+      access_mode = disk_info.params.get(constants.LDP_ACCESS,
+                                         constants.DISK_KERNELSPACE)
 
-      disable_auto_ro = self.qmp.HasDynamicAutoReadOnly()
+      writeback, direct, no_flush = kvm_utils.GetCacheSettings(
+        up_hvp[constants.HV_DISK_CACHE], disk_info.dev_type)
 
-      def drive_add_fn(filename):
-        """Helper function that uses HMP to hot-add a drive."""
-        cmd = "drive_add dummy file=%s,if=none,id=%s,format=raw" % \
-          (filename, kvm_devid)
-        if disable_auto_ro:
-          # This is necessary for the drive_add/device_add combination to work
-          # after QEMU 4.0. auto-read-only first appeared in 3.1, but 4.0
-          # changed its behavior in a way that breaks hotplugging. See #1547.
-          cmd += ",auto-read-only=off"
-        # When hot plugging a disk, parameters should match the current runtime.
-        # I.e. for live migration, the cache mode is critical.
-        cmd += self._GenerateDiskAioCacheParameters(
-          up_hvp[constants.HV_KVM_DISK_AIO], up_hvp[constants.HV_DISK_CACHE],
-          device_type)
-        if up_hvp[constants.HV_DISK_DISCARD] != constants.HT_DISCARD_DEFAULT:
-          cmd += ",discard=%s" % up_hvp[constants.HV_DISK_DISCARD]
-        self._CallMonitorCommand(instance.name, cmd)
+      target = _GetDriveURI(device, extra[0], extra[1])
 
-      # This must be done indirectly due to the fact that we pass the drive's
-      # file descriptor via QMP first, then we add the corresponding drive that
-      # refers to this fd. Note that if the QMP connection terminates before
-      # a drive which keeps a reference to the fd passed via the add-fd QMP
-      # command has been created, then the fd gets closed and cannot be used
-      # later (e.g., via an drive_add HMP command).
-      self.qmp.HotAddDisk(device, kvm_devid, uri, drive_add_fn)
+      blockdevice = self._GenerateKVMBlockDevice(target, disk_info, up_hvp,
+                                                 kvm_devid)
+
+      if device_type == constants.HT_DISK_PARAVIRTUAL:
+        vcpus = len(self.qmp.GetCpuInformation())
+        iothreads = self._CalcVirtioDiskIothreads(up_hvp, vcpus)
+        if iothreads > 0:
+          device.hvinfo["num-queues"] = vcpus
+          if iothreads == 1:
+            device.hvinfo["iothread"] = "iothread0"
+          else:
+            device.hvinfo["iothread-vq-mapping"] = [
+              {"iothread": f"iothread{t}"} for t in range(iothreads)
+            ]
+
+      self.qmp.HotAddDisk(device, access_mode, writeback, direct, blockdevice)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       is_chrooted = instance.hvparams[constants.HV_KVM_USE_CHROOT]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
-      features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      vcpus = len(self.qmp.GetCpuInformation())
+      features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp,
+                                                      vcpus)
       (tap, tapfds, vhostfds) = OpenTap(features=features)
-      self._ConfigureNIC(instance, seq, device, tap)
-      self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features,
-                         is_chrooted)
-      utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
+      try:
+        self._ConfigureNIC(instance, seq, device, tap)
+        self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features,
+                           is_chrooted)
+        utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
+      finally:
+        # Close tap file descriptors after passing them to QEMU via SCM_RIGHTS.
+        # In the threaded HTTP server model, these FDs are opened in a worker
+        # thread and must be explicitly closed. Otherwise they remain open in
+        # the main daemon process, holding references to the KVM VM and
+        # preventing proper cleanup of kernel threads (like kvm-pit) after
+        # QEMU exits.
+        for fd in tapfds:
+          utils_wrapper.CloseFdNoError(fd)
+        for fd in vhostfds:
+          utils_wrapper.CloseFdNoError(fd)
 
     self._VerifyHotplugCommand(instance, kvm_devid, True)
+    # commit the allocation if hotplug was successful
+    bus_manager.commit(allocation)
+
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
-    entry = _RUNTIME_ENTRY[dev_type](device, extra)
-    runtime[index].append(entry)
+    runtime[index].append(new_runtime_entry)
     self._SaveKVMRuntime(instance, runtime)
 
   @_with_qmp
@@ -2340,13 +2597,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
       self.qmp.HotDelDisk(kvm_devid)
-      # drive_del is not implemented yet in qmp
-      command = "drive_del %s\n" % kvm_devid
-      self._CallMonitorCommand(instance.name, command)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       self.qmp.HotDelNic(kvm_devid)
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
-    self._VerifyHotplugCommand(instance, kvm_devid, False)
+    # DEVICE_DELETED event received inside HotDelDisk/HotDelNic is authoritative
+    # proof the device is gone; query-pci polling is redundant and would
+    # time out on q35 where detach is guest-mediated and asynchronous.
+
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
@@ -2439,6 +2696,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     assert(timeout is None or force is not None)
 
+    kvm_runtime = self._LoadKVMRuntime(instance)
+
     if name is not None and not force:
       raise errors.HypervisorError("Cannot shutdown cleanly by name only")
     if name is None:
@@ -2454,6 +2713,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self.qmp.Powerdown()
 
     self._ClearUserShutdown(instance.name)
+    self._DeConfigureAllNICs(instance)
+
 
   def StopInstance(self, instance, force=False, retry=False, name=None,
                    timeout=None):
@@ -2525,8 +2786,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                             incoming=incoming_address)
     self._SetInstanceMigrationCapabilities(instance)
 
-  def _ConfigureRoutedNICs(self, instance, info):
-    """Configures all NICs in routed mode
+  def _ConfigureRoutedExtNICs(self, instance, info):
+    """Configures all NICs in routed or ext mode
 
     @type instance: L{objects.Instance}
     @param instance: the instance to be configured
@@ -2537,7 +2798,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_nics = kvm_runtime[1]
 
     for nic_seq, nic in enumerate(kvm_nics):
-      if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_ROUTED:
+      if nic.nicparams[constants.NIC_MODE] not in \
+        [constants.NIC_MODE_ROUTED, constants.NIC_MODE_EXT]:
         # Bridged/OVS interfaces have already been configured
         continue
       try:
@@ -2547,7 +2809,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         instance.name, nic_seq, str(err))
         continue
       try:
-        self._ConfigureNIC(instance, nic_seq, nic, tap)
+        self._ConfigureNIC(instance, nic_seq, nic, tap,
+                           extra_env={"MIGRATION_PHASE": "post"})
       except errors.HypervisorError as err:
         logging.warning(str(err))
 
@@ -2561,7 +2824,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
-      self._ConfigureRoutedNICs(instance, info)
+      self._ConfigureRoutedExtNICs(instance, info)
       self._WriteKVMRuntime(instance.name, info)
       self._ClearInstanceMigrationCapabilities(instance)
     else:
@@ -2612,6 +2875,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
+      self._DeConfigureAllNICs(instance)
       pidfile, pid, _ = self._InstancePidAlive(instance.name)
       utils.KillProcess(pid)
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
@@ -2624,6 +2888,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self.qmp.ContinueGuestEmulation()
         self._ClearInstanceMigrationCapabilities(instance)
       else:
+        self._DeConfigureAllNICs(instance)
         self.CleanupInstance(instance.name)
 
   @_with_qmp
@@ -2815,8 +3080,107 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_HELP)
     validate_spice_parameters(hvparams, kvm_output)
 
+    kvmpath = constants.KVM_PATH
+    kvm_version = cls._GetKVMVersion(kvmpath)
+    validate_disk_parameters(hvparams, kvm_version)
+
     kvm_output = cls._GetKVMOutput(kvm_path, cls._KVMOPT_MLIST)
     validate_machine_version(hvparams, kvm_output)
+
+    # q35-specific capability/configuration check. Raises if q35 is
+    # requested but the QEMU build has no pc-q35-* machine type, and
+    # surfaces suboptimal-default warnings (lsi, IDE CD-ROM, floppy,
+    # cirrus VGA) - see the design doc for rationale.
+    for warning in validate_q35_capability(hvparams, kvm_output):
+      logging.warning("%s", warning)
+
+  @classmethod
+  def AssessParameters(cls, hvparams):
+    """Check the given parameters for uncommon/suboptimal values
+
+    This should check the passed set of parameters for suboptimal
+    values.
+
+    @type hvparams: dict
+    @param hvparams: dictionary with parameter names/value
+
+    """
+
+    warnings = []
+
+    cpu_type = hvparams[constants.HV_CPU_TYPE]
+    if not cpu_type:
+      warnings.append("cpu_type is currently unset and defaults to 'qemu64'"
+                      ", please read the gnt-instance man page on the security"
+                      " and performance implications of this parameter.")
+    elif cpu_type in ("qemu32", "qemu64", "kvm32", "kvm64"):
+      warnings.append("cpu_type is currently set to '%s'"
+                      ", please read the gnt-instance man page on the security"
+                      " and performance implications of this parameter." %
+                      cpu_type)
+    elif cpu_type == "host":
+      warnings.append("cpu_type is currently set to 'host', please make"
+                      " sure all your cluster nodes have the exact same"
+                      " CPU type to allow live migrations.")
+
+    vhost_net = hvparams[constants.HV_VHOST_NET]
+    if not vhost_net:
+      warnings.append("vhost_net should be enabled for paravirtual NICs to"
+                      " improve network latency and throughput.")
+
+    migration_bandwidth = hvparams[constants.HV_MIGRATION_BANDWIDTH]
+    default_migration_bw = constants.HVC_DEFAULTS[constants.HT_KVM]\
+      [constants.HV_MIGRATION_BANDWIDTH]
+    if migration_bandwidth == default_migration_bw:
+      warnings.append("migration_bandwidth is still set to its default value"
+                      "(%s MiB/s), please consider adjusting it to a higher "
+                      "value that leverages todays network speeds."
+                      % default_migration_bw)
+
+    disk_type = hvparams[constants.HV_DISK_TYPE]
+    if disk_type != "paravirtual":
+      warnings.append("disk_type is set to '%s' instead of 'paravirtual'"
+                      ", please consider virtio-based disks for the best"
+                      " performance." % disk_type)
+
+    nic_type = hvparams[constants.HV_NIC_TYPE]
+    if nic_type != "paravirtual":
+      warnings.append("nic_type is set to '%s' instead of 'paravirtual'"
+                      ", please consider virtio-based networking for the"
+                      " best performance." % nic_type)
+
+    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
+    vnc_tls_enabled = hvparams[constants.HV_VNC_TLS]
+
+    if vnc_bind_address and vnc_bind_address != "127.0.0.1" \
+            and not vnc_tls_enabled:
+      warnings.append("VNC is configured but without TLS, please"
+                      " consider setting vnc_tls to 'true'"
+                      " for additional security.")
+
+    spice_bind_address = hvparams[constants.HV_KVM_SPICE_BIND]
+    spice_tls_enabled = hvparams[constants.HV_KVM_SPICE_USE_TLS]
+
+    if spice_bind_address and spice_bind_address != "127.0.0.1" \
+            and not spice_tls_enabled:
+      warnings.append("Spice is configured but without TLS, please"
+                      " consider setting spice_use_tls to 'true'"
+                      " for additional security.")
+
+    machine_version = hvparams[constants.HV_KVM_MACHINE_VERSION]
+    if not machine_version:
+      warnings.append("machine_version is not explicitly configured so "
+                      "Ganeti will autodetect the default value from "
+                      "'kvm -M ?', this might produce unexpected results.")
+    if machine_version == "pc":
+      warnings.append("machine_version is set to the 'pc' type which "
+                      "could cause problems during live migration")
+
+    if machine_version in ["none", "microvm", "isapc", "x-remote"]:
+      warnings.append("machine_version is set to %s which is unsupported "
+                      "in Ganeti." % machine_version)
+
+    return warnings
 
   @classmethod
   def PowercycleNode(cls, hvparams=None):

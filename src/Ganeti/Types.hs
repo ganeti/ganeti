@@ -400,6 +400,7 @@ $(THH.makeJSONInstance ''MigrationMode)
 -- | Verify optional checks.
 $(THH.declareLADT ''String "VerifyOptionalChecks"
      [ ("VerifyNPlusOneMem", "nplusone_mem")
+     , ("VerifyHVParamAssessment", "hvparam_assessment")
      ])
 $(THH.makeJSONInstance ''VerifyOptionalChecks)
 
@@ -671,6 +672,7 @@ $(THH.declareLADT ''String "NICMode"
   , ("NMRouted",  "routed")
   , ("NMOvs",     "openvswitch")
   , ("NMPool",    "pool")
+  , ("NMExt",     "ext")
   ])
 $(THH.makeJSONInstance ''NICMode)
 
@@ -824,6 +826,7 @@ $(THH.declareLADT ''String "VType"
   , ("VTypeSize",        "size")
   , ("VTypeInt",         "int")
   , ("VTypeFloat",       "float")
+  , ("VTypeIntOrAuto",   "int-or-auto")
   ])
 $(THH.makeJSONInstance ''VType)
 
@@ -995,7 +998,7 @@ instance Applicative Private where
 
 instance Monad Private where
   (Private x) >>= f = f x
-  return = Private
+  return = pure
 
 showPrivateJSObject :: (JSON.JSON a) =>
                        [(String, a)] -> JSON.JSObject (Private JSON.JSValue)
@@ -1025,7 +1028,7 @@ instance Applicative Secret where
 
 instance Monad Secret where
   (Secret x) >>= f = f x
-  return = Secret
+  return = pure
 
 -- | We return "\<redacted\>" here to satisfy the idempotence of serialization
 -- and deserialization, although this will impact the meaningfulness of secret

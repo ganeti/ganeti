@@ -29,8 +29,9 @@
 
 """Module used during the Ganeti build process"""
 
-import imp
 import os
+import importlib.util
+import importlib.machinery
 
 
 def LoadModule(filename):
@@ -43,10 +44,12 @@ def LoadModule(filename):
   @param filename: Path to module
 
   """
-  (name, ext) = os.path.splitext(filename)
+  (name, _) = os.path.splitext(filename)
 
-  fh = open(filename, "r")
-  try:
-    return imp.load_module(name, fh, filename, (ext, "r", imp.PY_SOURCE))
-  finally:
-    fh.close()
+  loader = importlib.machinery.SourceFileLoader(name, filename)
+  spec = importlib.util.spec_from_file_location(name, filename, loader=loader)
+
+  module = importlib.util.module_from_spec(spec)
+
+  loader.exec_module(module)
+  return module

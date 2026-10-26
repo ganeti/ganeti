@@ -430,8 +430,8 @@ class MoveRuntime(object):
 
     self.lock.acquire()
     try:
-      self.source_to_dest.notifyAll()
-      self.dest_to_source.notifyAll()
+      self.source_to_dest.notify_all()
+      self.dest_to_source.notify_all()
     finally:
       self.lock.release()
 
@@ -567,7 +567,7 @@ class MoveDestExecutor(object):
     mrt.dest_to_source.acquire()
     try:
       mrt.dest_impinfo = impinfo
-      mrt.dest_to_source.notifyAll()
+      mrt.dest_to_source.notify_all()
     finally:
       mrt.dest_to_source.release()
 
@@ -602,6 +602,15 @@ class MoveDestExecutor(object):
     except ValueError:
       raise Error("Received NIC information does not match expected format; "
                   "Do the versions of this tool and the source cluster match?")
+
+    # remove mode, link and vlan if a network is supplied
+    skip_keys = [constants.INIC_MODE, constants.INIC_LINK, constants.INIC_VLAN]
+    for idx, nic in enumerate(nics):
+      if nic[constants.INIC_NETWORK] is not None:
+        nics[idx] = objects.FillDict(nic, nic, skip_keys)
+        # use symbolic network name, not uuid
+        netinfo = instance["nics"][idx][8]
+        nics[idx][constants.INIC_NETWORK] = netinfo["name"]
 
     if len(override_nics) > len(nics):
       raise Error("Can not create new NICs")
@@ -690,7 +699,8 @@ class MoveDestExecutor(object):
                              osparams=objects.FillDict(inst_osparams,
                                                        override_osparams),
                              opportunistic_locking=is_attempt_opportunistic,
-                             tags=instance["tags"]
+                             tags=instance["tags"],
+                             wait_for_sync=False,
                              )
 
 
@@ -726,7 +736,7 @@ class MoveSourceExecutor(object):
     try:
       mrt.src_instinfo = instinfo
       mrt.src_expinfo = expinfo
-      mrt.source_to_dest.notifyAll()
+      mrt.source_to_dest.notify_all()
     finally:
       mrt.source_to_dest.release()
 
@@ -855,7 +865,7 @@ class MoveSourceWorker(workerpool.BaseWorker):
       mrt = MoveRuntime(move)
 
       logging.debug("Starting destination thread")
-      dest_thread = threading.Thread(name="DestFor%s" % self.getName(),
+      dest_thread = threading.Thread(name="DestFor%s" % self.name,
                                      target=mrt.HandleErrors,
                                      args=("dest", MoveDestExecutor,
                                            rapi_factory.GetDestClient(),
@@ -938,7 +948,9 @@ def _CheckAllocatorOptions(parser, options):
       bool(options.dest_primary_node or options.dest_secondary_node)):
     parser.error("Destination node and iallocator options exclude each other")
 
-  if not options.iallocator and (options.opportunistic_tries > 0):
+  if (not options.iallocator and
+      options.opportunistic_tries is not None and
+      options.opportunistic_tries > 0):
     parser.error("Opportunistic instance creation can only be used with an"
                  " iallocator")
 
@@ -972,6 +984,12 @@ def _CheckInstanceOptions(parser, options, instance_names):
 
     if options.nics:
       options.nics = cli.ParseNicOption(options.nics)
+      # allow user to override instance parameters by hardcoding the
+      # empty string as "ignore this setting" shortcut
+      for nic in options.nics:
+        for k, v in nic.items():
+          if v == "":
+            nic[k] = None
   else:
     # Moving more than one instance
     if compat.any(options.dest_instance_name, options.dest_primary_node,

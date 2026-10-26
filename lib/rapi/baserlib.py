@@ -298,10 +298,18 @@ class ResourceBase(object):
 
   """
   # Default permission requirements
-  GET_ACCESS = []
-  PUT_ACCESS = [rapi.RAPI_ACCESS_WRITE]
-  POST_ACCESS = [rapi.RAPI_ACCESS_WRITE]
-  DELETE_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  # A default permission is set. This must be set in the subclass.
+  # If no permission is required, this must be explicitly set to None.
+  GET_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+  PUT_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+  POST_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+  DELETE_ACCESS = rapi.RAPI_ACCESS_NOT_DEFINED
+
+  # Default authentication requirements
+  GET_AUTH_REQUIRED = True
+  PUT_AUTH_REQUIRED = True
+  POST_AUTH_REQUIRED = True
+  DELETE_AUTH_REQUIRED = True
 
   def __init__(self, items, queryargs, req, _client_cls=None):
     """Generic resource constructor.
@@ -448,15 +456,33 @@ def GetResourceOpcodes(cls):
                        for method_attrs in OPCODE_ATTRS) if opcode)
 
 
+def GetHandlerAuthRequired(handler, method):
+  """Returns whether authentication is required for a method on a handler.
+
+  @type handler: L{ResourceBase}
+  @param handler: handler instance or class
+  @type method: string
+  @param method: HTTP method (e.g. C{"GET"})
+  @rtype: bool
+  @return: whether the handler requires the caller to authenticate
+
+  """
+  return getattr(handler, f"{method}_AUTH_REQUIRED", True)
+
+
 def GetHandlerAccess(handler, method):
   """Returns the access rights for a method on a handler.
 
   @type handler: L{ResourceBase}
+  @param handler: handler instance or class
   @type method: string
+  @param method: HTTP method (e.g. C{"GET"})
   @rtype: string or None
+  @return: required permission name, C{None} for public, or
+           L{rapi.RAPI_ACCESS_NOT_DEFINED} when missing
 
   """
-  return getattr(handler, "%s_ACCESS" % method, None)
+  return getattr(handler, f"{method}_ACCESS", None)
 
 
 def GetHandler(get_fn, aliases):

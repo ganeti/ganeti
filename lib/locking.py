@@ -210,8 +210,8 @@ class SingleNotifyPipeCondition(_BaseCondition):
   This condition class uses pipes and poll, internally, to be able to wait for
   notification with a timeout, without resorting to polling. It is almost
   compatible with Python's threading.Condition, with the following differences:
-    - notifyAll can only be called once, and no wait can happen after that
-    - notify is not supported, only notifyAll
+    - notify_all can only be called once, and no wait can happen after that
+    - notify is not supported, only notify_all
 
   """
 
@@ -281,7 +281,7 @@ class SingleNotifyPipeCondition(_BaseCondition):
       if self._nwaiters == 0:
         self._Cleanup()
 
-  def notifyAll(self): # pylint: disable=C0103
+  def notify_all(self):
     """Close the writing side of the pipe to notify all waiters.
 
     """
@@ -298,7 +298,7 @@ class PipeCondition(_BaseCondition):
 
   This condition class uses pipes and poll, internally, to be able to wait for
   notification with a timeout, without resorting to polling. It is almost
-  compatible with Python's threading.Condition, but only supports notifyAll and
+  compatible with Python's threading.Condition, but only supports notify_all and
   non-recursive locks. As an additional features it's able to report whether
   there are any waiting threads.
 
@@ -331,19 +331,19 @@ class PipeCondition(_BaseCondition):
     # notifying while we're waiting.
     cond = self._single_condition
 
-    self._waiters.add(threading.currentThread())
+    self._waiters.add(threading.current_thread())
     try:
       cond.wait(timeout)
     finally:
       self._check_owned()
-      self._waiters.remove(threading.currentThread())
+      self._waiters.remove(threading.current_thread())
 
-  def notifyAll(self): # pylint: disable=C0103
+  def notify_all(self):
     """Notify all currently waiting threads.
 
     """
     self._check_owned()
-    self._single_condition.notifyAll()
+    self._single_condition.notify_all()
     self._single_condition = self._single_condition_class(self._lock)
 
   def get_waiting(self):
@@ -487,7 +487,7 @@ class SharedLock(object):
 
         if owner:
           assert not self.__deleted
-          owner_names = [i.getName() for i in owner]
+          owner_names = [i.name for i in owner]
 
       # Pending acquires are wanted
       if query.LQ_PENDING in requested:
@@ -502,7 +502,7 @@ class SharedLock(object):
               pendmode = _EXCLUSIVE_TEXT
 
             # List of names will be sorted in L{query._GetLockPending}
-            pending.append((pendmode, [i.getName()
+            pending.append((pendmode, [i.name
                                        for i in cond.get_waiting()]))
       else:
         pending = None
@@ -522,13 +522,13 @@ class SharedLock(object):
     """Is the current thread sharing the lock at this time?
 
     """
-    return threading.currentThread() in self.__shr
+    return threading.current_thread() in self.__shr
 
   def __is_exclusive(self):
     """Is the current thread holding the lock exclusively at this time?
 
     """
-    return threading.currentThread() == self.__exc
+    return threading.current_thread() == self.__exc
 
   def __is_owned(self, shared=-1):
     """Is the current thread somehow owning the lock at this time?
@@ -598,9 +598,9 @@ class SharedLock(object):
 
     """
     if shared:
-      self.__shr.add(threading.currentThread())
+      self.__shr.add(threading.current_thread())
     else:
-      self.__exc = threading.currentThread()
+      self.__exc = threading.current_thread()
 
   def __can_acquire(self, shared):
     """Determine whether lock can be acquired.
@@ -791,7 +791,7 @@ class SharedLock(object):
               prioqueue.insert(0, cond)
 
             # Notify
-            cond.notifyAll()
+            cond.notify_all()
 
       assert not self.__is_exclusive()
       assert self.__is_sharer()
@@ -817,7 +817,7 @@ class SharedLock(object):
         self.__exc = None
         notify = True
       else:
-        self.__shr.remove(threading.currentThread())
+        self.__shr.remove(threading.current_thread())
         notify = not self.__shr
 
       # Notify topmost condition in queue if there are no owners left (for
@@ -834,7 +834,7 @@ class SharedLock(object):
     (priority, prioqueue) = self.__find_first_pending_queue()
     if prioqueue:
       cond = prioqueue[0]
-      cond.notifyAll()
+      cond.notify_all()
       if cond.shared:
         # Prevent further shared acquires from sneaking in while waiters are
         # notified
@@ -890,7 +890,7 @@ class SharedLock(object):
         # Notify all acquires. They'll throw an error.
         for (_, prioqueue) in self.__pending:
           for cond in prioqueue:
-            cond.notifyAll()
+            cond.notify_all()
 
         assert self.__deleted
 
@@ -906,6 +906,11 @@ class SharedLock(object):
   def _acquire_restore(self, shared):
     self.acquire(shared=shared)
 
+  # compatible with Python-3.14's threading.Condition
+  @property
+  def locked(self) -> bool:
+    """Return True if exclusive or shared lock is held"""
+    return self.__exc is not None or bool(self.__shr)
 
 # Whenever we want to acquire a full LockSet we pass None as the value
 # to acquire.  Hide this behind this nicely named constant.

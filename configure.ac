@@ -1,6 +1,6 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [3])
-m4_define([gnt_version_minor], [1])
+m4_define([gnt_version_minor], [2])
 m4_define([gnt_version_revision], [0])
 m4_define([gnt_version_suffix], [~alpha1])
 m4_define([gnt_version_full],
@@ -135,6 +135,22 @@ AC_ARG_WITH([haskell-flags],
   [hextra_configure="$withval"],
   [hextra_configure=""])
 AC_SUBST(HEXTRA_CONFIGURE, $hextra_configure)
+
+# --with-haskell-pcre=
+AC_ARG_WITH([haskell-pcre],
+  [AS_HELP_STRING([--with-haskell-pcre=auto|pcre|pcre2|pcre-builtin|tdfa],
+    [Haskell PCRE regex to use]
+  )],
+  [case "$withval" in
+      auto|pcre|pcre2|pcre-builtin|tdfa)
+        hs_pcre_backend="$withval"
+        ;;
+      *)
+        AC_MSG_ERROR([Unsupported value ${withval} for --with-haskell-pcre])
+        ;;
+    esac
+   ],
+  [hs_pcre_backend="auto"])
 
 # --with-sshd-restart-command=...
 AC_ARG_WITH([sshd-restart-command],
@@ -697,9 +713,32 @@ AC_GHC_PKG_REQUIRE(hinotify)
 AC_GHC_PKG_REQUIRE(cryptonite)
 AC_GHC_PKG_REQUIRE(lifted-base)
 AC_GHC_PKG_REQUIRE(lens)
-AC_GHC_PKG_REQUIRE(regex-pcre)
 AC_GHC_PKG_REQUIRE(old-time)
 AC_GHC_PKG_REQUIRE(temporary)
+
+case "$hs_pcre_backend" in
+  auto)
+  AC_GHC_PKG_CHECK([regex-pcre], [hs_pcre_backend=pcre],
+    [AC_GHC_PKG_CHECK([regex-pcre2], [hs_pcre_backend=pcre2],
+      [AC_GHC_PKG_CHECK([regex-pcre-builtin], [hs_pcre_backend=pcre-builtin],
+        [AC_GHC_PKG_CHECK([regex-tdfa], [hs_pcre_backend=tdfa], [
+	  AC_MSG_ERROR([No supported Haskell PCRE library found]) ])])])])
+  ;;
+  tdfa)
+  AC_GHC_PKG_REQUIRE(regex-tdfa)
+  ;;
+  pcre)
+  AC_GHC_PKG_REQUIRE(regex-pcre)
+  ;;
+  pcre2)
+  AC_GHC_PKG_REQUIRE(regex-pcre2)
+  ;;
+  pcre-builtin)
+  AC_GHC_PKG_REQUIRE(regex-pcre-builtin)
+  ;;
+esac
+
+AC_SUBST(HS_PCRE_BACKEND, $hs_pcre_backend)
 
 #extra modules for monitoring daemon functionality; also needed for tests
 MONITORING_PKG=
@@ -898,9 +937,8 @@ m4_define_default([_AM_PYTHON_INTERPRETER_LIST],
                   [python3 python3.8 python3.7 python3.6 python])
 AM_PATH_PYTHON([3.6])
 AC_PYTHON_MODULE(OpenSSL, t)
-AC_PYTHON_MODULE(simplejson, t)
+AC_PYTHON_MODULE(cryptography, t)
 AC_PYTHON_MODULE(pyparsing, t)
-AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 AC_PYTHON_MODULE(bitarray, t)
 AC_PYTHON_MODULE(psutil)
@@ -912,9 +950,9 @@ AC_PYTHON_MODULE(yaml)
 if test $HAVE_PYMOD_YAML == "no"; then
   PY_NODEV="$PY_NODEV yaml"
 fi
-AC_PYTHON_MODULE(mock)
-if test $HAVE_PYMOD_MOCK == "no"; then
-  PY_NODEV="$PY_NODEV mock"
+AC_PYTHON_MODULE(pytest)
+if test $HAVE_PYMOD_PYTEST == "no"; then
+  PY_NODEV="$PY_NODEV pytest"
 fi
 
 if test -n "$PY_NODEV"; then

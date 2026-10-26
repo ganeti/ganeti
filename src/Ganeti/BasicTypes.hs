@@ -48,7 +48,7 @@ module Ganeti.BasicTypes
   , toErrorBase
   , toErrorStr
   , tryError
-  , Error(..) -- re-export from Control.Monad.Error
+  , Error(..)
   , MonadIO(..) -- re-export from Control.Monad.IO.Class
   , isOk
   , isBad
@@ -77,12 +77,13 @@ module Ganeti.BasicTypes
   , emptyListSet
   ) where
 
+import System.IO.Error (tryIOError)
 import Control.Applicative
-import Control.Exception (try)
+import Control.Exception (IOException)
 import Control.Monad
 import Control.Monad.Fail (MonadFail)
 import Control.Monad.Base
-import Control.Monad.Error.Class
+import Control.Monad.Except (MonadError, throwError, catchError)
 import Control.Monad.Trans
 import Control.Monad.Trans.Control
 import Data.Function
@@ -113,11 +114,20 @@ genericResult _ g (Ok b) = g b
 -- | Type alias for a string Result.
 type Result = GenericResult String
 
+class Error e where
+  strMsg :: String -> e
+
+instance (a ~ Char) => Error [a] where
+  strMsg = id
+
+instance Error IOException where
+  strMsg = userError
+
 -- | 'Monad' instance for 'GenericResult'.
 instance (Error a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
-  return = Ok
+  return = pure
 #if !MIN_VERSION_base(4,13,0)
   fail   = Bad . strMsg
 #endif
@@ -175,11 +185,11 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
 {-# INLINE elimResultT #-}
 
 instance (Applicative m, Monad m, Error a) => Applicative (ResultT a m) where
-  pure = return
+  pure = lift . pure
   (<*>) = ap
 
 instance (Monad m, Error a) => Monad (ResultT a m) where
-  return   = lift . return
+  return   = pure
   (>>=)    = flip (elimResultT throwError)
 #if !MIN_VERSION_base(4,13,0)
   fail err = ResultT (return . Bad $ strMsg err)
@@ -192,11 +202,11 @@ instance (Monad m, Error a) => MonadError a (ResultT a m) where
   throwError = ResultT . return . Bad
   catchError = catchErrorT
 
-instance MonadTrans (ResultT a) where
+instance (Error a) => MonadTrans (ResultT a) where
   lift = ResultT . liftM Ok
 
--- | The instance catches any 'IOError' using 'try' and converts it into an
--- error message using 'strMsg'.
+-- | The instance catches any 'IOError' using 'tryIOError'
+-- and converts it into an error message using 'strMsg'.
 --
 -- This way, monadic code within 'ResultT' that uses solely 'liftIO' to
 -- include 'IO' actions ensures that all IO exceptions are handled.
@@ -206,12 +216,12 @@ instance MonadTrans (ResultT a) where
 instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
   liftIO = ResultT . liftIO
                    . liftM (either (failError . show) return)
-                   . (try :: IO a -> IO (Either IOError a))
+                   . tryIOError
 
 instance (MonadBase IO m, Error a) => MonadBase IO (ResultT a m) where
   liftBase = ResultT . liftBase
                    . liftM (either (failError . show) return)
-                   . (try :: IO a -> IO (Either IOError a))
+                   . tryIOError
 
 instance (Error a) => MonadTransControl (ResultT a) where
 #if MIN_VERSION_monad_control(1,0,0)

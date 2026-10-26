@@ -65,7 +65,7 @@ import Text.JSON
 import Ganeti.Constants as C
 import Ganeti.Objects (ConfigData)
 import Ganeti.THH
-import Ganeti.Utils (getCurrentTimeUSec)
+import Ganeti.Utils.Time (getCurrentTimeUSec)
 
 -- | The possible classes a data collector can belong to.
 data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor

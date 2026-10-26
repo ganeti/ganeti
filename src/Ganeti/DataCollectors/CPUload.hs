@@ -44,7 +44,6 @@ module Ganeti.DataCollectors.CPUload
   ) where
 
 import Control.Arrow (first)
-import qualified Control.Exception as E
 import Data.Attoparsec.Text.Lazy as A
 import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (pack, unpack)
@@ -52,12 +51,14 @@ import qualified Text.JSON as J
 import qualified Data.Sequence as Seq
 import System.Posix.Unistd (getSysVar, SysVar(ClockTick))
 import System.Time (ClockTime(..), getClockTime)
+import System.IO.Error (tryIOError)
 
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Cpu.LoadParser(cpustatParser)
 import Ganeti.DataCollectors.Types
 import qualified Ganeti.JSON as GJ
+import Ganeti.Utils.Time (clockTimeToUSec)
 import Ganeti.Utils
 import Ganeti.Cpu.Types
 
@@ -124,7 +125,7 @@ computeLoad cpuData =
 dcCollectFromFile :: FilePath -> IO (ClockTime, [Int])
 dcCollectFromFile inputFile = do
   contents <-
-    ((E.try $ readFile inputFile) :: IO (Either IOError String)) >>=
+    tryIOError (readFile inputFile) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   cpustatData <-
     case A.parse cpustatParser $ pack contents of

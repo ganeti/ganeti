@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, FlexibleContexts #-}
+{-# LANGUAGE Rank2Types, FlexibleContexts #-}
 
 {-| Implementation of functions specific to configuration management.
 
@@ -44,9 +44,11 @@ module Ganeti.WConfd.ConfigWriter
   ) where
 
 import Control.Monad.Base
-import Control.Monad.Error
+import Control.Monad.Except
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Trans.Control
+import Control.Monad.Trans (lift)
+import Control.Monad (liftM, unless, (>=>))
 import Data.Monoid
 import qualified Data.Set as Set
 

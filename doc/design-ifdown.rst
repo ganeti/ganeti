@@ -3,7 +3,7 @@ Design for adding ifdown script to KVM
 ======================================
 
 :Created: 2014-Jun-23
-:Status: Draft
+:Status: Implemented (see :doc:`network`)
 
 .. contents:: :depth: 4
 

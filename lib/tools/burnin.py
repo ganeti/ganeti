@@ -38,7 +38,7 @@ import sys
 import optparse
 import time
 import socket
-import urllib.request, urllib.parse, urllib.error
+import urllib.request
 import random
 import string # pylint: disable=W0402
 from functools import reduce
@@ -140,26 +140,6 @@ def RandomString(size=8, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for x in range(size))
 
 
-class SimpleOpener(urllib.request.FancyURLopener):
-  """A simple url opener"""
-  # pylint: disable=W0221
-
-  def prompt_user_passwd(self, host, realm, clear_cache=0):
-    """No-interaction version of prompt_user_passwd."""
-    # we follow parent class' API
-    # pylint: disable=W0613
-    return None, None
-
-  def http_error_default(self, url, fp, errcode, errmsg, headers):
-    """Custom error handling"""
-    # make sure sockets are not left in CLOSE_WAIT, this is similar
-    # but with a different exception to the BasicURLOpener class
-    _ = fp.read() # throw away data
-    fp.close()
-    raise InstanceDown("HTTP error returned: code %s, msg %s" %
-                       (errcode, errmsg))
-
-
 OPTIONS = [
   cli.cli_option("-o", "--os", dest="os", default=None,
                  help="OS to use during burnin",
@@ -191,8 +171,8 @@ OPTIONS = [
                  completion_suggest=("1 2 3 4").split()),
   cli.DEBUG_OPT,
   cli.VERBOSE_OPT,
-  cli.NOIPCHECK_OPT,
-  cli.NONAMECHECK_OPT,
+  cli.IPCHECK_OPT,
+  cli.NAMECHECK_OPT,
   cli.EARLY_RELEASE_OPT,
   cli.cli_option("--no-replace1", dest="do_replace1",
                  help="Skip disk replacement with the same secondary",
@@ -495,7 +475,7 @@ class Burner(JobHandler):
     """Constructor."""
     super(Burner, self).__init__()
 
-    self.url_opener = SimpleOpener()
+    self.url_opener = urllib.request
     self.nodes = []
     self.instances = []
     self.to_rem = []
@@ -1023,7 +1003,7 @@ class Burner(JobHandler):
 
   def DoConfdRequestReply(self, req):
     self.confd_counting_callback.RegisterQuery(req.rsalt)
-    self.confd_client.SendRequest(req, async_=False)
+    self.confd_client.SendRequest(req)
     while not self.confd_counting_callback.AllAnswered():
       if not self.confd_client.ReceiveReply():
         Err("Did not receive all expected confd replies")
@@ -1090,11 +1070,11 @@ class Burner(JobHandler):
 
       op_stop = self.StopInstanceOp(instance)
       op_add = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_ADD, {"size": self.disk_size[0],
                                     "name": disk_name})])
       op_detach = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_DETACH, {})])
       op_start = self.StartInstanceOp(instance)
       Log("adding a disk with name %s" % disk_name, indent=2)
@@ -1118,10 +1098,10 @@ class Burner(JobHandler):
 
       disk_name = self.FindMatchingDisk(instance)
       op_attach = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_ATTACH, {"name": disk_name})])
       op_rem = opcodes.OpInstanceSetParams(
-        instance_name=instance, hotplug_if_possible=True,
+        instance_name=instance,
         disks=[(constants.DDM_REMOVE, {})])
       op_stop = self.StopInstanceOp(instance)
       op_start = self.StartInstanceOp(instance)

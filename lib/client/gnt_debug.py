@@ -38,7 +38,7 @@ import logging
 import socket
 import time
 
-import simplejson
+import json
 
 from ganeti.cli import *
 from ganeti import cli
@@ -104,7 +104,7 @@ def GenericOpCodes(opts, args):
     ToStdout("Loading...")
   for job_idx in range(opts.rep_job):
     for fname in args:
-      op_data = simplejson.loads(utils.ReadFile(fname))
+      op_data = json.loads(utils.ReadFile(fname))
       op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
       op_list = op_list * opts.rep_op
       jex.QueueJob("file %s/%d" % (fname, job_idx), *op_list)

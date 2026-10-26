@@ -17,7 +17,7 @@ you must first [fork](https://help.github.com/articles/fork-a-repo/) the Ganeti
 repo: https://github.com/ganeti/ganeti. After that, clone your fork and add the
 original repository as the upstream:
 
-```
+```shell
 git clone git@github.com:<username>/ganeti.git
 git remote add upstream git@github.com:ganeti/ganeti.git
 ```
@@ -27,7 +27,7 @@ git remote add upstream git@github.com:ganeti/ganeti.git
 Important: Before starting a new patch it is a good idea to
 [merge all the upstream changes](https://help.github.com/articles/syncing-a-fork/):
 
-```
+```shell
 git fetch upstream
 git checkout <branch>
 git merge upstream/<branch>
@@ -46,7 +46,7 @@ github as well as work on multiple pull requests.
 
 Let's say you want to patch an existing issue on branch <existing_branchname>.
 Then:
-```
+```shell
 git checkout <existing_branchname>
 git checkout -b <feature_branchname>
 ```
@@ -65,14 +65,27 @@ for the reviewer, so be reasonable. Favor small Pull Requests as they are easier
 to review and they provide feedback early. Avoid making huge changes just to see
 the reviewer asking you to restart from scratch..
 
-Remember to use the --signoff flag when committing. You may also push these
+Remember to use the `--signoff` flag when committing. You may also push these
 changes to your personal fork by running `git push origin <feature_branchname>`
 
-### 5. Testing your changes
+### 5. Use of AI-Assisted Contributions
 
-`make pylint; make hlint; make py-tests; make hs-tests`
+The Ganeti project accepts AI-assisted contributions, as long as you adhere to the
+following standards:
 
-### 6. Sending changes for review
+* You as the contributor are solely responsible and accountable for your
+  contribution (in terms of code quality and license compliance).
+* You MUST disclose the use of AI when significant parts of your contribution
+  are AI-generated/assisted and incorporated without changes. Please use an
+  `Assisted-by: <AI Tool Name>` commit message trailer to do so.
+
+### 6. Testing your changes
+
+```shell
+make pylint; make hlint; make py-tests; make hs-tests
+```
+
+### 7. Sending changes for review
 
 Once you and the tests are happy enough with your changes, push your changes to
 your personal fork. After that,
@@ -85,10 +98,11 @@ that it follows the canonical commit message criteria:
 
 * It MUST have a single line heading with no period, at most 80 characters
 * It MUST have a description, as described above
-* It MUST have a "Signed-off-by: author@org" line (Same generated when using
-  the --signoff flag)
+* It MUST have a `Signed-off-by: author@org` line (Same generated when using
+  the `--signoff` flag)
+* It MUST have a `Assisted-by: <AI Tool Name>` line if applicable (see above)
 
-### 7. Addressing Reviewers comments
+### 8. Addressing Reviewers comments
 If your pull request is more than a one-line fix, it will probably have some
 comments from a reviewer. The reviewer might help you to identify some
 typos/bugs, to improve your documentation and to improve your
@@ -114,7 +128,7 @@ during the review.
 
 Keep doing this until you receive an Approval from the reviewer.
 
-### 8. Pushing your changes
+### 9. Pushing your changes
 After receiving all the approvals needed, the reviewer will pull your changes to
 the repo. Congratulations!
 

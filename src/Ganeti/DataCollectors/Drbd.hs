@@ -45,7 +45,7 @@ module Ganeti.DataCollectors.Drbd
   ) where
 
 
-import qualified Control.Exception as E
+import System.IO.Error (tryIOError)
 import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
 import Data.List
@@ -190,7 +190,7 @@ computeDevStatus dev =
 buildJsonReport :: FilePath -> Maybe FilePath -> IO J.JSValue
 buildJsonReport statusFile pairingFile = do
   contents <-
-    ((E.try $ readFile statusFile) :: IO (Either IOError String)) >>=
+    tryIOError (readFile statusFile) >>=
       exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
   pairingResult <- getPairingInfo pairingFile
   pairing <- logWarningIfBad "Can't get pairing info" [] pairingResult

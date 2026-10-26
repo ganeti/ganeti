@@ -61,7 +61,7 @@ be submitted in the right order.
 The new attribute's value would be a list of two-valued tuples. Each
 tuple contains a job ID and a list of requested status for the job
 depended upon. Only final status are accepted
-(:pyeval:`utils.CommaJoin(constants.JOBS_FINALIZED)`). An empty list is
+(:pyeval:`utils.CommaJoin(sorted(constants.JOBS_FINALIZED))`). An empty list is
 equivalent to specifying all final status (except
 :pyeval:`constants.JOB_STATUS_CANCELED`, which is treated specially).
 An opcode runs only once all its dependency requirements have been

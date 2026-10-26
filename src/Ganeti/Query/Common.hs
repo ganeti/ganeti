@@ -87,6 +87,7 @@ vTypeToQFT VTypeBool        = QFTBool
 vTypeToQFT VTypeSize        = QFTUnit
 vTypeToQFT VTypeInt         = QFTNumber
 vTypeToQFT VTypeFloat       = QFTNumberFloat
+vTypeToQFT VTypeIntOrAuto   = QFTOther
 
 -- * Result helpers
 

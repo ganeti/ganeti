@@ -42,7 +42,8 @@ import tempfile
 
 from io import StringIO
 
-import OpenSSL
+from cryptography import x509 as cryptography_x509
+from cryptography.hazmat.primitives import serialization
 
 from ganeti.cli import *
 from ganeti import bootstrap
@@ -95,6 +96,10 @@ RESUME_OPT = cli_option("--resume", default=False, action="store_true",
 DATA_COLLECTOR_INTERVAL_OPT = cli_option(
     "--data-collector-interval", default={}, type="keyval",
     help="Set collection intervals in seconds of data collectors.")
+
+STRICT_OPT = cli_option("--no-strict", default=False,
+                        dest="no_strict", action="store_true",
+                        help="Do not run group verify in strict mode")
 
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
@@ -753,6 +758,9 @@ def VerifyCluster(opts, args):
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
 
+  if opts.skip_hvparam_assessment:
+    skip_checks.append(constants.VERIFY_HVPARAM_ASSESSMENT)
+
   cl = GetClient()
 
   op = opcodes.OpClusterVerify(verbose=opts.verbose,
@@ -797,7 +805,8 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup)
+  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup,
+                                    is_strict=not opts.no_strict)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -973,14 +982,14 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
                                "Unable to read certificate: %s" % str(err))
 
   try:
-    OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pem)
+    cryptography_x509.load_pem_x509_certificate(pem.encode("ascii"))
   except Exception as err:
     raise errors.X509CertError(cert_filename,
                                "Unable to load certificate: %s" % str(err))
 
   if verify_private_key:
     try:
-      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, pem)
+      serialization.load_pem_private_key(pem.encode("ascii"), password=None)
     except Exception as err:
       raise errors.X509CertError(cert_filename,
                                  "Unable to load private key: %s" % str(err))
@@ -2500,11 +2509,11 @@ commands = {
   "verify": (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT,
-     VERIFY_CLUTTER_OPT],
+     NOHVPARAMASSESS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT,
+     IGNORE_ERRORS_OPT, VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
-    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
+    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT, STRICT_OPT],
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],

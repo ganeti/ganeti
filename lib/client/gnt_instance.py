@@ -36,9 +36,8 @@
 
 import copy
 import itertools
+import json
 import logging
-
-import simplejson
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -280,7 +279,7 @@ def BatchCreate(opts, args):
   cl = GetClient()
 
   try:
-    instance_data = simplejson.loads(utils.ReadFile(json_filename))
+    instance_data = json.loads(utils.ReadFile(json_filename))
   except Exception as err: # pylint: disable=W0703
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
@@ -458,12 +457,6 @@ def RenameInstance(opts, args):
   @return: the desired exit code
 
   """
-  if not opts.force:
-    if not opts.name_check:
-      if not AskUser("As you disabled the check of the DNS entry, please verify"
-                     " that '%s' is a FQDN. Continue?" % args[1]):
-        return 1
-
   op = opcodes.OpInstanceRename(instance_name=args[0],
                                 new_name=args[1],
                                 ip_check=opts.ip_check,
@@ -1439,7 +1432,6 @@ def SetInstanceParams(opts, args):
                                    nics=nics,
                                    disks=disks,
                                    hotplug=opts.hotplug,
-                                   hotplug_if_possible=opts.hotplug_if_possible,
                                    disk_template=opts.disk_template,
                                    ext_params=ext_params,
                                    file_driver=opts.file_driver,
@@ -1650,7 +1642,7 @@ commands = {
   "rename": (
     RenameInstance,
     [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
-    [FORCE_OPT, NOIPCHECK_OPT, NONAMECHECK_OPT] + SUBMIT_OPTS
+    [IPCHECK_OPT, NAMECHECK_OPT] + SUBMIT_OPTS
     + [DRY_RUN_OPT, PRIORITY_OPT],
     "<old-name> <new-name>", "Rename the instance"),
   "replace-disks": (
@@ -1667,8 +1659,8 @@ commands = {
      OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
-     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
-     HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT,
+     NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT,
+     NOHOTPLUG_OPT, INSTANCE_COMMUNICATION_OPT,
      EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT],
     "<instance-name>", "Alters the parameters of an instance"),
   "shutdown": (

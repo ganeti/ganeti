@@ -1,11 +1,13 @@
 /var/log/ganeti/*.log {
-        weekly
+        daily
         missingok
-        rotate 52
+        rotate 90
         notifempty
         compress
         delaycompress
+        create 640
         sharedscripts
+        su root root
         postrotate
 		@PKGLIBDIR@/daemon-util rotate-all-logs
         endscript
