@@ -68,7 +68,7 @@ import errno
 import OpenSSL
 import socket
 
-from ganeti import opcodes
+from ganeti import hypervisor, opcodes
 from ganeti import objects
 from ganeti import http
 from ganeti import constants
@@ -344,6 +344,7 @@ class R_2_info_hypervisor_parameters(baserlib.ResourceBase):
 
     for hv_name in cluster_info["enabled_hypervisors"]:
       result[hv_name] = {}
+      hv_class = hypervisor.GetHypervisorClass(hv_name)
 
       cluster_defaults = cluster_info["hvparams"][hv_name]
 
@@ -356,6 +357,11 @@ class R_2_info_hypervisor_parameters(baserlib.ResourceBase):
           "cluster_default": cluster_defaults.get(param_name),
           "type": constants.HVS_PARAMETER_TYPES[param_name],
         }
+
+        definition = hv_class.PARAMETERS[param_name]
+        allowed_values = definition[5] if len(definition) > 5 else None
+        if allowed_values is not None:
+          result[hv_name][param_name]["allowed_values"] = sorted(allowed_values)
 
     return result
 

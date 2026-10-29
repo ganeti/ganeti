@@ -443,8 +443,8 @@ Hypervisor parameter metadata resource.
 ``GET``
 ~~~~~~~
 
-Returns the parameter types and defaults
-for enabled hypervisors.
+Returns the parameter types, defaults and statically defined
+allowed values for enabled hypervisors.
 
 Example::
 
@@ -454,7 +454,8 @@ Example::
         "name": "boot_order",
         "default": "disk",
         "cluster_default": "disk",
-        "type": "string"
+        "type": "string",
+        "allowed_values": ["cdrom", "disk", "floppy", "network"]
       },
       "kernel_path": {
         "name": "kernel_path",
