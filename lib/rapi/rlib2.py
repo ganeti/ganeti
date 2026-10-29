@@ -68,7 +68,7 @@ import errno
 import OpenSSL
 import socket
 
-from ganeti import opcodes
+from ganeti import hypervisor, opcodes
 from ganeti import objects
 from ganeti import http
 from ganeti import constants
@@ -324,6 +324,46 @@ class R_2_info(baserlib.OpcodeResource):
     """
     client = self.GetClient()
     return client.QueryClusterInfo()
+
+
+class R_2_info_hypervisor_parameters(baserlib.ResourceBase):
+  """/2/info/hypervisor-parameters resource.
+
+  """
+
+  GET_ACCESS = rapi.RAPI_ACCESS_CLUSTER_INFO
+
+  def GET(self):
+    """Returns available hypervisor parameter metadata.
+
+    """
+    cl = self.GetClient()
+    cluster_info = cl.QueryClusterInfo()
+
+    result = {}
+
+    for hv_name in cluster_info["enabled_hypervisors"]:
+      result[hv_name] = {}
+      hv_class = hypervisor.GetHypervisorClass(hv_name)
+
+      cluster_defaults = cluster_info["hvparams"][hv_name]
+
+      for param_name, param_default in \
+          constants.HVC_DEFAULTS[hv_name].items():
+
+        result[hv_name][param_name] = {
+          "name": param_name,
+          "default": param_default,
+          "cluster_default": cluster_defaults.get(param_name),
+          "type": constants.HVS_PARAMETER_TYPES[param_name],
+        }
+
+        definition = hv_class.PARAMETERS[param_name]
+        allowed_values = definition[5] if len(definition) > 5 else None
+        if allowed_values is not None:
+          result[hv_name][param_name]["allowed_values"] = sorted(allowed_values)
+
+    return result
 
 
 class R_2_features(baserlib.ResourceBase):

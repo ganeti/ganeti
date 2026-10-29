@@ -429,6 +429,44 @@ Example::
   }
 
 
+.. _rapi-res-info-hypervisor-parameters:
+
+``/2/info/hypervisor-parameters``
++++++++++++++++++++++++++++++++++
+
+Hypervisor parameter metadata resource.
+
+.. rapi_resource_details:: /2/info/hypervisor-parameters
+
+.. _rapi-res-info-hypervisor-parameters+get:
+
+``GET``
+~~~~~~~
+
+Returns the parameter types, defaults and statically defined
+allowed values for enabled hypervisors.
+
+Example::
+
+  {
+    "kvm": {
+      "boot_order": {
+        "name": "boot_order",
+        "default": "disk",
+        "cluster_default": "disk",
+        "type": "string",
+        "allowed_values": ["cdrom", "disk", "floppy", "network"]
+      },
+      "kernel_path": {
+        "name": "kernel_path",
+        "default": "/boot/vmlinuz-3-kvmU",
+        "cluster_default": "/boot/vmlinuz-3-kvmU",
+        "type": "string"
+      }
+    }
+  }
+
+
 .. _rapi-res-redistribute-config:
 
 ``/2/redistribute-config``
