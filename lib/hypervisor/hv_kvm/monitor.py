@@ -756,6 +756,9 @@ class QmpConnection(QemuMonitorSocket):
     [{"device": "disk-049f140d", "inserted": {"file": ..., "image": ...}}]
     new blockdev_add + device_add
     [{"device": "", "inserted": {...}, "qdev": "disk-5d029f20-0c04-4652", ...}]
+      or
+    [{"device": "", "inserted": {...}, "qdev":
+            "/machine/peripheral/disk-0b8a291a-1a81-4b54/virtio-backend", ...}]
 
     @rtype: list of dicts
     @return: Info about the virtual disks of the instance.
@@ -770,7 +773,8 @@ class QmpConnection(QemuMonitorSocket):
 
     """
     for d in self._GetBlockDevices():
-      if d["qdev"] == devid:
+      qdev_val = d.get("qdev")
+      if qdev_val and devid in qdev_val:
         return True
 
     return False
