@@ -461,7 +461,8 @@ Example::
         "name": "kernel_path",
         "default": "/boot/vmlinuz-3-kvmU",
         "cluster_default": "/boot/vmlinuz-3-kvmU",
-        "type": "string"
+        "type": "string",
+        "allowed_values": null
       }
     }
   }

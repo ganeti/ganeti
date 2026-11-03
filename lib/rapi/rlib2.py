@@ -356,6 +356,7 @@ class R_2_info_hypervisor_parameters(baserlib.ResourceBase):
           "default": param_default,
           "cluster_default": cluster_defaults.get(param_name),
           "type": constants.HVS_PARAMETER_TYPES[param_name],
+          "allowed_values": None
         }
 
         definition = hv_class.PARAMETERS[param_name]
