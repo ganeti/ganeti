@@ -446,6 +446,11 @@ Hypervisor parameter metadata resource.
 Returns the parameter types, defaults and statically defined
 allowed values for enabled hypervisors.
 
+For enum-valued hypervisor parameters, the empty string (``""``) can be used
+when setting an instance parameter to remove the instance-level setting. The
+parameter then falls back to the cluster-level value. This special reset value
+is not included in ``allowed_values``.
+
 Example::
 
   {
