@@ -68,9 +68,10 @@ import errno
 import OpenSSL
 import socket
 
-from ganeti import hypervisor, opcodes
+from ganeti import opcodes
 from ganeti import objects
 from ganeti import http
+from ganeti import hypervisor
 from ganeti import constants
 from ganeti import cli
 from ganeti import rapi
