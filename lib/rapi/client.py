@@ -667,6 +667,21 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     return self._SendRequest(HTTP_GET, "/%s/info" % GANETI_RAPI_VERSION,
                              query, None)
 
+  def GetHypervisorParameters(self, reason=None):
+    """Gets metadata about hypervisor parameters.
+
+    @rtype: dict
+    @return: hypervisor parameter metadata
+    @type reason: string
+    @param reason: the reason for executing this operation
+
+    """
+    query = []
+    _AppendReason(query, reason)
+    return self._SendRequest(
+        HTTP_GET, "/%s/info/hypervisor-parameters" % GANETI_RAPI_VERSION,
+        query, None)
+
   def RedistributeConfig(self, reason=None):
     """Tells the cluster to redistribute its configuration files.
 

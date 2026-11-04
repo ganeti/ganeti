@@ -158,7 +158,8 @@ REQUIRED_CHECK = (True, None, None, None, None)
 
 # migration type
 MIGRATION_MODE_CHECK = (True, lambda x: x in constants.HT_MIGRATION_MODES,
-                        "invalid migration mode", None, None)
+                        "invalid migration mode", None, None,
+                        tuple(constants.HT_MIGRATION_MODES))
 
 
 def ParamInSet(required, my_set):
@@ -172,7 +173,7 @@ def ParamInSet(required, my_set):
   """
   fn = lambda x: x in my_set
   err = ("The value must be one of: %s" % utils.CommaJoin(my_set))
-  return (required, fn, err, None, None)
+  return (required, fn, err, None, None, tuple(my_set))
 
 
 def GenerateTapName():
@@ -679,7 +680,8 @@ class BaseHypervisor(object):
         raise errors.HypervisorError("Parameter '%s' is not supported" % key)
 
     # cheap tests that run on the master, should not access the world
-    for name, (required, check_fn, errstr, _, _) in cls.PARAMETERS.items():
+    for name, definition in cls.PARAMETERS.items():
+      required, check_fn, errstr, _, _ = definition[:5]
       if name not in hvparams:
         raise errors.HypervisorError("Parameter '%s' is missing" % name)
       value = hvparams[name]
@@ -705,7 +707,8 @@ class BaseHypervisor(object):
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
-    for name, (required, _, _, check_fn, errstr) in cls.PARAMETERS.items():
+    for name, definition in cls.PARAMETERS.items():
+      required, _, _, check_fn, errstr = definition[:5]
       value = hvparams[name]
       if not required and cls._IsParamValueUnspecified(value):
         continue
