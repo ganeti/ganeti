@@ -62,10 +62,22 @@ TARGET_MAJOR = constants.CONFIG_MAJOR
 TARGET_MINOR = constants.CONFIG_MINOR
 #: Last supported v2.x minor
 LAST_V2_MINOR = 16
-#: Target major version for downgrade
-DOWNGRADE_MAJOR = TARGET_MAJOR
-#: Target minor version for downgrade
-DOWNGRADE_MINOR = TARGET_MINOR - 1
+#: Last supported v3.x minor
+LAST_V3_MINOR = 1
+
+# Downgrade targets the previous stable version. Within a major series that is
+# the preceding minor; the first release of a new major series (x.0) instead
+# downgrades to the last minor of the preceding series.
+if TARGET_MINOR > 0:
+  #: Target major version for downgrade
+  DOWNGRADE_MAJOR = TARGET_MAJOR
+  #: Target minor version for downgrade
+  DOWNGRADE_MINOR = TARGET_MINOR - 1
+else:
+  #: Target major version for downgrade
+  DOWNGRADE_MAJOR = TARGET_MAJOR - 1
+  #: Target minor version for downgrade
+  DOWNGRADE_MINOR = LAST_V3_MINOR
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -185,8 +197,9 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.0-2.16 and 3.0 to 3.1
+    # Upgrade from 2.0-2.16 and 3.0-3.1 to the target version
     elif ((config_major == TARGET_MAJOR and config_minor in range(TARGET_MINOR))
+         or (config_major == 3 and config_minor in range(LAST_V3_MINOR + 1))
          or (config_major == 2 and config_minor in range(LAST_V2_MINOR + 1))):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
@@ -365,6 +378,20 @@ class CfgUpgrade(object):
         cluster["hvparams"][constants.HT_KVM][constants.HV_DISK_DISCARD] = \
           constants.HT_DISCARD_IGNORE
 
+      # boot_type added with 4.0: synthesize it for the KVM cluster defaults
+      # from the literal state of kernel_path (non-empty -> direct kernel boot,
+      # empty/absent -> BIOS boot), preserving pre-4.0 behaviour. Idempotent so
+      # repeated UpgradeAll runs are safe.
+      # Pre-4.0 had no OVMF support, so this synthesis can only ever yield
+      # direct_kernel or bios - never uefi/direct_kernel_uefi.
+      kvm_hvparams = cluster["hvparams"].get(constants.HT_KVM)
+      if kvm_hvparams is not None and \
+         constants.HV_BOOT_TYPE not in kvm_hvparams:
+        if kvm_hvparams.get(constants.HV_KERNEL_PATH):
+          kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
+
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
     cl_ipolicy = self.config_data["cluster"].get("ipolicy")
@@ -487,6 +514,26 @@ class CfgUpgrade(object):
             constants.HT_DISCARD_IGNORE
           logging.info("disk_discard was explicitly set to 'default' on "
                        "instance '%s': migrated to 'ignore'" % iobj["name"])
+
+      # boot_type added with 4.0. Under the seed model every KVM instance owns
+      # an explicit boot_type, so pin it here from the instance's *effective*
+      # kernel_path (instance override if present, else the cluster KVM
+      # default): non-empty -> direct_kernel, empty -> bios. This inverts the
+      # pre-4.0-development "don't freeze inheritance" rule: there is no
+      # cluster inheritance for boot_type anymore.
+      # Pre-4.0 had no OVMF support, so this synthesis can only ever yield
+      # direct_kernel or bios - never uefi/direct_kernel_uefi.
+      kvm_hvparams = self.config_data["cluster"].get("hvparams", {}).get(
+        constants.HT_KVM, {})
+      ihvparams = iobj.get("hvparams")
+      if ihvparams is not None and \
+         iobj.get("hypervisor") == constants.HT_KVM and \
+         constants.HV_BOOT_TYPE not in ihvparams:
+        if ihvparams.get(constants.HV_KERNEL_PATH,
+                         kvm_hvparams.get(constants.HV_KERNEL_PATH, "")):
+          ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
+        else:
+          ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
 
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have
@@ -811,6 +858,145 @@ class CfgUpgrade(object):
       inst_hvparams = instances[inst].get("hvparams", None)
       if hvparams is not None and "virtio_disk_iothreads" in inst_hvparams:
         inst_hvparams.pop("virtio_disk_iothreads")
+  @OrFail("Removing the boot_type and ovmf_code/ovmf_vars parameters")
+  def DowngradeBootType(self):
+    """Remove the KVM boot_type and ovmf_code/ovmf_vars hvparams.
+
+    These parameters were introduced with 4.0 (boot_type + UEFI/OVMF support);
+    older Ganeti versions do not know them, so strip them from the cluster
+    defaults and from every instance's hvparam overrides.
+
+    The Disk.role field also has to go: it was introduced with 4.0, and
+    older Ganeti versions reject dicts with unknown parameters when loading
+    objects (ValidatedSlots raises a TypeError), so a downgraded
+    configuration carrying "role" would make 3.1 tools crash on startup.
+    Firmware disks do not exist pre-4.0 anyway, so plain removal is safe.
+
+    """
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    new_hvparams = [constants.HV_BOOT_TYPE, constants.HV_OVMF_CODE,
+                    constants.HV_OVMF_VARS]
+
+    cluster = self.config_data.get("cluster", None)
+    if cluster is None:
+      raise Error("Can't find the cluster entry in the configuration")
+
+    kvm_hvparams = cluster.get("hvparams", {}).get(constants.HT_KVM, None)
+    if kvm_hvparams is not None:
+      for param in new_hvparams:
+        kvm_hvparams.pop(param, None)
+
+    for iobj in self.config_data.get("instances", {}).values():
+      ihvparams = iobj.get("hvparams", None)
+      if ihvparams is not None:
+        for param in new_hvparams:
+          ihvparams.pop(param, None)
+
+    # Disk.role was introduced with 4.0 as well; older versions reject the
+    # parameter on load (see docstring), so remove it everywhere disks are
+    # stored: as top-level citizens (keyed by UUID) and, for configurations
+    # that predate that layout, in the per-instance disk lists. Children
+    # (e.g. a DRBD disk's data/meta volumes) carry the field as well and
+    # are loaded recursively by older versions, so recurse into them.
+    for disk in self.config_data.get("disks", {}).values():
+      self._StripDiskRole(disk)
+    for iobj in self.config_data.get("instances", {}).values():
+      for disk in iobj.get("disks", []):
+        self._StripDiskRole(disk)
+
+  @staticmethod
+  def _StripDiskRole(disk):
+    if isinstance(disk, dict):
+      disk.pop("role", None)
+      for child in disk.get("children", []):
+        CfgUpgrade._StripDiskRole(child)
+
+  @staticmethod
+  def _DiskHasRole(disk, role):
+    """Whether C{disk} or any of its children carries C{role}.
+
+    Children (e.g. a DRBD disk's data/meta volumes) load recursively in
+    older versions, so a matching child counts as much as a matching root.
+    """
+    if not isinstance(disk, dict):
+      return False
+    if disk.get("role") == role:
+      return True
+    return any(CfgUpgrade._DiskHasRole(child, role)
+               for child in disk.get("children", []))
+
+  def CheckDowngradeUefi(self):
+    """Refuse the downgrade if the configuration still uses OVMF boot.
+
+    Two 4.0 features cannot survive a downgrade to the previous major
+    version (3.1):
+
+    - an instance pinned to an OVMF boot mode ('uefi' or
+      'direct_kernel_uefi') would silently fall back to BIOS boot,
+      bricking guests that cannot boot that way;
+    - a firmware disk (a Disk with role 'firmware', kept in place even
+      after switching boot_type away from OVMF because it holds the
+      precious OVMF NVRAM) would lose its role, and on a later re-upgrade
+      its ipolicy exemption, leaving a configuration that no version
+      handles cleanly.
+
+    Raise L{Error} naming the offending instances (or, for firmware disks
+    detached from every instance, their UUIDs) so the operator can fix
+    them up before re-running the downgrade.
+
+    """
+    # pylint: disable=E1103
+    # Because config_data is a dictionary which has the get method.
+    ovmf_modes = (constants.HT_BOOT_UEFI, constants.HT_BOOT_DIRECT_KERNEL_UEFI)
+
+    instances = self.config_data.get("instances", {})
+    top_disks = self.config_data.get("disks", {})
+
+    ovmf_instances = set()
+    firmware_disk_owners = set()
+    referenced_uuids = set()
+
+    for iuuid, iobj in instances.items():
+      iname = iobj.get("name", iuuid)
+      if (iobj.get("hypervisor", constants.HT_KVM) == constants.HT_KVM and
+          (iobj.get("hvparams", {}) or {}).get(
+            constants.HV_BOOT_TYPE) in ovmf_modes):
+        ovmf_instances.add(iname)
+
+      for dref in iobj.get("disks", []):
+        if isinstance(dref, dict):
+          # Legacy layout: full disk dicts inline in the instance's disk
+          # list (they may carry no uuid at all).
+          if self._DiskHasRole(dref, constants.DR_ROLE_FIRMWARE):
+            firmware_disk_owners.add(iname)
+        else:
+          # Current layout: disk UUIDs resolved against the top-level
+          # disks dict.
+          referenced_uuids.add(dref)
+          if dref in top_disks and self._DiskHasRole(
+              top_disks[dref], constants.DR_ROLE_FIRMWARE):
+            firmware_disk_owners.add(iname)
+
+    orphan_firmware_uuids = sorted(
+      duuid for duuid, disk in top_disks.items()
+      if duuid not in referenced_uuids and
+      self._DiskHasRole(disk, constants.DR_ROLE_FIRMWARE))
+
+    if ovmf_instances or firmware_disk_owners or orphan_firmware_uuids:
+      raise Error(
+        "Cannot downgrade to %d.%d: the configuration still uses UEFI/OVMF "
+        "features that are not supported by that version.\n"
+        "Instances with an OVMF boot type (boot_type 'uefi' or "
+        "'direct_kernel_uefi'): %s\n"
+        "Instances with a firmware disk (holding the OVMF NVRAM): %s\n"
+        "Firmware disks not attached to any instance (by UUID): %s\n"
+        "Switch the instances to 'bios' or 'direct_kernel' boot and remove "
+        "any firmware disks before re-running the downgrade." %
+        (DOWNGRADE_MAJOR, DOWNGRADE_MINOR,
+         ", ".join(sorted(ovmf_instances)) or "none",
+         ", ".join(sorted(firmware_disk_owners)) or "none",
+         ", ".join(orphan_firmware_uuids) or "none"))
 
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
@@ -819,6 +1005,7 @@ class CfgUpgrade(object):
     self.DowngradeXenSettings()
     self.DowngradeRbdSettings()
     self.DowngradeIothreadSettings()
+    self.DowngradeBootType()
     return not self.errors
 
   def _ComposePaths(self):
@@ -869,6 +1056,10 @@ class CfgUpgrade(object):
                   " found %s (%s.%s.%s) instead" %
                   (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
                    config_minor, config_revision))
+    # Refuse before touching anything: an OVMF instance or a firmware
+    # disk cannot survive the downgrade (see CheckDowngradeUefi), and
+    # aborting here keeps the configuration completely untouched.
+    self.CheckDowngradeUefi()
     if not self.DowngradeAll():
       raise Error("Downgrade failed:\n%s" % "\n".join(self.errors))
 

@@ -223,7 +223,8 @@ def ListInstances(opts, args):
   """
   selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
-  fmtoverride = dict.fromkeys(["tags", "disk.sizes", "nic.macs", "nic.ips",
+  fmtoverride = dict.fromkeys(["tags", "disk.sizes", "disk.roles",
+                               "nic.macs", "nic.ips",
                                "nic.modes", "nic.links", "nic.bridges",
                                "nic.networks",
                                "snodes", "snodes.group", "snodes.group.uuid"],
@@ -1060,6 +1061,10 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
     if dev["spindles"] is not None:
       data.append(("spindles", dev["spindles"]))
     data.append(("access mode", dev["mode"]))
+    # Surface the firmware disk so admins can identify it; hiding it would be
+    # dangerous since losing its OVMF NVRAM bricks the instance.
+    if dev.get("role", constants.DR_ROLE_DATA) != constants.DR_ROLE_DATA:
+      data.append(("role", dev["role"]))
   if dev["logical_id"] is not None:
     try:
       l_id = _FormatDiskDetails(dev["dev_type"], dev, roman)

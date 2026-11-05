@@ -417,6 +417,19 @@ class TestLUInstanceCreate(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(
       op, "Disk adoption not allowed for instance import")
 
+  def testAdoptUefi(self):
+    op = self.CopyOpCode(self.diskless_op,
+                         disk_template=constants.DT_PLAIN,
+                         disks=[{
+                           constants.IDISK_ADOPT: "lv1"
+                         }],
+                         hypervisor=constants.HT_KVM,
+                         hvparams={
+                           constants.HV_BOOT_TYPE: constants.HT_BOOT_UEFI
+                         })
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Disk adoption is not supported for UEFI instances")
+
   def testArgumentCombinations(self):
     op = self.CopyOpCode(self.diskless_op,
                          # start flag will be flipped

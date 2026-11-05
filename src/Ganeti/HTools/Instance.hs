@@ -81,8 +81,9 @@ import Ganeti.Utils
 
 -- * Type declarations
 data Disk = Disk
-  { dskSize     :: Int       -- ^ Size in bytes
-  , dskSpindles :: Maybe Int -- ^ Number of spindles
+  { dskSize     :: Int        -- ^ Size in bytes
+  , dskSpindles :: Maybe Int  -- ^ Number of spindles
+  , dskRole     :: T.DiskRole -- ^ The disk's role (data/firmware)
   } deriving (Show, Eq)
 
 -- | The instance type.
@@ -288,12 +289,13 @@ shrinkByType inst T.FailCPU = let v = vcpus inst - T.unitCpu
                                  else Ok inst { vcpus = v }
 shrinkByType inst T.FailSpindles =
   case disks inst of
-    [Disk ds sp] -> case sp of
+    [Disk ds sp role] -> case sp of
                       Nothing -> Bad "No spindles, shouldn't have happened"
                       Just sp' -> let v = sp' - T.unitSpindle
                                   in if v < T.unitSpindle
                                      then Bad "out of spindles"
-                                     else Ok inst { disks = [Disk ds (Just v)] }
+                                     else Ok inst
+                                          { disks = [Disk ds (Just v) role] }
     d -> Bad $ "Expected one disk, but found " ++ show d
 shrinkByType _ f = Bad $ "Unhandled failure mode " ++ show f
 
@@ -302,33 +304,46 @@ getTotalSpindles :: Instance -> Maybe Int
 getTotalSpindles inst =
   foldr (liftM2 (+) . dskSpindles ) (Just 0) (disks inst)
 
+-- | The disks that count towards the instance policy. The firmware (OVMF)
+-- disk is a fixed-size, system-managed disk and is exempt from the user
+-- disk-size/disk-count/spindle ipolicy limits, so it is filtered out here.
+-- It still counts towards capacity (via 'dsk'/'getTotalSpindles').
+policyDisks :: Instance -> [Disk]
+policyDisks = filter ((/= T.DiskRoleFirmware) . dskRole) . disks
+
+-- | Sum of spindles over the policy-relevant disks (see 'policyDisks').
+getPolicySpindles :: Instance -> Maybe Int
+getPolicySpindles inst =
+  foldr (liftM2 (+) . dskSpindles) (Just 0) (policyDisks inst)
+
 -- | Return the spec of an instance.
 specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c, disks = dl } =
   let sp = case dl of
-             [Disk _ (Just sp')] -> sp'
+             [Disk _ (Just sp') _] -> sp'
              _ -> 0
   in T.RSpec { T.rspecCpu = c, T.rspecMem = m,
                T.rspecDsk = d, T.rspecSpn = sp }
 
 -- | Checks if an instance is smaller/bigger than a given spec. Returns
 -- OpGood for a correct spec, otherwise Bad one of the possible
--- failure modes.
+-- failure modes. The firmware disk is exempt from the disk-related limits
+-- (see 'policyDisks').
 instCompareISpec :: Ordering -> Instance-> T.ISpec -> Bool -> T.OpResult ()
 instCompareISpec which inst ispec exclstor
   | which == mem inst `compare` T.iSpecMemorySize ispec = Bad T.FailMem
   | which `elem` map ((`compare` T.iSpecDiskSize ispec) . dskSize)
-    (disks inst) = Bad T.FailDisk
+    (policyDisks inst) = Bad T.FailDisk
   | which == vcpus inst `compare` T.iSpecCpuCount ispec = Bad T.FailCPU
   | exclstor &&
-    case getTotalSpindles inst of
+    case getPolicySpindles inst of
       Nothing -> True
       Just sp_sum -> which == sp_sum `compare` T.iSpecSpindleUse ispec
     = Bad T.FailSpindles
   | not exclstor && which == spindleUse inst `compare` T.iSpecSpindleUse ispec
     = Bad T.FailSpindles
   | diskTemplate inst /= T.DTDiskless &&
-    which == length (disks inst) `compare` T.iSpecDiskCount ispec
+    which == length (policyDisks inst) `compare` T.iSpecDiskCount ispec
     = Bad T.FailDiskCount
   | otherwise = Ok ()
 

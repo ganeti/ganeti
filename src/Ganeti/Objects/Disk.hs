@@ -251,6 +251,7 @@ $(buildObjectWithForthcoming "Disk" "disk" $
   , optionalField $ simpleField "name" [t| String |]
   , optionalField $ simpleField "spindles" [t| Int |]
   , optionalField $ simpleField "params" [t| DiskParams |]
+  , defaultField [| DiskRoleData |] $ simpleField "role" [t| DiskRole |]
   ]
   ++ uuidFields
   ++ serialFields

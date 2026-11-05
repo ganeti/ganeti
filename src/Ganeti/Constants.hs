@@ -518,6 +518,23 @@ kvmPath = AutoConf.kvmPath
 kvmKernel :: String
 kvmKernel = AutoConf.kvmKernel
 
+-- | OVMF firmware code template, seeded into each UEFI instance's firmware
+-- disk at creation. Doubles as the cluster-wide default for the per-instance
+-- 'hvOvmfCode' hypervisor parameter.
+ovmfCodeTemplate :: String
+ovmfCodeTemplate = AutoConf.ovmfCodeTemplate
+
+-- | OVMF firmware vars (NVRAM) template, seeded once into each UEFI
+-- instance's firmware disk at creation and never rewritten.
+ovmfVarsTemplate :: String
+ovmfVarsTemplate = AutoConf.ovmfVarsTemplate
+
+-- | Fixed size (in MiB) of the per-instance firmware disk. Covers the OVMF
+-- code and vars regions plus headroom for future firmware blobs (e.g. vTPM
+-- state) without oversizing the DRBD-mirrored volume.
+ovmfFirmwareDiskSize :: Int
+ovmfFirmwareDiskSize = 32
+
 socatEscapeCode :: String
 socatEscapeCode = "0x1d"
 
@@ -1116,6 +1133,17 @@ diskRdwr = Types.diskModeToRaw DiskRdWr
 diskAccessSet :: FrozenSet String
 diskAccessSet = ConstantUtils.mkSet $ map Types.diskModeToRaw [minBound..]
 
+-- * Disk role
+
+-- | An ordinary data disk.
+drRoleData :: String
+drRoleData = Types.diskRoleToRaw DiskRoleData
+
+-- | The per-instance firmware disk holding OVMF code and vars regions (and,
+-- in the future, other precious firmware blobs such as vTPM state).
+drRoleFirmware :: String
+drRoleFirmware = Types.diskRoleToRaw DiskRoleFirmware
+
 -- * Disk replacement mode
 
 replaceDiskAuto :: String
@@ -1677,6 +1705,21 @@ hvKernelArgs = "kernel_args"
 hvKernelPath :: String
 hvKernelPath = "kernel_path"
 
+hvBootType :: String
+hvBootType = "boot_type"
+
+hvOvmfCode :: String
+hvOvmfCode = "ovmf_code"
+
+hvOvmfVars :: String
+hvOvmfVars = "ovmf_vars"
+
+-- | Hvparams that are seeded from the cluster default into a new instance's
+-- explicit hvparams at creation time, then owned by the instance (not
+-- inherited afterwards).
+hvSeedParams :: FrozenSet String
+hvSeedParams = ConstantUtils.mkSet [hvBootType]
+
 hvKeymap :: String
 hvKeymap = "keymap"
 
@@ -1886,6 +1929,7 @@ hvsParameterTitles =
   Map.fromList
   [(hvAcpi, "ACPI"),
    (hvBootOrder, "Boot_order"),
+   (hvBootType, "Boot_type"),
    (hvPvhMode, "Pvh_mode"),
    (hvCdromImagePath, "CDROM_image_path"),
    (hvCpuType, "cpu_type"),
@@ -1893,6 +1937,8 @@ hvsParameterTitles =
    (hvInitrdPath, "Initrd_path"),
    (hvKernelPath, "Kernel_path"),
    (hvNicType, "NIC_type"),
+   (hvOvmfCode, "Ovmf_code"),
+   (hvOvmfVars, "Ovmf_vars"),
    (hvPae, "PAE"),
    (hvPassthrough, "pci_pass"),
    (hvVncBindAddress, "VNC_bind_address")]
@@ -1907,6 +1953,7 @@ hvsParameterTypes = Map.fromList
   , (hvBootloaderArgs,                  VTypeString)
   , (hvBootloaderPath,                  VTypeString)
   , (hvBootOrder,                       VTypeString)
+  , (hvBootType,                        VTypeString)
   , (hvCdromImagePath,                  VTypeString)
   , (hvCpuCap,                          VTypeInt)
   , (hvCpuCores,                        VTypeInt)
@@ -1960,6 +2007,8 @@ hvsParameterTypes = Map.fromList
   , (hvMigrationMode,                   VTypeString)
   , (hvMigrationPort,                   VTypeInt)
   , (hvNicType,                         VTypeString)
+  , (hvOvmfCode,                        VTypeString)
+  , (hvOvmfVars,                        VTypeString)
   , (hvPae,                             VTypeBool)
   , (hvPassthrough,                     VTypeString)
   , (hvRebootBehavior,                  VTypeString)
@@ -2931,6 +2980,36 @@ htBoNetwork = "network"
 htKvmValidBoTypes :: FrozenSet String
 htKvmValidBoTypes =
   ConstantUtils.mkSet [htBoCdrom, htBoDisk, htBoFloppy, htBoNetwork]
+
+-- * Boot mode (the 'hvBootType' parameter)
+
+-- | Direct kernel boot (@-kernel@/@-initrd@/@-append@); preserves the
+-- pre-4.0 behaviour selected implicitly by a non-empty @kernel_path@.
+htBootDirectKernel :: String
+htBootDirectKernel = "direct_kernel"
+
+-- | Legacy BIOS (SeaBIOS) boot driven by @boot_order@.
+htBootBios :: String
+htBootBios = "bios"
+
+-- | UEFI/OVMF boot driven by @boot_order@.
+htBootUefi :: String
+htBootUefi = "uefi"
+
+-- | Direct kernel boot (@-kernel@/@-initrd@/@-append@) through OVMF
+-- firmware instead of SeaBIOS: OVMF's @QemuKernelLoaderFsDxe@ loads the
+-- fw_cfg kernel via the EFI stub. Needs the firmware disk like
+-- 'htBootUefi'; ignores @boot_order@ like 'htBootDirectKernel'.
+htBootDirectKernelUefi :: String
+htBootDirectKernelUefi = "direct_kernel_uefi"
+
+-- | Valid values for the 'hvBootType' parameter. Deliberately named
+-- @BootModes@ (not @BootTypes@) to avoid confusion with 'htKvmValidBoTypes',
+-- the boot /order/ set, which is only one letter away.
+htKvmValidBootModes :: FrozenSet String
+htKvmValidBootModes =
+  ConstantUtils.mkSet [ htBootDirectKernel, htBootBios, htBootUefi
+                      , htBootDirectKernelUefi ]
 
 -- * SPICE lossless image compression options
 
@@ -4144,6 +4223,9 @@ hvcDefaults =
   , (Kvm, Map.fromList
           [ (hvKvmPath,                         PyValueEx kvmPath)
           , (hvKernelPath,                      PyValueEx kvmKernel)
+          , (hvBootType,                        PyValueEx htBootDirectKernel)
+          , (hvOvmfCode,                        PyValueEx ovmfCodeTemplate)
+          , (hvOvmfVars,                        PyValueEx ovmfVarsTemplate)
           , (hvInitrdPath,                      PyValueEx "")
           , (hvKernelArgs,                      PyValueEx "ro")
           , (hvRootPath,                        PyValueEx "/dev/vda1")
