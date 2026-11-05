@@ -21,6 +21,7 @@ Design document drafts
    design-disks.rst
    design-vcpu-hotplug.rst
    design-memory-hotplug.rst
+   design-network-additional.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
