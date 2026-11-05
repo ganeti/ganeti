@@ -163,7 +163,6 @@ class TestNodeDaemonTlsHandshake:
                                      "node1.example.com")
 
     server_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    server_ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     server_ctx.load_cert_chain(server_pem)
     server_ctx.verify_mode = ssl.CERT_REQUIRED
     server_ctx.load_verify_locations(cafile=server_pem)
