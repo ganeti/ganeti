@@ -2,6 +2,29 @@ News
 ====
 
 
+Version 3.1.2
+-------------
+
+*(Released Mon, 9 Nov 2026)*
+
+Changes since 3.1.1
+~~~~~~~~~~~~~~~~~~~
+
+- fix regression in disk hotplug verification for older QEMU (#1992)
+- allow upgrades to Ganeti 4.0: in preperation of a 4.0 release we now allow a
+  major cluster upgrade said release. While in theory all 3.1.x versions should be
+  upgradable to 4.0, only the upgrade logic shipped in 3.1.2 will actually allow
+  you to perform the upgrade (#1986)
+- backport of #1977 from master branch with compatibilty changes: replace
+  OpenSSL.crypto with the cryptography package so that Ganeti works with
+  pyOpenSSL 26.3.0+ (#1982)
+- enforce `modify_ssh_setup` QA suite setting in all possible places (#1975)
+- remove `SHLVL` and `_` env vars to unbreak tests on different platforms (#1975)
+- use iproute2 in vcluster-setup and vif-ganeti-metda (#1975)
+- fix hotplug for virtio-scsi (#1975)
+- fix KVM runtime upgrade for discard/chroot (#1956)
+
+
 Version 3.1.1
 -------------
 
