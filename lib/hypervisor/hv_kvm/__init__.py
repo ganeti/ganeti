@@ -277,6 +277,29 @@ def _GenerateDeviceKVMId(dev_type, dev):
   return "%s-%s" % (dev_type.lower(), dev.uuid.rsplit("-", 2)[0])
 
 
+def _SetDiskSerialUUID(hvinfo, dev_type, dev, hv_disk_type):
+  """Set serial in hvinfo for disk devices.
+
+  This mutates hvinfo in-place and does nothing for non-disk devices.
+  The serial is the first 20 characters of the disk UUID.
+
+  @type hvinfo: dict
+  @param hvinfo: the hvinfo dict to modify
+  @type dev_type: string
+  @param dev_type: HOTPLUG_TARGET_DISK or HOTPLUG_TARGET_NIC
+  @type dev: L{objects.Disk}
+  @param dev: the disk object
+  @type hv_disk_type: string or None
+  @param hv_disk_type: KVM disk type (e.g. HT_DISK_PARAVIRTUAL,
+  HT_DISK_SCSI_HD)
+
+  """
+  if dev_type == constants.HOTPLUG_TARGET_DISK:
+    if hv_disk_type in (constants.HT_DISK_PARAVIRTUAL,
+                        constants.HT_DISK_SCSI_HD):
+      hvinfo["serial"] = dev.uuid[:20]
+
+
 def _GenerateDeviceHVInfoStr(hvinfo):
   """Construct the -device option string for hvinfo dict
 
@@ -1819,6 +1842,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       allocation = bus_manager.get_next_allocation(dev_type, hv_dev_type)
       dev.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,
                                          hv_dev_type, allocation)
+      _SetDiskSerialUUID(dev.hvinfo, dev_type, dev, hv_dev_type)
+
       bus_manager.commit(allocation)
 
     kvm_disks = []
@@ -2520,6 +2545,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not device.hvinfo:
       device.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,
                                             device_type, allocation)
+    _SetDiskSerialUUID(device.hvinfo, dev_type, device, device_type)
 
     new_runtime_entry = _RUNTIME_ENTRY[dev_type](device, extra)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
