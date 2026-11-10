@@ -2053,6 +2053,7 @@ python_tests_unit = \
 	test/py/unit/hypervisor/hv_kvm/test_bus_manager.py \
 	test/py/unit/hypervisor/hv_kvm/test_instance_info.py \
 	test/py/unit/hypervisor/hv_kvm/test_q35.py \
+	test/py/unit/hypervisor/hv_kvm/test_serial.py \
 	test/py/unit/http/test_auth.py \
 	test/py/unit/http/test_server.py \
 	test/py/unit/http/test_ssl.py \
