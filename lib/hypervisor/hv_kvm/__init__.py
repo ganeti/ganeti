@@ -35,6 +35,8 @@
 import errno
 import os
 import os.path
+import datetime
+import glob
 import re
 import tempfile
 import time
@@ -1406,6 +1408,48 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-audio",
                       f"driver={driver},model={soundhw},id=soundhw"])
 
+  def _GenerateQemuLogPath(self, instance):
+    """Returns the QEMU log file path for an instance.
+
+    The path uses an ISO-8601 timestamp to preserve logs across VM restarts.
+    Example: /var/log/ganeti/kvm/myinstance.2026-11-11T10:30:00+00:00.log
+    """
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    return utils.PathJoin(pathutils.LOG_KVM_DIR,
+                          "%s.%s.log" % (instance.name, timestamp))
+
+  def _CleanupOldQemuLogs(self, instance_name, keep=5):
+    """Remove old QEMU log files for ``instance_name``, keeping ``keep`` newest.
+
+    Files matching the ISO-8601 timestamp pattern (``<name>.<timestamp>.log``)
+    are evaluated in chronological order; the ``keep`` newest are retained.
+    The legacy plain log file (``<name>.log``) is also removed if it exists.
+    """
+    old_log_file_path = utils.PathJoin(pathutils.LOG_KVM_DIR,
+                                     "%s.log" % instance_name)
+
+    # Remove legacy file first so the glob never picks it up.
+    if os.path.exists(old_log_file_path):
+      os.remove(old_log_file_path)
+
+    kvm_log_files = glob.glob(utils.PathJoin(pathutils.LOG_KVM_DIR,
+                                             "%s.*.log" % instance_name))
+
+    # Filter: only match logs where the instance name is followed by a dot
+    # and a digit (ISO timestamp). This prevents glob collisions with
+    # similarly-named VMs (e.g. "vm01" matching "vm01.dev.*.log").
+    iso_pattern = re.compile(
+        r"%s\.\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+        r"(?:\.\d+)?\+00:00\.log$" % re.escape(instance_name)
+    )
+    kvm_log_files = [f for f in kvm_log_files if iso_pattern.search(f)]
+    files_to_remove = sorted(kvm_log_files)
+
+    if keep > 0:
+      files_to_remove = files_to_remove[:-keep]
+    for old_log in files_to_remove:
+      utils.RemoveFile(old_log)
+
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp) -> KVMRuntime:
     """Generate KVM information to start an instance.
@@ -1513,9 +1557,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-device", json.dumps(scsi_dev_dict)])
 
     kvm_cmd.extend(["-daemonize"])
+
     # logfile for qemu
-    qemu_logfile = utils.PathJoin(pathutils.LOG_KVM_DIR,
-                                  "%s.log" % instance.name)
+    qemu_logfile = self._GenerateQemuLogPath(instance)
     kvm_cmd.extend(["-D", qemu_logfile])
 
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
@@ -2313,6 +2357,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         utils.WriteFile(self._InstanceUidFile(name), data=uid.AsStr())
     else:
       self._RunKVMCmd(name, kvm_cmd, tapfds)
+
+    self._CleanupOldQemuLogs(instance.name)
 
     utils.EnsureDirs([(self._InstanceNICDir(instance.name),
                        constants.RUN_DIRS_MODE)])
