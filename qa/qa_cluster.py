@@ -154,7 +154,7 @@ def PrepareHvParameterSets():
 
     # in general, we toggle through all values known to Ganeti, except:
     # we cannot use all available disk_types because some require
-    # special backing devices/files (e.g. pflash, mtd)
+    # special backing devices/files
     toggle_value_params = {
       "disk_aio": constants.HT_KVM_VALID_AIO_TYPES,
       "disk_cache": constants.HT_VALID_CACHE_TYPES,

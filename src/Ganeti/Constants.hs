@@ -2836,14 +2836,8 @@ htDiskIde = "ide"
 htDiskIoemu :: String
 htDiskIoemu = "ioemu"
 
-htDiskMtd :: String
-htDiskMtd = "mtd"
-
 htDiskParavirtual :: String
 htDiskParavirtual = "paravirtual"
-
-htDiskPflash :: String
-htDiskPflash = "pflash"
 
 htDiskScsi :: String
 htDiskScsi = "scsi"
@@ -2876,9 +2870,7 @@ htHvmValidDiskTypes = ConstantUtils.mkSet [htDiskIoemu, htDiskParavirtual]
 htKvmValidDiskTypes :: FrozenSet String
 htKvmValidDiskTypes =
   ConstantUtils.mkSet [htDiskIde,
-                       htDiskMtd,
                        htDiskParavirtual,
-                       htDiskPflash,
                        htDiskScsi,
                        htDiskSd,
                        htDiskScsiGeneric,
