@@ -373,8 +373,6 @@ disk\_type
     - ide (KVM)
     - scsi-hd (KVM)
     - sd (KVM)
-    - mtd (KVM)
-    - pflash (KVM)
 
 
 cdrom\_disk\_type
@@ -391,8 +389,6 @@ cdrom\_disk\_type
     - scsi-cd
     - scsi
     - sd
-    - mtd
-    - pflash
 
     On ``q35``, ``cdrom_disk_type=ide`` does **not** mean the legacy
     ICH9 IDE controller (which q35 in QEMU does not implement). The
