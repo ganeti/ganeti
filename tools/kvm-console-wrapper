@@ -49,4 +49,4 @@ unpause() {
 }
 
 (unpause &)
-exec "$SOCAT" "$PARAMS" "$CONSOLE"
+exec timeout --signal=TERM 3600s "$SOCAT" "$PARAMS" "$CONSOLE"
