@@ -64,6 +64,7 @@ module Ganeti.THH ( declareSADT
                   , notSerializeDefaultField
                   , presentInForthcoming
                   , optionalField
+                  , valueNoneField
                   , optionalNullSerField
                   , makeOptional
                   , renameField
@@ -196,6 +197,9 @@ data Field = Field { fieldName        :: T.Text
                    , fieldIsOptional  :: OptionalType
                      -- ^ determines if a field is optional, and if yes,
                      -- how
+                   , fieldAcceptsValueNone :: Bool
+                     -- ^ whether the generated Python opcode validator
+                     -- accepts the "none" sentinel in addition to null
                    , fieldDoc         :: T.Text
                    , fieldPresentInForthcoming :: Bool
                    }
@@ -212,6 +216,7 @@ simpleField fname ftype =
         , fieldSerializeDefault = True
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
+        , fieldAcceptsValueNone = False
         , fieldDoc         = T.pack ""
         , fieldPresentInForthcoming = False
         }
@@ -228,6 +233,7 @@ andRestArguments fname =
         , fieldSerializeDefault = True
         , fieldConstr      = Nothing
         , fieldIsOptional  = AndRestArguments
+        , fieldAcceptsValueNone = False
         , fieldDoc         = T.pack ""
         , fieldPresentInForthcoming = True
         }
@@ -259,6 +265,11 @@ presentInForthcoming field = field { fieldPresentInForthcoming = True }
 -- | Marks a field optional (turning its base type into a Maybe).
 optionalField :: Field -> Field
 optionalField field = field { fieldIsOptional = OptionalOmitNull }
+
+-- | Also accept the "none" sentinel in the generated Python opcode validator.
+-- This does not change Haskell JSON serialization or deserialization.
+valueNoneField :: Field -> Field
+valueNoneField field = field { fieldAcceptsValueNone = True }
 
 -- | Marks a field optional (turning its base type into a Maybe), but
 -- with 'Nothing' serialised explicitly as /null/.
@@ -723,7 +734,13 @@ genPyType' opt typ = typ >>= pyOptionalType (opt /= NotOptional)
 
 -- | Generates Python types from opcode parameters.
 genPyType :: Field -> Q PyType
-genPyType f = genPyType' (fieldIsOptional f) (fieldType f)
+genPyType f = do
+  typ <- genPyType' (fieldIsOptional f) (fieldType f)
+  return $ if fieldAcceptsValueNone f
+    then case typ of
+      PTMaybe inner -> PTMaybeValueNone inner
+      _ -> error "valueNoneField requires an optional field"
+    else typ
 
 -- | Generates Python default values from opcode parameters.
 genPyDefault :: Field -> Q Exp

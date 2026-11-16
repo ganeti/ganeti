@@ -650,6 +650,25 @@ case_AllDefined = do
   HUnit.assertBool ("Extra OpCodes in the Haskell code:\n" ++
                     unlines extra_hs) (null extra_hs)
 
+-- | Network fields which can be cleared accept the "none" sentinel.
+case_network_set_params_value_none :: HUnit.Assertion
+case_network_set_params_value_none = do
+  _ <- runPython "from ganeti import errors, opcodes\n\
+                 \op = opcodes.OpNetworkSetParams(\
+                 \  network_name='net', gateway='none', network6='none',\
+                 \  gateway6='none', mac_prefix='none')\n\
+                 \op.Validate(False)\n\
+                 \try:\n\
+                 \  opcodes.OpNetworkAdd(\
+                 \    network_name='net', network='192.0.2.0/24',\
+                 \    gateway='none').Validate(False)\n\
+                 \except errors.OpPrereqError:\n\
+                 \  pass\n\
+                 \else:\n\
+                 \  raise AssertionError('network add accepted gateway=none')"
+                "" >>= checkPythonResult
+  return ()
+
 -- | Custom HUnit test case that forks a Python process and checks
 -- correspondence between Haskell-generated OpCodes and their Python
 -- decoded, validated and re-encoded version.
@@ -783,6 +802,7 @@ case_readExportTarget_fail = do
 testSuite "OpCodes"
             [ 'prop_serialization
             , 'case_AllDefined
+            , 'case_network_set_params_value_none
             , 'case_py_compat_types
             , 'case_py_compat_fields
             , 'prop_setOpComment

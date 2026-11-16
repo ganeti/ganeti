@@ -50,6 +50,7 @@ import Ganeti.PyValue
 -- | Represents a Python encoding of types.
 data PyType
     = PTMaybe PyType
+    | PTMaybeValueNone PyType
     | PTApp PyType [PyType]
     | PTOther String
     | PTAny
@@ -65,6 +66,7 @@ data PyType
 -- TODO: We could use th-lift to generate this instance automatically.
 instance Lift PyType where
   lift (PTMaybe x)   = [| PTMaybe x |]
+  lift (PTMaybeValueNone x) = [| PTMaybeValueNone x |]
   lift (PTApp tf as) = [| PTApp tf as |]
   lift (PTOther i)   = [| PTOther i |]
   lift PTAny         = [| PTAny |]
@@ -84,6 +86,7 @@ instance PyValue PyType where
   showValue (PTMaybe PTDictOf) = ht "MaybeDict"
   showValue (PTMaybe PTListOf) = ht "MaybeList"
 
+  showValue (PTMaybeValueNone x) = ptApp (ht "MaybeValueNone") [x]
   showValue (PTMaybe x)   = ptApp (ht "Maybe") [x]
   showValue (PTApp tf as) = ptApp (showValue tf) as
   showValue (PTOther i)   = ht i
