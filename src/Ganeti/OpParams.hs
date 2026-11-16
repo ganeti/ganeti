@@ -277,9 +277,13 @@ module Ganeti.OpParams
   , pNetworkName
   , pNetworkAddress4
   , pNetworkGateway4
+  , pNetworkGateway4Set
   , pNetworkAddress6
+  , pNetworkAddress6Set
   , pNetworkGateway6
+  , pNetworkGateway6Set
   , pNetworkMacPrefix
+  , pNetworkMacPrefixSet
   , pNetworkAddRsvdIps
   , pNetworkRemoveRsvdIps
   , pNetworkMode
@@ -1824,11 +1828,19 @@ pNetworkGateway4 =
   renameField "NetworkGateway4" .
   optionalField $ simpleField "gateway" [t| IPv4Address |]
 
+pNetworkGateway4Set :: Field
+pNetworkGateway4Set =
+  valueNoneField $ pNetworkGateway4
+
 pNetworkAddress6 :: Field
 pNetworkAddress6 =
   withDoc "Network address (IPv6 subnet)" .
   renameField "NetworkAddress6" .
   optionalField $ simpleField "network6" [t| IPv6Network |]
+
+pNetworkAddress6Set :: Field
+pNetworkAddress6Set =
+  valueNoneField $ pNetworkAddress6
 
 pNetworkGateway6 :: Field
 pNetworkGateway6 =
@@ -1836,11 +1848,19 @@ pNetworkGateway6 =
   renameField "NetworkGateway6" .
   optionalField $ simpleField "gateway6" [t| IPv6Address |]
 
+pNetworkGateway6Set :: Field
+pNetworkGateway6Set =
+  valueNoneField $ pNetworkGateway6
+
 pNetworkMacPrefix :: Field
 pNetworkMacPrefix =
   withDoc "Network specific mac prefix (that overrides the cluster one)" .
   renameField "NetMacPrefix" $
   optionalNEStringField "mac_prefix"
+
+pNetworkMacPrefixSet :: Field
+pNetworkMacPrefixSet =
+  valueNoneField $ pNetworkMacPrefix
 
 pNetworkAddRsvdIps :: Field
 pNetworkAddRsvdIps =

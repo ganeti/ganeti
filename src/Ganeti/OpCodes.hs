@@ -958,10 +958,10 @@ $(genOpCode "OpCode"
      [t| () |],
      OpDoc.opNetworkSetParams,
      [ pNetworkName
-     , pNetworkGateway4
-     , pNetworkAddress6
-     , pNetworkGateway6
-     , pNetworkMacPrefix
+     , pNetworkGateway4Set
+     , pNetworkAddress6Set
+     , pNetworkGateway6Set
+     , pNetworkMacPrefixSet
      , withDoc "Which external IP addresses to reserve" pNetworkAddRsvdIps
      , pNetworkRemoveRsvdIps
      ],
