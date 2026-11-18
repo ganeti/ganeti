@@ -33,8 +33,10 @@
 """
 
 import itertools
+from unittest import mock
 
 from ganeti import constants
+from ganeti import locking
 from ganeti import opcodes
 from ganeti import query
 
@@ -424,6 +426,48 @@ class TestLUGroupVerifyDisks(CmdlibTestCase):
     self.assertEqual(2, len(nerrors))
     self.assertEqual(1, len(offline))
     self.assertEqual(1, len(missing))
+
+  def testNonStrictWithUnlockedNode(self):
+    node1 = self.cfg.AddNewNode()
+    node2 = self.cfg.AddNewNode()
+    disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
+                               primary_node=node1,
+                               secondary_node=node2)
+    self.cfg.AddNewInstance(disks=[disk],
+                            primary_node=node1,
+                            admin_state=constants.ADMINST_UP)
+
+    lv_list_result = dict(("/".join(child.logical_id), (None, None, True))
+                          for child in disk.children)
+    self.rpc.call_lv_list.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {}) \
+        .AddSuccessfulNode(node1, lv_list_result) \
+        .Build()
+    self.rpc.call_drbd_needs_activation.return_value = \
+      self.RpcResultsBuilder().CreateSuccessfulNodeResult(node1, [])
+
+    # Another job, e.g. an instance import, holds node2 exclusively, so the
+    # opportunistic node locking of a non-strict run does not get it
+    busy_lock = "%s/%s" % (locking.LEVEL_NAMES[locking.LEVEL_NODE],
+                           node2.uuid)
+    client = self.wconfd.Client()
+    try_update_locks = client.TryUpdateLocks
+    client.TryUpdateLocks = lambda cid, req: \
+      try_update_locks(cid, [r for r in req if r[0] != busy_lock])
+
+    op = opcodes.OpGroupVerifyDisks(group_name=self.group.name,
+                                    is_strict=False)
+
+    with mock.patch.object(self.wconfd, "Client", return_value=client):
+      (nerrors, offline, missing) = self.ExecOpCode(op)
+
+    self.assertEqual({}, nerrors)
+    self.assertEqual([], offline)
+    self.assertEqual({}, missing)
+    self.assertEqual(
+      [node1.uuid],
+      [c[0][0] for c in self.rpc.call_drbd_needs_activation.call_args_list])
 
 
 if __name__ == "__main__":
