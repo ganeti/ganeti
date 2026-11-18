@@ -85,6 +85,9 @@ MODIFY
 
 Modifies parameters from the network.
 
+For ``--gateway``, ``--network6``, ``--gateway6`` and ``--mac-prefix``,
+the value ``none`` removes the corresponding setting.
+
 Unable to modify network (IP address range). Create a new network if you
 want to do so. All other options are documented in the **add** command
 above.
