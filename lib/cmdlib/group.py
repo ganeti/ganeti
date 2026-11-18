@@ -43,7 +43,7 @@ from ganeti.masterd import iallocator
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, ResultWithJobs
 from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   MergeAndVerifyDiskState, GetWantedNodes, GetUpdatedParams, \
-  CheckNodeGroupInstances, GetUpdatedIPolicy, \
+  CheckNodeGroupInstances, CheckInstanceNodeGroups, GetUpdatedIPolicy, \
   ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
   CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
@@ -907,17 +907,29 @@ class LUGroupVerifyDisks(NoHooksLU):
     # Get instance information
     self.instances = dict(self.cfg.GetMultiInstanceInfoByName(owned_inst_names))
 
-    # Check if node groups for locked instances are still correct
-    CheckInstancesNodeGroups(self.cfg, self.instances,
-                             owned_groups, owned_node_uuids, self.group_uuid)
+    if self.op.is_strict:
+      # Check if node groups for locked instances are still correct
+      CheckInstancesNodeGroups(self.cfg, self.instances,
+                               owned_groups, owned_node_uuids, self.group_uuid)
+    else:
+      # Node locks were acquired opportunistically, so another job (e.g. an
+      # instance import) may hold some nodes of a locked instance. Those
+      # nodes are skipped in Exec; only check the node groups here.
+      for inst in self.instances.values():
+        CheckInstanceNodeGroups(self.cfg, inst.uuid, owned_groups)
 
   def _VerifyInstanceLvs(self, node_errors, offline_disk_instance_names,
                          missing_disks):
-    node_lv_to_inst = MapInstanceLvsToNodes(
-      self.cfg,
-      [inst for inst in self.instances.values() if inst.disks_active])
+    owned_node_uuids = set(self.owned_locks(locking.LEVEL_NODE))
+    instances = [inst for inst in self.instances.values() if inst.disks_active]
+    # In non-strict mode some nodes of an instance may not be locked; their
+    # volumes are not listed below, so don't report them as missing
+    node_lv_to_inst = dict(
+      (key, inst)
+      for (key, inst) in MapInstanceLvsToNodes(self.cfg, instances).items()
+      if key[0] in owned_node_uuids)
     if node_lv_to_inst:
-      node_uuids = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
+      node_uuids = utils.NiceSort(owned_node_uuids &
                                   set(self.cfg.GetVmCapableNodeList()))
 
       node_lvs = self.rpc.call_lv_list(node_uuids, [])
