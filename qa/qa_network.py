@@ -38,7 +38,7 @@ from qa import qa_utils
 
 from ganeti import query
 
-from qa_utils import AssertCommand
+from qa_utils import AssertCommand, AssertEqual
 
 
 def TestNetworkList():
@@ -81,6 +81,52 @@ def TestNetworkAddRemove():
   AssertCommand(["gnt-network", "remove", network2])
 
   TestNetworkList()
+
+
+def TestNetworkModify():
+  """gnt-network modify"""
+  # Regression test for clearing the optional fields with the "none"
+  # sentinel (issue #1993).
+  (network, ) = GetNonexistentNetworks(1)
+  # Unset optional fields are rendered as "-" by the query output
+  # (RS_UNAVAIL), so this is the expected value after clearing.
+  unset = "-"
+
+  def GetField(field):
+    return qa_utils.stdout_of(["gnt-network", "list", "--no-headers",
+                               "--separator=|", "-o", field, network])
+
+  AssertCommand(["gnt-network", "add",
+                 "--network", "192.0.2.0/24",
+                 "--gateway", "192.0.2.1",
+                 "--network6", "2001:db8::/64",
+                 "--gateway6", "2001:db8::1",
+                 "--mac-prefix", "aa:bb:cc",
+                 network])
+
+  AssertEqual(GetField("gateway"), "192.0.2.1")
+  AssertEqual(GetField("network6"), "2001:db8::/64")
+  AssertEqual(GetField("gateway6"), "2001:db8::1")
+  AssertEqual(GetField("mac_prefix"), "aa:bb:cc")
+
+  # Clear each of the clearable fields with the "none" sentinel.
+  AssertCommand(["gnt-network", "modify", "--gateway", "none", network])
+  AssertEqual(GetField("gateway"), unset)
+
+  AssertCommand(["gnt-network", "modify", "--network6", "none", network])
+  AssertEqual(GetField("network6"), unset)
+
+  AssertCommand(["gnt-network", "modify", "--gateway6", "none", network])
+  AssertEqual(GetField("gateway6"), unset)
+
+  AssertCommand(["gnt-network", "modify", "--mac-prefix", "none", network])
+  AssertEqual(GetField("mac_prefix"), unset)
+
+  # Setting the values again must also work after clearing.
+  AssertCommand(["gnt-network", "modify", "--gateway", "192.0.2.1", network])
+  AssertEqual(GetField("gateway"), "192.0.2.1")
+
+  AssertCommand(["gnt-network", "remove", network])
 
 
 def TestNetworkTags():
