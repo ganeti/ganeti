@@ -221,6 +221,12 @@ The ``vlan`` NIC parameter uses the following notation (shared by
   (untagged) VLAN; the remaining colon-separated IDs are carried
   tagged. Example: ``.100:200:300``
 
+A leading dot or colon is mandatory; bare VLAN IDs (e.g. ``100``) are
+rejected by NIC parameter validation on instance create, modify,
+network connect, and cluster parameter changes. Historical
+configurations containing bare VLANs are migrated to the canonical
+form by ``cfgupgrade`` during the upgrade to 4.0.
+
 .. note::
    For ``bridged`` mode, the access-port semantics above only hold when
    the bridge is configured with ``vlan_default_pvid 0``. Otherwise the

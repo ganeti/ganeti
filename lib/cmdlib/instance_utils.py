@@ -1331,7 +1331,11 @@ def ComputeNics(op, cluster, default_ip, cfg, ec_id):
       nicparams[constants.NIC_VLAN] = vlan
 
     check_params = cluster.SimpleFillNIC(nicparams)
-    objects.NIC.CheckParameterSyntax(check_params)
+    try:
+      objects.NIC.CheckParameterSyntax(check_params)
+    except errors.ConfigurationError as err:
+      raise errors.OpPrereqError("Invalid NIC parameters: %s" % err,
+                                 errors.ECODE_INVAL)
     net_uuid = cfg.LookupNetwork(net)
     name = nic.get(constants.INIC_NAME, None)
     if name is not None and name.lower() == constants.VALUE_NONE:

@@ -314,7 +314,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
     op = self.CopyOpCode(self.diskless_op,
                          nics=[{
                            constants.INIC_MODE: constants.NIC_MODE_OVS,
-                           constants.INIC_VLAN: "1"
+                           constants.INIC_VLAN: ".1"
                          }])
     self.ExecOpCode(op)
 
@@ -335,14 +335,15 @@ class TestLUInstanceCreate(CmdlibTestCase):
           " NIC does not.")
 
   def testVLanFormat(self):
-    for vlan in [".pinky", ":bunny", ":1:pinky", "bunny"]:
+    for vlan in [".pinky", ":bunny", ":1:pinky", "bunny",
+                 "1", "1:200", ".1:bad", ":"]:
       self.ResetMocks()
       op = self.CopyOpCode(self.diskless_op,
                            nics=[{
                              constants.INIC_VLAN: vlan
                            }])
       self.ExecOpCodeExpectOpPrereqError(
-        op, "Specified VLAN parameter is invalid")
+        op, "Invalid VLAN")
 
   def testPoolIp(self):
     op = self.CopyOpCode(self.diskless_op,

@@ -522,6 +522,12 @@ class NIC(ConfigObject):
   __slots__ = ["name", "mac", "ip", "network",
                "nicparams", "netinfo", "pci", "hvinfo"] + _UUID
 
+  # Valid VLAN specification: either an access (untagged) VLAN, optionally
+  # followed by trunk (tagged) VLANs, or trunk VLANs only. A leading dot
+  # marks the untagged VLAN, a leading colon introduces tagged VLANs.
+  _VLAN_RE = re.compile(
+    r"^(\.[1-9][0-9]*(:[1-9][0-9]*)*|:[1-9][0-9]*(:[1-9][0-9]*)*)$")
+
   @classmethod
   def CheckParameterSyntax(cls, nicparams):
     """Check the given parameters for validity.
@@ -539,6 +545,13 @@ class NIC(ConfigObject):
     if (mode == constants.NIC_MODE_BRIDGED and
         not nicparams[constants.NIC_LINK]):
       raise errors.ConfigurationError("Missing bridged NIC link")
+
+    vlan = nicparams.get(constants.NIC_VLAN, "")
+    if vlan and not cls._VLAN_RE.match(vlan):
+      raise errors.ConfigurationError(
+        "Invalid VLAN '%s': a leading '.' marks an access (untagged) VLAN,"
+        " a leading ':' marks trunk (tagged) VLANs (e.g. '.100' or"
+        " ':100:200')" % vlan)
 
 
 class Filter(ConfigObject):

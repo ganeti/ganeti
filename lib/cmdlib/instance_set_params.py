@@ -555,7 +555,11 @@ class LUInstanceSetParams(LogicalUnit):
     utils.ForceDictType(new_params, constants.NICS_PARAMETER_TYPES)
 
     new_filled_params = cluster.SimpleFillNIC(new_params)
-    objects.NIC.CheckParameterSyntax(new_filled_params)
+    try:
+      objects.NIC.CheckParameterSyntax(new_filled_params)
+    except errors.ConfigurationError as err:
+      raise errors.OpPrereqError("Invalid NIC parameters: %s" % err,
+                                 errors.ECODE_INVAL)
 
     new_mode = new_filled_params[constants.NIC_MODE]
     if new_mode == constants.NIC_MODE_BRIDGED:

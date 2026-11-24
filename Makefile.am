@@ -2048,6 +2048,7 @@ python_tests_legacy = \
 	test/py/legacy/tempfile_fork_unittest.py
 
 python_tests_unit = \
+	test/py/unit/test_vlan_syntax.py \
 	test/py/unit/cmdlib/test_instance_storage_drbd_wait.py \
 	test/py/unit/confd/test_client.py \
 	test/py/unit/test_daemon.py \
@@ -2062,6 +2063,7 @@ python_tests_unit = \
 	test/py/unit/test_disk_role.py \
 	test/py/unit/test_firmware_seed.py \
 	test/py/unit/test_cfgupgrade_boot_type.py \
+	test/py/unit/test_cfgupgrade_vlan.py \
 	test/py/unit/cmdlib/test_firmware_disk.py \
 	test/py/unit/cmdlib/test_firmware_disk_create.py \
 	test/py/unit/cmdlib/test_attach_firmware_disk.py \
