@@ -580,7 +580,11 @@ class LUNetworkConnect(LogicalUnit):
       constants.NIC_VLAN: self.network_vlan,
       }
 
-    objects.NIC.CheckParameterSyntax(self.netparams)
+    try:
+      objects.NIC.CheckParameterSyntax(self.netparams)
+    except errors.ConfigurationError as err:
+      raise errors.OpPrereqError("Invalid network parameters: %s" % err,
+                                 errors.ECODE_INVAL)
 
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     #if self.network_mode == constants.NIC_MODE_BRIDGED:

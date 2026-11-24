@@ -638,7 +638,11 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
 
-  objects.NIC.CheckParameterSyntax(nicparams)
+  try:
+    objects.NIC.CheckParameterSyntax(nicparams)
+  except errors.ConfigurationError as err:
+    raise errors.OpPrereqError("Invalid NIC parameters: %s" % err,
+                               errors.ECODE_INVAL)
 
   full_ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy)
   _RestrictIpolicyToEnabledDiskTemplates(full_ipolicy, enabled_disk_templates)

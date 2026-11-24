@@ -396,6 +396,12 @@ link
     is also hypervisor dependent and currently works for the default KVM
     network script. Under Xen a custom network script must be provided.
 
+vlan
+    The default VLAN configuration for NICs, in the format documented in
+    **gnt-instance**\(8) (e.g. ``.100`` for an access port, ``:100:200``
+    for a trunk port). Only meaningful in ``bridged`` and
+    ``openvswitch`` modes.
+
 The ``-D (--disk-parameters)`` option allows you to set the default disk
 template parameters at cluster level. The format used for this option is
 similar to the one use by the  ``-H`` option: the disk template name

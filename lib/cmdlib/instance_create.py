@@ -78,12 +78,6 @@ from ganeti.hypervisor.hv_kvm.validation import uses_ovmf
 import ganeti.masterd.instance
 
 
-def _ValidateTrunkVLAN(vlan):
-  if not compat.all(vl.isdigit() for vl in vlan[1:].split(':')):
-    raise errors.OpPrereqError("Specified VLAN parameter is invalid"
-                               " : %s" % vlan, errors.ECODE_INVAL)
-
-
 class LUInstanceCreate(LogicalUnit):
   """Create an instance.
 
@@ -148,29 +142,6 @@ class LUInstanceCreate(LogicalUnit):
 
     self.adopt_disks = has_adopt
 
-  def _CheckVLANArguments(self):
-    """ Check validity of VLANs if given
-
-    """
-    for nic in self.op.nics:
-      vlan = nic.get(constants.INIC_VLAN, None)
-      if vlan:
-        if vlan[0] == ".":
-          # vlan starting with dot means single untagged vlan,
-          # might be followed by trunk (:)
-          if not vlan[1:].isdigit():
-            _ValidateTrunkVLAN(vlan)
-        elif vlan[0] == ":":
-          # Trunk - tagged only
-          _ValidateTrunkVLAN(vlan)
-        elif vlan.isdigit():
-          # This is the simplest case. No dots, only single digit
-          # -> Create untagged access port, dot needs to be added
-          nic[constants.INIC_VLAN] = "." + vlan
-        else:
-          raise errors.OpPrereqError("Specified VLAN parameter is invalid"
-                                       " : %s" % vlan, errors.ECODE_INVAL)
-
   def CheckArguments(self):
     """Check arguments.
 
@@ -228,8 +199,6 @@ class LUInstanceCreate(LogicalUnit):
       utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
     # check that NIC's parameters names are unique and valid
     utils.ValidateDeviceNames("NIC", self.op.nics)
-
-    self._CheckVLANArguments()
 
     self._CheckDiskArguments()
     assert self.op.disk_template is not None

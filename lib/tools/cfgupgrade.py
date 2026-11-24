@@ -338,6 +338,9 @@ class CfgUpgrade(object):
     cluster["instance_communication_network"] = \
       cluster.get("instance_communication_network", "")
 
+    for nicparams in cluster.get("nicparams", {}).values():
+      self._UpgradeNicVlan(nicparams)
+
     cluster["install_image"] = \
       cluster.get("install_image", "")
 
@@ -392,6 +395,17 @@ class CfgUpgrade(object):
         else:
           kvm_hvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
 
+  def _UpgradeNicVlan(self, nicparams):
+    """Normalize a stored VLAN to the canonical form.
+
+    Bare VLANs (e.g. "174" or "174:200") could be stored historically
+    because instance modify, RAPI, and network connect never validated
+    them; rewrite them to the strict format (".174", ".174:200").
+    """
+    vlan = nicparams.get(constants.NIC_VLAN, "")
+    if vlan and vlan[0].isdigit():
+      nicparams[constants.NIC_VLAN] = "." + vlan
+
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
     cl_ipolicy = self.config_data["cluster"].get("ipolicy")
@@ -399,6 +413,8 @@ class CfgUpgrade(object):
       networks = group.get("networks", None)
       if not networks:
         group["networks"] = {}
+      for netparams in group["networks"].values():
+        self._UpgradeNicVlan(netparams)
       ipolicy = group.get("ipolicy", None)
       if ipolicy:
         if cl_ipolicy is None:
@@ -534,6 +550,9 @@ class CfgUpgrade(object):
           ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_DIRECT_KERNEL
         else:
           ihvparams[constants.HV_BOOT_TYPE] = constants.HT_BOOT_BIOS
+
+      for nic in iobj.get("nics", []):
+        self._UpgradeNicVlan(nic.get("nicparams", {}))
 
     if self.GetExclusiveStorageValue() and missing_spindles:
       # We cannot be sure that the instances that are missing spindles have

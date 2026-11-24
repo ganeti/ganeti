@@ -182,14 +182,15 @@ name
 
 vlan
    in bridged and openvswitch mode specifies the VLANs that the NIC
-   will be connected to. To connect as an access port use ``n`` or 
-   ``.n`` with **n** being the VLAN ID. To connect as a trunk port
-   use ``:n[:n]``. A hybrid port can be created with ``.n:n[:n]``. For
-   bridged mode, the bridge needs VLAN filtering enabled. Assuming a
-   bridge named **gnt-br**, this is accomplished by running ``ip link
-   set dev gnt-br type bridge vlan_filtering 1``. Please make sure to
-   only use VLAN IDs accepted by your network equipment (e.g. do not
-   set the PVID) as this will break traffic flow otherwise.
+   will be connected to. A leading dot or colon is mandatory: to
+   connect as an access port use ``.n`` with **n** being the VLAN ID.
+   To connect as a trunk port use ``:n[:n]``. A hybrid port can be
+   created with ``.n:n[:n]``. For bridged mode, the bridge needs VLAN
+   filtering enabled. Assuming a bridge named **gnt-br**, this is
+   accomplished by running ``ip link set dev gnt-br type bridge
+   vlan_filtering 1``. Please make sure to only use VLAN IDs accepted
+   by your network equipment (e.g. do not set the PVID) as this will
+   break traffic flow otherwise.
 
 Of these "mode" and "link" are NIC parameters, and inherit their
 default at cluster level.  Alternatively, if no network is desired for
@@ -1726,11 +1727,14 @@ name
 
 The ``--net *N*:add[,options..]`` will add a new network interface to
 the instance. The available options are the same as in the **add**
-command (``mac``, ``ip``, ``link``, ``mode``, ``network``). The
-``--net *ID*,remove`` will remove the instances' NIC with *ID* identifier,
+command (``mac``, ``ip``, ``link``, ``mode``, ``network``, ``vlan``,
+``name``).
+The ``--net *ID*,remove`` will remove the instances' NIC with *ID* identifier,
 which can be the index of the NIC, the NIC's name or the NIC's UUID.
 The ``--net *ID*:modify[,options..]`` option will change the parameters of
-the instance network interface with the *ID* identifier.
+the instance network interface with the *ID* identifier. The ``vlan``
+option accepts the format documented in the **add** command; a leading
+``.`` or ``:`` is mandatory and the value is validated on modify as well.
 
 The option ``-o (--os-type)`` will change the OS name for the instance
 (without reinstallation). In case an OS variant is specified that is
