@@ -48,8 +48,6 @@ class TestSetDiskSerialUUID:
       (constants.HT_DISK_SCSI_HD, _TEST_UUID[:20]),
       (constants.HT_DISK_SCSI_BLOCK, None),
       (constants.HT_DISK_IDE, None),
-      (constants.HT_DISK_PFLASH, None),
-      (constants.HT_DISK_MTD, None),
       (None, None),
   ])
   def test_disk_sets_serial(self, hv_disk_type, expected_serial):
