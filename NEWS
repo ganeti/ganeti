@@ -2,6 +2,120 @@ News
 ====
 
 
+Version 4.0.0 beta1
+-------------------
+
+*(Released Tue, 1 Dec 2026)*
+
+This is a pre-release of a major version, adding new features (KVM Q35 and experimental
+UEFI support, Xen PVH, "ext" network mode) and removing the long-deprecated
+asyncore-based infrastructure. As with any major release, please test on non-production
+clusters first and report issues on GitHub. Please note, upgrading is *only* supported
+from version 3.1.2 or later!
+
+This release brings *experimental* support for UEFI - both with direct kernel boot and
+fully virtualized boot! The OVMF/UEFI firmware and the NVRAM variables are persisted
+using the instance's disk template. That way you can (live) migrate between nodes while
+retaining the relevant bits of information. However, this comes with a few caveats:
+
+- import/export of UEFI-type instances is (not yet) supported
+- UEFI firmware is read from the node at instance creation time and stored along with
+  the instance. Ganeti currently lacks maintenance commands to e.g. update the firmware
+  to a newer release present on the node or to reset NVRAM variables.
+- on the RBD disk template, the UEFI firmware / NVRAM disks silently use kernelspace
+  access, even if userspace access is configured for the instance. This is a limitation
+  that probably will never be lifted.
+- firmware and NVRAM vars are stored on an instance disk (which is not visible to the
+  instance as a regular disk). That means UEFI type instances can carry one regular disk
+  less than non-UEFI instances (that is: 15).
+
+With UEFI support, there is now a new `boot_type` HV parameter which controls the way
+an instance boots. The former logic (`kernel_path` being set or not) will be translated
+into the proper `boot_type` value upon cluster upgrade.
+
+Support of the Q35 machine type comes with the following features/caveats:
+
+- NICs now have stable names (`enoX`) if you use predictable interface names inside
+  your guest
+- for disks, only `paravirtual` or `scsi` types are supported
+- for cdrom drives, only `ide` or `scsi-cd` are supported
+- floppy drives are not supported
+- for NICs, all models *except* `ne2k_isa` are supported
+- for sound, only `ac97` and `hda` are supported
+- hot-unplug of devices needs explicit guest cooperation, otherwise the operation will
+  time out.
+
+Ganeti's instance networking logic has seen a larger refactoring:
+
+- a new `ext` network mode is introduced which allows for entirely operator-provided
+  scripts (KVM only)
+- all network modes now feature a "down" script for improved cleanup
+- extensive documentation on all network modes
+
+We have also normalized the syntax of the `vlan` parameter - it now strictly enforces
+the following syntax:
+
+- `.VID` -> single untagged vlan
+- `:VID[:VID]` -> one or multiple tagged vlans (trunk port)
+- `.VID[:VID]` -> one untagged and multiple tagged vlans (mixed port)
+
+Older versions of Ganeti also accepted `VID` (and more or less silently converted to
+`.VID`). Upon cluster upgrade, existing `VID`-type values will be converted to `.VID`.
+This will break existing scripts / automation if you are they provide the vlan ID
+without a leading classifer character.
+
+Replacing the deprecated Python asyncore library has led to a rewrite of the HTTP server
+stack used in Ganeti's node and RAPI daemons. Although the new stack has seen extensive
+testing, we can not rule out slight changes in behaviour or timings so please test and
+report any side effects you observe.
+As a byproduct of the asyncore removal, the RAPI server does not auto-reload after
+changes to the user configuration file any more. You now must manually signal the RAPI
+server to reload its configuration (check the documentation for more details).
+
+
+Changes since 3.1.0
+~~~~~~~~~~~~~~~~~~~
+
+- KVM: add UEFI/OVMF boot support with per-instance firmware and an
+  explicit `boot_type` hypervisor parameter (#1955)
+- KVM: support the q35 (PCIe) machine type (#1938)
+- KVM: use the `bootindex` device property instead of `-boot order=` for
+  boot device selection (#1808, f113789c6)
+- KVM: raise the virtio-net multiqueue limit from 8 to 32 (#1912)
+- KVM: autoscale virtio-net multiqueue with new "auto" value (#1950)
+- KVM: support IOThreads via a new `iothreads` hypervisor parameter (#1953)
+- KVM: expose the disk UUID as QEMU disk serial (#1996)
+- KVM: use ISO-8601 timestamps in QEMU log file names (#1997)
+- KVM: handle differing qdev values in older QEMU versions
+  and close file descriptors when hotplugging NICs (9b0feb161, 2782c6ed8)
+- KVM: enable "debug-threads" on QEMU versions that support it (#1928)
+- KVM: drop unusable / broken "mtd" and "pflash" disk types (#1999)
+- Xen: add a `pvh_xen` hypervisor parameter to run domains in PVH mode
+  (#1949)
+- RBD: do not create a KRBD blockdevice when userspace access is configured
+  (#1942)
+- RBD: add `namespace` parameter (#1941)
+- RAPI: add role-based access control (RBAC) (#1943)
+- RAPI: expose hypervisor parameter metadata (#1989), the `hypervisor`
+  field (#1962) and `connected_node_groups` in network responses (#1954)
+- Python: drop all usage of asyncore - including re-implementation of the
+  noded / rapid HTTP server (#1903, #1905, #1914, #1920, #1927)
+- Python: replace `OpenSSL.crypto` with the `cryptography` package (#1968)
+- Python: 3.14 Compatibility (#1918, #1925)
+- Various performance/reliability improvements related to larger clusters
+  (#1902, #1980, #1981, #1984, #1987)
+- cluster verify: replace the Python N+1 check with hcheck; don't fail
+  non-strict group verify-disks on locked nodes (#1973, #2001)
+- network: refactoring of network "up" scripts, add "down" scripts, new network
+  mode `ext` (#1919)
+- network: allow clearing network fields with `none` (#2000)
+- network: normalize `vlan` parameter syntax (#2005)
+- add design documents for memory hotplug (including a new
+  `memory_hotplug_method` hypervisor parameter) and vCPU hotplug
+  (#1971, #1974) [not implemented yet]
+- switch logrotate from weekly to daily rotation (#1965)
+
+
 Version 3.1.0
 -------------
 

@@ -1,4 +1,4 @@
-# Ganeti 3.1
+# Ganeti 4.0
 
 **Welcome to the Ganeti Project**
 
