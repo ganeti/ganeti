@@ -1,7 +1,7 @@
 Security in Ganeti
 ==================
 
-Documents Ganeti version 3.1
+Documents Ganeti version 4.0
 
 Ganeti was developed to run on internal, trusted systems. As such, the
 security model is all-or-nothing.
