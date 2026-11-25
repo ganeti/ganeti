@@ -1809,6 +1809,9 @@ hvSecurityModel = "security_model"
 hvSerialConsole :: String
 hvSerialConsole = "serial_console"
 
+hvSerialConsoleType :: String
+hvSerialConsoleType = "serial_console_type"
+
 hvSerialSpeed :: String
 hvSerialSpeed = "serial_speed"
 
@@ -1967,6 +1970,7 @@ hvsParameterTypes = Map.fromList
   , (hvSecurityDomain,                  VTypeString)
   , (hvSecurityModel,                   VTypeString)
   , (hvSerialConsole,                   VTypeBool)
+  , (hvSerialConsoleType,               VTypeString)
   , (hvSerialSpeed,                     VTypeInt)
   , (hvSoundhw,                         VTypeString)
   , (hvUsbDevices,                      VTypeString)
@@ -2836,6 +2840,19 @@ htKvmValidDiskTypes =
                        htDiskScsiBlock,
                        htDiskScsiHd,
                        htDiskScsiCd]
+
+-- * Serial console types
+
+serialConsoleTypeLegacy :: String
+serialConsoleTypeLegacy = "legacy"
+
+serialConsoleTypeTimeout :: String
+serialConsoleTypeTimeout = "timeout"
+
+htKvmValidSerialConsoleTypes :: FrozenSet String
+htKvmValidSerialConsoleTypes =
+  ConstantUtils.mkSet [serialConsoleTypeLegacy,
+                       serialConsoleTypeTimeout]
 
 -- * SCSI controller types
 
@@ -4149,6 +4166,7 @@ hvcDefaults =
           , (hvRootPath,                        PyValueEx "/dev/vda1")
           , (hvAcpi,                            PyValueEx True)
           , (hvSerialConsole,                   PyValueEx True)
+          , (hvSerialConsoleType,          PyValueEx serialConsoleTypeLegacy)
           , (hvSerialSpeed,                     PyValueEx (38400 :: Int))
           , (hvVncBindAddress,                  PyValueEx "")
           , (hvVncTls,                          PyValueEx False)
