@@ -49,4 +49,15 @@ unpause() {
 }
 
 (unpause &)
-exec "$SOCAT" "$PARAMS" "$CONSOLE"
+
+# Optional 6th argument: the serial console type.
+SERIAL_TYPE="${6:-}"
+
+case "$SERIAL_TYPE" in
+  timeout)
+    exec timeout --signal=TERM 3600s "$SOCAT" "$PARAMS" "$CONSOLE"
+    ;;
+  *)
+    exec "$SOCAT" "$PARAMS" "$CONSOLE"
+    ;;
+esac

@@ -524,6 +524,28 @@ class TestConsole(unittest.TestCase):
     self.assertEqual(cons.host, node.name)
     self.assertEqual(cons.command[0], pathutils.KVM_CONSOLE_WRAPPER)
     self.assertEqual(cons.command[1], constants.SOCAT_PATH)
+    # Without an explicit serial_console_type no extra argument is passed
+    self.assertEqual(len(cons.command), 6)
+
+  def testSerialTimeout(self):
+    instance = objects.Instance(name="kvm.example.com",
+                                primary_node="node6017-uuid")
+    node = objects.Node(name="node6017", uuid="node6017-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group6134", ndparams={})
+    hvparams = {
+      constants.HV_SERIAL_CONSOLE: True,
+      constants.HV_SERIAL_CONSOLE_TYPE:
+        constants.SERIAL_CONSOLE_TYPE_TIMEOUT,
+      constants.HV_VNC_BIND_ADDRESS: None,
+      constants.HV_KVM_SPICE_BIND: None,
+      }
+    cons = self.MakeConsole(instance, node, group, hvparams)
+    self.assertEqual(cons.kind, constants.CONS_SSH)
+    self.assertEqual(cons.host, node.name)
+    self.assertEqual(cons.command[0], pathutils.KVM_CONSOLE_WRAPPER)
+    self.assertEqual(cons.command[1], constants.SOCAT_PATH)
+    self.assertEqual(cons.command[6], constants.SERIAL_CONSOLE_TYPE_TIMEOUT)
 
   def testVnc(self):
     instance = objects.Instance(name="kvm.example.com",

@@ -446,6 +446,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
+    constants.HV_SERIAL_CONSOLE_TYPE:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_SERIAL_CONSOLE_TYPES),
     constants.HV_SERIAL_SPEED: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS: hv_base.NO_CHECK, # will be checked later
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
@@ -3322,6 +3324,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
              utils.ShellQuote(cls._InstanceMonitor(instance.name)),
              "STDIO,%s" % cls._SocatUnixConsoleParams(),
              "UNIX-CONNECT:%s" % cls._InstanceSerial(instance.name)]
+      # The console type is passed to the wrapper as an optional extra
+      # argument; the wrapper applies a 60 minutes timeout for "timeout"
+      # and keeps the legacy behavior otherwise.
+      if hvparams.get(constants.HV_SERIAL_CONSOLE_TYPE,
+                      constants.SERIAL_CONSOLE_TYPE_LEGACY) == \
+          constants.SERIAL_CONSOLE_TYPE_TIMEOUT:
+        cmd.append(constants.SERIAL_CONSOLE_TYPE_TIMEOUT)
       ndparams = node_group.FillND(primary_node)
       return objects.InstanceConsole(instance=instance.name,
                                      kind=constants.CONS_SSH,
